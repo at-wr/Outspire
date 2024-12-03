@@ -31,7 +31,11 @@ Outspire is built upon the Web API of TSIMS, utilizing SwiftSoup for HTML parsin
 
 This application is a personal experiment for educational purposes. Any potential issues caused by misuse of this application are not the responsibility of the author of Outspire.
 
-If you encounter any issues, feel free to create an issue or submit a pull request. Your contributions are welcome! >_<
+If you encounter any issues, feel free to create an issue or submit a pull request. Your contributions are welcome!
+
+## Privacy Policy
+
+Outspire does not collect any user data. All data will only be transmitted between the TSIMS server, and the relay instance if you’ve enabled the Relay Encryption.
 
 ## License
 
