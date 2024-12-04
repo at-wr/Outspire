@@ -1,6 +1,5 @@
 import Foundation
 
-// ClubActivities
 struct GroupDropdownResponse: Decodable {
     let groups: [Group]
 }
@@ -35,17 +34,4 @@ struct ActivityRecord: Decodable, Identifiable {
     var C_DurationA: String
     var C_DurationS: String
     var C_Reflection: String
-}
-
-// AccountInfo
-struct LoginResponse: Decodable {
-    let status: String
-}
-
-struct UserInfo: Codable {
-    let studentname: String
-    let nickname: String
-    let studentid: String
-    let studentNo: String
-    let tUsername: String
 }
