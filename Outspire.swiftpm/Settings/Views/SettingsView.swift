@@ -2,26 +2,29 @@ import SwiftUI
 
 struct SettingsView: View {
     @Binding var showSettingsSheet: Bool
-    @State private var selectedSettingsMenu: String?
+    
+    enum SettingsMenu: String, Hashable {
+        case account
+        case general
+        case export
+    }
     
     var body: some View {
-        
-        NavigationView {
+        NavigationStack {
             List {
                 Section {
-                    NavigationLink(destination: AccountDetailsView(), tag: "account", selection: $selectedSettingsMenu) {
+                    NavigationLink(value: SettingsMenu.account) {
                         Label("Account", systemImage: "person.fill.viewfinder")
                     }
-                    
-                    NavigationLink(destination: SettingsGeneralView(), tag: "general", selection: $selectedSettingsMenu) {
+                    NavigationLink(value: SettingsMenu.general) {
                         Label("General", systemImage: "switch.2")
                     }
                 }
                 Section {
-                    NavigationLink(destination: ExportView(), tag: "exp", selection: $selectedSettingsMenu) {
+                    NavigationLink(value: SettingsMenu.export) {
                         Label("Export App Package", systemImage: "shippingbox")
                     }
-                    Link(destination: URL(string:  "mailto:me@wrye.dev")!) {
+                    Link(destination: URL(string: "mailto:me@wrye.dev")!) {
                         Label("E-mail", systemImage: "envelope")
                             .foregroundStyle(.primary)
                     }
@@ -40,15 +43,16 @@ struct SettingsView: View {
                     Image(systemName: "checkmark.circle")
                 })
             }
+            .navigationDestination(for: SettingsMenu.self) { destination in
+                switch destination {
+                case .account:
+                    AccountDetailsView()
+                case .general:
+                    SettingsGeneralView()
+                case .export:
+                    ExportView()
+                }
+            }
         }
-        /*
-        VStack {
-            AccountDetailsView()
-            SettingsGeneralView()
-        }
-        .contentMargins(.vertical, 10)
-        .navigationTitle("Settings")
-         */
     }
 }
-
