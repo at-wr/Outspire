@@ -142,6 +142,9 @@ struct AccountDetailsView: View {
                             .contentMargins(.top, 10)
                     }
                 }
+                .onAppear {
+                    sessionManager.refreshUserInfo()
+                }
                 .navigationTitle("Account Details")
                 .contentMargins(.vertical, 10.0)
             }

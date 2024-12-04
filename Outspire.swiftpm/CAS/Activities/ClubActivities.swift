@@ -33,7 +33,7 @@ struct ClubActivitiesView: View {
                     }
                     
                     List {
-                        ForEach($activities, id: \.C_ARecordID) { $activity in // 注意这里使用 $activity
+                        ForEach($activities, id: \.C_ARecordID) { $activity in
                             VStack(alignment: .leading) {
                                 Text("\(activity.C_Theme)")
                                     .fontWeight(.semibold)
@@ -72,13 +72,13 @@ struct ClubActivitiesView: View {
                             .padding(.bottom, 10)
                             .swipeActions(edge: .trailing) {
                                 Button(role: .destructive) {
-                                    recordToDelete = activity // 这里使用解包后的 activity
+                                    recordToDelete = activity
                                     showingDeleteConfirmation = true
                                 } label: {
                                     Label("Delete", systemImage: "trash")
                                 }
                                 Button {
-                                    copyActivityToClipboard(activity) // 这里使用解包后的 activity
+                                    copyActivityToClipboard(activity)
                                 } label: {
                                     Label("Copy", systemImage: "doc.on.doc")
                                 }
@@ -90,6 +90,9 @@ struct ClubActivitiesView: View {
                 if let errorMessage = errorMessage {
                     Text(errorMessage).foregroundColor(.red)
                 }
+            }
+            .onAppear {
+                sessionManager.refreshUserInfo()
             }
             .navigationTitle("Club Activities")
             .contentMargins(.vertical, 10.0)
@@ -109,6 +112,7 @@ struct ClubActivitiesView: View {
                     )
                 } else {
                     Text("Unable to retrieve user ID.")
+                    Text("Maybe you haven't logged in yet?")
                 }
             }
             .actionSheet(isPresented: $showingDeleteConfirmation) {

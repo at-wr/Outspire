@@ -18,6 +18,7 @@ struct TodayView: View {
     }
     
     var body: some View {
+        VStack {
             if let nickname = sessionManager.userInfo?.nickname {
                 VStack {
                     Text("\(greeting), \(nickname)")
@@ -36,6 +37,10 @@ struct TodayView: View {
                         .foregroundStyle(.tertiary)
                 }
             }
+        }
+        .onAppear {
+            sessionManager.refreshUserInfo()
+        }
             
         // .navigationTitle("\(greeting), \(sessionManager.userInfo?.nickname ?? "Welcome")")
     }
