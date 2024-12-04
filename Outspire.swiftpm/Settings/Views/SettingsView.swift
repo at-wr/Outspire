@@ -19,17 +19,25 @@ struct SettingsView: View {
                     NavigationLink(value: SettingsMenu.general) {
                         Label("General", systemImage: "switch.2")
                     }
-                }
-                Section {
                     NavigationLink(value: SettingsMenu.export) {
                         Label("Export App Package", systemImage: "shippingbox")
                     }
+                }
+                Section {
                     Link(destination: URL(string: "mailto:me@wrye.dev")!) {
                         Label("E-mail", systemImage: "envelope")
                             .foregroundStyle(.primary)
                     }
+                    Link(destination: URL(string: "https://github.com/at-wr/Outspire/issues/new/choose")!) {
+                        Label("Report an Issue", systemImage: "tray.and.arrow.down")
+                            .foregroundStyle(.primary)
+                    }
+                    Link(destination: URL(string: "https://github.com/at-wr/Outspire/")!) {
+                        Label("GitHub", systemImage: "link")
+                            .foregroundStyle(.primary)
+                    }
                 } footer: {
-                    Text("Made by Alan Ye @WFLA\nThis app was created entirely with Swift Playground.")
+                    Text("Made by Alan Ye @WFLA\nThis app was created entirely with Swift Playground.\nLicensed under AGPLv3.")
                         .font(.caption)
                         .contentMargins(.top, 10)
                 }
