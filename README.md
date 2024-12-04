@@ -25,6 +25,10 @@ Work in Progress (WIP):
 - Academic Score
 - …
 
+## Preview Screenshot
+
+![Screenshot of adding Activity Record](https://i.imgur.com/29hYWLc.png)
+
 ## Third-party Usage and Disclaimer
 
 Outspire is built upon the Web API of TSIMS, utilizing SwiftSoup for HTML parsing. [Easy-TSIMS](https://github.com/Computerization/Easy-TSIMS) by [Computerization](https://github.com/Computerization/) and [Joshua Chen](https://github.com/Josh-Cena) is used as an encrypted relay instance.
