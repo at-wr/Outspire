@@ -24,22 +24,21 @@ struct SettingsView: View {
                     }
                 }
                 Section {
-                    Link(destination: URL(string: "mailto:me@wrye.dev")!) {
-                        Label("E-mail", systemImage: "envelope")
+                    Link(destination: URL(string: "https://github.com/at-wr/Outspire/")!) {
+                        Label("GitHub Repository", systemImage: "globe.asia.australia")
+                            .foregroundStyle(.primary)
+                    }
+                    Link(destination: URL(string: "https://github.com/at-wr/Outspire?tab=readme-ov-file#privacy-policy")!) {
+                        Label("Privacy Policy", systemImage: "hand.raised")
                             .foregroundStyle(.primary)
                     }
                     Link(destination: URL(string: "https://github.com/at-wr/Outspire/issues/new/choose")!) {
                         Label("Report an Issue", systemImage: "tray.and.arrow.down")
                             .foregroundStyle(.primary)
                     }
-                    Link(destination: URL(string: "https://github.com/at-wr/Outspire/")!) {
-                        Label("GitHub", systemImage: "link")
-                            .foregroundStyle(.primary)
-                    }
                 } footer: {
-                    Text("Made by Alan Ye @WFLA\nThis app was created entirely with Swift Playground.\nLicensed under AGPLv3.")
+                    Text("Made by Alan Ye @WFLA\nThis is an open-source project, licensed under AGPLv3.\nPlease leave a star on GitHub if you like ✨")
                         .font(.caption)
-                        .contentMargins(.top, 10)
                 }
             }
             .contentMargins(.top, 10)
