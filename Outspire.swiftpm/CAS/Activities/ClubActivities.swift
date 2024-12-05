@@ -17,10 +17,17 @@ struct ClubActivitiesView: View {
             Form {
                 if groups.isEmpty {
                     if isLoadingGroups {
-                        ProgressView("Loading Groups...")
+                        ProgressView("Loading...")
                     } else {
-                        Text("No groups available.")
-                            .foregroundColor(.red)
+                        if ((sessionManager.userInfo) != nil) {
+                            Text("No clubs available.")
+                                .foregroundStyle(.red)
+                            Text("Try joining some to continue?")
+                                .foregroundStyle(.secondary)
+                        } else {
+                            Text("Please sign in with TSIMS to continue...")
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 } else {
                     Picker("Select Group", selection: $selectedGroupId) {
@@ -111,8 +118,13 @@ struct ClubActivitiesView: View {
                         onSave: { fetchActivityRecords() }
                     )
                 } else {
-                    Text("Unable to retrieve user ID.")
+                    Text(">_<")
+                        .foregroundStyle(.primary)
+                        .font(.title2)
                     Text("Maybe you haven't logged in yet?")
+                        .foregroundStyle(.primary)
+                    Text("Unable to retrieve user ID.")
+                        .foregroundStyle(.secondary)
                 }
             }
             .actionSheet(isPresented: $showingDeleteConfirmation) {
