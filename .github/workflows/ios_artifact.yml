@@ -19,6 +19,7 @@ jobs:
       run: |
         xcodebuild -workspace Outspire.swiftpm \
                    -scheme "Outspire" \
+                   -destination 'platform=iOS' \
                    -configuration Release \
                    archive \
                    -archivePath ./build/Outspire.xcarchive \
