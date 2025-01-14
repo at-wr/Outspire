@@ -32,10 +32,11 @@ jobs:
       run: |
         mkdir Payload
         cp -R ./build/Outspire.xcarchive/Products/Applications/*.app Payload/
-        zip -r Outspire.ipa Payload
+        zip -0 -y -r Outspire.ipa Payload
+      # Reference: https://en.wikipedia.org/wiki/.ipa#Unsigned_.ipa_executables
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: Outspire-unsigned.ipa
+        name: Outspire-unsigned.ipa.zip
         path: Outspire.ipa
