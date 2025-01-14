@@ -1,4 +1,5 @@
 # Outspire
+[![Build & Test](https://github.com/at-wr/Outspire/actions/workflows/build_test.yml/badge.svg)](https://github.com/at-wr/Outspire/actions/workflows/build_test.yml)
 
 A simple iOS app for WFLA TSIMS built with SwiftUI.
 
