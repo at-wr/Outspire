@@ -35,7 +35,7 @@ jobs:
         zip -r Outspire.ipa Payload
 
     - name: Upload Artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: Outspire-unsigned.ipa
         path: Outspire.ipa
