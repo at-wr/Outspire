@@ -20,6 +20,7 @@ jobs:
         xcodebuild -workspace Outspire.swiftpm \
                    -scheme "Outspire" \
                    PRODUCT_BUNDLE_IDENTIFIER="dev.wrye.Outspire" \
+                   -sdk iphoneos \
                    -destination 'platform=iOS' \
                    -configuration Release \
                    archive \
@@ -38,5 +39,5 @@ jobs:
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: Outspire-unsigned.ipa.zip
+        name: Outspire-unsigned.ipa
         path: Outspire.ipa
