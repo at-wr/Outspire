@@ -1,46 +1,44 @@
 # Outspire
-[![Build & Test](https://github.com/at-wr/Outspire/actions/workflows/build_test.yml/badge.svg)](https://github.com/at-wr/Outspire/actions/workflows/build_test.yml)
+[![Xcode Build & Test](https://github.com/at-wr/Outspire/actions/workflows/build_test.yml/badge.svg)](https://github.com/at-wr/Outspire/actions/workflows/build_test.yml)
 
-A simple iOS app for WFLA TSIMS built with SwiftUI.
+A iOS app for WFLA TSIMS built with SwiftUI, which is also compatible with macOS.
 
 ## Overview
 
 - Written in Swift with SwiftUI on Swift Playground
 - Can be generally used
 
-The current features include:
+## Features
 
-- Account Management
-- Class Table
-- Club Info
-  - Category Picker
-  - Member List (unstable)
-- CAS Activity
-  - Activity History View
-  - Activity Management
-  - Add New Activity Record
-- Relay Encryption
-
-Work in Progress (WIP):
-- Today View
-- Academic Score
-- …
+- [x] Account Management
+- [x] Class Table
+- [x] Club Info
+- [x] Category Picker
+- [x] Member List (unstable)
+- [x] CAS Activity
+- [x] Activity History View
+- [x] Activity Management
+- [x] Add New Activity Record
+- [x] Relay Encryption
+- [ ] Today View
+- [ ] Academic Score
+- [ ] …
 
 ## Preview Screenshot
 
 ![Screenshot of adding Activity Record](https://i.imgur.com/29hYWLc.png)
 
-## Third-party Usage and Disclaimer
+## Third-Party Usage and Disclaimer
 
-Outspire is built upon the Web API of TSIMS, utilizing SwiftSoup for HTML parsing. [Easy-TSIMS](https://github.com/Computerization/Easy-TSIMS) by [Computerization](https://github.com/Computerization/) and [Joshua Chen](https://github.com/Josh-Cena) is used as an encrypted relay instance.
+Outspire is built on the Web API of TSIMS, utilizing SwiftSoup for HTML parsing. [Easy-TSIMS](https://github.com/Computerization/Easy-TSIMS) by [Computerization](https://github.com/Computerization/) and [Joshua Chen](https://github.com/Josh-Cena) is used as an encrypted relay instance.
 
 This application is a personal experiment for educational purposes. Any potential issues caused by misuse of this application are not the responsibility of the author of Outspire.
 
-If you encounter any issues, feel free to create an issue or submit a pull request. And if you like this project, please give me a star! All kinds of contributions are welcome.
+If you encounter any issues, please create an issue or submit a pull request. If you like this project, please consider giving it a star! All kinds of contributions are welcome.
 
 ## Privacy Policy
 
-Outspire does not collect any user data. All data will only be transmitted between the TSIMS server, the relay instance, if you’ve enabled the Relay Encryption, and your device.
+Outspire doesn't collect any user data. Only data will be transmitted between the TSIMS server, the relay instance, and your device if you’ve enabled Relay Encryption.
 
 ## License
 
