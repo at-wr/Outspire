@@ -62,6 +62,24 @@ class ClubActivitiesViewModel: ObservableObject {
         return (currentTime - lastUpdate) < cacheDuration
     }
     
+    // Async version for refreshable support
+    @MainActor
+    func fetchGroupsAsync(forceRefresh: Bool = false) async {
+        await withCheckedContinuation { continuation in
+            fetchGroups(forceRefresh: forceRefresh)
+            continuation.resume()
+        }
+    }
+    
+    // Async version for refreshable support
+    @MainActor
+    func fetchActivityRecordsAsync(forceRefresh: Bool = false) async {
+        await withCheckedContinuation { continuation in
+            fetchActivityRecords(forceRefresh: forceRefresh)
+            continuation.resume()
+        }
+    }
+    
     func fetchGroups(forceRefresh: Bool = false) {
         // If we have cached data and not forcing a refresh, don't fetch
         if !forceRefresh && !groups.isEmpty {
@@ -135,7 +153,7 @@ class ClubActivitiesViewModel: ObservableObject {
         ) { [weak self] (result: Result<ActivityResponse, NetworkError>) in
             guard let self = self else { return }
             
-            // Add a slight delay to ensure skeleton view is shown (only if needed)
+            // Use a slightly longer minimum delay to ensure smooth transitions
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
                 self.isLoadingActivities = false
                 
@@ -156,6 +174,9 @@ class ClubActivitiesViewModel: ObservableObject {
         let parameters = ["recordid": record.C_ARecordID]
         errorMessage = nil
         
+        // Add haptic feedback
+        HapticManager.shared.playFeedback(.medium)
+        
         NetworkService.shared.request(
             endpoint: "cas_delete_record_info.php",
             parameters: parameters,
@@ -166,10 +187,20 @@ class ClubActivitiesViewModel: ObservableObject {
             switch result {
             case .success(let response):
                 if response["status"] == "ok" {
-                    withAnimation {
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                         self.activities.removeAll { $0.C_ARecordID == record.C_ARecordID }
                         // Update cache after deletion
                         self.cacheActivities(for: self.selectedGroupId, activities: self.activities)
+                        self.errorMessage = "Record deleted successfully"
+                        
+                        // Auto-dismiss the success message after 2 seconds
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                            withAnimation(.easeOut(duration: 0.3)) {
+                                if self.errorMessage == "Record deleted successfully" {
+                                    self.errorMessage = nil
+                                }
+                            }
+                        }
                     }
                 } else {
                     self.errorMessage = response["status"] ?? "Unknown error"
@@ -181,6 +212,9 @@ class ClubActivitiesViewModel: ObservableObject {
     }
     
     func copyActivityToClipboard(_ activity: ActivityRecord) {
+        // Add haptic feedback for better user experience
+        HapticManager.shared.playFeedback(.light)
+        
         let activityInfo = """
         Theme: \(activity.C_Theme)
         Date: \(activity.C_Date)
@@ -189,13 +223,13 @@ class ClubActivitiesViewModel: ObservableObject {
         """
         UIPasteboard.general.string = activityInfo
         
-        withAnimation {
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
             errorMessage = "Activity copied to clipboard!"
         }
         
-        // Auto-dismiss the message after 3 seconds
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
-            withAnimation {
+        // Auto-dismiss the message after 2 seconds
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
+            withAnimation(.easeOut(duration: 0.3)) {
                 if self?.errorMessage == "Activity copied to clipboard!" {
                     self?.errorMessage = nil
                 }
