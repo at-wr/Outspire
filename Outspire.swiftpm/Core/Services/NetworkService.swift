@@ -31,12 +31,21 @@ enum NetworkError: Error {
     }
 }
 
+/// A service that handles all network requests to the TSIMS API.
+/// 
+/// This class provides methods for making HTTP requests and handling responses.
+/// It includes functionality for managing session cookies, handling parameters,
+/// and decoding JSON responses.
 class NetworkService {
-    static let shared = NetworkService()
+    // Add documentation to key methods...
     
-    private init() {}
-    
-    // Generic request function that infers type from completion handler
+    /// Performs a network request with optional parameters and session ID
+    /// - Parameters:
+    ///   - endpoint: The API endpoint path
+    ///   - method: The HTTP method to use (default: .post)
+    ///   - parameters: Optional URL parameters to include in the request
+    ///   - sessionId: Optional session ID for authentication
+    ///   - completion: Closure called with the result of the network request
     func request<T>(
         endpoint: String,
         method: HTTPMethod = .post,
