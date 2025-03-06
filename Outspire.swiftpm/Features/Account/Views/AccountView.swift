@@ -81,7 +81,11 @@ struct AccountView: View {
                         Text("Sign Out")
                             .foregroundColor(.red)
                     }
-                    .confirmationDialog("Are you sure you want to sign out?", isPresented: $showLogoutConfirmation) {
+                    .confirmationDialog(
+                        "Are you sure you want to sign out?", 
+                        isPresented: $showLogoutConfirmation,
+                        titleVisibility: .visible
+                    ) {
                         Button("Sign Out", role: .destructive, action: viewModel.logout)
                         Button("Cancel", role: .cancel) {}
                     }

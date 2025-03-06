@@ -11,19 +11,27 @@ extension UTType
 
 struct IPAFile: FileDocument
 {
-    let file: FileWrapper
+    private var _file: Any
+    
+    var file: FileWrapper {
+        return _file as! FileWrapper
+    }
+    
+    init(file: FileWrapper) {
+        self._file = file
+    }
     
     static var readableContentTypes: [UTType] { [.ipa] }
     static var writableContentTypes: [UTType] { [.ipa] }
     
     init(ipaURL: URL) throws
     {
-        self.file = try FileWrapper(url: ipaURL, options: .immediate)
+        self._file = try FileWrapper(url: ipaURL, options: .immediate)
     }
     
     init(configuration: ReadConfiguration) throws 
     {
-        self.file = configuration.file
+        self._file = configuration.file
     }
     
     func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper 

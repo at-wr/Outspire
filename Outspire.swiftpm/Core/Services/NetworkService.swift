@@ -12,6 +12,23 @@ enum NetworkError: Error {
     case requestFailed(Error)
     case serverError(Int)
     case unauthorized
+    
+    var localizedDescription: String {
+        switch self {
+        case .invalidURL:
+            return "Invalid URL"
+        case .noData:
+            return "No data received"
+        case .decodingError(let error):
+            return "Failed to decode response: \(error.localizedDescription)"
+        case .requestFailed(let error):
+            return "Request failed: \(error.localizedDescription)"
+        case .serverError(let code):
+            return "Server error with code: \(code)"
+        case .unauthorized:
+            return "Unauthorized access"
+        }
+    }
 }
 
 class NetworkService {
@@ -41,10 +58,8 @@ class NetworkService {
         request.allHTTPHeaderFields = headers
         
         if let parameters = parameters {
-            let queryItems = parameters.map { URLQueryItem(name: $0.key, value: $0.value) }
-            var components = URLComponents()
-            components.queryItems = queryItems
-            request.httpBody = components.query?.data(using: .utf8)
+            let paramString = parameters.map { "\($0.key)=\($0.value)" }.joined(separator: "&")
+            request.httpBody = paramString.data(using: .utf8)
         }
         
         URLSession.shared.dataTask(with: request) { data, response, error in

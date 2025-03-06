@@ -14,10 +14,7 @@ class ClasstableViewModel: ObservableObject {
         isLoadingYears = true
         errorMessage = nil
         
-        NetworkService.shared.request<[Year]>(
-            endpoint: "init_year_dropdown.php",
-            sessionId: sessionService.sessionId
-        ) { [weak self] result in
+        let completion: (Result<[Year], NetworkError>) -> Void = { [weak self] result in
             guard let self = self else { return }
             self.isLoadingYears = false
             
@@ -29,9 +26,15 @@ class ClasstableViewModel: ObservableObject {
                     self.fetchTimetable()
                 }
             case .failure(let error):
-                self.errorMessage = "Failed to load years: \(error)"
+                self.errorMessage = "Failed to load years: \(error.localizedDescription)"
             }
         }
+        
+        NetworkService.shared.request(
+            endpoint: "init_year_dropdown.php",
+            sessionId: sessionService.sessionId,
+            completion: completion
+        )
     }
     
     func fetchTimetable() {
