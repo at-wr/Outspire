@@ -119,7 +119,7 @@ struct ClubActivitiesView: View {
             // Group Selector Section
             Section {
                 if !viewModel.groups.isEmpty {
-                    Picker("Select Group", selection: $viewModel.selectedGroupId) {
+                    Picker("Club", selection: $viewModel.selectedGroupId) {
                         ForEach(viewModel.groups) { group in
                             Text(group.C_NameE).tag(group.C_GroupsID)
                         }
@@ -343,15 +343,28 @@ struct ActivityCardView: View {
     }
     
     // Format date to be more user-friendly
+    // Format date to be more user-friendly and respect user's locale settings
     private func formatDate(_ dateString: String) -> String {
         let inputFormatter = DateFormatter()
-        inputFormatter.dateFormat = "yyyy-MM-dd"
+        inputFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
         
-        let outputFormatter = DateFormatter()
-        outputFormatter.dateFormat = "MMM d, yyyy"
+        // If the simple format doesn't work, try with just the date part
+        if inputFormatter.date(from: dateString) == nil {
+            inputFormatter.dateFormat = "yyyy-MM-dd"
+        }
         
         if let date = inputFormatter.date(from: dateString) {
+            // Use the user's preferred date format
+            let outputFormatter = DateFormatter()
+            outputFormatter.dateStyle = .medium
+            outputFormatter.timeStyle = .none
+            
             return outputFormatter.string(from: date)
+        }
+        
+        // If parsing fails, just return the date part of the string
+        if dateString.contains(" ") {
+            return String(dateString.split(separator: " ")[0])
         }
         return dateString
     }
