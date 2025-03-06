@@ -11,9 +11,63 @@ class ClubActivitiesViewModel: ObservableObject {
     @Published var recordToDelete: ActivityRecord?
     private var hasAttemptedInitialLoad = false
     
+    // Cache-related properties
+    private var cachedActivities: [String: [ActivityRecord]] = [:]
+    private let cacheTimestampKey = "clubActivitiesCacheTimestamp"
+    private let cacheDuration: TimeInterval = 300 // 5 minutes cache validity
+    
     private let sessionService = SessionService.shared
     
-    func fetchGroups() {
+    init() {
+        // Load cached groups on init if available
+        if let cachedGroupsData = UserDefaults.standard.data(forKey: "cachedClubGroups"),
+           let groups = try? JSONDecoder().decode([ClubGroup].self, from: cachedGroupsData) {
+            self.groups = groups
+            
+            // Select the previously selected group id if available
+            if let savedGroupId = UserDefaults.standard.string(forKey: "selectedClubGroupId") {
+                self.selectedGroupId = savedGroupId
+                
+                // Load cached activities for this group if available
+                loadCachedActivities(for: savedGroupId)
+            } else if let firstGroup = groups.first {
+                self.selectedGroupId = firstGroup.C_GroupsID
+            }
+        }
+    }
+    
+    private func loadCachedActivities(for groupId: String) {
+        if let cachedData = UserDefaults.standard.data(forKey: "cachedActivities-\(groupId)"),
+           let activities = try? JSONDecoder().decode([ActivityRecord].self, from: cachedData) {
+            self.activities = activities
+        }
+    }
+    
+    private func cacheActivities(for groupId: String, activities: [ActivityRecord]) {
+        if let encodedData = try? JSONEncoder().encode(activities) {
+            UserDefaults.standard.set(encodedData, forKey: "cachedActivities-\(groupId)")
+            UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: cacheTimestampKey)
+        }
+    }
+    
+    private func cacheGroups(_ groups: [ClubGroup]) {
+        if let encodedData = try? JSONEncoder().encode(groups) {
+            UserDefaults.standard.set(encodedData, forKey: "cachedClubGroups")
+        }
+    }
+    
+    func isCacheValid() -> Bool {
+        let lastUpdate = UserDefaults.standard.double(forKey: cacheTimestampKey)
+        let currentTime = Date().timeIntervalSince1970
+        return (currentTime - lastUpdate) < cacheDuration
+    }
+    
+    func fetchGroups(forceRefresh: Bool = false) {
+        // If we have cached data and not forcing a refresh, don't fetch
+        if !forceRefresh && !groups.isEmpty {
+            return
+        }
+        
         guard !isLoadingGroups else { return }
         
         isLoadingGroups = true
@@ -32,9 +86,14 @@ class ClubActivitiesViewModel: ObservableObject {
                 switch result {
                 case .success(let response):
                     self.groups = response.groups
+                    self.cacheGroups(response.groups)
                     
-                    if let firstGroup = self.groups.first {
+                    if self.selectedGroupId.isEmpty, let firstGroup = self.groups.first {
                         self.selectedGroupId = firstGroup.C_GroupsID
+                        UserDefaults.standard.set(firstGroup.C_GroupsID, forKey: "selectedClubGroupId")
+                        self.fetchActivityRecords()
+                    } else if !self.selectedGroupId.isEmpty {
+                        // If we already had a selected group (from cache), fetch its activities
                         self.fetchActivityRecords()
                     }
                 case .failure(let error):
@@ -44,16 +103,28 @@ class ClubActivitiesViewModel: ObservableObject {
         }
     }
     
-    func fetchActivityRecords() {
+    func fetchActivityRecords(forceRefresh: Bool = false) {
         guard !selectedGroupId.isEmpty else {
             errorMessage = "Please select a group."
             return
         }
         
-        guard !isLoadingActivities else { return }
+        // If we're not forcing a refresh and we're already loading, return
+        if !forceRefresh && isLoadingActivities {
+            return
+        }
+        
+        // If we have cached activities and cache is still valid, use them unless force refresh
+        if !forceRefresh && isCacheValid() {
+            loadCachedActivities(for: selectedGroupId)
+            // Still fetch in background to update cache
+        }
         
         isLoadingActivities = true
         errorMessage = nil
+        
+        // Store the selected group ID
+        UserDefaults.standard.set(selectedGroupId, forKey: "selectedClubGroupId")
         
         let parameters = ["groupid": selectedGroupId]
         
@@ -64,7 +135,7 @@ class ClubActivitiesViewModel: ObservableObject {
         ) { [weak self] (result: Result<ActivityResponse, NetworkError>) in
             guard let self = self else { return }
             
-            // Add a slight delay to ensure skeleton view is shown
+            // Add a slight delay to ensure skeleton view is shown (only if needed)
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
                 self.isLoadingActivities = false
                 
@@ -72,6 +143,7 @@ class ClubActivitiesViewModel: ObservableObject {
                 case .success(let response):
                     withAnimation {
                         self.activities = response.casRecord
+                        self.cacheActivities(for: self.selectedGroupId, activities: response.casRecord)
                     }
                 case .failure(let error):
                     self.errorMessage = "Failed to load activities: \(error.localizedDescription)"
@@ -96,6 +168,8 @@ class ClubActivitiesViewModel: ObservableObject {
                 if response["status"] == "ok" {
                     withAnimation {
                         self.activities.removeAll { $0.C_ARecordID == record.C_ARecordID }
+                        // Update cache after deletion
+                        self.cacheActivities(for: self.selectedGroupId, activities: self.activities)
                     }
                 } else {
                     self.errorMessage = response["status"] ?? "Unknown error"

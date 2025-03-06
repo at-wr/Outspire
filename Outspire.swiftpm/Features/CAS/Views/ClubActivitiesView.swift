@@ -11,6 +11,31 @@ struct ClubActivitiesView: View {
             .contentMargins(.vertical, 10.0)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
+                    if viewModel.isLoadingActivities || viewModel.isLoadingGroups {
+                        ProgressView()
+                            .controlSize(.small)
+                    }
+                }
+                
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: {
+                        if viewModel.isLoadingActivities {
+                            // Don't allow multiple refresh requests
+                            return
+                        }
+                        
+                        if viewModel.groups.isEmpty {
+                            viewModel.fetchGroups(forceRefresh: true)
+                        } else {
+                            viewModel.fetchActivityRecords(forceRefresh: true)
+                        }
+                    }) {
+                        Image(systemName: "arrow.clockwise")
+                    }
+                    .disabled(viewModel.isLoadingActivities || viewModel.isLoadingGroups)
+                }
+                
+                ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: { showingAddRecordSheet.toggle() }) {
                         Image(systemName: "square.and.pencil")
                     }
@@ -22,7 +47,7 @@ struct ClubActivitiesView: View {
                     AddRecordSheet(
                         availableGroups: viewModel.groups,
                         loggedInStudentId: userId,
-                        onSave: { viewModel.fetchActivityRecords() }
+                        onSave: { viewModel.fetchActivityRecords(forceRefresh: true) }
                     )
                 } else {
                     VStack(spacing: 10) {
@@ -52,27 +77,14 @@ struct ClubActivitiesView: View {
                 message: { Text("Are you sure you want to delete this record?") }
             )
             .onAppear {
+                // On appear, check if we need to refresh data
                 if viewModel.groups.isEmpty {
                     viewModel.fetchGroups()
+                } else if !viewModel.isCacheValid() {
+                    // Cache expired, refresh data
+                    viewModel.fetchActivityRecords(forceRefresh: true)
                 }
             }
-            .overlay {
-                if viewModel.isLoadingGroups, viewModel.groups.isEmpty {
-                    initialLoadingView
-                }
-            }
-    }
-    
-    // Initial loading view when nothing has loaded yet
-    private var initialLoadingView: some View {
-        VStack(spacing: 16) {
-            ProgressView()
-                .controlSize(.large)
-            Text("Loading club groups...")
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(UIColor.systemBackground))
     }
     
     // Main content based on the state
@@ -99,14 +111,15 @@ struct ClubActivitiesView: View {
                     if sessionService.userInfo != nil {
                         ErrorView(
                             errorMessage: "No clubs available. Try joining some to continue?",
-                            retryAction: viewModel.fetchGroups
+                            retryAction: { viewModel.fetchGroups(forceRefresh: true) }
                         )
                     } else {
                         ErrorView(
                             errorMessage: "Please sign in with TSIMS to continue..."
                         )
                     }
-                } else if viewModel.isLoadingActivities {
+                } else if viewModel.isLoadingActivities && viewModel.activities.isEmpty {
+                    // Only show skeleton when we don't have any data yet
                     ActivitySkeletonView()
                         .listRowInsets(EdgeInsets())
                         .listRowBackground(Color.clear)
@@ -120,6 +133,7 @@ struct ClubActivitiesView: View {
                 } else {
                     activitiesList
                         .transition(.opacity)
+                        .opacity(viewModel.isLoadingActivities ? 0.6 : 1.0) // Dim while refreshing
                 }
             }
             
@@ -134,6 +148,14 @@ struct ClubActivitiesView: View {
         .animation(.easeInOut(duration: 0.3), value: viewModel.isLoadingActivities)
         .animation(.easeInOut(duration: 0.3), value: viewModel.activities.isEmpty)
         .animation(.easeInOut(duration: 0.3), value: viewModel.errorMessage)
+        .refreshable {
+            // Pull to refresh
+            if viewModel.groups.isEmpty {
+                viewModel.fetchGroups(forceRefresh: true)
+            } else {
+                viewModel.fetchActivityRecords(forceRefresh: true)
+            }
+        }
     }
     
     // Extract activities list to a separate view for better organization
