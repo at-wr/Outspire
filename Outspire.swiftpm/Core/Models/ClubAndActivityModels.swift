@@ -57,7 +57,7 @@ struct GroupDropdownResponse: Decodable {
     let groups: [ClubGroup]
 }
 
-struct ClubGroup: Decodable, Identifiable, Hashable {
+struct ClubGroup: Codable, Identifiable, Hashable {
     let C_GroupsID: String
     let C_GroupNo: String
     let C_NameC: String
@@ -78,7 +78,7 @@ struct ActivityResponse: Decodable {
     let casRecord: [ActivityRecord]
 }
 
-struct ActivityRecord: Decodable, Identifiable {
+struct ActivityRecord: Codable, Identifiable {
     var id: String { C_ARecordID } // Conform to Identifiable for List
     var C_ARecordID: String
     var C_Theme: String

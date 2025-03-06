@@ -57,7 +57,6 @@ struct ClubActivitiesView: View {
                         loggedInStudentId: userId,
                         onSave: { viewModel.fetchActivityRecords(forceRefresh: true) }
                     )
-                    .presentationDetents([.medium, .large])
                 } else {
                     VStack(spacing: 10) {
                         Text(">_<")
@@ -244,8 +243,9 @@ struct ClubActivitiesView: View {
     private var activitiesList: some View {
         ForEach(Array(viewModel.activities.enumerated()), id: \.element.id) { index, activity in
             ActivityCardView(activity: activity, viewModel: viewModel)
-                .listRowInsets(EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12))
+                .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
                 .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
                 .offset(x: animateList ? 0 : 100, y: 0)
                 .opacity(animateList ? 1 : 0)
                 .animation(
@@ -305,7 +305,7 @@ struct ActivityCardView: View {
             ReflectionView(text: activity.C_Reflection)
         }
         .padding(.vertical, 10)
-        .padding(.horizontal, 6)
+        .padding(.horizontal, 12)
         .background(
             RoundedRectangle(cornerRadius: 12)
                 .fill(Color(UIColor.secondarySystemBackground))
