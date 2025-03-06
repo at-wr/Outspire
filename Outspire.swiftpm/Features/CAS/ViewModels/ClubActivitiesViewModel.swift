@@ -9,10 +9,13 @@ class ClubActivitiesViewModel: ObservableObject {
     @Published var isLoadingActivities: Bool = false
     @Published var showingDeleteConfirmation = false
     @Published var recordToDelete: ActivityRecord?
+    private var hasAttemptedInitialLoad = false
     
     private let sessionService = SessionService.shared
     
     func fetchGroups() {
+        guard !isLoadingGroups else { return }
+        
         isLoadingGroups = true
         errorMessage = nil
         
@@ -21,18 +24,22 @@ class ClubActivitiesViewModel: ObservableObject {
             sessionId: sessionService.sessionId
         ) { [weak self] (result: Result<GroupDropdownResponse, NetworkError>) in
             guard let self = self else { return }
-            self.isLoadingGroups = false
             
-            switch result {
-            case .success(let response):
-                self.groups = response.groups
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                self.isLoadingGroups = false
+                self.hasAttemptedInitialLoad = true
                 
-                if let firstGroup = self.groups.first {
-                    self.selectedGroupId = firstGroup.C_GroupsID
-                    self.fetchActivityRecords()
+                switch result {
+                case .success(let response):
+                    self.groups = response.groups
+                    
+                    if let firstGroup = self.groups.first {
+                        self.selectedGroupId = firstGroup.C_GroupsID
+                        self.fetchActivityRecords()
+                    }
+                case .failure(let error):
+                    self.errorMessage = "Failed to load groups: \(error.localizedDescription)"
                 }
-            case .failure(let error):
-                self.errorMessage = "Failed to load groups: \(error.localizedDescription)"
             }
         }
     }
@@ -42,6 +49,8 @@ class ClubActivitiesViewModel: ObservableObject {
             errorMessage = "Please select a group."
             return
         }
+        
+        guard !isLoadingActivities else { return }
         
         isLoadingActivities = true
         errorMessage = nil
@@ -54,13 +63,19 @@ class ClubActivitiesViewModel: ObservableObject {
             sessionId: sessionService.sessionId
         ) { [weak self] (result: Result<ActivityResponse, NetworkError>) in
             guard let self = self else { return }
-            self.isLoadingActivities = false
             
-            switch result {
-            case .success(let response):
-                self.activities = response.casRecord
-            case .failure(let error):
-                self.errorMessage = "Failed to load activities: \(error.localizedDescription)"
+            // Add a slight delay to ensure skeleton view is shown
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
+                self.isLoadingActivities = false
+                
+                switch result {
+                case .success(let response):
+                    withAnimation {
+                        self.activities = response.casRecord
+                    }
+                case .failure(let error):
+                    self.errorMessage = "Failed to load activities: \(error.localizedDescription)"
+                }
             }
         }
     }
@@ -99,6 +114,18 @@ class ClubActivitiesViewModel: ObservableObject {
         Reflection: \(activity.C_Reflection)
         """
         UIPasteboard.general.string = activityInfo
-        errorMessage = "Activity copied to clipboard!"
+        
+        withAnimation {
+            errorMessage = "Activity copied to clipboard!"
+        }
+        
+        // Auto-dismiss the message after 3 seconds
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
+            withAnimation {
+                if self?.errorMessage == "Activity copied to clipboard!" {
+                    self?.errorMessage = nil
+                }
+            }
+        }
     }
 }
