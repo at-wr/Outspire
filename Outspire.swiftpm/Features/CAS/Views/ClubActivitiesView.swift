@@ -361,6 +361,7 @@ struct ActivityCardView: View {
 struct ReflectionView: View {
     let text: String
     @State private var isExpanded = false
+    @State private var buttonScale = 1.0
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -373,14 +374,35 @@ struct ReflectionView: View {
                 .font(.body)
                 .lineLimit(isExpanded ? nil : 3)
                 .foregroundStyle(.primary)
+                .fixedSize(horizontal: false, vertical: true)
+                .animation(.easeOut(duration: 0.3), value: isExpanded)
             
             if text.count > 100 {
-                Button(action: { isExpanded.toggle() }) {
-                    Text(isExpanded ? "Show Less" : "Show More")
-                        .font(.caption)
-                        .foregroundStyle(.blue)
-                        .padding(.top, 4)
+                Button {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                        isExpanded.toggle()
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Text(isExpanded ? "Show Less" : "Show More")
+                            .font(.caption)
+                            .foregroundStyle(.blue)
+                        
+                        Image(systemName: "chevron.down")
+                            .font(.caption)
+                            .foregroundStyle(.blue)
+                            .rotationEffect(.degrees(isExpanded ? 180 : 0))
+                            .animation(.spring(response: 0.35, dampingFraction: 0.7), value: isExpanded)
+                    }
+                    .padding(.top, 4)
+                    .scaleEffect(buttonScale)
                 }
+                .buttonStyle(.plain)
+                .onLongPressGesture(minimumDuration: .infinity, maximumDistance: .infinity, pressing: { isPressing in
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        buttonScale = isPressing ? 0.92 : 1.0
+                    }
+                }, perform: {})
             }
         }
     }
