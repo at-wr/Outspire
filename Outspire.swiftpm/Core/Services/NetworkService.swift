@@ -37,7 +37,9 @@ enum NetworkError: Error {
 /// It includes functionality for managing session cookies, handling parameters,
 /// and decoding JSON responses.
 class NetworkService {
-    // Add documentation to key methods...
+    static let shared = NetworkService()
+    
+    private init() {}
     
     /// Performs a network request with optional parameters and session ID
     /// - Parameters:
