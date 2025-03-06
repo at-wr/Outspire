@@ -31,7 +31,8 @@ struct ClasstableView: View {
                         .overlay(
                             Divider().opacity(0.5), alignment: .bottom
                         )
-                        .padding(.top, 1) // Small padding to show shadow
+                        .padding(.top, 3) // Small padding to show shadow
+                        .padding(.bottom, 12)
                 }
                 
                 // Main content depending on loading states
@@ -52,7 +53,7 @@ struct ClasstableView: View {
                     VStack(spacing: 0) {
                         ForEach(1..<viewModel.timetable.count, id: \.self) { row in
                             periodRow(row: row)
-                                .padding(.vertical, 1)
+                                .padding(.vertical, 4)
                                 .opacity(animateIn ? 1 : 0)
                                 .offset(y: animateIn ? 0 : 20)
                                 .animation(
@@ -63,7 +64,7 @@ struct ClasstableView: View {
                             
                             if row == 4 {
                                 lunchBreakView
-                                    .padding(.vertical, 8)
+                                    .padding(.vertical, 12)
                             }
                         }
                     }
@@ -158,7 +159,7 @@ struct ClasstableView: View {
     
     // Days of week header (Mon, Tue, Wed, etc)
     private var daysHeader: some View {
-        HStack(alignment: .center, spacing: 4) {
+        HStack(alignment: .center, spacing: 8) {
             Text("") // Period number column
                 .frame(width: 40)
                 .font(.caption)
@@ -179,13 +180,13 @@ struct ClasstableView: View {
     
     // Row for a single period
     private func periodRow(row: Int) -> some View {
-        HStack(alignment: .top, spacing: 4) {
+        HStack(alignment: .top, spacing: 8) {
             // Period number
             Text("\(row)")
                 .font(.system(size: 14, weight: .semibold))
-                .frame(width: 40, height: 40)
-                .background(Color.secondary.opacity(0.1))
-                .clipShape(Circle())
+                .frame(width: 25, height: 25)
+                // .background(Color.secondary.opacity(0.1))
+                // .clipShape(Circle())
                 .padding(.top, 15)
             
             // Classes for each day
@@ -294,7 +295,7 @@ struct ClassCell: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(8)
+            .padding(12)
             .background(
                 RoundedRectangle(cornerRadius: 8)
                     .fill(Color(UIColor.secondarySystemBackground))
@@ -304,7 +305,7 @@ struct ClassCell: View {
         } else {
             Color.clear
                 .frame(maxWidth: .infinity)
-                .padding(8)
+                .padding(12)
         }
     }
 }
