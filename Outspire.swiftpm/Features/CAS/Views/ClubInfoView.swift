@@ -22,9 +22,9 @@ struct ClubInfoView: View {
                     
                     if !viewModel.groups.isEmpty {
                         Picker("Club Name", selection: $viewModel.selectedGroup) {
-                            Text("Select").tag(nil as Group?)
+                            Text("Select").tag(nil as ClubGroup?)
                             ForEach(viewModel.groups, id: \.C_GroupsID) { group in
-                                Text(group.C_NameC).tag(group as Group?)
+                                Text(group.C_NameC).tag(group as ClubGroup?)
                             }
                         }
                         .pickerStyle(MenuPickerStyle())

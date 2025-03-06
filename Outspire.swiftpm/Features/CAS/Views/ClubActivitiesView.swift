@@ -11,15 +11,16 @@ struct ClubActivitiesView: View {
                 if viewModel.groups.isEmpty {
                     if viewModel.isLoadingGroups {
                         LoadingView(message: "Loading clubs...")
-                    } else {
+                    } else if viewModel.groups.isEmpty {
                         if sessionService.userInfo != nil {
-                            Text("No clubs available.")
-                                .foregroundStyle(.red)
-                            Text("Try joining some to continue?")
-                                .foregroundStyle(.secondary)
+                            ErrorView(
+                                errorMessage: "No clubs available. Try joining some to continue?",
+                                retryAction: viewModel.fetchGroups
+                            )
                         } else {
-                            Text("Please sign in with TSIMS to continue...")
-                                .foregroundStyle(.secondary)
+                            ErrorView(
+                                errorMessage: "Please sign in with TSIMS to continue..."
+                            )
                         }
                     }
                 } else {

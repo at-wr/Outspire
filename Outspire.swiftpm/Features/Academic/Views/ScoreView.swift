@@ -3,44 +3,73 @@ import LocalAuthentication
 
 // Still a WIP
 struct ScoreView: View {
-    @State private var isUnlocked = false
+    @StateObject private var viewModel = ScoreViewModel()
+    
     var body: some View {
         VStack {
-            if isUnlocked {
-                Text("Unlocked")
-            } else {
-                Text("Locked")
-            }
-        }
-        .onAppear(perform: {
-            authenticate()
-        })
-    }
-    
-    func authenticate() {
-        // thanks to hackingwithswift.com ww
-        let context = LAContext()
-        var error: NSError?
-        
-        // check whether biometric authentication is possible
-        if context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) {
-            // it's possible, so go ahead and use it
-            let reason = "Authentication required for requesting sensitive information."
-            
-            context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: reason) { success, authenticationError in
-                // authentication has now completed
-                if success {
-                    // authenticated successfully
-                    isUnlocked = true
+            if viewModel.isUnlocked {
+                if viewModel.isLoading {
+                    LoadingView(message: "Loading scores...")
+                } else if viewModel.scores.isEmpty {
+                    Text("No scores available.")
+                        .foregroundStyle(.secondary)
                 } else {
-                    // there was a problem
-                    isUnlocked = false
+                    List(viewModel.scores) { score in
+                        VStack(alignment: .leading) {
+                            Text(score.courseName)
+                                .font(.headline)
+                            
+                            HStack {
+                                Text(score.term)
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                Spacer()
+                                Text("Teacher: \(score.teacher)")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            
+                            Text("Grade: \(score.grade)")
+                                .font(.title3)
+                                .foregroundColor(.primary)
+                                .padding(.top, 2)
+                        }
+                    }
                 }
+                
+                if let errorMessage = viewModel.errorMessage {
+                    ErrorView(
+                        errorMessage: errorMessage,
+                        retryAction: viewModel.authenticate
+                    )
+                }
+            } else {
+                VStack(spacing: 20) {
+                    Image(systemName: "lock.fill")
+                        .font(.system(size: 60))
+                        .foregroundStyle(.secondary)
+                    
+                    Text("Authentication Required")
+                        .font(.title2)
+                    
+                    Text("Your academic records are protected.")
+                        .foregroundStyle(.secondary)
+                    
+                    Button("Authenticate", action: viewModel.authenticate)
+                        .buttonStyle(.borderedProminent)
+                        .padding(.top)
+                    
+                    if let errorMessage = viewModel.errorMessage {
+                        Text(errorMessage)
+                            .foregroundColor(.red)
+                            .font(.caption)
+                    }
+                }
+                .padding()
             }
-        } else {
-            // no biometrics
-            isUnlocked = true
         }
+        .navigationTitle("Academic Scores")
+        .onAppear(perform: viewModel.authenticate)
     }
 }
 

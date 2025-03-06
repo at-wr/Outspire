@@ -3,9 +3,9 @@ import SwiftSoup
 
 class ClubInfoViewModel: ObservableObject {
     @Published var selectedCategory: Category? = nil
-    @Published var selectedGroup: Group? = nil
+    @Published var selectedGroup: ClubGroup? = nil
     @Published var categories: [Category] = []
-    @Published var groups: [Group] = []
+    @Published var groups: [ClubGroup] = []
     @Published var groupInfo: GroupInfo?
     @Published var members: [Member] = []
     @Published var errorMessage: String?

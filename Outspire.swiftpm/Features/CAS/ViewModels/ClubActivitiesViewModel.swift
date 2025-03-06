@@ -1,7 +1,7 @@
 import SwiftUI
 
 class ClubActivitiesViewModel: ObservableObject {
-    @Published var groups: [Group] = []
+    @Published var groups: [ClubGroup] = []
     @Published var activities: [ActivityRecord] = []
     @Published var selectedGroupId: String = ""
     @Published var errorMessage: String?

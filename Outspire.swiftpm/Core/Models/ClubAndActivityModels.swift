@@ -54,10 +54,10 @@ struct Member: Decodable, Identifiable {
 //
 
 struct GroupDropdownResponse: Decodable {
-    let groups: [Group]
+    let groups: [ClubGroup]
 }
 
-struct Group: Decodable, Identifiable, Hashable {
+struct ClubGroup: Decodable, Identifiable, Hashable {
     let C_GroupsID: String
     let C_GroupNo: String
     let C_NameC: String
@@ -65,7 +65,7 @@ struct Group: Decodable, Identifiable, Hashable {
     
     var id: String { C_GroupsID }
     
-    static func == (lhs: Group, rhs: Group) -> Bool {
+    static func == (lhs: ClubGroup, rhs: ClubGroup) -> Bool {
         return lhs.C_GroupsID == rhs.C_GroupsID
     }
     

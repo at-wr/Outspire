@@ -5,7 +5,7 @@ struct AccountView: View {
     @State private var showLogoutConfirmation = false
     
     var body: some View {
-        Group {
+        SwiftUI.Group {
             if viewModel.isAuthenticated {
                 loggedInView
             } else {
