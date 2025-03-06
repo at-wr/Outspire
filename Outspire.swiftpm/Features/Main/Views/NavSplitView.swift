@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct NavSplitView: View {
+    @EnvironmentObject var sessionService: SessionService
     @State private var selectedLink: String?
     @State private var showSettingsSheet = false
     
@@ -43,11 +44,6 @@ struct NavSplitView: View {
             .sheet(isPresented: $showSettingsSheet, content: {
                 SettingsView(showSettingsSheet: $showSettingsSheet)
             })
-            /*
-            Text("Still a work in progress")
-                .foregroundStyle(.quaternary)
-                .padding(.bottom, 10)
-             */
         } detail: {
             switch selectedLink {
             case .some("today"):
@@ -60,10 +56,11 @@ struct NavSplitView: View {
                 ClubInfoView()
             case .some("club-activity"):
                 ClubActivitiesView()
+            case .some("help"):
+                HelpView()
             default:
                 TodayView()
             }
         }
-        
     }
 }

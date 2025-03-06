@@ -1,7 +1,14 @@
-import SwiftUI
+import Foundation
 
 struct Configuration {
-    static var useSSL = false
+    static var useSSL: Bool {
+        get {
+            return UserDefaults.standard.bool(forKey: "useSSL")
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "useSSL")
+        }
+    }
     
     static var baseURL: String {
         return useSSL ? "https://easy-tsims.vercel.app" : "http://101.230.1.173:6300"

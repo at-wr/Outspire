@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct TodayView: View {
-    @ObservedObject var sessionManager = SessionManager.shared
+    @EnvironmentObject var sessionService: SessionService
     
     var greeting: String {
         let calendar = Calendar.current
@@ -19,12 +19,11 @@ struct TodayView: View {
     
     var body: some View {
         VStack {
-            if let nickname = sessionManager.userInfo?.nickname {
+            if let nickname = sessionService.userInfo?.nickname {
                 VStack {
                     Text("\(greeting), \(nickname)")
                         .font(.title2)
                 }
-                // .navigationTitle("Today")
                 .navigationTitle("\(greeting)")
             } else {
                 VStack {
@@ -39,20 +38,10 @@ struct TodayView: View {
             }
         }
         .onAppear {
-            sessionManager.refreshUserInfo()
-        }
-            
-        // .navigationTitle("\(greeting), \(sessionManager.userInfo?.nickname ?? "Welcome")")
-    }
-}
-
-struct HelloWorldView: View {
-    var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundColor(.accentColor)
-            Text("Hello, world!")
+            // Get user info if authenticated but no user info is loaded
+            if sessionService.isAuthenticated && sessionService.userInfo == nil {
+                sessionService.fetchUserInfo { _, _ in }
+            }
         }
     }
 }

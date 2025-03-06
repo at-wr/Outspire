@@ -103,51 +103,38 @@ struct AddRecordSheet: View {
         
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd"
-        let activityDateString = dateFormatter.string(from: activityDate)
         
-        guard let sessionId = SessionManager.shared.sessionId else {
-            errorMessage = "No session ID available."
-            return
-        }
+        let parameters = [
+            "groupid": selectedGroupId,
+            "studentid": loggedInStudentId,
+            "actdate": dateFormatter.string(from: activityDate),
+            "acttitle": activityTitle,
+            "durationC": String(durationC),
+            "durationA": String(durationA),
+            "durationS": String(durationS),
+            "actdesc": activityDescription,
+            "groupy": "0",
+            "joiny": "0"
+        ]
         
-        guard let url = URL(string: "\(Configuration.baseURL)/php/cas_save_record.php") else {
-            errorMessage = "Invalid URL."
-            return
-        }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        var headers = request.allHTTPHeaderFields ?? [:]
-        headers["Cookie"] = "PHPSESSID=\(sessionId)"
-        request.allHTTPHeaderFields = headers
-        
-        let body = "groupid=\(selectedGroupId)&studentid=\(loggedInStudentId)&actdate=\(activityDateString)&acttitle=\(activityTitle)&durationC=\(durationC)&durationA=\(durationA)&durationS=\(durationS)&actdesc=\(activityDescription)&groupy=0&joiny=0"
-        request.httpBody = body.data(using: .utf8)
-        
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            DispatchQueue.main.async {
-                if let error = error {
-                    self.errorMessage = "Error: \(error.localizedDescription)"
-                    return
+        NetworkService.shared.request<[String: String]>(
+            endpoint: "cas_save_record.php",
+            parameters: parameters,
+            sessionId: SessionService.shared.sessionId
+        ) { [weak self] result in
+            guard let self = self else { return }
+            
+            switch result {
+            case .success(let response):
+                if response["status"] == "ok" {
+                    presentationMode.wrappedValue.dismiss()
+                    onSave()
+                } else {
+                    self.errorMessage = response["status"]
                 }
-                
-                guard let data = data else {
-                    self.errorMessage = "No data received."
-                    return
-                }
-                
-                do {
-                    let response = try JSONDecoder().decode([String: String].self, from: data)
-                    if response["status"] == "ok" {
-                        presentationMode.wrappedValue.dismiss()
-                        onSave()
-                    } else {
-                        self.errorMessage = response["status"]
-                    }
-                } catch {
-                    self.errorMessage = "Unable to save record: \(error.localizedDescription)"
-                }
+            case .failure(let error):
+                self.errorMessage = "Unable to save record: \(error)"
             }
-        }.resume()
+        }
     }
 }
