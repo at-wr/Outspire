@@ -43,7 +43,7 @@ class ClubInfoViewModel: ObservableObject {
             endpoint: "cas_init_groups_dropdown.php",
             parameters: parameters,
             sessionId: sessionService.sessionId
-        ) { [weak self] (result: Result<[Group], NetworkError>) in
+        ) { [weak self] (result: Result<[ClubGroup], NetworkError>) in
             guard let self = self else { return }
             self.isLoading = false
             
@@ -56,7 +56,7 @@ class ClubInfoViewModel: ObservableObject {
         }
     }
 
-    func fetchGroupInfo(for group: Group) {
+    func fetchGroupInfo(for group: ClubGroup) {
         isLoading = true
         errorMessage = nil
         

@@ -9,7 +9,7 @@ struct ClubInfoView: View {
                 Section {
                     Picker("Category", selection: $viewModel.selectedCategory) {
                         Text("Select").tag(nil as Category?)
-                        ForEach(viewModel.categories, id: \.C_CategoryID) { category in
+                        ForEach(viewModel.categories) { category in
                             Text(category.C_Category).tag(category as Category?)
                         }
                     }
@@ -23,7 +23,7 @@ struct ClubInfoView: View {
                     if !viewModel.groups.isEmpty {
                         Picker("Club Name", selection: $viewModel.selectedGroup) {
                             Text("Select").tag(nil as ClubGroup?)
-                            ForEach(viewModel.groups, id: \.C_GroupsID) { group in
+                            ForEach(viewModel.groups) { group in
                                 Text(group.C_NameC).tag(group as ClubGroup?)
                             }
                         }

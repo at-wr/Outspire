@@ -10,7 +10,7 @@ class AddRecordViewModel: ObservableObject {
     @Published var activityDescription: String = ""
     @Published var errorMessage: String?
     
-    let availableGroups: [Group]
+    let availableGroups: [ClubGroup] // Changed from Group to ClubGroup
     let loggedInStudentId: String
     let onSave: () -> Void
     
@@ -20,7 +20,7 @@ class AddRecordViewModel: ObservableObject {
         durationC + durationA + durationS
     }
     
-    init(availableGroups: [Group], loggedInStudentId: String, onSave: @escaping () -> Void) {
+    init(availableGroups: [ClubGroup], loggedInStudentId: String, onSave: @escaping () -> Void) {
         self.availableGroups = availableGroups
         self.loggedInStudentId = loggedInStudentId
         self.onSave = onSave

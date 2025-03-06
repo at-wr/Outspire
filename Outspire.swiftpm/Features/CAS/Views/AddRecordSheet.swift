@@ -4,7 +4,7 @@ struct AddRecordSheet: View {
     @Environment(\.presentationMode) var presentationMode
     @StateObject private var viewModel: AddRecordViewModel
     
-    init(availableGroups: [Group], loggedInStudentId: String, onSave: @escaping () -> Void) {
+    init(availableGroups: [ClubGroup], loggedInStudentId: String, onSave: @escaping () -> Void) {
         let model = AddRecordViewModel(
             availableGroups: availableGroups,
             loggedInStudentId: loggedInStudentId,
