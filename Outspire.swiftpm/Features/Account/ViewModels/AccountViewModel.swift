@@ -8,6 +8,7 @@ class AccountViewModel: ObservableObject {
     @Published var captchaImageData: Data?
     @Published var errorMessage: String?
     @Published var isCaptchaLoading: Bool = false
+    @Published var isLoggingIn: Bool = false
     
     private let sessionService = SessionService.shared
     private let userDefaults = UserDefaults.standard
@@ -27,6 +28,9 @@ class AccountViewModel: ObservableObject {
     }
     
     func fetchCaptchaImage() {
+        // Don't refresh captcha if we're in the middle of logging in
+        guard !isLoggingIn else { return }
+        
         isCaptchaLoading = true
         errorMessage = nil
         
@@ -36,10 +40,18 @@ class AccountViewModel: ObservableObject {
             return
         }
         
-        URLSession.shared.dataTask(with: captchaURL) { [weak self] data, response, _ in
+        print("Fetching captcha from: \(captchaURL)")
+        
+        URLSession.shared.dataTask(with: captchaURL) { [weak self] data, response, error in
             DispatchQueue.main.async {
                 guard let self = self else { return }
                 self.isCaptchaLoading = false
+                
+                if let error = error {
+                    print("Captcha fetch error: \(error.localizedDescription)")
+                    self.errorMessage = "Failed to load CAPTCHA: \(error.localizedDescription)"
+                    return
+                }
                 
                 if let data = data {
                     self.captchaImageData = data
@@ -47,10 +59,14 @@ class AccountViewModel: ObservableObject {
                     
                     // Extract session ID from response
                     if let sessionId = self.extractSessionId(from: response) {
+                        print("Extracted session ID: \(sessionId)")
                         self.sessionService.storeSessionId(sessionId)
+                    } else {
+                        print("Failed to extract session ID from response")
+                        self.errorMessage = "Failed to get session. Try refreshing captcha."
                     }
                 } else {
-                    self.errorMessage = "Failed to load CAPTCHA."
+                    self.errorMessage = "Failed to load CAPTCHA: No data received"
                 }
             }
         }.resume()
@@ -62,15 +78,37 @@ class AccountViewModel: ObservableObject {
             return
         }
         
+        // Ensure we have a session ID before attempting login
+        guard sessionService.sessionId != nil else {
+            errorMessage = "Missing session ID. Please refresh the captcha and try again."
+            fetchCaptchaImage()
+            return
+        }
+        
+        // Set state to logging in to prevent multiple attempts
+        isLoggingIn = true
         isCaptchaLoading = true
         errorMessage = nil
         
+        print("Attempting login with username: \(username), captcha: \(captcha)")
+        
         sessionService.loginUser(username: username, password: password, captcha: captcha) { [weak self] success, error in
-            self?.isCaptchaLoading = false
+            guard let self = self else { return }
             
-            if !success {
-                self?.errorMessage = error
-                self?.fetchCaptchaImage() // Refresh captcha on failure
+            self.isLoggingIn = false
+            self.isCaptchaLoading = false
+            
+            if success {
+                print("Login successful")
+                // Clear form fields on successful login
+                self.username = ""
+                self.password = ""
+                self.captcha = ""
+            } else {
+                print("Login failed: \(error ?? "Unknown error")")
+                self.errorMessage = error
+                // Only refresh captcha on failure
+                self.fetchCaptchaImage() 
             }
         }
     }
