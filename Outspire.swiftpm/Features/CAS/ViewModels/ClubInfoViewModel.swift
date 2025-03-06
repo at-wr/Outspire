@@ -1,4 +1,3 @@
-// Features/CAS/ViewModels/ClubInfoViewModel.swift
 import SwiftUI
 import SwiftSoup
 
@@ -18,10 +17,10 @@ class ClubInfoViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
         
-        NetworkService.shared.request<[Category]>(
+        NetworkService.shared.request(
             endpoint: "cas_init_category_dropdown.php",
             method: .get
-        ) { [weak self] result in
+        ) { [weak self] (result: Result<[Category], NetworkError>) in
             guard let self = self else { return }
             self.isLoading = false
             
@@ -29,7 +28,7 @@ class ClubInfoViewModel: ObservableObject {
             case .success(let categories):
                 self.categories = categories
             case .failure(let error):
-                self.errorMessage = "Unable to parse categories: \(error)"
+                self.errorMessage = "Unable to load categories: \(error.localizedDescription)"
             }
         }
     }
@@ -40,11 +39,11 @@ class ClubInfoViewModel: ObservableObject {
         
         let parameters = ["categoryid": category.C_CategoryID]
         
-        NetworkService.shared.request<[Group]>(
+        NetworkService.shared.request(
             endpoint: "cas_init_groups_dropdown.php",
             parameters: parameters,
             sessionId: sessionService.sessionId
-        ) { [weak self] result in
+        ) { [weak self] (result: Result<[Group], NetworkError>) in
             guard let self = self else { return }
             self.isLoading = false
             
@@ -52,7 +51,7 @@ class ClubInfoViewModel: ObservableObject {
             case .success(let groups):
                 self.groups = groups
             case .failure(let error):
-                self.errorMessage = "Unable to parse groups: \(error)"
+                self.errorMessage = "Unable to load groups: \(error.localizedDescription)"
             }
         }
     }
@@ -63,10 +62,10 @@ class ClubInfoViewModel: ObservableObject {
         
         let parameters = ["groupid": group.C_GroupsID]
         
-        NetworkService.shared.request<GroupInfoResponse>(
+        NetworkService.shared.request(
             endpoint: "cas_add_group_info.php",
             parameters: parameters
-        ) { [weak self] result in
+        ) { [weak self] (result: Result<GroupInfoResponse, NetworkError>) in
             guard let self = self else { return }
             self.isLoading = false
             
@@ -79,7 +78,7 @@ class ClubInfoViewModel: ObservableObject {
                     self.errorMessage = "Group info not found in response."
                 }
             case .failure(let error):
-                self.errorMessage = "Unable to parse group info: \(error)"
+                self.errorMessage = "Unable to load group info: \(error.localizedDescription)"
             }
         }
     }

@@ -57,11 +57,9 @@ struct AccountView: View {
                     "Your connection hasn't been encrypted.\nRelay Encryption is recommended if you're using a public network."
                 Text("All data will only be stored on this device and the TSIMS server. \n\(connectionStatus)")
                     .font(.caption)
-                    .contentMargins(.top, 10)
             }
         }
         .navigationTitle("Sign In")
-        .contentMargins(.top, 10.0)
         .toolbar {
             Button(action: viewModel.fetchCaptchaImage) {
                 Image(systemName: "arrow.triangle.2.circlepath")
@@ -81,25 +79,19 @@ struct AccountView: View {
                         Text("Sign Out")
                             .foregroundColor(.red)
                     }
-                    .confirmationDialog(
-                        "Are you sure you want to sign out?", 
-                        isPresented: $showLogoutConfirmation,
-                        titleVisibility: .visible
-                    ) {
-                        Button("Sign Out", role: .destructive, action: viewModel.logout)
-                        Button("Cancel", role: .cancel) {}
-                    }
-                } footer: {
-                    let connectionStatus = Configuration.useSSL ? 
-                        "Your connection has been encrypted." : 
-                        "Your connection hasn't been encrypted.\nRelay Encryption is recommended if you're using a public network."
-                    Text("All data will only be stored on this device and the TSIMS server. \n\(connectionStatus)")
-                        .font(.caption)
-                        .contentMargins(.top, 10)
+                }
+                .confirmationDialog(
+                    "Sign Out",
+                    isPresented: $showLogoutConfirmation,
+                    titleVisibility: .visible
+                ) {
+                    Button("Sign Out", role: .destructive, action: viewModel.logout)
+                    Button("Cancel", role: .cancel) {}
+                } message: {
+                    Text("Are you sure you want to sign out?")
                 }
             }
         }
         .navigationTitle("Account Details")
-        .contentMargins(.vertical, 10.0)
     }
 }

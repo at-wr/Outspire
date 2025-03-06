@@ -36,13 +36,14 @@ class NetworkService {
     
     private init() {}
     
-    func request<T: Decodable>(
+    // Generic request function that infers type from completion handler
+    func request<T>(
         endpoint: String,
         method: HTTPMethod = .post,
         parameters: [String: String]? = nil,
         sessionId: String? = nil,
         completion: @escaping (Result<T, NetworkError>) -> Void
-    ) {
+    ) where T: Decodable {
         guard let url = URL(string: "\(Configuration.baseURL)/php/\(endpoint)") else {
             completion(.failure(.invalidURL))
             return

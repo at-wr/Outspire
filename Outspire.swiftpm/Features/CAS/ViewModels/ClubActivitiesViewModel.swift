@@ -16,10 +16,10 @@ class ClubActivitiesViewModel: ObservableObject {
         isLoadingGroups = true
         errorMessage = nil
         
-        NetworkService.shared.request<GroupDropdownResponse>(
+        NetworkService.shared.request(
             endpoint: "cas_add_mygroups_dropdown.php",
             sessionId: sessionService.sessionId
-        ) { [weak self] result in
+        ) { [weak self] (result: Result<GroupDropdownResponse, NetworkError>) in
             guard let self = self else { return }
             self.isLoadingGroups = false
             
@@ -32,7 +32,7 @@ class ClubActivitiesViewModel: ObservableObject {
                     self.fetchActivityRecords()
                 }
             case .failure(let error):
-                self.errorMessage = "Failed to load groups: \(error)"
+                self.errorMessage = "Failed to load groups: \(error.localizedDescription)"
             }
         }
     }
@@ -48,11 +48,11 @@ class ClubActivitiesViewModel: ObservableObject {
         
         let parameters = ["groupid": selectedGroupId]
         
-        NetworkService.shared.request<ActivityResponse>(
+        NetworkService.shared.request(
             endpoint: "cas_add_record_info.php",
             parameters: parameters,
             sessionId: sessionService.sessionId
-        ) { [weak self] result in
+        ) { [weak self] (result: Result<ActivityResponse, NetworkError>) in
             guard let self = self else { return }
             self.isLoadingActivities = false
             
@@ -60,7 +60,7 @@ class ClubActivitiesViewModel: ObservableObject {
             case .success(let response):
                 self.activities = response.casRecord
             case .failure(let error):
-                self.errorMessage = "Failed to load activities: \(error)"
+                self.errorMessage = "Failed to load activities: \(error.localizedDescription)"
             }
         }
     }
@@ -69,11 +69,11 @@ class ClubActivitiesViewModel: ObservableObject {
         let parameters = ["recordid": record.C_ARecordID]
         errorMessage = nil
         
-        NetworkService.shared.request<[String: String]>(
+        NetworkService.shared.request(
             endpoint: "cas_delete_record_info.php",
             parameters: parameters,
             sessionId: sessionService.sessionId
-        ) { [weak self] result in
+        ) { [weak self] (result: Result<[String: String], NetworkError>) in
             guard let self = self else { return }
             
             switch result {
@@ -86,7 +86,7 @@ class ClubActivitiesViewModel: ObservableObject {
                     self.errorMessage = response["status"] ?? "Unknown error"
                 }
             case .failure(let error):
-                self.errorMessage = "Failed to delete record: \(error)"
+                self.errorMessage = "Failed to delete record: \(error.localizedDescription)"
             }
         }
     }

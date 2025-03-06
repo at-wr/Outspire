@@ -31,11 +31,11 @@ class SessionService: ObservableObject {
             "code": captcha
         ]
         
-        NetworkService.shared.request<LoginResponse>(
+        NetworkService.shared.request(
             endpoint: "login.php",
             parameters: parameters,
             sessionId: sessionId
-        ) { [weak self] result in
+        ) { [weak self] (result: Result<LoginResponse, NetworkError>) in
             switch result {
             case .success(let response):
                 if response.status == "ok" {
@@ -49,16 +49,16 @@ class SessionService: ObservableObject {
                     completion(false, "Invalid login credentials.")
                 }
             case .failure(let error):
-                completion(false, "Login failed: \(error)")
+                completion(false, "Login failed: \(error.localizedDescription)")
             }
         }
     }
     
     func fetchUserInfo(completion: @escaping (Bool, String?) -> Void) {
-        NetworkService.shared.request<UserInfo>(
+        NetworkService.shared.request(
             endpoint: "init_info.php",
             sessionId: sessionId
-        ) { [weak self] result in
+        ) { [weak self] (result: Result<UserInfo, NetworkError>) in
             switch result {
             case .success(let userInfo):
                 self?.userInfo = userInfo
@@ -67,7 +67,7 @@ class SessionService: ObservableObject {
                 self?.isAuthenticated = true
                 completion(true, nil)
             case .failure(let error):
-                completion(false, "Failed to fetch user info: \(error)")
+                completion(false, "Failed to fetch user info: \(error.localizedDescription)")
             }
         }
     }

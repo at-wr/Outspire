@@ -74,11 +74,11 @@ class AddRecordViewModel: ObservableObject {
             "joiny": "0"
         ]
         
-        NetworkService.shared.request<[String: String]>(
+        NetworkService.shared.request(
             endpoint: "cas_save_record.php",
             parameters: parameters,
             sessionId: sessionId
-        ) { [weak self] result in
+        ) { [weak self] (result: Result<[String: String], NetworkError>) in
             guard let self = self else { return }
             
             switch result {
@@ -89,7 +89,7 @@ class AddRecordViewModel: ObservableObject {
                     self.errorMessage = response["status"]
                 }
             case .failure(let error):
-                self.errorMessage = "Unable to save record: \(error)"
+                self.errorMessage = "Unable to save record: \(error.localizedDescription)"
             }
         }
     }
