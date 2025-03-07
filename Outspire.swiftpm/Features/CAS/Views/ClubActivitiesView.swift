@@ -187,15 +187,17 @@ struct ActivitiesSection: View {
     var body: some View {
         Section {
             if viewModel.groups.isEmpty && !viewModel.isLoadingGroups {
-                if sessionService.userInfo != nil {
-                    ErrorView(
-                        errorMessage: "No clubs available. Try joining some to continue?",
-                        retryAction: { viewModel.fetchGroups(forceRefresh: true) }
-                    )
-                } else {
-                    ErrorView(errorMessage: "Please sign in with TSIMS to continue...")
+                Group {
+                    if sessionService.userInfo != nil {
+                        ErrorView(
+                            errorMessage: "No clubs available. Try joining some to continue?",
+                            retryAction: { viewModel.fetchGroups(forceRefresh: true) }
+                        )
+                    } else {
+                        ErrorView(errorMessage: "Please sign in with TSIMS to continue...")
+                    }
                 }
-                    .transition(.scale.combined(with: .opacity))
+                .transition(.scale.combined(with: .opacity))
             } else if viewModel.isLoadingActivities && viewModel.activities.isEmpty {
                 ActivitySkeletonView()
                     .listRowInsets(EdgeInsets())
