@@ -47,7 +47,7 @@ struct ClubActivitiesView: View {
                     Button(action: { showingAddRecordSheet.toggle() }) {
                         Image(systemName: "square.and.pencil")
                     }
-                    .disabled(viewModel.isLoadingGroups)
+                    .disabled(viewModel.isLoadingGroups || viewModel.isLoadingActivities || sessionService.userInfo == nil)
                 }
             }
             .sheet(isPresented: $showingAddRecordSheet) {
