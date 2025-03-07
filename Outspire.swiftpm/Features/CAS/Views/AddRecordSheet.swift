@@ -53,6 +53,7 @@ struct AddRecordSheet: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {
+                        viewModel.cacheFormData()  // Cache data when cancelling
                         presentationMode.wrappedValue.dismiss()
                     }
                 }
@@ -65,6 +66,11 @@ struct AddRecordSheet: View {
                         }
                     }
                 }
+            }
+            .interactiveDismissDisabled(true)  // Force user to use buttons
+            .onDisappear {
+                // This is a backup in case the form is dismissed in other ways
+                viewModel.cacheFormData()
             }
         }
     }

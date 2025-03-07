@@ -8,23 +8,22 @@ struct ClubActivitiesView: View {
     @State private var refreshButtonRotation = 0.0
     
     var body: some View {
-        NavigationView {
-            contentView
-                .navigationTitle("Club Activities")
-                .contentMargins(.vertical, 10.0)
-                .toolbar { toolbarItems }
-                .sheet(isPresented: $showingAddRecordSheet) { addRecordSheet }
-                .confirmationDialog(
-                    "Delete Record",
-                    isPresented: $viewModel.showingDeleteConfirmation,
-                    actions: { deleteConfirmationActions },
-                    message: { Text("Are you sure you want to delete this record?") }
-                )
-                .onAppear(perform: handleOnAppear)
-                .onChange(of: viewModel.isLoadingActivities) { _ in
-                    handleLoadingChange()
-                }
-        }
+        // Remove the nested NavigationView
+        contentView
+            .navigationTitle("Club Activities")
+            .contentMargins(.vertical, 10.0)
+            .toolbar { toolbarItems }
+            .sheet(isPresented: $showingAddRecordSheet) { addRecordSheet }
+            .confirmationDialog(
+                "Delete Record",
+                isPresented: $viewModel.showingDeleteConfirmation,
+                actions: { deleteConfirmationActions },
+                message: { Text("Are you sure you want to delete this record?") }
+            )
+            .onAppear(perform: handleOnAppear)
+            .onChange(of: viewModel.isLoadingActivities) { _ in
+                handleLoadingChange()
+            }
     }
     
     private var contentView: some View {

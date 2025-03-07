@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 
 class AddRecordViewModel: ObservableObject {
     @Published var selectedGroupId: String = ""
@@ -10,11 +11,24 @@ class AddRecordViewModel: ObservableObject {
     @Published var activityDescription: String = ""
     @Published var errorMessage: String?
     
-    let availableGroups: [ClubGroup] // Changed from Group to ClubGroup
+    let availableGroups: [ClubGroup]
     let loggedInStudentId: String
     let onSave: () -> Void
     
     private let sessionService = SessionService.shared
+    private static var cachedFormData: FormCache? = nil
+    private var cancellables = Set<AnyCancellable>()
+    
+    // Store form data for persistent recovery
+    struct FormCache {
+        let groupId: String
+        let date: Date
+        let title: String
+        let durationC: Int
+        let durationA: Int
+        let durationS: Int
+        let description: String
+    }
     
     var totalDuration: Int {
         durationC + durationA + durationS
@@ -25,10 +39,40 @@ class AddRecordViewModel: ObservableObject {
         self.loggedInStudentId = loggedInStudentId
         self.onSave = onSave
         
-        // Default first option
-        if let firstGroup = availableGroups.first {
+        // Try to restore from cache first
+        if let cache = AddRecordViewModel.cachedFormData {
+            self.selectedGroupId = cache.groupId
+            self.activityDate = cache.date
+            self.activityTitle = cache.title
+            self.durationC = cache.durationC
+            self.durationA = cache.durationA
+            self.durationS = cache.durationS
+            self.activityDescription = cache.description
+        } else if let firstGroup = availableGroups.first {
+            // Default first option if no cache
             self.selectedGroupId = firstGroup.C_GroupsID
         }
+        
+        // Set up publishers to monitor form changes
+        setupPublishers()
+    }
+    
+    private func setupPublishers() {
+        // Combine all form field publishers to update cache on any change
+        Publishers.CombineLatest4($selectedGroupId, $activityDate, $activityTitle, 
+            Publishers.CombineLatest3($durationC, $durationA, $durationS))
+            .debounce(for: .seconds(0.5), scheduler: RunLoop.main)
+            .sink { [weak self] _, _, _, _ in
+                self?.cacheFormData()
+            }
+            .store(in: &cancellables)
+            
+        $activityDescription
+            .debounce(for: .seconds(0.5), scheduler: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.cacheFormData()
+            }
+            .store(in: &cancellables)
     }
     
     func validateDuration() {
@@ -40,6 +84,27 @@ class AddRecordViewModel: ObservableObject {
         } else {
             errorMessage = nil
         }
+    }
+    
+    // Cache current form data automatically
+    func cacheFormData() {
+        // Only cache if there's meaningful data
+        if !activityTitle.isEmpty || !activityDescription.isEmpty || totalDuration > 0 {
+            AddRecordViewModel.cachedFormData = FormCache(
+                groupId: selectedGroupId,
+                date: activityDate,
+                title: activityTitle,
+                durationC: durationC,
+                durationA: durationA,
+                durationS: durationS,
+                description: activityDescription
+            )
+        }
+    }
+    
+    // Clear the cache after successful submission
+    func clearCache() {
+        AddRecordViewModel.cachedFormData = nil
     }
     
     func saveRecord() {
@@ -84,12 +149,15 @@ class AddRecordViewModel: ObservableObject {
             switch result {
             case .success(let response):
                 if response["status"] == "ok" {
+                    self.clearCache() // Clear cache only on successful submission
                     self.onSave()
                 } else {
-                    self.errorMessage = response["status"]
+                    self.errorMessage = response["status"] ?? "Unknown error occurred"
+                    // Cache is automatically maintained
                 }
             case .failure(let error):
                 self.errorMessage = "Unable to save record: \(error.localizedDescription)"
+                // Cache is automatically maintained
             }
         }
     }
