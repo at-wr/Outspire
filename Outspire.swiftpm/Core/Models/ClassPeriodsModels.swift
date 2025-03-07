@@ -1,7 +1,6 @@
 import Foundation
 import SwiftUI
 
-// Complete class period model
 public struct ClassPeriod: Identifiable {
     public let id = UUID()
     public let number: Int
@@ -25,11 +24,6 @@ public struct ClassPeriod: Identifiable {
         return CGFloat(elapsedDuration / totalDuration)
     }
     
-    // Time until this period starts
-    public func timeUntilStart() -> TimeInterval {
-        return max(0, startTime.timeIntervalSince(Date()))
-    }
-    
     // Format for display
     public var timeRangeFormatted: String {
         let formatter = DateFormatter()
@@ -50,7 +44,6 @@ public struct ClassPeriod: Identifiable {
     }
 }
 
-// Singleton manager for class periods
 public class ClassPeriodsManager {
     public static let shared = ClassPeriodsManager()
     

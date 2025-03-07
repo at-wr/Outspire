@@ -1,29 +1,5 @@
 import SwiftUI
 
-// Add this structure to store period time information
-struct ClassPeriod {
-    let number: Int
-    let startTime: Date
-    let endTime: Date
-    
-    // Helper to check if current time is within this period
-    func isCurrentlyActive() -> Bool {
-        let now = Date()
-        return now >= startTime && now <= endTime
-    }
-    
-    // Calculate percentage of period completed (for indicator positioning)
-    func currentProgressPercentage() -> CGFloat {
-        let now = Date()
-        if now < startTime { return 0 }
-        if now > endTime { return 1 }
-        
-        let totalDuration = endTime.timeIntervalSince(startTime)
-        let elapsedDuration = now.timeIntervalSince(startTime)
-        return CGFloat(elapsedDuration / totalDuration)
-    }
-}
-
 struct ClasstableView: View {
     @StateObject private var viewModel = ClasstableViewModel()
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
@@ -261,7 +237,7 @@ struct ClasstableView: View {
         }
         .onChange(of: viewModel.isLoadingTimetable) { _, isLoading in
             // Properly handle animation transitions after loading completes
-            if !isLoading && !viewModel.timetable.isEmpty {
+            if (!isLoading && !viewModel.timetable.isEmpty) {
                 withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
                     animateIn = true
                 }

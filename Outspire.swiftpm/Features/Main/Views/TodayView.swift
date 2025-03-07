@@ -1,4 +1,5 @@
 import SwiftUI
+import Foundation
 
 struct TodayView: View {
     @EnvironmentObject var sessionService: SessionService
@@ -43,7 +44,8 @@ struct TodayView: View {
             if classtableViewModel.timetable.count > period.number &&
                1 + dayIndex < classtableViewModel.timetable[period.number].count {
                 let cell = classtableViewModel.timetable[period.number][1 + dayIndex]
-                if !cell.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                let trimmedCell = cell.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+                if !trimmedCell.isEmpty {
                     return (period, cell, dayIndex)
                 }
             }
@@ -56,7 +58,8 @@ struct TodayView: View {
                 if classtableViewModel.timetable.count > nextPeriod.number &&
                    1 + dayIndex < classtableViewModel.timetable[nextPeriod.number].count {
                     let cell = classtableViewModel.timetable[nextPeriod.number][1 + dayIndex]
-                    if !cell.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    let trimmedCell = cell.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+                    if !trimmedCell.isEmpty {
                         return (nextPeriod, cell, dayIndex)
                     }
                 }
@@ -70,7 +73,8 @@ struct TodayView: View {
                 if classtableViewModel.timetable.count > period.number &&
                    1 + tomorrowDayIndex < classtableViewModel.timetable[period.number].count {
                     let cell = classtableViewModel.timetable[period.number][1 + tomorrowDayIndex]
-                    if !cell.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    let trimmedCell = cell.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+                    if !trimmedCell.isEmpty {
                         return (period, cell, tomorrowDayIndex)
                     }
                 }
@@ -300,6 +304,43 @@ struct UpcomingClassSkeletonView: View {
                 .fill(Color(UIColor.systemBackground))
                 .shadow(color: .black.opacity(0.1), radius: 3, x: 0, y: 2)
         )
-        .shimmer()
+        .modifier(ShimmerEffect())
+    }
+}
+
+extension View {
+    func shimmer() -> some View {
+        self.modifier(ShimmerEffect())
+    }
+}
+
+struct ShimmerEffect: ViewModifier {
+    @State private var phase: CGFloat = 0
+    
+    func body(content: Content) -> some View {
+        content
+            .overlay(
+                GeometryReader { geometry in
+                    LinearGradient(
+                        gradient: Gradient(
+                            stops: [
+                                .init(color: .clear, location: phase - 0.3),
+                                .init(color: .white.opacity(0.3), location: phase),
+                                .init(color: .clear, location: phase + 0.3)
+                            ]
+                        ),
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                    .mask(content)
+                    .blendMode(.screen)
+                    .offset(x: -geometry.size.width + (2 * geometry.size.width * phase))
+                }
+            )
+            .onAppear {
+                withAnimation(Animation.linear(duration: 1.2).repeatForever(autoreverses: false)) {
+                    self.phase = 1
+                }
+            }
     }
 }
