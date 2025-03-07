@@ -36,12 +36,12 @@ struct TodayView: View {
         
         let calendar = Calendar.current
         let weekday = calendar.component(.weekday, from: currentTime)
+        let dayIndex = weekday == 1 ? 5 : weekday - 2 // Adjust for Swift's weekday (1 = Sunday) vs our timetable (1 = Monday)
         
-        // Adjust for Swift's weekday (1 = Sunday) vs our timetable (1 = Monday)
-        let dayIndex = weekday == 1 ? 5 : weekday - 2
-        
-        // Guard against weekend
-        if dayIndex < 0 || dayIndex >= 5 { return nil }
+        // Check for weekend (Saturday or Sunday)
+        if dayIndex < 0 || dayIndex >= 5 {
+            return nil // No upcoming class info on weekends
+        }
         
         // Get current or upcoming period
         let periodInfo = ClassPeriodsManager.shared.getCurrentOrNextPeriod()
@@ -74,16 +74,18 @@ struct TodayView: View {
             }
         }
         
-        // If no more classes today, check for tomorrow's first class
-        let tomorrowDayIndex = (dayIndex + 1) % 5
-        if tomorrowDayIndex < 5 {
-            for period in ClassPeriodsManager.shared.classPeriods {
-                if classtableViewModel.timetable.count > period.number &&
-                    1 + tomorrowDayIndex < classtableViewModel.timetable[period.number].count {
-                    let cell = classtableViewModel.timetable[period.number][1 + tomorrowDayIndex]
-                    let trimmedCell = cell.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
-                    if !trimmedCell.isEmpty {
-                        return (period, cell, tomorrowDayIndex)
+        // If no more classes today, check for tomorrow's first class (only on weekdays, not Friday -> Saturday)
+        if dayIndex < 4 { // Only check for next day if it's not Friday
+            let tomorrowDayIndex = (dayIndex + 1) % 5
+            if tomorrowDayIndex < 5 {
+                for period in ClassPeriodsManager.shared.classPeriods {
+                    if classtableViewModel.timetable.count > period.number &&
+                        1 + tomorrowDayIndex < classtableViewModel.timetable[period.number].count {
+                        let cell = classtableViewModel.timetable[period.number][1 + tomorrowDayIndex]
+                        let trimmedCell = cell.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+                        if !trimmedCell.isEmpty {
+                            return (period, cell, tomorrowDayIndex)
+                        }
                     }
                 }
             }
@@ -144,11 +146,24 @@ struct TodayView: View {
                             .opacity(animateCards ? 1 : 0)
                             .animation(.easeOut(duration: 0.6).delay(0.1), value: animateCards)
                         } else {
-                            NoClassCard()
-                                .padding(.horizontal)
-                                .offset(y: animateCards ? 0 : 30)
-                                .opacity(animateCards ? 1 : 0)
-                                .animation(.easeOut(duration: 0.6).delay(0.1), value: animateCards)
+                            // Check if it's weekend and show Weekend Card, else NoClassCard
+                            let calendar = Calendar.current
+                            let weekday = calendar.component(.weekday, from: currentTime)
+                            let dayIndex = weekday == 1 ? 5 : weekday - 2 // Adjust weekday
+                            
+                            if dayIndex < 0 || dayIndex >= 5 { // Weekend
+                                WeekendCard()
+                                    .padding(.horizontal)
+                                    .offset(y: animateCards ? 0 : 30)
+                                    .opacity(animateCards ? 1 : 0)
+                                    .animation(.easeOut(duration: 0.6).delay(0.1), value: animateCards)
+                            } else {
+                                NoClassCard()
+                                    .padding(.horizontal)
+                                    .offset(y: animateCards ? 0 : 30)
+                                    .opacity(animateCards ? 1 : 0)
+                                    .animation(.easeOut(duration: 0.6).delay(0.1), value: animateCards)
+                            }
                         }
                         
                         // School information cards
@@ -229,7 +244,7 @@ struct TodayView: View {
     private func weekdayName(for index: Int) -> String {
         let days = ["Mon", "Tue", "Wed", "Thu", "Fri"]
         guard index >= 1 && index <= 5 else { return "" }
-        return days[index-1]
+        return days[index - 1]
     }
 }
 
@@ -391,9 +406,22 @@ struct EnhancedClassCard: View {
         if now >= period.startTime && now <= period.endTime {
             isCurrentClass = true
             timeRemaining = period.endTime.timeIntervalSince(now)
-        } else {
+        } else if period.startTime > now {
+            // Class is in the future
             isCurrentClass = false
-            timeRemaining = period.startTime.timeIntervalSince(now)
+            
+            // For classes more than 24 hours away (like next week's classes)
+            let calendar = Calendar.current
+            if calendar.dateComponents([.day], from: now, to: period.startTime).day ?? 0 > 0 {
+                timeRemaining = 0
+                // If class is tomorrow or later, show day of week instead of countdown
+            } else {
+                timeRemaining = period.startTime.timeIntervalSince(now)
+            }
+        } else {
+            // Class is in the past, should not happen with proper data
+            isCurrentClass = false
+            timeRemaining = 0
         }
     }
     
@@ -440,10 +468,42 @@ struct NoClassCard: View {
                 )
             
             VStack(spacing: 5) {
-                Text("No Classes Scheduled")
+                Text("No Classes Scheduled Today") // More specific message
                     .font(.headline)
                 
                 Text("Enjoy your free time!")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 30)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color(UIColor.systemBackground))
+                .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 2)
+        )
+    }
+}
+
+// Weekend card
+struct WeekendCard: View {
+    var body: some View {
+        VStack(spacing: 24) {
+            Image(systemName: "sun.max.fill")
+                .font(.system(size: 40))
+                .foregroundStyle(.yellow)
+                .padding(12)
+                .background(
+                    Circle()
+                        .fill(Color.yellow.opacity(0.1))
+                )
+            
+            VStack(spacing: 5) {
+                Text("It's the Weekend!")
+                    .font(.headline)
+                
+                Text("Relax and have a great weekend.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
@@ -492,14 +552,15 @@ struct DailyScheduleCard: View {
     @ObservedObject var viewModel: ClasstableViewModel
     let dayIndex: Int
     let maxClassesToShow: Int = 3
+    @State private var isExpandedSchedule = false // State for expansion
     
     private var hasClasses: Bool {
         guard !viewModel.timetable.isEmpty else { return false }
         
         // Check if we have any non-empty classes for today
         for row in 1..<viewModel.timetable.count {
-            if row < viewModel.timetable.count && 
-                dayIndex + 1 < viewModel.timetable[row].count && 
+            if row < viewModel.timetable.count &&
+                dayIndex + 1 < viewModel.timetable[row].count &&
                 !viewModel.timetable[row][dayIndex + 1].trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 return true
             }
@@ -513,7 +574,7 @@ struct DailyScheduleCard: View {
         guard !viewModel.timetable.isEmpty else { return result }
         
         for row in 1..<viewModel.timetable.count {
-            if row < viewModel.timetable.count && 
+            if row < viewModel.timetable.count &&
                 dayIndex + 1 < viewModel.timetable[row].count {
                 let classData = viewModel.timetable[row][dayIndex + 1]
                 if !classData.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -551,7 +612,7 @@ struct DailyScheduleCard: View {
             
             if hasClasses {
                 VStack(spacing: 12) {
-                    ForEach(classesForToday.prefix(maxClassesToShow), id: \.period) { item in
+                    ForEach(classesForToday.prefix(isExpandedSchedule ? classesForToday.count : maxClassesToShow), id: \.period) { item in // Conditional prefix based on expansion
                         let components = item.data
                             .replacingOccurrences(of: "<br>", with: "\n")
                             .components(separatedBy: "\n")
@@ -568,21 +629,24 @@ struct DailyScheduleCard: View {
                             )
                         }
                     }
-                }
-                
-                Button(action: {}) {
-                    HStack {
-                        Text("See Full Schedule")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                        
-                        Image(systemName: "chevron.right")
-                            .font(.caption)
+                    
+                    Button {
+                        isExpandedSchedule.toggle() // Toggle expansion state
+                    } label: {
+                        HStack {
+                            Text(isExpandedSchedule ? "See Less" : "See Full Schedule") // Change button text based on state
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                            
+                            Image(systemName: "chevron.down") // Change chevron direction, or use up/down based on state
+                                .font(.caption)
+                                .rotationEffect(.degrees(isExpandedSchedule ? 180 : 0)) // Rotate chevron
+                        }
+                        .frame(maxWidth: .infinity)
+                        .foregroundStyle(Color.blue)
                     }
-                    .frame(maxWidth: .infinity)
-                    .foregroundStyle(Color.blue)
+                    .padding(.top, 6)
                 }
-                .padding(.top, 6)
             } else {
                 Text("No classes scheduled for today")
                     .font(.subheadline)
