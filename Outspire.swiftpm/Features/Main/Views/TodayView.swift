@@ -18,22 +18,27 @@ struct TodayView: View {
     }
     
     var body: some View {
-        VStack {
-            if let nickname = sessionService.userInfo?.nickname {
-                VStack {
-                    Text("\(greeting), \(nickname)")
-                        .font(.title2)
-                }
-                .navigationTitle("\(greeting)")
-            } else {
-                VStack {
-                    Text("Welcome to Outspire")
-                        .foregroundStyle(.primary)
-                        .font(.title2)
-                    Text("Sign in with WFLA TSIMS account to continue")
-                        .foregroundStyle(.secondary)
-                    Text("(Settings Icon > Account > Sign In)")
-                        .foregroundStyle(.tertiary)
+        ZStack {
+            Color(UIColor.secondarySystemBackground)
+                .edgesIgnoringSafeArea(.all)
+            
+            VStack {
+                if let nickname = sessionService.userInfo?.nickname {
+                    VStack {
+                        Text("\(greeting), \(nickname)")
+                            .font(.title2)
+                    }
+                    .navigationTitle("\(greeting)")
+                } else {
+                    VStack {
+                        Text("Welcome to Outspire")
+                            .foregroundStyle(.primary)
+                            .font(.title2)
+                        Text("Sign in with WFLA TSIMS account to continue")
+                            .foregroundStyle(.secondary)
+                        Text("(Settings Icon > Account > Sign In)")
+                            .foregroundStyle(.tertiary)
+                    }
                 }
             }
         }

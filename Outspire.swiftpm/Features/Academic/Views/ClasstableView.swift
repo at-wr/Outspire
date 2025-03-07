@@ -4,6 +4,7 @@ struct ClasstableView: View {
     @StateObject private var viewModel = ClasstableViewModel()
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var animateIn = false
+    @Environment(\.colorScheme) private var colorScheme
     
     // Dictionary to map subjects to consistent colors
     private let subjectColors: [String: Color] = [
@@ -25,7 +26,7 @@ struct ClasstableView: View {
                 // Days of week header - sticky
                 if !viewModel.timetable.isEmpty && viewModel.timetable[0].count > 1 {
                     daysHeader
-                        .background(Color(UIColor.systemBackground))
+                        .background(Color(UIColor.secondarySystemBackground))
                         .shadow(color: Color.black.opacity(0.05), radius: 3, x: 0, y: 2)
                         .zIndex(1) // Ensure header appears above the content
                         .overlay(
@@ -77,13 +78,14 @@ struct ClasstableView: View {
                     Text(errorMessage)
                         .foregroundColor(.red)
                         .padding()
-                        .background(Color(UIColor.secondarySystemBackground).opacity(0.8))
+                        .background(Color(UIColor.systemBackground).opacity(0.8))
                         .cornerRadius(8)
                         .padding()
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
         }
+        .background(Color(UIColor.secondarySystemBackground))
         .navigationTitle("Classtable")
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
@@ -185,8 +187,8 @@ struct ClasstableView: View {
             Text("\(row)")
                 .font(.system(size: 14, weight: .semibold))
                 .frame(width: 25, height: 25)
-                // .background(Color.secondary.opacity(0.1))
-                // .clipShape(Circle())
+            // .background(Color.secondary.opacity(0.1))
+            // .clipShape(Circle())
                 .padding(.top, 15)
             
             // Classes for each day
@@ -231,6 +233,7 @@ struct ClasstableView: View {
 struct ClassCell: View {
     let cellContent: String
     let colorMap: [String: Color]
+    @Environment(\.colorScheme) private var colorScheme
     
     private var components: [String] {
         cellContent.replacingOccurrences(of: "<br>", with: "\n")
@@ -298,7 +301,7 @@ struct ClassCell: View {
             .padding(12)
             .background(
                 RoundedRectangle(cornerRadius: 8)
-                    .fill(Color(UIColor.secondarySystemBackground))
+                    .fill(Color(UIColor.tertiarySystemBackground))
                     .shadow(color: .black.opacity(0.05), radius: 1, x: 0, y: 1)
             )
             .contentShape(Rectangle())
@@ -319,12 +322,12 @@ struct TimeTableSkeletonView: View {
             // Day headers
             HStack(spacing: 8) {
                 RoundedRectangle(cornerRadius: 4)
-                    .fill(Color.gray.opacity(0.2))
+                    .fill(Color.gray.opacity(0.1))
                     .frame(width: 30, height: 20)
                 
                 ForEach(0..<5, id: \.self) { _ in
                     RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.gray.opacity(0.2))
+                        .fill(Color.gray.opacity(0.1))
                         .frame(height: 20)
                         .frame(maxWidth: .infinity)
                 }
@@ -335,13 +338,13 @@ struct TimeTableSkeletonView: View {
                 HStack(spacing: 8) {
                     // Period number
                     Circle()
-                        .fill(Color.gray.opacity(0.2))
+                        .fill(Color.gray.opacity(0.1))
                         .frame(width: 30, height: 30)
                     
                     // Class cells
                     ForEach(0..<5, id: \.self) { _ in
                         RoundedRectangle(cornerRadius: 8)
-                            .fill(Color.gray.opacity(0.2))
+                            .fill(Color.gray.opacity(0.1))
                             .frame(height: 70)
                             .frame(maxWidth: .infinity)
                     }
@@ -351,7 +354,7 @@ struct TimeTableSkeletonView: View {
         }
         .opacity(isAnimating ? 0.6 : 1.0)
         .animation(
-            Animation.easeInOut(duration: 0.8)
+            Animation.easeInOut(duration: 1.2)
                 .repeatForever(autoreverses: true),
             value: isAnimating
         )
