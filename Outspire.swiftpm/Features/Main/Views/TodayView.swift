@@ -693,12 +693,14 @@ struct SignInPromptCard: View {
             
             Spacer()
         }
-        .padding(.vertical, 30)
+        .padding(.vertical, 80)
+        /*
         .background(
             RoundedRectangle(cornerRadius: 16)
                 .fill(Color(UIColor.systemBackground))
                 .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
         )
+         */
     }
 }
 

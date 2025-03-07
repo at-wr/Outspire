@@ -20,43 +20,45 @@ struct AccountView: View {
     }
     
     var loginView: some View {
-        Form {
-            Section {
-                TextField("Username", text: $viewModel.username)
-                    .autocapitalization(.none)
-                    .disableAutocorrection(true)
-                
-                SecureField("Password", text: $viewModel.password)
-                
-                HStack {
-                    TextField("CAPTCHA", text: $viewModel.captcha)
+        VStack {
+            Form {
+                Section {
+                    TextField("Username", text: $viewModel.username)
                         .autocapitalization(.none)
                         .disableAutocorrection(true)
                     
-                    if viewModel.isCaptchaLoading {
-                        ProgressView()
-                    } else if let data = viewModel.captchaImageData, let uiImage = UIImage(data: data) {
-                        Image(uiImage: uiImage)
-                            .resizable()
-                            .frame(width: 75, height: 30)
-                            .cornerRadius(5)
+                    SecureField("Password", text: $viewModel.password)
+                    
+                    HStack {
+                        TextField("CAPTCHA", text: $viewModel.captcha)
+                            .autocapitalization(.none)
+                            .disableAutocorrection(true)
+                        
+                        if viewModel.isCaptchaLoading {
+                            ProgressView()
+                        } else if let data = viewModel.captchaImageData, let uiImage = UIImage(data: data) {
+                            Image(uiImage: uiImage)
+                                .resizable()
+                                .frame(width: 75, height: 30)
+                                .cornerRadius(5)
+                        }
                     }
-                }
-                
-                Button(action: viewModel.login) {
-                    Text("Sign In")
-                }
-                
-                if let errorMessage = viewModel.errorMessage {
-                    Text(errorMessage)
-                        .foregroundColor(.red)
-                }
-            } footer: {
-                let connectionStatus = Configuration.useSSL ? 
+                    
+                    Button(action: viewModel.login) {
+                        Text("Sign In")
+                    }
+                    
+                    if let errorMessage = viewModel.errorMessage {
+                        Text(errorMessage)
+                            .foregroundColor(.red)
+                    }
+                } footer: {
+                    let connectionStatus = Configuration.useSSL ? 
                     "Your connection has been encrypted." : 
                     "Your connection hasn't been encrypted.\nRelay Encryption is recommended if you're using a public network."
-                Text("All data will only be stored on this device and the TSIMS server. \n\(connectionStatus)")
-                    .font(.caption)
+                    Text("All data will only be stored on this device and the TSIMS server. \n\(connectionStatus)")
+                        .font(.caption)
+                }
             }
         }
         .navigationTitle("Sign In")

@@ -55,6 +55,15 @@ class AddRecordViewModel: ObservableObject {
         
         // Set up publishers to monitor form changes
         setupPublishers()
+        
+        // Clear Cache when Receiving Notification
+        NotificationCenter.default.addObserver(
+            forName: Notification.Name("ClearCachedFormData"),
+            object: nil,
+            queue: .main) { [weak self] _ in
+                // Clear the cached form data
+                Self.cachedFormData = nil
+            }
     }
     
     private func setupPublishers() {

@@ -78,6 +78,7 @@ class SessionService: ObservableObject {
         isAuthenticated = false
         userDefaults.removeObject(forKey: "sessionId")
         userDefaults.removeObject(forKey: "userInfo")
+        CacheManager.clearAllCache() // WIP
     }
     
     func storeSessionId(_ sessionId: String) {
