@@ -72,26 +72,25 @@ struct ClubActivitiesView: View {
         }
     }
     
+    @ViewBuilder
     private var addRecordSheet: some View {
         if let userId = sessionService.userInfo?.studentid {
-            return AnyView(AddRecordSheet(
+            AddRecordSheet(
                 availableGroups: viewModel.groups,
                 loggedInStudentId: userId,
                 onSave: { viewModel.fetchActivityRecords(forceRefresh: true) }
-            ))
-        } else {
-            return AnyView(
-                VStack(spacing: 10) {
-                    Text(">_<")
-                        .foregroundStyle(.primary)
-                        .font(.title2)
-                    Text("Maybe you haven't logged in yet?")
-                        .foregroundStyle(.primary)
-                    Text("Unable to retrieve user ID.")
-                        .foregroundStyle(.secondary)
-                }
-                    .padding()
             )
+        } else {
+            VStack(spacing: 10) {
+                Text(">_<")
+                    .foregroundStyle(.primary)
+                    .font(.title2)
+                Text("Maybe you haven't logged in yet?")
+                    .foregroundStyle(.primary)
+                Text("Unable to retrieve user ID.")
+                    .foregroundStyle(.secondary)
+            }
+            .padding()
         }
     }
     
