@@ -1,5 +1,43 @@
 import SwiftUI
-import Foundation
+import ActivityKit
+
+extension TodayView {
+    func startOrUpdateLiveActivity(for upcomingInfo: (period: ClassPeriod, classData: String, dayIndex: Int)?) {
+        guard let upcomingInfo = upcomingInfo else {
+            LiveActivityService.shared.endCurrentActivity()
+            return
+        }
+        
+        let components = upcomingInfo.classData
+            .replacingOccurrences(of: "<br>", with: "\n")
+            .components(separatedBy: "\n")
+            .filter { !$0.isEmpty }
+        
+        guard components.count >= 2 else { return }
+        
+        let teacher = components[0]
+        let subject = components[1]
+        let room = components.count > 2 ? components[2] : "N/A"
+        
+        let day = weekdayName(for: upcomingInfo.dayIndex + 1)
+        let periodNumber = upcomingInfo.period.number
+        
+        // Check if we're in a class or waiting for next
+        let now = Date()
+        let isCurrentClass = now >= upcomingInfo.period.startTime && now <= upcomingInfo.period.endTime
+        
+        LiveActivityService.shared.startClassActivity(
+            day: day,
+            periodNumber: periodNumber,
+            subject: subject,
+            teacher: teacher,
+            room: room,
+            startTime: upcomingInfo.period.startTime,
+            endTime: upcomingInfo.period.endTime,
+            isCurrentClass: isCurrentClass
+        )
+    }
+}
 
 struct TodayView: View {
     @EnvironmentObject var sessionService: SessionService
@@ -221,6 +259,11 @@ struct TodayView: View {
                     animateCards = true
                 }
             }
+            
+            // Start Live Activity for the upcoming class
+            if sessionService.isAuthenticated {
+                startOrUpdateLiveActivity(for: upcomingClassInfo)
+            }
         }
         .onDisappear {
             timer?.invalidate()
@@ -237,6 +280,11 @@ struct TodayView: View {
         .onChange(of: classtableViewModel.isLoadingTimetable) { _, isLoading in
             if !isLoading {
                 self.isLoading = false
+            }
+        }
+        .onChange(of: upcomingClassInfo) { _, newInfo in
+            if sessionService.isAuthenticated {
+                startOrUpdateLiveActivity(for: newInfo)
             }
         }
     }

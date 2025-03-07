@@ -10,12 +10,12 @@ import AppleProductTypes
 let package = Package(
     name: "Outspire",
     platforms: [
-        .iOS("17.0")
+        .iOS("17.0") // ActivityKit requires iOS 16.1 or later
     ],
     products: [
         .iOSApplication(
             name: "Outspire",
-            targets: ["AppModule"],
+            targets: ["AppModule", "ClassActivityExtension"], // Add the widget extension target
             displayVersion: "0.1",
             bundleVersion: "1",
             appIcon: .placeholder(icon: .sparkle),
@@ -40,9 +40,16 @@ let package = Package(
                         )
                     ]
                 )),
-                .faceID(purposeString: "Required to protect sensitive privacy, including academic score, etc.")
+                .faceID(purposeString: "Required to protect sensitive privacy, including academic score, etc."),
+                .backgroundModes(["remote-notification"]),
+                .pushNotifications(),
+                .liveActivity() // Add Live Activity capability
             ],
             appCategory: .education
+        ),
+        .widgetExtension(
+            name: "ClassActivityExtension",
+            targets: ["ClassActivityExtension"]
         )
     ],
     dependencies: [
@@ -52,12 +59,22 @@ let package = Package(
         .executableTarget(
             name: "AppModule",
             dependencies: [
-                .product(name: "SwiftSoup", package: "SwiftSoup")
+                .product(name: "SwiftSoup", package: "SwiftSoup"),
+                "ClassActivityModule" // Add dependency on our shared module
             ],
             path: ".",
             swiftSettings: [
                 .enableUpcomingFeature("BareSlashRegexLiterals")
             ]
+        ),
+        .target(
+            name: "ClassActivityModule",
+            path: "ClassActivityModule"
+        ),
+        .widgetTarget(
+            name: "ClassActivityExtension",
+            dependencies: ["ClassActivityModule"],
+            path: "ClassActivityExtension"
         )
     ]
 )
