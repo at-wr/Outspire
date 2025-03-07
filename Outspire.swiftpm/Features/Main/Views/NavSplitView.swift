@@ -12,10 +12,13 @@ struct NavSplitView: View {
                     Label("Today", systemImage: "text.rectangle.page")
                 }
                 NavigationLink(value: "classtable") {
-                    Label("Classtable", systemImage:  "clock.badge.questionmark")
+                    Label("Classtable", systemImage: "clock.badge.questionmark")
                 }
-                NavigationLink(value: "score") {
-                    Label("Acedamic Score", systemImage:  "pencil.and.list.clipboard")
+                
+                if !Configuration.hideAcademicScore {
+                    NavigationLink(value: "score") {
+                        Label("Academic Score", systemImage: "pencil.and.list.clipboard")
+                    }
                 }
                 
                 Section {
@@ -23,7 +26,7 @@ struct NavSplitView: View {
                         Label("Club List", systemImage: "person.2.circle")
                     }
                     NavigationLink(value: "club-activity") {
-                        Label("CAS Activities", systemImage:  "checklist")
+                        Label("CAS Activities", systemImage: "checklist")
                     }
                 } header: {
                     Text("Activities")
@@ -33,7 +36,7 @@ struct NavSplitView: View {
                 }
             }
             .toolbar {
-                Button (action: {
+                Button(action: {
                     showSettingsSheet.toggle()
                 }, label: {
                     Image(systemName: "gear")
@@ -60,6 +63,12 @@ struct NavSplitView: View {
                 HelpView()
             default:
                 TodayView()
+            }
+        }
+        .onChange(of: Configuration.hideAcademicScore) { newValue in
+            // If we're hiding Academic Score and it's currently selected, change to default
+            if newValue && selectedLink == "score" {
+                selectedLink = "today"
             }
         }
     }
