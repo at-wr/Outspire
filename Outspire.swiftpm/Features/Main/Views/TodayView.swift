@@ -386,7 +386,7 @@ struct EnhancedClassCard: View {
         .background(
             RoundedRectangle(cornerRadius: 16)
                 .fill(Color(UIColor.systemBackground))
-                .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 2)
+                .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
         )
         .onAppear {
             updateTimeRemaining()
@@ -481,7 +481,7 @@ struct NoClassCard: View {
         .background(
             RoundedRectangle(cornerRadius: 16)
                 .fill(Color(UIColor.systemBackground))
-                .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 2)
+                .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
         )
     }
 }
@@ -513,7 +513,7 @@ struct WeekendCard: View {
         .background(
             RoundedRectangle(cornerRadius: 16)
                 .fill(Color(UIColor.systemBackground))
-                .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 2)
+                .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
         )
     }
 }
@@ -523,7 +523,7 @@ struct SchoolInfoCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
-                Label("School Information", systemImage: "building.2.fill")
+                Label("Information", systemImage: "building.2.fill")
                     .font(.headline)
                     .foregroundStyle(.primary)
                 
@@ -533,16 +533,16 @@ struct SchoolInfoCard: View {
             Divider()
             
             VStack(spacing: 12) {
-                InfoRow(icon: "bell.fill", title: "Morning Assembly", value: "8:00 AM", color: .blue)
-                InfoRow(icon: "fork.knife", title: "Lunch Break", value: "11:30 AM - 12:30 PM", color: .orange)
-                InfoRow(icon: "figure.walk", title: "After School Activities", value: "16:00 - 17:30", color: .green)
+                InfoRow(icon: "bell.fill", title: "Morning Assembly", value: "7:55 - 8:05", color: .blue)
+                InfoRow(icon: "fork.knife", title: "Lunch Break", value: "11:30 - 12:30", color: .orange)
+                InfoRow(icon: "figure.walk", title: "After School Activities", value: "16:30 - 18:00", color: .green)
             }
         }
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 16)
                 .fill(Color(UIColor.systemBackground))
-                .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 2)
+                .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
         )
     }
 }
@@ -627,6 +627,7 @@ struct DailyScheduleCard: View {
                                 subject: components.count > 1 ? components[1] : "Class",
                                 room: components.count > 2 ? components[2] : ""
                             )
+                            .transition(.move(edge: .top).combined(with: .opacity))
                         }
                     }
                     
@@ -659,7 +660,7 @@ struct DailyScheduleCard: View {
         .background(
             RoundedRectangle(cornerRadius: 16)
                 .fill(Color(UIColor.systemBackground))
-                .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 2)
+                .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
         )
     }
 }
@@ -696,7 +697,7 @@ struct SignInPromptCard: View {
         .background(
             RoundedRectangle(cornerRadius: 16)
                 .fill(Color(UIColor.systemBackground))
-                .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 2)
+                .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
         )
     }
 }
@@ -752,7 +753,7 @@ struct ScheduleRow: View {
                 )
             
             // Time
-            Text(time)
+            Text(convertTimeFormat(time))
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .frame(width: 105, alignment: .leading)
@@ -769,6 +770,19 @@ struct ScheduleRow: View {
             }
             
             Spacer()
+        }
+    }
+    func convertTimeFormat(_ time: String) -> String {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "h:mm a" // Assuming input format is "h:mm a"
+        
+        let date24Formatter = DateFormatter()
+        date24Formatter.dateFormat = "HH:mm" // Output format is "HH:mm"
+        
+        if let date = dateFormatter.date(from: time) {
+            return date24Formatter.string(from: date)
+        } else {
+            return time // Return original time if conversion fails
         }
     }
 }
@@ -847,11 +861,13 @@ struct UpcomingClassSkeletonView: View {
         .background(
             RoundedRectangle(cornerRadius: 16)
                 .fill(Color(UIColor.systemBackground))
-                .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 2)
+                .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
         )
         .shimmer()
     }
 }
+
+
 
 #Preview {
     NavigationView {

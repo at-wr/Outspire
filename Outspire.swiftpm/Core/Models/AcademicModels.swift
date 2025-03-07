@@ -9,14 +9,3 @@ struct Year: Identifiable, Codable, Equatable {
         return lhs.W_YearID == rhs.W_YearID
     }
 }
-
-struct Score: Decodable, Identifiable {
-    let id: String
-    let courseName: String
-    let grade: String
-    let teacher: String
-    let term: String
-    
-    // Placeholder until define the actual model
-    // based on the API response structure
-}

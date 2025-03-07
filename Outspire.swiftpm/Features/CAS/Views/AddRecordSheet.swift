@@ -16,16 +16,16 @@ struct AddRecordSheet: View {
     var body: some View {
         NavigationView {
             Form {
-                Picker("Group", selection: $viewModel.selectedGroupId) {
+                Picker("Club", selection: $viewModel.selectedGroupId) {
                     ForEach(viewModel.availableGroups) { group in
                         Text(group.C_NameE)
                             .tag(group.C_GroupsID)
                     }
                 }
                 
-                DatePicker("Activity Date", selection: $viewModel.activityDate, displayedComponents: .date)
+                DatePicker("Date", selection: $viewModel.activityDate, displayedComponents: .date)
                 
-                TextField("Activity Title", text: $viewModel.activityTitle)
+                TextField("Title...", text: $viewModel.activityTitle)
                 
                 Section(header: Text("Durations")) {
                     Stepper("C: \(viewModel.durationC) hours", value: $viewModel.durationC, in: 0...10, onEditingChanged: { _ in 
@@ -42,6 +42,14 @@ struct AddRecordSheet: View {
                 Section(header: Text("Reflection")) {
                     TextEditor(text: $viewModel.activityDescription)
                         .frame(minHeight: 100)
+                        .overlay(alignment: .topLeading) {
+                            if viewModel.activityDescription == "" {
+                                Text("Here goes your reflection of at least 80 characters...\nAutosave enabled, no worries!")
+                                    .foregroundStyle(Color(UIColor.tertiaryLabel))
+                                .padding(.top, 8)
+                                .padding(.leading, 3)
+                            }
+                        }
                 }
                 
                 if let errorMessage = viewModel.errorMessage {
@@ -49,7 +57,7 @@ struct AddRecordSheet: View {
                         .foregroundColor(.red)
                 }
             }
-            .navigationTitle("Add Record")
+            .navigationTitle("New Record")
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {

@@ -63,14 +63,16 @@ struct ClubInfoView: View {
             }
             .contentMargins(.vertical, 10.0)
             .textSelection(.enabled)
-            .navigationBarTitle("Club Info")
+            .navigationBarTitle("Clubs")
             .toolbar {
                 toolbarProgressView
                 refreshButton
             }
             .scrollDismissesKeyboard(.immediately)
             .onAppear(perform: onAppearSetup)
-            .onChange(of: viewModel.isLoading, perform: handleLoadingChange)
+            .onChange(of: viewModel.isLoading) { oldValue, newValue in
+                handleLoadingChange(newValue)
+            } // use this to fix the stupid iOS 17 deprecation warning
             .animation(.spring(response: 0.4), value: viewModel.isLoading)
         }
         .refreshable {
