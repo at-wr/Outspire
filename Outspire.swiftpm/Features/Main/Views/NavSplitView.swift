@@ -2,7 +2,7 @@ import SwiftUI
 
 struct NavSplitView: View {
     @EnvironmentObject var sessionService: SessionService
-    @State private var selectedLink: String?
+    @State private var selectedLink: String? = "today"
     @State private var showSettingsSheet = false
     
     var body: some View {
