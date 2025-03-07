@@ -1,10 +1,36 @@
 import SwiftUI
 
+// Add this structure to store period time information
+struct ClassPeriod {
+    let number: Int
+    let startTime: Date
+    let endTime: Date
+    
+    // Helper to check if current time is within this period
+    func isCurrentlyActive() -> Bool {
+        let now = Date()
+        return now >= startTime && now <= endTime
+    }
+    
+    // Calculate percentage of period completed (for indicator positioning)
+    func currentProgressPercentage() -> CGFloat {
+        let now = Date()
+        if now < startTime { return 0 }
+        if now > endTime { return 1 }
+        
+        let totalDuration = endTime.timeIntervalSince(startTime)
+        let elapsedDuration = now.timeIntervalSince(startTime)
+        return CGFloat(elapsedDuration / totalDuration)
+    }
+}
+
 struct ClasstableView: View {
     @StateObject private var viewModel = ClasstableViewModel()
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var animateIn = false
     @Environment(\.colorScheme) private var colorScheme
+    @State private var currentTime = Date()
+    @State private var timer: Timer?
     
     // Dictionary to map subjects to consistent colors
     private let subjectColors: [String: Color] = [
@@ -19,6 +45,80 @@ struct ClasstableView: View {
         "Geography": .cyan.opacity(0.8),
         "Chinese": .indigo.opacity(0.8)
     ]
+    
+    // Add periods data based on the provided times
+    private var classPeriods: [ClassPeriod] {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        
+        return [
+            ClassPeriod(
+                number: 1,
+                startTime: calendar.date(bySettingHour: 8, minute: 15, second: 0, of: today)!,
+                endTime: calendar.date(bySettingHour: 8, minute: 55, second: 0, of: today)!
+            ),
+            ClassPeriod(
+                number: 2,
+                startTime: calendar.date(bySettingHour: 9, minute: 5, second: 0, of: today)!,
+                endTime: calendar.date(bySettingHour: 9, minute: 45, second: 0, of: today)!
+            ),
+            ClassPeriod(
+                number: 3,
+                startTime: calendar.date(bySettingHour: 9, minute: 55, second: 0, of: today)!,
+                endTime: calendar.date(bySettingHour: 10, minute: 35, second: 0, of: today)!
+            ),
+            ClassPeriod(
+                number: 4,
+                startTime: calendar.date(bySettingHour: 10, minute: 45, second: 0, of: today)!,
+                endTime: calendar.date(bySettingHour: 11, minute: 25, second: 0, of: today)!
+            ),
+            ClassPeriod(
+                number: 5,
+                startTime: calendar.date(bySettingHour: 12, minute: 30, second: 0, of: today)!,
+                endTime: calendar.date(bySettingHour: 13, minute: 10, second: 0, of: today)!
+            ),
+            ClassPeriod(
+                number: 6,
+                startTime: calendar.date(bySettingHour: 13, minute: 20, second: 0, of: today)!,
+                endTime: calendar.date(bySettingHour: 14, minute: 0, second: 0, of: today)!
+            ),
+            ClassPeriod(
+                number: 7,
+                startTime: calendar.date(bySettingHour: 14, minute: 10, second: 0, of: today)!,
+                endTime: calendar.date(bySettingHour: 14, minute: 50, second: 0, of: today)!
+            ),
+            ClassPeriod(
+                number: 8,
+                startTime: calendar.date(bySettingHour: 15, minute: 0, second: 0, of: today)!,
+                endTime: calendar.date(bySettingHour: 15, minute: 40, second: 0, of: today)!
+            ),
+            ClassPeriod(
+                number: 9,
+                startTime: calendar.date(bySettingHour: 15, minute: 50, second: 0, of: today)!,
+                endTime: calendar.date(bySettingHour: 16, minute: 30, second: 0, of: today)!
+            )
+        ]
+    }
+    
+    // Find the current period or next period
+    func getCurrentOrNextPeriod() -> (period: ClassPeriod?, isCurrentlyActive: Bool) {
+        let now = Date()
+        
+        // Check if we're currently in a period
+        if let activePeriod = classPeriods.first(where: { $0.isCurrentlyActive() }) {
+            return (activePeriod, true)
+        }
+        
+        // Find next period
+        let futurePeriods = classPeriods.filter { $0.startTime > now }
+        if let nextPeriod = futurePeriods.min(by: { $0.startTime < $1.startTime }) {
+            return (nextPeriod, false)
+        }
+        
+        return (nil, false)
+    }
     
     var body: some View {
         ScrollView {
@@ -139,6 +239,7 @@ struct ClasstableView: View {
                 }
             }
         }
+        // Add timer to update the time indicator
         .onAppear {
             viewModel.fetchYears()
             
@@ -148,6 +249,15 @@ struct ClasstableView: View {
                     animateIn = true
                 }
             }
+            
+            // Create a timer to update current time every minute
+            timer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { _ in
+                currentTime = Date()
+            }
+        }
+        .onDisappear {
+            timer?.invalidate()
+            timer = nil
         }
         .onChange(of: viewModel.isLoadingTimetable) { isLoading in
             // Properly handle animation transitions after loading completes
@@ -180,21 +290,40 @@ struct ClasstableView: View {
         .padding(.horizontal)
     }
     
-    // Row for a single period
+    // Modified periodRow function to include time indicator
     private func periodRow(row: Int) -> some View {
-        HStack(alignment: .top, spacing: 8) {
-            // Period number
-            Text("\(row)")
-                .font(.system(size: 14, weight: .semibold))
-                .frame(width: 25, height: 25)
-            // .background(Color.secondary.opacity(0.1))
-            // .clipShape(Circle())
-                .padding(.top, 15)
+        let periods = ClassPeriodsManager.shared.classPeriods
+        let currentPeriod = periods.first(where: { $0.number == row && $0.isCurrentlyActive() })
+        
+        return ZStack(alignment: .top) {
+            // Regular period row content
+            HStack(alignment: .top, spacing: 8) {
+                // Period number
+                Text("\(row)")
+                    .font(.system(size: 14, weight: .semibold))
+                    .frame(width: 25, height: 25)
+                    .padding(.top, 15)
+                
+                // Classes for each day
+                if row < viewModel.timetable.count {
+                    ForEach(1..<min(viewModel.timetable[row].count, 6), id: \.self) { col in
+                        ClassCell(cellContent: viewModel.timetable[row][col], colorMap: subjectColors)
+                    }
+                }
+            }
             
-            // Classes for each day
-            if row < viewModel.timetable.count {
-                ForEach(1..<min(viewModel.timetable[row].count, 6), id: \.self) { col in
-                    ClassCell(cellContent: viewModel.timetable[row][col], colorMap: subjectColors)
+            // Time indicator overlay if this is the current period
+            if let period = currentPeriod {
+                HStack(spacing: 8) {
+                    // Space for period number
+                    Rectangle().fill(Color.clear).frame(width: 25)
+                    
+                    // Time indicator line across all cells
+                    Rectangle()
+                        .fill(Color.red)
+                        .frame(height: 2)
+                        .offset(y: 70 * period.currentProgressPercentage())
+                        .animation(.spring(response: 0.3), value: period.currentProgressPercentage())
                 }
             }
         }

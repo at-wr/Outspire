@@ -47,8 +47,7 @@ struct ActivitySkeletonView: View {
 
 // Shimmer effect
 extension View {
-    @ViewBuilder
-    func shimmering() -> some View {
+    func shimmer() -> some View {
         self.modifier(ShimmerEffect())
     }
 }
@@ -61,22 +60,25 @@ struct ShimmerEffect: ViewModifier {
             .overlay(
                 GeometryReader { geometry in
                     LinearGradient(
-                        gradient: Gradient(stops: [
-                            .init(color: Color.clear, location: 0),
-                            .init(color: Color.white.opacity(0.7), location: 0.4),
-                            .init(color: Color.clear, location: 0.8)
-                        ]),
+                        gradient: Gradient(
+                            stops: [
+                                .init(color: .clear, location: phase - 0.3),
+                                .init(color: .white.opacity(0.3), location: phase),
+                                .init(color: .clear, location: phase + 0.3)
+                            ]
+                        ),
                         startPoint: .leading,
                         endPoint: .trailing
                     )
-                    .frame(width: geometry.size.width * 3)
-                    .offset(x: -geometry.size.width + (phase * geometry.size.width * 3))
-                    .animation(Animation.linear(duration: 1.5).repeatForever(autoreverses: false), value: phase)
                     .mask(content)
-                    .onAppear {
-                        phase = 1
-                    }
+                    .blendMode(.screen)
+                    .offset(x: -geometry.size.width + (2 * geometry.size.width * phase))
                 }
             )
+            .onAppear {
+                withAnimation(Animation.linear(duration: 1.2).repeatForever(autoreverses: false)) {
+                    self.phase = 1
+                }
+            }
     }
 }
