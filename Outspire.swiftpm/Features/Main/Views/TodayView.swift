@@ -146,7 +146,7 @@ struct TodayView: View {
             timer?.invalidate()
             timer = nil
         }
-        .onChange(of: classtableViewModel.years) { years in
+        .onChange(of: classtableViewModel.years) { _, years in
             if !years.isEmpty && !classtableViewModel.selectedYearId.isEmpty {
                 classtableViewModel.fetchTimetable()
             } else if !years.isEmpty {
@@ -154,7 +154,7 @@ struct TodayView: View {
                 classtableViewModel.fetchTimetable()
             }
         }
-        .onChange(of: classtableViewModel.isLoadingTimetable) { isLoading in
+        .onChange(of: classtableViewModel.isLoadingTimetable) { _, isLoading in
             if !isLoading {
                 self.isLoading = false
             }
@@ -300,6 +300,6 @@ struct UpcomingClassSkeletonView: View {
                 .fill(Color(UIColor.systemBackground))
                 .shadow(color: .black.opacity(0.1), radius: 3, x: 0, y: 2)
         )
-        .shimmer() // Assuming you have a shimmer modifier
+        .shimmer()
     }
 }

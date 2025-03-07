@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 
+// Complete class period model
 public struct ClassPeriod: Identifiable {
     public let id = UUID()
     public let number: Int
@@ -8,13 +9,13 @@ public struct ClassPeriod: Identifiable {
     public let endTime: Date
     
     // Helper to check if current time is within this period
-    func isCurrentlyActive() -> Bool {
+    public func isCurrentlyActive() -> Bool {
         let now = Date()
         return now >= startTime && now <= endTime
     }
     
     // Calculate percentage of period completed (for indicator positioning)
-    func currentProgressPercentage() -> CGFloat {
+    public func currentProgressPercentage() -> CGFloat {
         let now = Date()
         if now < startTime { return 0 }
         if now > endTime { return 1 }
@@ -25,12 +26,12 @@ public struct ClassPeriod: Identifiable {
     }
     
     // Time until this period starts
-    func timeUntilStart() -> TimeInterval {
+    public func timeUntilStart() -> TimeInterval {
         return max(0, startTime.timeIntervalSince(Date()))
     }
     
     // Format for display
-    var timeRangeFormatted: String {
+    public var timeRangeFormatted: String {
         let formatter = DateFormatter()
         formatter.dateFormat = "h:mm"
         
@@ -49,6 +50,7 @@ public struct ClassPeriod: Identifiable {
     }
 }
 
+// Singleton manager for class periods
 public class ClassPeriodsManager {
     public static let shared = ClassPeriodsManager()
     

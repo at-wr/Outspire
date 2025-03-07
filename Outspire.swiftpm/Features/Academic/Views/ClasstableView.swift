@@ -259,7 +259,7 @@ struct ClasstableView: View {
             timer?.invalidate()
             timer = nil
         }
-        .onChange(of: viewModel.isLoadingTimetable) { isLoading in
+        .onChange(of: viewModel.isLoadingTimetable) { _, isLoading in
             // Properly handle animation transitions after loading completes
             if !isLoading && !viewModel.timetable.isEmpty {
                 withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {

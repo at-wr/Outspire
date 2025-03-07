@@ -1,10 +1,13 @@
 import Foundation
 
-struct Year: Decodable, Identifiable {
+struct Year: Identifiable, Codable, Equatable {
+    var id: String { W_YearID }
     let W_YearID: String
     let W_Year: String
-    
-    var id: String { W_YearID }
+
+    static func == (lhs: Year, rhs: Year) -> Bool {
+        return lhs.W_YearID == rhs.W_YearID
+    }
 }
 
 struct Score: Decodable, Identifiable {
