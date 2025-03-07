@@ -19,7 +19,7 @@ let package = Package(
             displayVersion: "0.1",
             bundleVersion: "1",
             appIcon: .placeholder(icon: .sparkle),
-            accentColor: .presetColor(.blue),
+            accentColor: .presetColor(.cyan),
             supportedDeviceFamilies: [
                 .pad,
                 .phone

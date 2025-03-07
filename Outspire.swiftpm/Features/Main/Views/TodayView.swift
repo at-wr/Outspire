@@ -7,6 +7,14 @@ struct TodayView: View {
     @State private var currentTime = Date()
     @State private var timer: Timer?
     @State private var isLoading = false
+    @State private var animateCards = false
+    
+    // Date formatter for the subtitle
+    private var formattedDate: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "EEEE, MMMM d, yyyy"
+        return formatter.string(from: currentTime)
+    }
     
     var greeting: String {
         let calendar = Calendar.current
@@ -42,7 +50,7 @@ struct TodayView: View {
         if let period = periodInfo.period {
             // If we have data for this period in timetable
             if classtableViewModel.timetable.count > period.number &&
-               1 + dayIndex < classtableViewModel.timetable[period.number].count {
+                1 + dayIndex < classtableViewModel.timetable[period.number].count {
                 let cell = classtableViewModel.timetable[period.number][1 + dayIndex]
                 let trimmedCell = cell.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
                 if !trimmedCell.isEmpty {
@@ -56,7 +64,7 @@ struct TodayView: View {
             
             for nextPeriod in futurePeriodsToday {
                 if classtableViewModel.timetable.count > nextPeriod.number &&
-                   1 + dayIndex < classtableViewModel.timetable[nextPeriod.number].count {
+                    1 + dayIndex < classtableViewModel.timetable[nextPeriod.number].count {
                     let cell = classtableViewModel.timetable[nextPeriod.number][1 + dayIndex]
                     let trimmedCell = cell.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
                     if !trimmedCell.isEmpty {
@@ -71,7 +79,7 @@ struct TodayView: View {
         if tomorrowDayIndex < 5 {
             for period in ClassPeriodsManager.shared.classPeriods {
                 if classtableViewModel.timetable.count > period.number &&
-                   1 + tomorrowDayIndex < classtableViewModel.timetable[period.number].count {
+                    1 + tomorrowDayIndex < classtableViewModel.timetable[period.number].count {
                     let cell = classtableViewModel.timetable[period.number][1 + tomorrowDayIndex]
                     let trimmedCell = cell.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
                     if !trimmedCell.isEmpty {
@@ -89,46 +97,92 @@ struct TodayView: View {
             Color(UIColor.secondarySystemBackground)
                 .edgesIgnoringSafeArea(.all)
             
-            VStack(spacing: 25) {
-                if let nickname = sessionService.userInfo?.nickname {
-                    VStack {
-                        Text("\(greeting), \(nickname)")
-                            .font(.title2)
-                    }
-                    .navigationTitle("\(greeting)")
-                } else {
-                    VStack {
-                        Text("Welcome to Outspire")
-                            .foregroundStyle(.primary)
-                            .font(.title2)
-                        Text("Sign in with WFLA TSIMS account to continue")
+            ScrollView {
+                VStack(spacing: 20) {
+                    // Header section
+                    VStack(alignment: .leading, spacing: 5) {
+                        if let nickname = sessionService.userInfo?.nickname {
+                            Text("\(greeting), \(nickname)")
+                                .font(.title2)
+                                .fontWeight(.bold)
+                            
+                        } else {
+                            Text("\(greeting)")
+                                .font(.title2)
+                                .fontWeight(.bold)
+                        }
+                        
+                        Text(formattedDate)
+                            .font(.subheadline)
                             .foregroundStyle(.secondary)
-                        Text("(Settings Icon > Account > Sign In)")
-                            .foregroundStyle(.tertiary)
                     }
-                }
-                
-                // Upcoming class card
-                if sessionService.isAuthenticated {
-                    if isLoading {
-                        UpcomingClassSkeletonView()
-                            .frame(maxWidth: .infinity)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal)
+                    .padding(.leading, 3)
+                    .offset(y: animateCards ? 0 : 20)
+                    .opacity(animateCards ? 1 : 0)
+                    .animation(.easeOut(duration: 0.5), value: animateCards)
+                    
+                    // Main content
+                    if sessionService.isAuthenticated {
+                        // Upcoming class card with countdown
+                        if isLoading {
+                            UpcomingClassSkeletonView()
+                                .padding(.horizontal)
+                                .offset(y: animateCards ? 0 : 30)
+                                .opacity(animateCards ? 1 : 0)
+                                .animation(.easeOut(duration: 0.6).delay(0.1), value: animateCards)
+                        } else if let upcoming = upcomingClassInfo {
+                            EnhancedClassCard(
+                                day: weekdayName(for: upcoming.dayIndex + 1),
+                                period: upcoming.period,
+                                classData: upcoming.classData,
+                                currentTime: currentTime
+                            )
                             .padding(.horizontal)
-                    } else if let upcoming = upcomingClassInfo {
-                        UpcomingClassCard(
-                            day: weekdayName(for: upcoming.dayIndex + 1),
-                            period: upcoming.period,
-                            classInfo: upcoming.classData
+                            .offset(y: animateCards ? 0 : 30)
+                            .opacity(animateCards ? 1 : 0)
+                            .animation(.easeOut(duration: 0.6).delay(0.1), value: animateCards)
+                        } else {
+                            NoClassCard()
+                                .padding(.horizontal)
+                                .offset(y: animateCards ? 0 : 30)
+                                .opacity(animateCards ? 1 : 0)
+                                .animation(.easeOut(duration: 0.6).delay(0.1), value: animateCards)
+                        }
+                        
+                        // School information cards
+                        SchoolInfoCard()
+                            .padding(.horizontal)
+                            .offset(y: animateCards ? 0 : 40)
+                            .opacity(animateCards ? 1 : 0)
+                            .animation(.easeOut(duration: 0.6).delay(0.2), value: animateCards)
+                        
+                        // Schedule summary card
+                        DailyScheduleCard(
+                            viewModel: classtableViewModel,
+                            dayIndex: Calendar.current.component(.weekday, from: currentTime) == 1 ? 4 : Calendar.current.component(.weekday, from: currentTime) - 2
                         )
                         .padding(.horizontal)
-                        .transition(.scale.combined(with: .opacity))
+                        .offset(y: animateCards ? 0 : 50)
+                        .opacity(animateCards ? 1 : 0)
+                        .animation(.easeOut(duration: 0.6).delay(0.3), value: animateCards)
+                    } else {
+                        // Sign in prompt
+                        SignInPromptCard()
+                            .padding(.horizontal)
+                            .offset(y: animateCards ? 0 : 30)
+                            .opacity(animateCards ? 1 : 0)
+                            .animation(.easeOut(duration: 0.6).delay(0.1), value: animateCards)
                     }
+                    
+                    Spacer(minLength: 60)
                 }
-                
-                Spacer()
+                .padding(.top, 10)
             }
-            .padding(.top, 20)
         }
+        .navigationTitle("Today @ WFLA")
+        .navigationBarTitleDisplayMode(.large)
         .onAppear {
             // Get user info if authenticated but no user info is loaded
             if sessionService.isAuthenticated && sessionService.userInfo == nil {
@@ -141,9 +195,16 @@ struct TodayView: View {
                 classtableViewModel.fetchYears()
             }
             
-            // Create a timer to update current time every minute
-            timer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { _ in
+            // Create a timer to update current time every second for countdown
+            timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
                 currentTime = Date()
+            }
+            
+            // Trigger animations after a short delay
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                withAnimation {
+                    animateCards = true
+                }
             }
         }
         .onDisappear {
@@ -172,81 +233,487 @@ struct TodayView: View {
     }
 }
 
-// Upcoming Class Card View
-struct UpcomingClassCard: View {
+// Enhanced Upcoming Class Card with Countdown
+struct EnhancedClassCard: View {
     let day: String
     let period: ClassPeriod
-    let classInfo: String
+    let classData: String
+    let currentTime: Date
+    
+    @State private var timeRemaining: TimeInterval = 0
+    @State private var isCurrentClass = false
+    @State private var timer: Timer?
     
     private var components: [String] {
-        classInfo.replacingOccurrences(of: "<br>", with: "\n")
+        classData.replacingOccurrences(of: "<br>", with: "\n")
             .components(separatedBy: "\n")
             .filter { !$0.isEmpty }
     }
     
+    private var formattedCountdown: String {
+        let hours = Int(timeRemaining) / 3600
+        let minutes = (Int(timeRemaining) % 3600) / 60
+        let seconds = Int(timeRemaining) % 60
+        
+        if hours > 0 {
+            return String(format: "%d:%02d:%02d", hours, minutes, seconds)
+        } else {
+            return String(format: "%02d:%02d", minutes, seconds)
+        }
+    }
+    
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("Upcoming Class")
-                    .font(.headline)
+        VStack(alignment: .leading, spacing: 0) {
+            // Card header
+            HStack(alignment: .center) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(isCurrentClass ? "Current Class" : "Upcoming Class")
+                        .font(.headline)
+                        .foregroundStyle(isCurrentClass ? Color.orange : Color.blue)
+                    
+                    Text("\(day) • Period \(period.number)")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
                 
                 Spacer()
                 
-                Text(day)
+                Text(period.timeRangeFormatted)
+                    .font(.subheadline)
+                    .padding(8)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(isCurrentClass ? Color.orange.opacity(0.1) : Color.blue.opacity(0.1))
+                    )
+            }
+            .padding([.horizontal, .top], 16)
+            
+            // Class details
+            VStack(alignment: .leading, spacing: 12) {
+                if components.count > 1 {
+                    Text(components[1]) // Subject
+                        .font(.system(.title3, design: .rounded))
+                        .fontWeight(.semibold)
+                    
+                    HStack(alignment: .top, spacing: 24) {
+                        // Teacher
+                        Label {
+                            Text(components[0])
+                                .lineLimit(1)
+                        } icon: {
+                            Image(systemName: "person.fill")
+                                .foregroundStyle(.secondary)
+                        }
+                        .font(.subheadline)
+                        
+                        // Room if available
+                        if components.count > 2 {
+                            Label {
+                                Text(components[2])
+                                    .lineLimit(1)
+                            } icon: {
+                                Image(systemName: "mappin.circle.fill")
+                                    .foregroundStyle(.secondary)
+                            }
+                            .font(.subheadline)
+                        }
+                    }
+                    .foregroundStyle(.secondary)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
+            .padding(.bottom, 16)
+            
+            // Countdown section
+            VStack(alignment: .leading, spacing: 4) {
+                Divider()
+                    .padding(.horizontal, 16)
+                
+                HStack(alignment: .center, spacing: 0) {
+                    // Countdown info
+                    HStack(spacing: 12) {
+                        Image(systemName: isCurrentClass ? "timer" : "hourglass")
+                            .font(.system(size: 18, weight: .medium))
+                            .foregroundStyle(isCurrentClass ? Color.orange : Color.blue)
+                            .frame(width: 36, height: 36)
+                            .background(
+                                Circle()
+                                    .fill(isCurrentClass ? Color.orange.opacity(0.1) : Color.blue.opacity(0.1))
+                            )
+                        
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(isCurrentClass ? "Class ends in" : "Class starts in")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            
+                            Text(formattedCountdown)
+                                .font(.system(.title3, design: .rounded))
+                                .fontWeight(.semibold)
+                                .foregroundStyle(isCurrentClass ? Color.orange : Color.blue)
+                                .contentTransition(.numericText())
+                        }
+                    }
+                    .padding(.leading, 16)
+                    
+                    Spacer()
+                    
+                    // Progress indicator (shows if current class)
+                    if isCurrentClass {
+                        CircularProgressView(progress: calculateProgress())
+                            .frame(width: 36, height: 36)
+                            .padding(.trailing, 16)
+                    }
+                }
+                .padding(.vertical, 12)
+            }
+        }
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color(UIColor.systemBackground))
+                .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 2)
+        )
+        .onAppear {
+            updateTimeRemaining()
+            
+            timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
+                updateTimeRemaining()
+            }
+        }
+        .onDisappear {
+            timer?.invalidate()
+        }
+    }
+    
+    private func updateTimeRemaining() {
+        let now = Date()
+        
+        if now >= period.startTime && now <= period.endTime {
+            isCurrentClass = true
+            timeRemaining = period.endTime.timeIntervalSince(now)
+        } else {
+            isCurrentClass = false
+            timeRemaining = period.startTime.timeIntervalSince(now)
+        }
+    }
+    
+    private func calculateProgress() -> Double {
+        let totalDuration = period.endTime.timeIntervalSince(period.startTime)
+        let elapsed = totalDuration - timeRemaining
+        return min(max(elapsed / totalDuration, 0), 1)
+    }
+}
+
+// Circular progress view for class progress
+struct CircularProgressView: View {
+    let progress: Double
+    
+    var body: some View {
+        ZStack {
+            Circle()
+                .stroke(Color.gray.opacity(0.2), lineWidth: 4)
+            
+            Circle()
+                .trim(from: 0, to: CGFloat(progress))
+                .stroke(Color.orange, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+                .animation(.linear(duration: 0.2), value: progress)
+            
+            Text("\(Int(progress * 100))%")
+                .font(.system(size: 9, weight: .medium))
+                .foregroundStyle(.secondary)
+        }
+    }
+}
+
+// No upcoming class card
+struct NoClassCard: View {
+    var body: some View {
+        VStack(spacing: 24) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 40))
+                .foregroundStyle(.green)
+                .padding(12)
+                .background(
+                    Circle()
+                        .fill(Color.green.opacity(0.1))
+                )
+            
+            VStack(spacing: 5) {
+                Text("No Classes Scheduled")
+                    .font(.headline)
+                
+                Text("Enjoy your free time!")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 30)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color(UIColor.systemBackground))
+                .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 2)
+        )
+    }
+}
+
+// School information card
+struct SchoolInfoCard: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Label("School Information", systemImage: "building.2.fill")
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                
+                Spacer()
             }
             
             Divider()
             
-            HStack(alignment: .top) {
-                VStack(alignment: .center, spacing: 4) {
-                    Text("\(period.number)")
-                        .font(.title)
-                        .fontWeight(.bold)
-                        .foregroundStyle(.blue)
-                    
-                    Text(period.timeRangeFormatted)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .frame(width: 80)
-                
-                Divider()
-                    .padding(.horizontal, 8)
-                
-                VStack(alignment: .leading, spacing: 6) {
-                    if components.count > 1 {
-                        Text(components[1])
-                            .font(.title3)
-                            .fontWeight(.medium)
-                        
-                        Text("Teacher: \(components[0])")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                        
-                        if components.count > 2 {
-                            Text("Room: \(components[2])")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
+            VStack(spacing: 12) {
+                InfoRow(icon: "bell.fill", title: "Morning Assembly", value: "8:00 AM", color: .blue)
+                InfoRow(icon: "fork.knife", title: "Lunch Break", value: "11:30 AM - 12:30 PM", color: .orange)
+                InfoRow(icon: "figure.walk", title: "After School Activities", value: "16:00 - 17:30", color: .green)
+            }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color(UIColor.systemBackground))
+                .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 2)
+        )
+    }
+}
+
+// Daily schedule summary card
+struct DailyScheduleCard: View {
+    @ObservedObject var viewModel: ClasstableViewModel
+    let dayIndex: Int
+    let maxClassesToShow: Int = 3
+    
+    private var hasClasses: Bool {
+        guard !viewModel.timetable.isEmpty else { return false }
+        
+        // Check if we have any non-empty classes for today
+        for row in 1..<viewModel.timetable.count {
+            if row < viewModel.timetable.count && 
+                dayIndex + 1 < viewModel.timetable[row].count && 
+                !viewModel.timetable[row][dayIndex + 1].trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                return true
+            }
+        }
+        return false
+    }
+    
+    private var classesForToday: [(period: Int, data: String)] {
+        var result: [(period: Int, data: String)] = []
+        
+        guard !viewModel.timetable.isEmpty else { return result }
+        
+        for row in 1..<viewModel.timetable.count {
+            if row < viewModel.timetable.count && 
+                dayIndex + 1 < viewModel.timetable[row].count {
+                let classData = viewModel.timetable[row][dayIndex + 1]
+                if !classData.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    result.append((period: row, data: classData))
                 }
             }
         }
-        .padding()
+        
+        return result
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Label("Today's Schedule", systemImage: "calendar.day.timeline.left")
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                
+                Spacer()
+                
+                if hasClasses {
+                    Text("\(classesForToday.count) Classes")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 2)
+                        .background(
+                            Capsule()
+                                .fill(Color.blue.opacity(0.1))
+                        )
+                }
+            }
+            
+            Divider()
+            
+            if hasClasses {
+                VStack(spacing: 12) {
+                    ForEach(classesForToday.prefix(maxClassesToShow), id: \.period) { item in
+                        let components = item.data
+                            .replacingOccurrences(of: "<br>", with: "\n")
+                            .components(separatedBy: "\n")
+                            .filter { !$0.isEmpty }
+                        
+                        let period = ClassPeriodsManager.shared.classPeriods.first { $0.number == item.period }
+                        
+                        if let period = period, components.count > 0 {
+                            ScheduleRow(
+                                period: item.period,
+                                time: period.timeRangeFormatted,
+                                subject: components.count > 1 ? components[1] : "Class",
+                                room: components.count > 2 ? components[2] : ""
+                            )
+                        }
+                    }
+                }
+                
+                Button(action: {}) {
+                    HStack {
+                        Text("See Full Schedule")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                        
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .foregroundStyle(Color.blue)
+                }
+                .padding(.top, 6)
+            } else {
+                Text("No classes scheduled for today")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.vertical, 20)
+            }
+        }
+        .padding(16)
         .background(
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: 16)
                 .fill(Color(UIColor.systemBackground))
-                .shadow(color: .black.opacity(0.1), radius: 3, x: 0, y: 2)
+                .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 2)
         )
+    }
+}
+
+// Sign in prompt card
+struct SignInPromptCard: View {
+    var body: some View {
+        VStack(spacing: 20) {
+            Spacer()
+            
+            Image(systemName: "person.crop.circle")
+                .font(.system(size: 60))
+                .foregroundStyle(.blue.opacity(0.8))
+                .padding(.bottom, 10)
+            
+            Text("Welcome to Outspire")
+                .font(.title3)
+                .fontWeight(.bold)
+            
+            Text("Sign in with your TSIMS account to view your personalized dashboard and class schedule")
+                .font(.body)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 20)
+            
+            Text("Go to Settings → Account → Sign In")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .padding(.top, 10)
+            
+            Spacer()
+        }
+        .padding(.vertical, 30)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color(UIColor.systemBackground))
+                .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 2)
+        )
+    }
+}
+
+// Information row with icon
+struct InfoRow: View {
+    let icon: String
+    let title: String
+    let value: String
+    let color: Color
+    
+    var body: some View {
+        HStack(alignment: .center, spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 16))
+                .foregroundStyle(color)
+                .frame(width: 28, height: 28)
+                .background(
+                    Circle()
+                        .fill(color.opacity(0.1))
+                )
+            
+            Text(title)
+                .font(.subheadline)
+            
+            Spacer()
+            
+            Text(value)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+    }
+}
+
+// Schedule row for daily schedule
+struct ScheduleRow: View {
+    let period: Int
+    let time: String
+    let subject: String
+    let room: String
+    
+    var body: some View {
+        HStack(alignment: .center, spacing: 16) {
+            // Period circle
+            Text("\(period)")
+                .font(.system(.subheadline, design: .rounded))
+                .fontWeight(.bold)
+                .frame(width: 26, height: 26)
+                .foregroundStyle(.white)
+                .background(
+                    Circle()
+                        .fill(Color.blue)
+                )
+            
+            // Time
+            Text(time)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .frame(width: 105, alignment: .leading)
+            
+            // Subject and room
+            VStack(alignment: .leading, spacing: 2) {
+                Text(subject)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                
+                Text(room)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            
+            Spacer()
+        }
     }
 }
 
 // Skeleton view for upcoming class while loading
 struct UpcomingClassSkeletonView: View {
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 0) {
+            // Header skeleton
             HStack {
                 RoundedRectangle(cornerRadius: 4)
                     .fill(Color.gray.opacity(0.2))
@@ -258,89 +725,73 @@ struct UpcomingClassSkeletonView: View {
                 RoundedRectangle(cornerRadius: 4)
                     .fill(Color.gray.opacity(0.2))
                     .frame(height: 16)
-                    .frame(width: 40)
+                    .frame(width: 60)
             }
+            .padding([.horizontal, .top], 16)
             
-            Divider()
-            
-            HStack(alignment: .top, spacing: 12) {
-                VStack(spacing: 4) {
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.gray.opacity(0.2))
-                        .frame(width: 40, height: 40)
-                    
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.gray.opacity(0.2))
-                        .frame(height: 12)
-                        .frame(width: 60)
-                }
-                .frame(width: 80)
+            // Class details skeleton
+            VStack(alignment: .leading, spacing: 16) {
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(Color.gray.opacity(0.2))
+                    .frame(height: 24)
+                    .frame(width: 180)
                 
-                Divider()
-                    .padding(.horizontal, 8)
-                
-                VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 20) {
                     RoundedRectangle(cornerRadius: 4)
                         .fill(Color.gray.opacity(0.2))
-                        .frame(height: 20)
-                        .frame(width: 160)
+                        .frame(height: 16)
+                        .frame(width: 150)
                     
                     RoundedRectangle(cornerRadius: 4)
                         .fill(Color.gray.opacity(0.2))
-                        .frame(height: 14)
-                        .frame(width: 120)
-                    
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.gray.opacity(0.2))
-                        .frame(height: 14)
+                        .frame(height: 16)
                         .frame(width: 100)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
+            .padding(.bottom, 16)
+            
+            // Countdown skeleton
+            VStack(alignment: .leading, spacing: 4) {
+                Divider()
+                    .padding(.horizontal, 16)
+                
+                HStack(alignment: .center, spacing: 12) {
+                    Circle()
+                        .fill(Color.gray.opacity(0.2))
+                        .frame(width: 36, height: 36)
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color.gray.opacity(0.2))
+                            .frame(height: 10)
+                            .frame(width: 80)
+                        
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color.gray.opacity(0.2))
+                            .frame(height: 20)
+                            .frame(width: 100)
+                    }
+                    
+                    Spacer()
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
             }
         }
-        .padding()
         .background(
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: 16)
                 .fill(Color(UIColor.systemBackground))
-                .shadow(color: .black.opacity(0.1), radius: 3, x: 0, y: 2)
+                .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 2)
         )
-        .modifier(ShimmerEffect())
+        .shimmer()
     }
 }
 
-extension View {
-    func shimmer() -> some View {
-        self.modifier(ShimmerEffect())
-    }
-}
-
-struct ShimmerEffect: ViewModifier {
-    @State private var phase: CGFloat = 0
-    
-    func body(content: Content) -> some View {
-        content
-            .overlay(
-                GeometryReader { geometry in
-                    LinearGradient(
-                        gradient: Gradient(
-                            stops: [
-                                .init(color: .clear, location: phase - 0.3),
-                                .init(color: .white.opacity(0.3), location: phase),
-                                .init(color: .clear, location: phase + 0.3)
-                            ]
-                        ),
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                    .mask(content)
-                    .blendMode(.screen)
-                    .offset(x: -geometry.size.width + (2 * geometry.size.width * phase))
-                }
-            )
-            .onAppear {
-                withAnimation(Animation.linear(duration: 1.2).repeatForever(autoreverses: false)) {
-                    self.phase = 1
-                }
-            }
+#Preview {
+    NavigationView {
+        TodayView()
+            .environmentObject(SessionService.shared)
     }
 }

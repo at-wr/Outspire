@@ -8,224 +8,303 @@ struct ClubActivitiesView: View {
     @State private var refreshButtonRotation = 0.0
     
     var body: some View {
-        contentView
-            .navigationTitle("Club Activities")
-            .contentMargins(.vertical, 10.0)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    if viewModel.isLoadingActivities || viewModel.isLoadingGroups {
-                        ProgressView()
-                            .controlSize(.small)
-                            .transition(.opacity.combined(with: .scale))
-                    }
+        NavigationView {
+            contentView
+                .navigationTitle("Club Activities")
+                .contentMargins(.vertical, 10.0)
+                .toolbar { toolbarItems }
+                .sheet(isPresented: $showingAddRecordSheet) { addRecordSheet }
+                .confirmationDialog(
+                    "Delete Record",
+                    isPresented: $viewModel.showingDeleteConfirmation,
+                    actions: { deleteConfirmationActions },
+                    message: { Text("Are you sure you want to delete this record?") }
+                )
+                .onAppear(perform: handleOnAppear)
+                .onChange(of: viewModel.isLoadingActivities) { _ in
+                    handleLoadingChange()
                 }
-                
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: {
-                        withAnimation {
-                            refreshButtonRotation += 360
-                        }
-                        if viewModel.isLoadingActivities {
-                            // Don't allow multiple refresh requests
-                            return
-                        }
-                        
-                        if viewModel.groups.isEmpty {
-                            viewModel.fetchGroups(forceRefresh: true)
-                        } else {
-                            viewModel.fetchActivityRecords(forceRefresh: true)
-                        }
-                    }) {
-                        Image(systemName: "arrow.clockwise")
-                            .rotationEffect(.degrees(refreshButtonRotation))
-                            .animation(.spring(response: 0.6, dampingFraction: 0.5), value: refreshButtonRotation)
-                    }
-                    .disabled(viewModel.isLoadingActivities || viewModel.isLoadingGroups)
-                }
-                
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: { showingAddRecordSheet.toggle() }) {
-                        Image(systemName: "square.and.pencil")
-                    }
-                    .disabled(viewModel.isLoadingGroups || viewModel.isLoadingActivities || sessionService.userInfo == nil)
-                }
-            }
-            .sheet(isPresented: $showingAddRecordSheet) {
-                if let userId = sessionService.userInfo?.studentid {
-                    AddRecordSheet(
-                        availableGroups: viewModel.groups,
-                        loggedInStudentId: userId,
-                        onSave: { viewModel.fetchActivityRecords(forceRefresh: true) }
-                    )
-                } else {
-                    VStack(spacing: 10) {
-                        Text(">_<")
-                            .foregroundStyle(.primary)
-                            .font(.title2)
-                        Text("Maybe you haven't logged in yet?")
-                            .foregroundStyle(.primary)
-                        Text("Unable to retrieve user ID.")
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding()
-                }
-            }
-            .confirmationDialog(
-                "Delete Record",
-                isPresented: $viewModel.showingDeleteConfirmation,
-                actions: {
-                    Button("Delete", role: .destructive) {
-                        if let record = viewModel.recordToDelete {
-                            viewModel.deleteRecord(record: record)
-                            viewModel.recordToDelete = nil
-                        }
-                    }
-                    Button("Cancel", role: .cancel) {}
-                },
-                message: { Text("Are you sure you want to delete this record?") }
-            )
-            .onAppear {
-                // On appear, check if we need to refresh data
-                if viewModel.groups.isEmpty {
-                    viewModel.fetchGroups()
-                } else if !viewModel.isCacheValid() {
-                    // Cache expired, refresh data
-                    viewModel.fetchActivityRecords(forceRefresh: true)
-                }
-                
-                // Trigger animations after a short delay
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                    withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
-                        animateList = true
-                    }
-                }
-            }
-            .onChange(of: viewModel.isLoadingActivities) { isLoading in
-                if !isLoading {
-                    // Reset and retrigger staggered animations when loading completes
-                    animateList = false
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
-                            animateList = true
-                        }
-                    }
-                }
-            }
+        }
     }
     
-    // Main content based on the state
     private var contentView: some View {
         Form {
-            // Group Selector Section
-            Section {
-                if !viewModel.groups.isEmpty {
-                    Picker("Club", selection: $viewModel.selectedGroupId) {
-                        ForEach(viewModel.groups) { group in
-                            Text(group.C_NameE).tag(group.C_GroupsID)
-                        }
-                    }
-                    .onChange(of: viewModel.selectedGroupId) {
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            viewModel.fetchActivityRecords()
-                        }
-                    }
-                    .disabled(viewModel.isLoadingActivities)
-                    .transition(.move(edge: .top).combined(with: .opacity))
-                    .animation(.easeInOut, value: viewModel.groups.isEmpty)
-                }
-            }
-            
-            // Activities Section
-            Section {
-                if viewModel.groups.isEmpty && !viewModel.isLoadingGroups {
-                    if sessionService.userInfo != nil {
-                        ErrorView(
-                            errorMessage: "No clubs available. Try joining some to continue?",
-                            retryAction: { viewModel.fetchGroups(forceRefresh: true) }
-                        )
-                        .transition(.scale.combined(with: .opacity))
-                    } else {
-                        ErrorView(
-                            errorMessage: "Please sign in with TSIMS to continue..."
-                        )
-                        .transition(.scale.combined(with: .opacity))
-                    }
-                } else if viewModel.isLoadingActivities && viewModel.activities.isEmpty {
-                    // Only show skeleton when we don't have any data yet
-                    ActivitySkeletonView()
-                        .listRowInsets(EdgeInsets())
-                        .listRowBackground(Color.clear)
-                        .transition(.opacity)
-                        .animation(.easeInOut(duration: 0.5), value: viewModel.isLoadingActivities)
-                } else if viewModel.activities.isEmpty {
-                    emptyStateView
-                        .transition(.scale.combined(with: .opacity))
-                } else {
-                    activitiesList
-                        .transition(.opacity)
-                        // Apply subtle blur when refreshing instead of just dimming
-                        .blur(radius: viewModel.isLoadingActivities ? 1.0 : 0)
-                        .opacity(viewModel.isLoadingActivities ? 0.7 : 1.0)
-                }
-            }
-            
-            // Toast Messages
-            if let errorMessage = viewModel.errorMessage {
-                Section {
-                    HStack {
-                        Image(systemName: errorMessage.contains("copied") ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
-                            .foregroundStyle(errorMessage.contains("copied") ? .green : .red)
-                        
-                        Text(errorMessage)
-                            .foregroundColor(errorMessage.contains("copied") ? .green : .red)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .contentTransition(.opacity)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                }
-                .listRowBackground(
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(errorMessage.contains("copied") ? Color.green.opacity(0.1) : Color.red.opacity(0.1))
-                        .padding(.vertical, 2)
-                )
-            }
+            GroupSelectorSection(viewModel: viewModel)
+            ActivitiesSection(
+                viewModel: viewModel,
+                sessionService: sessionService,
+                showingAddRecordSheet: $showingAddRecordSheet,
+                animateList: animateList
+            )
+            ToastSection(errorMessage: viewModel.errorMessage)
         }
         .scrollContentBackground(.visible)
         .animation(.spring(response: 0.4), value: viewModel.isLoadingActivities)
         .animation(.spring(response: 0.4), value: viewModel.activities.isEmpty)
         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: viewModel.errorMessage)
-        .refreshable {
-            // Pull to refresh with haptic feedback
-            HapticManager.shared.playFeedback(.medium)
-            
-            if viewModel.groups.isEmpty {
-                await viewModel.fetchGroupsAsync(forceRefresh: true)
-            } else {
-                await viewModel.fetchActivityRecordsAsync(forceRefresh: true)
+        .refreshable(action: handleRefresh) // Fixed refreshable syntax
+    }
+    
+    private var toolbarItems: some ToolbarContent {
+        Group {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                LoadingIndicator(
+                    isLoadingActivities: viewModel.isLoadingActivities,
+                    isLoadingGroups: viewModel.isLoadingGroups
+                )
+            }
+            ToolbarItem(placement: .navigationBarTrailing) {
+                RefreshButton(
+                    isLoadingActivities: viewModel.isLoadingActivities,
+                    isLoadingGroups: viewModel.isLoadingGroups,
+                    groupsEmpty: viewModel.groups.isEmpty,
+                    rotation: $refreshButtonRotation,
+                    action: handleRefreshAction
+                )
+            }
+            ToolbarItem(placement: .navigationBarTrailing) {
+                AddButton(
+                    isLoadingGroups: viewModel.isLoadingGroups,
+                    isLoadingActivities: viewModel.isLoadingActivities,
+                    userInfo: sessionService.userInfo,
+                    action: { showingAddRecordSheet.toggle() }
+                )
             }
         }
     }
     
-    // Empty state view with nicer design
-    private var emptyStateView: some View {
+    private var addRecordSheet: some View {
+        if let userId = sessionService.userInfo?.studentid {
+            return AnyView(AddRecordSheet(
+                availableGroups: viewModel.groups,
+                loggedInStudentId: userId,
+                onSave: { viewModel.fetchActivityRecords(forceRefresh: true) }
+            ))
+        } else {
+            return AnyView(
+                VStack(spacing: 10) {
+                    Text(">_<")
+                        .foregroundStyle(.primary)
+                        .font(.title2)
+                    Text("Maybe you haven't logged in yet?")
+                        .foregroundStyle(.primary)
+                    Text("Unable to retrieve user ID.")
+                        .foregroundStyle(.secondary)
+                }
+                    .padding()
+            )
+        }
+    }
+    
+    private var deleteConfirmationActions: some View {
+        Group {
+            Button("Delete", role: .destructive) {
+                if let record = viewModel.recordToDelete {
+                    viewModel.deleteRecord(record: record)
+                    viewModel.recordToDelete = nil
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        }
+    }
+    
+    private func handleOnAppear() {
+        if viewModel.groups.isEmpty {
+            viewModel.fetchGroups()
+        } else if !viewModel.isCacheValid() {
+            viewModel.fetchActivityRecords(forceRefresh: true)
+        }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
+                animateList = true
+            }
+        }
+    }
+    
+    private func handleLoadingChange() {
+        if !viewModel.isLoadingActivities {
+            animateList = false
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
+                    animateList = true
+                }
+            }
+        }
+    }
+    
+    private func handleRefreshAction() {
+        withAnimation {
+            refreshButtonRotation += 360
+        }
+        if viewModel.isLoadingActivities { return }
+        
+        if viewModel.groups.isEmpty {
+            viewModel.fetchGroups(forceRefresh: true)
+        } else {
+            viewModel.fetchActivityRecords(forceRefresh: true)
+        }
+    }
+    
+    @Sendable private func handleRefresh() async {  // Added @Sendable to fix data race warning
+        HapticManager.shared.playFeedback(.medium)
+        if viewModel.groups.isEmpty {
+            await viewModel.fetchGroupsAsync(forceRefresh: true)
+        } else {
+            await viewModel.fetchActivityRecordsAsync(forceRefresh: true)
+        }
+    }
+}
+
+struct GroupSelectorSection: View {
+    @ObservedObject var viewModel: ClubActivitiesViewModel
+    
+    var body: some View {
+        Section {
+            if !viewModel.groups.isEmpty {
+                Picker("Club", selection: $viewModel.selectedGroupId) {
+                    ForEach(viewModel.groups) { group in
+                        Text(group.C_NameE).tag(group.C_GroupsID)
+                    }
+                }
+                .onChange(of: viewModel.selectedGroupId) { _ in
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        viewModel.fetchActivityRecords()
+                    }
+                }
+                .disabled(viewModel.isLoadingActivities)
+                .transition(.move(edge: .top).combined(with: .opacity))
+                .animation(.easeInOut, value: viewModel.groups.isEmpty)
+            }
+        }
+    }
+}
+
+struct ActivitiesSection: View {
+    @ObservedObject var viewModel: ClubActivitiesViewModel
+    let sessionService: SessionService
+    @Binding var showingAddRecordSheet: Bool
+    let animateList: Bool
+    
+    var body: some View {
+        Section {
+            if viewModel.groups.isEmpty && !viewModel.isLoadingGroups {
+                if sessionService.userInfo != nil {
+                    ErrorView(
+                        errorMessage: "No clubs available. Try joining some to continue?",
+                        retryAction: { viewModel.fetchGroups(forceRefresh: true) }
+                    )
+                } else {
+                    ErrorView(errorMessage: "Please sign in with TSIMS to continue...")
+                }
+                    .transition(.scale.combined(with: .opacity))
+            } else if viewModel.isLoadingActivities && viewModel.activities.isEmpty {
+                ActivitySkeletonView()
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.5), value: viewModel.isLoadingActivities)
+            } else if viewModel.activities.isEmpty {
+                EmptyStateView(action: { showingAddRecordSheet.toggle() })
+                    .transition(.scale.combined(with: .opacity))
+            } else {
+                ActivitiesList(viewModel: viewModel, animateList: animateList)
+                    .transition(.opacity)
+                    .blur(radius: viewModel.isLoadingActivities ? 1.0 : 0)
+                    .opacity(viewModel.isLoadingActivities ? 0.7 : 1.0)
+            }
+        }
+    }
+}
+
+struct ToastSection: View {
+    let errorMessage: String?
+    
+    var body: some View {
+        if let errorMessage = errorMessage {
+            Section {
+                HStack {
+                    Image(systemName: errorMessage.contains("copied") ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
+                        .foregroundStyle(errorMessage.contains("copied") ? .green : .red)
+                    Text(errorMessage)
+                        .foregroundColor(errorMessage.contains("copied") ? .green : .red)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .frame(maxWidth: .infinity)
+                .contentTransition(.opacity)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+            .listRowBackground(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(errorMessage.contains("copied") ? Color.green.opacity(0.1) : Color.red.opacity(0.1))
+                    .padding(.vertical, 2)
+            )
+        }
+    }
+}
+
+struct LoadingIndicator: View {
+    let isLoadingActivities: Bool
+    let isLoadingGroups: Bool
+    
+    var body: some View {
+        if isLoadingActivities || isLoadingGroups {
+            ProgressView()
+                .controlSize(.small)
+                .transition(.opacity.combined(with: .scale))
+        }
+    }
+}
+
+struct RefreshButton: View {
+    let isLoadingActivities: Bool
+    let isLoadingGroups: Bool
+    let groupsEmpty: Bool
+    @Binding var rotation: Double
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "arrow.clockwise")
+                .rotationEffect(.degrees(rotation))
+                .animation(.spring(response: 0.6, dampingFraction: 0.5), value: rotation)
+        }
+        .disabled(isLoadingActivities || isLoadingGroups)
+    }
+}
+
+struct AddButton: View {
+    let isLoadingGroups: Bool
+    let isLoadingActivities: Bool
+    let userInfo: UserInfo?
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "square.and.pencil")
+        }
+        .disabled(isLoadingGroups || isLoadingActivities || userInfo == nil)
+    }
+}
+
+struct EmptyStateView: View {
+    let action: () -> Void
+    
+    var body: some View {
         VStack(spacing: 16) {
             Image(systemName: "tray")
                 .font(.system(size: 40))
                 .foregroundStyle(.quaternary)
                 .padding(.bottom, 8)
-                
             Text("No activity records available")
                 .font(.headline)
                 .foregroundStyle(.secondary)
-                
             Text("Add a new activity using the + button")
                 .font(.subheadline)
                 .foregroundStyle(.tertiary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
-                
-            Button(action: { showingAddRecordSheet.toggle() }) {
+            Button(action: action) {
                 Label("Add New Activity", systemImage: "plus.circle")
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
@@ -238,19 +317,23 @@ struct ClubActivitiesView: View {
         .padding()
         .frame(maxWidth: .infinity)
     }
+}
+
+struct ActivitiesList: View {
+    @ObservedObject var viewModel: ClubActivitiesViewModel
+    let animateList: Bool
     
-    // Extract activities list to a separate view with enhanced styling
-    private var activitiesList: some View {
+    var body: some View {
         ForEach(Array(viewModel.activities.enumerated()), id: \.element.id) { index, activity in
             ActivityCardView(activity: activity, viewModel: viewModel)
                 .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
-                .offset(x: animateList ? 0 : 100, y: 0)
+                .offset(x: animateList ? 0 : 100)
                 .opacity(animateList ? 1 : 0)
                 .animation(
                     .spring(response: 0.4, dampingFraction: 0.7)
-                    .delay(Double(index) * 0.05), // Staggered animation
+                    .delay(Double(index) * 0.05),
                     value: animateList
                 )
                 .contentTransition(.opacity)
@@ -258,25 +341,20 @@ struct ClubActivitiesView: View {
     }
 }
 
-// Extract activity card to a separate component for better organization
 struct ActivityCardView: View {
     let activity: ActivityRecord
-    let viewModel: ClubActivitiesViewModel
+    @ObservedObject var viewModel: ClubActivitiesViewModel
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Title and date in header
             VStack(alignment: .leading, spacing: 6) {
                 Text(activity.C_Theme)
                     .font(.headline)
                     .lineLimit(1)
-                
                 Text("Date: \(formatDate(activity.C_Date))")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
-            
-            // CAS badges with improved layout
             HStack(spacing: 8) {
                 CASBadge(type: .creativity, value: activity.C_DurationC)
                     .transition(.scale)
@@ -284,14 +362,7 @@ struct ActivityCardView: View {
                     .transition(.scale)
                 CASBadge(type: .service, value: activity.C_DurationS)
                     .transition(.scale)
-                
                 Spacer()
-                
-                // Total duration
-                let totalDuration = (Double(activity.C_DurationC) ?? 0) + 
-                                   (Double(activity.C_DurationA) ?? 0) + 
-                                   (Double(activity.C_DurationS) ?? 0)
-                
                 Text("Total: \(String(format: "%.1f", totalDuration))h")
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -300,15 +371,13 @@ struct ActivityCardView: View {
                     .background(Color.gray.opacity(0.1))
                     .clipShape(Capsule())
             }
-            
-            // Reflection with expanding/collapsing text
             ReflectionView(text: activity.C_Reflection)
         }
         .padding(.vertical, 10)
         .padding(.horizontal, 12)
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(Color(UIColor.systemBackground))
+                .fill(Color(UIColor.tertiarySystemBackground))
                 .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
         )
         .contextMenu {
@@ -318,59 +387,48 @@ struct ActivityCardView: View {
             }) {
                 Label("Delete", systemImage: "trash")
             }
-            
-            Button(action: {
-                viewModel.copyActivityToClipboard(activity)
-            }) {
-                Label("Copy to Clipboard", systemImage: "doc.on.doc")
+            Menu {
+                Button(action: { viewModel.copyTitle(activity) }) {
+                    Label("Copy Title", systemImage: "textformat")
+                }
+                Button(action: { viewModel.copyReflection(activity) }) {
+                    Label("Copy Reflection", systemImage: "doc.text")
+                }
+                Button(action: { viewModel.copyAll(activity) }) {
+                    Label("Copy All", systemImage: "doc.on.doc")
+                }
+            } label: {
+                Label("Copy", systemImage: "doc.on.clipboard")
             }
         }
-        .swipeActions(edge: .trailing) {
-            Button(role: .destructive) {
-                viewModel.recordToDelete = activity
-                viewModel.showingDeleteConfirmation = true
-            } label: {
-                Label("Delete", systemImage: "trash")
-            }
-            
-            Button {
-                viewModel.copyActivityToClipboard(activity)
-            } label: {
-                Label("Copy", systemImage: "doc.on.doc")
-            }
-            .tint(.blue)
-        }
+        // Removed swipeActions as requested
     }
     
-    // Format date to be more user-friendly
-    // Format date to be more user-friendly and respect user's locale settings
+    private var totalDuration: Double {
+        (Double(activity.C_DurationC) ?? 0) +
+        (Double(activity.C_DurationA) ?? 0) +
+        (Double(activity.C_DurationS) ?? 0)
+    }
+    
     private func formatDate(_ dateString: String) -> String {
         let inputFormatter = DateFormatter()
         inputFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
         
-        // If the simple format doesn't work, try with just the date part
         if inputFormatter.date(from: dateString) == nil {
             inputFormatter.dateFormat = "yyyy-MM-dd"
         }
         
         if let date = inputFormatter.date(from: dateString) {
-            // Use the user's preferred date format
             let outputFormatter = DateFormatter()
             outputFormatter.dateStyle = .medium
             outputFormatter.timeStyle = .none
-            
             return outputFormatter.string(from: date)
         }
         
-        // If parsing fails, just return the date part of the string
-        if dateString.contains(" ") {
-            return String(dateString.split(separator: " ")[0])
-        }
-        return dateString
+        return dateString.contains(" ") ? String(dateString.split(separator: " ")[0]) : dateString
     }
 }
 
-// Expandable reflection view
 struct ReflectionView: View {
     let text: String
     @State private var isExpanded = false
@@ -382,14 +440,12 @@ struct ReflectionView: View {
                 .font(.subheadline)
                 .fontWeight(.medium)
                 .foregroundStyle(.secondary)
-            
             Text(text)
                 .font(.body)
                 .lineLimit(isExpanded ? nil : 3)
                 .foregroundStyle(.primary)
                 .fixedSize(horizontal: false, vertical: true)
                 .animation(.easeOut(duration: 0.3), value: isExpanded)
-            
             if text.count > 100 {
                 Button {
                     withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
@@ -400,7 +456,6 @@ struct ReflectionView: View {
                         Text(isExpanded ? "Show Less" : "Show More")
                             .font(.caption)
                             .foregroundStyle(.blue)
-                        
                         Image(systemName: "chevron.down")
                             .font(.caption)
                             .foregroundStyle(.blue)
@@ -421,7 +476,6 @@ struct ReflectionView: View {
     }
 }
 
-// Haptic feedback manager
 class HapticManager {
     static let shared = HapticManager()
     

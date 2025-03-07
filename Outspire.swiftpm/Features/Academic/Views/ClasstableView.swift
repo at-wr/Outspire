@@ -7,6 +7,7 @@ struct ClasstableView: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var currentTime = Date()
     @State private var timer: Timer?
+    @State private var orientation = UIDevice.current.orientation // Track device orientation
     
     // Dictionary to map subjects to consistent colors
     private let subjectColors: [String: Color] = [
@@ -22,7 +23,7 @@ struct ClasstableView: View {
         "Chinese": .indigo.opacity(0.8)
     ]
     
-    // Add periods data based on the provided times
+    // Add periods data based on the provided times (unchanged)
     private var classPeriods: [ClassPeriod] {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
@@ -30,213 +31,162 @@ struct ClasstableView: View {
         formatter.dateFormat = "HH:mm"
         
         return [
-            ClassPeriod(
-                number: 1,
-                startTime: calendar.date(bySettingHour: 8, minute: 15, second: 0, of: today)!,
-                endTime: calendar.date(bySettingHour: 8, minute: 55, second: 0, of: today)!
-            ),
-            ClassPeriod(
-                number: 2,
-                startTime: calendar.date(bySettingHour: 9, minute: 5, second: 0, of: today)!,
-                endTime: calendar.date(bySettingHour: 9, minute: 45, second: 0, of: today)!
-            ),
-            ClassPeriod(
-                number: 3,
-                startTime: calendar.date(bySettingHour: 9, minute: 55, second: 0, of: today)!,
-                endTime: calendar.date(bySettingHour: 10, minute: 35, second: 0, of: today)!
-            ),
-            ClassPeriod(
-                number: 4,
-                startTime: calendar.date(bySettingHour: 10, minute: 45, second: 0, of: today)!,
-                endTime: calendar.date(bySettingHour: 11, minute: 25, second: 0, of: today)!
-            ),
-            ClassPeriod(
-                number: 5,
-                startTime: calendar.date(bySettingHour: 12, minute: 30, second: 0, of: today)!,
-                endTime: calendar.date(bySettingHour: 13, minute: 10, second: 0, of: today)!
-            ),
-            ClassPeriod(
-                number: 6,
-                startTime: calendar.date(bySettingHour: 13, minute: 20, second: 0, of: today)!,
-                endTime: calendar.date(bySettingHour: 14, minute: 0, second: 0, of: today)!
-            ),
-            ClassPeriod(
-                number: 7,
-                startTime: calendar.date(bySettingHour: 14, minute: 10, second: 0, of: today)!,
-                endTime: calendar.date(bySettingHour: 14, minute: 50, second: 0, of: today)!
-            ),
-            ClassPeriod(
-                number: 8,
-                startTime: calendar.date(bySettingHour: 15, minute: 0, second: 0, of: today)!,
-                endTime: calendar.date(bySettingHour: 15, minute: 40, second: 0, of: today)!
-            ),
-            ClassPeriod(
-                number: 9,
-                startTime: calendar.date(bySettingHour: 15, minute: 50, second: 0, of: today)!,
-                endTime: calendar.date(bySettingHour: 16, minute: 30, second: 0, of: today)!
-            )
+            ClassPeriod(number: 1, startTime: calendar.date(bySettingHour: 8, minute: 15, second: 0, of: today)!, endTime: calendar.date(bySettingHour: 8, minute: 55, second: 0, of: today)!),
+            ClassPeriod(number: 2, startTime: calendar.date(bySettingHour: 9, minute: 5, second: 0, of: today)!, endTime: calendar.date(bySettingHour: 9, minute: 45, second: 0, of: today)!),
+            ClassPeriod(number: 3, startTime: calendar.date(bySettingHour: 9, minute: 55, second: 0, of: today)!, endTime: calendar.date(bySettingHour: 10, minute: 35, second: 0, of: today)!),
+            ClassPeriod(number: 4, startTime: calendar.date(bySettingHour: 10, minute: 45, second: 0, of: today)!, endTime: calendar.date(bySettingHour: 11, minute: 25, second: 0, of: today)!),
+            ClassPeriod(number: 5, startTime: calendar.date(bySettingHour: 12, minute: 30, second: 0, of: today)!, endTime: calendar.date(bySettingHour: 13, minute: 10, second: 0, of: today)!),
+            ClassPeriod(number: 6, startTime: calendar.date(bySettingHour: 13, minute: 20, second: 0, of: today)!, endTime: calendar.date(bySettingHour: 14, minute: 0, second: 0, of: today)!),
+            ClassPeriod(number: 7, startTime: calendar.date(bySettingHour: 14, minute: 10, second: 0, of: today)!, endTime: calendar.date(bySettingHour: 14, minute: 50, second: 0, of: today)!),
+            ClassPeriod(number: 8, startTime: calendar.date(bySettingHour: 15, minute: 0, second: 0, of: today)!, endTime: calendar.date(bySettingHour: 15, minute: 40, second: 0, of: today)!),
+            ClassPeriod(number: 9, startTime: calendar.date(bySettingHour: 15, minute: 50, second: 0, of: today)!, endTime: calendar.date(bySettingHour: 16, minute: 30, second: 0, of: today)!)
         ]
     }
     
-    // Find the current period or next period
+    // Find the current period or next period (unchanged)
     func getCurrentOrNextPeriod() -> (period: ClassPeriod?, isCurrentlyActive: Bool) {
         let now = Date()
-        
-        // Check if we're currently in a period
         if let activePeriod = classPeriods.first(where: { $0.isCurrentlyActive() }) {
             return (activePeriod, true)
         }
-        
-        // Find next period
         let futurePeriods = classPeriods.filter { $0.startTime > now }
         if let nextPeriod = futurePeriods.min(by: { $0.startTime < $1.startTime }) {
             return (nextPeriod, false)
         }
-        
         return (nil, false)
     }
     
     var body: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                // Days of week header - sticky
-                if !viewModel.timetable.isEmpty && viewModel.timetable[0].count > 1 {
-                    daysHeader
-                        .background(Color(UIColor.secondarySystemBackground))
-                        .shadow(color: Color.black.opacity(0.05), radius: 3, x: 0, y: 2)
-                        .zIndex(1) // Ensure header appears above the content
-                        .overlay(
-                            Divider().opacity(0.5), alignment: .bottom
-                        )
-                        .padding(.top, 3) // Small padding to show shadow
-                        .padding(.bottom, 12)
-                }
-                
-                // Main content depending on loading states
-                if viewModel.years.isEmpty {
-                    if viewModel.isLoadingYears {
-                        TimeTableSkeletonView()
-                            .padding()
-                    } else {
-                        ContentUnavailableView("No Available Classtable", systemImage: "calendar.badge.exclamationmark")
+        GeometryReader { geometry in
+            ScrollView {
+                VStack(spacing: 0) {
+                    // Days of week header - sticky (unchanged)
+                    if !viewModel.timetable.isEmpty && viewModel.timetable[0].count > 1 {
+                        daysHeader
+                            .background(Color(UIColor.secondarySystemBackground))
+                            .shadow(color: Color.black.opacity(0.05), radius: 3, x: 0, y: 2)
+                            .zIndex(1)
+                            .overlay(Divider().opacity(0.5), alignment: .bottom)
+                            .padding(.top, 3)
+                            .padding(.bottom, 12)
                     }
-                } else if viewModel.isLoadingTimetable {
-                    TimeTableSkeletonView()
-                        .padding()
-                } else if viewModel.timetable.isEmpty {
-                    ContentUnavailableView("No Timetable Data", systemImage: "calendar.badge.exclamationmark", description: Text("No timetable available for the selected year."))
-                } else {
-                    // Periods and classes
-                    VStack(spacing: 0) {
-                        ForEach(1..<viewModel.timetable.count, id: \.self) { row in
-                            periodRow(row: row)
-                                .padding(.vertical, 4)
-                                .opacity(animateIn ? 1 : 0)
-                                .offset(y: animateIn ? 0 : 20)
-                                .animation(
-                                    .spring(response: 0.5, dampingFraction: 0.7)
-                                    .delay(Double(row) * 0.05),
-                                    value: animateIn
-                                )
-                            
-                            if row == 4 {
-                                lunchBreakView
-                                    .padding(.vertical, 12)
+                    
+                    // Main content depending on loading states (unchanged)
+                    if viewModel.years.isEmpty {
+                        if viewModel.isLoadingYears {
+                            TimeTableSkeletonView().padding()
+                        } else {
+                            ContentUnavailableView("No Available Classtable", systemImage: "calendar.badge.exclamationmark")
+                        }
+                    } else if viewModel.isLoadingTimetable {
+                        TimeTableSkeletonView().padding()
+                    } else if viewModel.timetable.isEmpty {
+                        ContentUnavailableView("No Timetable Data", systemImage: "calendar.badge.exclamationmark", description: Text("No timetable available for the selected year."))
+                    } else {
+                        VStack(spacing: 0) {
+                            ForEach(1..<viewModel.timetable.count, id: \.self) { row in
+                                periodRow(row: row)
+                                    .padding(.vertical, 4)
+                                    .opacity(animateIn ? 1 : 0)
+                                    .offset(y: animateIn ? 0 : 20)
+                                    .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(Double(row) * 0.05), value: animateIn)
+                                
+                                if row == 4 {
+                                    lunchBreakView.padding(.vertical, 12)
+                                }
                             }
                         }
+                        .padding(.bottom, 24)
+                        .id(viewModel.selectedYearId)
                     }
-                    .padding(.bottom, 24)
-                    // Use ID to ensure view is recreated properly on data refresh
-                    .id(viewModel.selectedYearId)
-                }
-                
-                if let errorMessage = viewModel.errorMessage {
-                    Text(errorMessage)
-                        .foregroundColor(.red)
-                        .padding()
-                        .background(Color(UIColor.systemBackground).opacity(0.8))
-                        .cornerRadius(8)
-                        .padding()
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                    
+                    if let errorMessage = viewModel.errorMessage {
+                        Text(errorMessage)
+                            .foregroundColor(.red)
+                            .padding()
+                            .background(Color(UIColor.systemBackground).opacity(0.8))
+                            .cornerRadius(8)
+                            .padding()
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                    }
                 }
             }
-        }
-        .background(Color(UIColor.secondarySystemBackground))
-        .navigationTitle("Classtable")
-        .navigationBarTitleDisplayMode(.large)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                if !viewModel.years.isEmpty {
-                    Menu {
-                        ForEach(viewModel.years) { year in
-                            Button(year.W_Year) {
-                                viewModel.selectedYearId = year.W_YearID
-                                viewModel.fetchTimetable()
-                                
-                                // Only animate the content, not the whole view
-                                withAnimation(.easeOut(duration: 0.3)) {
-                                    animateIn = false
-                                }
-                                
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                                    withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
-                                        animateIn = true
+            .background(Color(UIColor.secondarySystemBackground))
+            .navigationTitle("Classtable")
+            .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    if !viewModel.years.isEmpty {
+                        Menu {
+                            ForEach(viewModel.years) { year in
+                                Button(year.W_Year) {
+                                    viewModel.selectedYearId = year.W_YearID
+                                    viewModel.fetchTimetable()
+                                    withAnimation(.easeOut(duration: 0.3)) {
+                                        animateIn = false
+                                    }
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                                        withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
+                                            animateIn = true
+                                        }
                                     }
                                 }
                             }
-                        }
-                    } label: {
-                        HStack(spacing: 4) {
-                            if let selectedYear = viewModel.years.first(where: { $0.W_YearID == viewModel.selectedYearId }) {
-                                Text(selectedYear.W_Year)
-                                    .foregroundColor(.primary)
-                            } else {
-                                Text("Select Year")
-                                    .foregroundColor(.primary)
+                        } label: {
+                            HStack(spacing: 4) {
+                                if let selectedYear = viewModel.years.first(where: { $0.W_YearID == viewModel.selectedYearId }) {
+                                    Text(selectedYear.W_Year)
+                                        .foregroundColor(.primary)
+                                } else {
+                                    Text("Select Year")
+                                        .foregroundColor(.primary)
+                                }
+                                Image(systemName: "chevron.down")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
                             }
-                            
-                            Image(systemName: "chevron.down")
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(Color(UIColor.tertiarySystemBackground))
+                                    .shadow(color: .black.opacity(0.05), radius: 2, x: 0, y: 1)
+                            )
                         }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(Color(UIColor.tertiarySystemBackground))
-                                .shadow(color: .black.opacity(0.05), radius: 2, x: 0, y: 1)
-                        )
+                        .disabled(viewModel.isLoadingYears)
+                        .opacity(viewModel.isLoadingYears ? 0.6 : 1.0)
+                    } else if viewModel.isLoadingYears {
+                        ProgressView()
+                            .controlSize(.small)
                     }
-                    .disabled(viewModel.isLoadingYears)
-                    .opacity(viewModel.isLoadingYears ? 0.6 : 1.0)
-                } else if viewModel.isLoadingYears {
-                    ProgressView()
-                        .controlSize(.small)
                 }
             }
+            // Apply rotation for iPhone in portrait mode
+            .rotationEffect(isIphoneInPortrait() ? .degrees(-90) : .degrees(0))
+            .frame(width: isIphoneInPortrait() ? geometry.size.height : geometry.size.width,
+                   height: isIphoneInPortrait() ? geometry.size.width : geometry.size.height)
+            .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
         }
-        // Add timer to update the time indicator
         .onAppear {
             viewModel.fetchYears()
-            
-            // Animate content in when view appears
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                 withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
                     animateIn = true
                 }
             }
-            
-            // Create a timer to update current time every minute
             timer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { _ in
                 currentTime = Date()
+            }
+            NotificationCenter.default.addObserver(forName: UIDevice.orientationDidChangeNotification, object: nil, queue: .main) { _ in
+                orientation = UIDevice.current.orientation
             }
         }
         .onDisappear {
             timer?.invalidate()
             timer = nil
+            NotificationCenter.default.removeObserver(self, name: UIDevice.orientationDidChangeNotification, object: nil)
         }
         .onChange(of: viewModel.isLoadingTimetable) { _, isLoading in
-            // Properly handle animation transitions after loading completes
             if (!isLoading && !viewModel.timetable.isEmpty) {
                 withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
                     animateIn = true
@@ -245,14 +195,20 @@ struct ClasstableView: View {
         }
     }
     
-    // Days of week header (Mon, Tue, Wed, etc)
+    // Helper to check if device is iPhone in portrait mode
+    private func isIphoneInPortrait() -> Bool {
+        let isIphone = UIDevice.current.userInterfaceIdiom == .phone
+        let isPortrait = orientation.isPortrait || orientation == .unknown // .unknown assumes portrait as default
+        return isIphone && isPortrait
+    }
+    
+    // Days of week header (unchanged)
     private var daysHeader: some View {
         HStack(alignment: .center, spacing: 8) {
-            Text("") // Period number column
+            Text("")
                 .frame(width: 40)
                 .font(.caption)
                 .padding(.vertical, 12)
-            
             if viewModel.timetable.count > 0 && viewModel.timetable[0].count > 1 {
                 ForEach(1..<min(viewModel.timetable[0].count, 6), id: \.self) { col in
                     Text(viewModel.timetable[0][col])
@@ -266,35 +222,26 @@ struct ClasstableView: View {
         .padding(.horizontal)
     }
     
-    // Modified periodRow function to include time indicator
+    // Period row (unchanged)
     private func periodRow(row: Int) -> some View {
         let periods = ClassPeriodsManager.shared.classPeriods
         let currentPeriod = periods.first(where: { $0.number == row && $0.isCurrentlyActive() })
         
         return ZStack(alignment: .top) {
-            // Regular period row content
             HStack(alignment: .top, spacing: 8) {
-                // Period number
                 Text("\(row)")
                     .font(.system(size: 14, weight: .semibold))
                     .frame(width: 25, height: 25)
                     .padding(.top, 15)
-                
-                // Classes for each day
                 if row < viewModel.timetable.count {
                     ForEach(1..<min(viewModel.timetable[row].count, 6), id: \.self) { col in
                         ClassCell(cellContent: viewModel.timetable[row][col], colorMap: subjectColors)
                     }
                 }
             }
-            
-            // Time indicator overlay if this is the current period
             if let period = currentPeriod {
                 HStack(spacing: 8) {
-                    // Space for period number
                     Rectangle().fill(Color.clear).frame(width: 25)
-                    
-                    // Time indicator line across all cells
                     Rectangle()
                         .fill(Color.red)
                         .frame(height: 2)
@@ -307,23 +254,18 @@ struct ClasstableView: View {
         .contentShape(Rectangle())
     }
     
-    // Lunch break divider
+    // Lunch break view (unchanged)
     private var lunchBreakView: some View {
         HStack(spacing: 12) {
             Rectangle()
                 .frame(height: 1)
                 .foregroundColor(Color.secondary.opacity(0.3))
-            
             Text("Lunch Break")
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .padding(.vertical, 4)
                 .padding(.horizontal, 12)
-                .background(
-                    Capsule()
-                        .fill(Color.secondary.opacity(0.1))
-                )
-            
+                .background(Capsule().fill(Color.secondary.opacity(0.1)))
             Rectangle()
                 .frame(height: 1)
                 .foregroundColor(Color.secondary.opacity(0.3))

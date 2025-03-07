@@ -41,7 +41,7 @@ struct ActivitySkeletonView: View {
             }
         }
         .redacted(reason: .placeholder)
-        .shimmering()
+        // .shimmering()
     }
 }
 

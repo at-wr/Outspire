@@ -1,323 +1,479 @@
 import SwiftUI
 
+// Add the shimmering effect extension
+extension View {
+    @ViewBuilder func shimmering() -> some View {
+        self.modifier(ShimmeringViewModifier())
+    }
+}
+
+// Shimmering view modifier implementation
+struct ShimmeringViewModifier: ViewModifier {
+    @State private var phase: CGFloat = 0
+    
+    func body(content: Content) -> some View {
+        content
+            .overlay(
+                GeometryReader { geo in
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            .clear,
+                            Color.white.opacity(0.5),
+                            .clear
+                        ]),
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                    .mask(content)
+                    .position(
+                        x: -geo.size.width + (2 * geo.size.width * phase),
+                        y: geo.size.height / 2
+                    )
+                }
+            )
+            .onAppear {
+                withAnimation(Animation.linear(duration: 1.5).repeatForever(autoreverses: false)) {
+                    self.phase = 1
+                }
+            }
+    }
+}
+
 struct ClubInfoView: View {
     @StateObject private var viewModel = ClubInfoViewModel()
     @State private var animateList = false
     @State private var refreshButtonRotation = 0.0
     
+    
     var body: some View {
         VStack {
             Form {
-                Section {
-                    Picker("Category", selection: $viewModel.selectedCategory) {
-                        Text("Select").tag(nil as Category?)
-                        ForEach(viewModel.categories) { category in
-                            Text(category.C_Category).tag(category as Category?)
-                        }
-                    }
-                    .pickerStyle(MenuPickerStyle())
-                    .onChange(of: viewModel.selectedCategory) {
-                        if let category = viewModel.selectedCategory {
-                            viewModel.fetchGroups(for: category)
-                        }
-                    }
-                    
-                    Picker("Club Name", selection: $viewModel.selectedGroup) {
-                        Text("Select").tag(nil as ClubGroup?)
-                        ForEach(viewModel.groups) { group in
-                            Text(group.C_NameC).tag(group as ClubGroup?)
-                        }
-                    }
-                    .pickerStyle(MenuPickerStyle())
-                    .disabled(viewModel.groups.isEmpty)
-                    .onChange(of: viewModel.selectedGroup) {
-                        if let group = viewModel.selectedGroup {
-                            viewModel.fetchGroupInfo(for: group)
-                            // Reset animations to trigger again
-                            withAnimation(.easeOut(duration: 0.3)) {
-                                animateList = false
-                            }
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                                withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
-                                    animateList = true
-                                }
-                            }
-                        }
-                    }
-                }
+                selectionSection
                 
-                if viewModel.categories.isEmpty && !viewModel.isLoading {
-                    Section {
-                        VStack(spacing: 12) {
-                            Image(systemName: "rectangle.on.rectangle.angled")
-                                .font(.largeTitle)
-                                .foregroundStyle(.tertiary)
-                                .padding(.bottom, 8)
-                            
-                            Text("Club Information")
-                                .font(.headline)
-                            
-                            Text("Select a category to view available clubs")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                                .multilineTextAlignment(.center)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                    }
-                } else if viewModel.groups.isEmpty && viewModel.selectedCategory != nil && !viewModel.isLoading {
-                    Section {
-                        VStack(spacing: 12) {
-                            Image(systemName: "list.bullet.clipboard")
-                                .font(.largeTitle)
-                                .foregroundStyle(.tertiary)
-                                .padding(.bottom, 8)
-                            
-                            Text("No clubs available")
-                                .font(.headline)
-                            
-                            Text("There are no clubs in this category")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                    }
-                }
+                emptyStateSection
                 
-                if let errorMessage = viewModel.errorMessage {
-                    Text(errorMessage)
-                        .foregroundColor(.red)
-                        .transition(.scale.combined(with: .opacity))
-                        .animation(.easeInOut, value: viewModel.errorMessage)
-                }
+                errorMessageView
                 
                 if viewModel.isLoading && (viewModel.groupInfo == nil || !viewModel.refreshing) {
-                    Section {
-                        ClubSkeletonView()
-                            .listRowInsets(EdgeInsets())
-                            .listRowBackground(Color.clear)
-                    }
-                    .transition(.opacity)
-                    .animation(.easeInOut(duration: 0.5), value: viewModel.isLoading)
-                } else {
-                    if let groupInfo = viewModel.groupInfo {
-                        Section(header: Text("About \(groupInfo.C_NameE)")) {
-                            VStack(alignment: .leading, spacing: 12) {
-                                LabeledContent("Title", value: groupInfo.C_NameC)
-                                    .offset(y: animateList ? 0 : 20)
-                                    .opacity(animateList ? 1 : 0)
-                                    .animation(.spring(response: 0.4, dampingFraction: 0.7).delay(0.1), value: animateList)
-                                
-                                Divider()
-                                
-                                LabeledContent("No", value: "\(groupInfo.C_GroupNo) (\(groupInfo.C_GroupsID))")
-                                    .offset(y: animateList ? 0 : 20)
-                                    .opacity(animateList ? 1 : 0)
-                                    .animation(.spring(response: 0.4, dampingFraction: 0.7).delay(0.2), value: animateList)
-                                
-                                if groupInfo.C_FoundTime != "0000-00-00 00:00:00" {
-                                    Divider()
-                                    
-                                    LabeledContent("Founded", value: groupInfo.C_FoundTime)
-                                        .offset(y: animateList ? 0 : 20)
-                                        .opacity(animateList ? 1 : 0)
-                                        .animation(.spring(response: 0.4, dampingFraction: 0.7).delay(0.3), value: animateList)
-                                }
-                                
-                                if let descriptionC = viewModel.extractText(from: groupInfo.C_DescriptionC), !descriptionC.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                                    Divider()
-                                    
-                                    Text("\(descriptionC)")
-                                        .padding(.vertical, 5)
-                                        .offset(y: animateList ? 0 : 20)
-                                        .opacity(animateList ? 1 : 0)
-                                        .animation(.spring(response: 0.4, dampingFraction: 0.7).delay(0.4), value: animateList)
-                                }
-                                
-                                if let descriptionE = viewModel.extractText(from: groupInfo.C_DescriptionE), !descriptionE.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                                    if viewModel.extractText(from: groupInfo.C_DescriptionC) != nil {
-                                        Divider()
-                                    }
-                                    
-                                    Text("\(descriptionE)")
-                                        .padding(.vertical, 5)
-                                        .offset(y: animateList ? 0 : 20)
-                                        .opacity(animateList ? 1 : 0)
-                                        .animation(.spring(response: 0.4, dampingFraction: 0.7).delay(0.5), value: animateList)
-                                }
-                            }
-                            .padding(.vertical, 8)
-                        }
-                        .listSectionSpacing(.compact)
-                        .contentTransition(.opacity)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                        
-                        Section(header: 
-                                    HStack {
-                            Text("Members")
-                            if !viewModel.members.isEmpty {
-                                Text("(\(viewModel.members.count))")
-                                    .foregroundStyle(.secondary)
-                                    .font(.subheadline)
-                            }
-                        }
-                        ) {
-                            if viewModel.isLoading {
-                                VStack(spacing: 12) {
-                                    ForEach(0..<4, id: \.self) { _ in
-                                        HStack {
-                                            RoundedRectangle(cornerRadius: 4)
-                                                .fill(Color.gray.opacity(0.2))
-                                                .frame(height: 18)
-                                                .frame(width: 120)
-                                            
-                                            Spacer()
-                                            
-                                            RoundedRectangle(cornerRadius: 4)
-                                                .fill(Color.gray.opacity(0.2))
-                                                .frame(height: 18)
-                                                .frame(width: 60)
-                                        }
-                                    }
-                                }
-                                .redacted(reason: .placeholder)
-                                .shimmering()
-                                .padding(.vertical, 8)
-                            } else if viewModel.members.isEmpty {
-                                Text("No members available.")
-                                    .foregroundColor(.secondary)
-                                    .transition(.opacity)
-                                
-                                // Debug button for developer use
-#if DEBUG
-                                Button("Reload Members") {
-                                    if let group = viewModel.selectedGroup {
-                                        viewModel.fetchGroupInfo(for: group)
-                                    }
-                                }
-                                .font(.footnote)
-#endif
-                            } else {
-                                ForEach(Array(viewModel.members.enumerated()), id: \.element.id) { index, member in
-                                    HStack {
-                                        Text(member.S_Name)
-                                            .fontWeight(member.LeaderYes == "2" || member.LeaderYes == "1" ? .medium : .regular)
-                                        if let nickname = member.S_Nickname, !nickname.isEmpty {
-                                            Text("(\(nickname))")
-                                                .foregroundColor(.secondary)
-                                        }
-                                        Spacer()
-                                        if member.LeaderYes == "2" {
-                                            Text("President")
-                                                .foregroundColor(.red)
-                                                .font(.subheadline)
-                                        } else if member.LeaderYes == "1" {
-                                            Text("Vice President")
-                                                .foregroundColor(.orange)
-                                                .font(.subheadline)
-                                        }
-                                    }
-                                    .listRowBackground(Color.clear)
-                                    .offset(x: animateList ? 0 : 100, y: 0)
-                                    .opacity(animateList ? 1 : 0)
-                                    .animation(
-                                        .spring(response: 0.4, dampingFraction: 0.7)
-                                        .delay(Double(index) * 0.05), // Staggered animation
-                                        value: animateList
-                                    )
-                                }
-                            }
-                        }
-                        .listSectionSpacing(.compact)
-                        .contentTransition(.opacity)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                    }
+                    loadingSection
+                } else if let groupInfo = viewModel.groupInfo {
+                    clubInfoSection(groupInfo: groupInfo)
+                    memberSection
                 }
             }
             .contentMargins(.vertical, 10.0)
             .textSelection(.enabled)
             .navigationBarTitle("Club Info")
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    if viewModel.isLoading {
-                        ProgressView()
-                            .controlSize(.small)
-                            .transition(.opacity.combined(with: .scale))
-                    }
-                }
-                
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: {
-                        withAnimation {
-                            refreshButtonRotation += 360
-                        }
-                        
-                        if viewModel.selectedCategory != nil {
-                            viewModel.fetchGroups(for: viewModel.selectedCategory!)
-                        } else {
-                            viewModel.fetchCategories()
-                        }
-                        
-                        if viewModel.selectedGroup != nil {
-                            viewModel.fetchGroupInfo(for: viewModel.selectedGroup!)
-                        }
-                    }) {
-                        Image(systemName: "arrow.clockwise")
-                            .rotationEffect(.degrees(refreshButtonRotation))
-                            .animation(.spring(response: 0.6, dampingFraction: 0.5), value: refreshButtonRotation)
-                    }
-                }
+                toolbarProgressView
+                refreshButton
             }
             .scrollDismissesKeyboard(.immediately)
-            .onAppear {
-                viewModel.fetchCategories()
-                
-                // Trigger animations after a short delay
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                    withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
-                        animateList = true
-                    }
-                }
-            }
-            .onChange(of: viewModel.isLoading) { isLoading in
-                if !isLoading && viewModel.groupInfo != nil {
-                    // Reset and retrigger staggered animations when loading completes
-                    animateList = false
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
-                            animateList = true
-                        }
-                    }
-                }
-            }
+            .onAppear(perform: onAppearSetup)
+            .onChange(of: viewModel.isLoading, perform: handleLoadingChange)
             .animation(.spring(response: 0.4), value: viewModel.isLoading)
         }
         .refreshable {
-            // Pull to refresh with haptic feedback
-            HapticManager.shared.playFeedback(.medium)
-            
-            viewModel.refreshing = true
-            
-            if let category = viewModel.selectedCategory {
-                viewModel.fetchGroups(for: category)
-            } else {
-                viewModel.fetchCategories()
+            handleRefresh()
+        }
+    }
+    
+    // MARK: - View Components
+    
+    private var selectionSection: some View {
+        Section {
+            Picker("Category", selection: $viewModel.selectedCategory) {
+                Text("Select").tag(nil as Category?)
+                ForEach(viewModel.categories) { category in
+                    Text(category.C_Category).tag(category as Category?)
+                }
+            }
+            .pickerStyle(MenuPickerStyle())
+            .onChange(of: viewModel.selectedCategory) {
+                if let category = viewModel.selectedCategory {
+                    viewModel.fetchGroups(for: category)
+                }
             }
             
-            if let group = viewModel.selectedGroup {
-                viewModel.fetchGroupInfo(for: group)
+            Picker("Club Name", selection: $viewModel.selectedGroup) {
+                Text("Select").tag(nil as ClubGroup?)
+                ForEach(viewModel.groups) { group in
+                    Text(group.C_NameC).tag(group as ClubGroup?)
+                }
+            }
+            .pickerStyle(MenuPickerStyle())
+            .disabled(viewModel.groups.isEmpty)
+            .onChange(of: viewModel.selectedGroup) {
+                handleGroupSelection()
+            }
+        }
+    }
+    
+    private var emptyStateSection: some View {
+        Group {
+            if viewModel.categories.isEmpty && !viewModel.isLoading {
+                emptyCategoriesView
+            } else if viewModel.groups.isEmpty && viewModel.selectedCategory != nil && !viewModel.isLoading {
+                emptyGroupsView
+            }
+        }
+    }
+    
+    private var emptyCategoriesView: some View {
+        Section {
+            VStack(spacing: 12) {
+                Image(systemName: "rectangle.on.rectangle.angled")
+                    .font(.largeTitle)
+                    .foregroundStyle(.tertiary)
+                    .padding(.bottom, 8)
+                
+                Text("Club Information")
+                    .font(.headline)
+                
+                Text("Select a category to view available clubs")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            .frame(maxWidth: .infinity)
+            .padding()
+        }
+    }
+    
+    private var emptyGroupsView: some View {
+        Section {
+            VStack(spacing: 12) {
+                Image(systemName: "list.bullet.clipboard")
+                    .font(.largeTitle)
+                    .foregroundStyle(.tertiary)
+                    .padding(.bottom, 8)
+                
+                Text("No clubs available")
+                    .font(.headline)
+                
+                Text("There are no clubs in this category")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity)
+            .padding()
+        }
+    }
+    
+    private var errorMessageView: some View {
+        Group {
+            if let errorMessage = viewModel.errorMessage {
+                Text(errorMessage)
+                    .foregroundColor(.red)
+                    .transition(.scale.combined(with: .opacity))
+                    .animation(.easeInOut, value: viewModel.errorMessage)
+            }
+        }
+    }
+    
+    private var loadingSection: some View {
+        Section {
+            ClubSkeletonView()
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color.clear)
+        }
+        .transition(.opacity)
+        .animation(.easeInOut(duration: 0.5), value: viewModel.isLoading)
+    }
+    
+    private func clubInfoSection(groupInfo: GroupInfo) -> some View {
+        Section(header: Text("About \(groupInfo.C_NameE)")) {
+            ClubDetailView(
+                groupInfo: groupInfo, 
+                extractText: viewModel.extractText, 
+                animateList: animateList
+            )
+        }
+        .listSectionSpacing(.compact)
+        .contentTransition(.opacity)
+        .transition(.move(edge: .bottom).combined(with: .opacity))
+    }
+    
+    private var memberSection: some View {
+        Section(header: memberSectionHeader) {
+            MembersListView(
+                members: viewModel.members,
+                isLoading: viewModel.isLoading,
+                selectedGroup: viewModel.selectedGroup,
+                animateList: animateList,
+                fetchGroupInfo: viewModel.fetchGroupInfo
+            )
+        }
+        .listSectionSpacing(.compact)
+        .contentTransition(.opacity)
+        .transition(.move(edge: .bottom).combined(with: .opacity))
+    }
+    
+    private var memberSectionHeader: some View {
+        HStack {
+            Text("Members")
+            if !viewModel.members.isEmpty {
+                Text("(\(viewModel.members.count))")
+                    .foregroundStyle(.secondary)
+                    .font(.subheadline)
+            }
+        }
+    }
+    
+    private var toolbarProgressView: some ToolbarContent {
+        ToolbarItem(placement: .navigationBarTrailing) {
+            if viewModel.isLoading {
+                ProgressView()
+                    .controlSize(.small)
+                    .transition(.opacity.combined(with: .scale))
+            }
+        }
+    }
+    
+    private var refreshButton: some ToolbarContent {
+        ToolbarItem(placement: .navigationBarTrailing) {
+            Button(action: {
+                withAnimation {
+                    refreshButtonRotation += 360
+                }
+                
+                if viewModel.selectedCategory != nil {
+                    viewModel.fetchGroups(for: viewModel.selectedCategory!)
+                } else {
+                    viewModel.fetchCategories()
+                }
+                
+                if viewModel.selectedGroup != nil {
+                    viewModel.fetchGroupInfo(for: viewModel.selectedGroup!)
+                }
+            }) {
+                Image(systemName: "arrow.clockwise")
+                    .rotationEffect(.degrees(refreshButtonRotation))
+                    .animation(.spring(response: 0.6, dampingFraction: 0.5), value: refreshButtonRotation)
+            }
+        }
+    }
+    
+    // MARK: - Helper Methods
+    
+    private func onAppearSetup() {
+        viewModel.fetchCategories()
+        
+        // Trigger animations after a short delay
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
+                animateList = true
+            }
+        }
+    }
+    
+    private func handleGroupSelection() {
+        if let group = viewModel.selectedGroup {
+            viewModel.fetchGroupInfo(for: group)
+            // Reset animations to trigger again
+            withAnimation(.easeOut(duration: 0.3)) {
+                animateList = false
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
+                    animateList = true
+                }
+            }
+        }
+    }
+    
+    private func handleLoadingChange(_ isLoading: Bool) {
+        if !isLoading && viewModel.groupInfo != nil {
+            // Reset and retrigger staggered animations when loading completes
+            animateList = false
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
+                    animateList = true
+                }
+            }
+        }
+    }
+    
+    private func handleRefresh() {
+        // Pull to refresh with haptic feedback
+        HapticManager.shared.playFeedback(.medium)
+        
+        viewModel.refreshing = true
+        
+        if let category = viewModel.selectedCategory {
+            viewModel.fetchGroups(for: category)
+        } else {
+            viewModel.fetchCategories()
+        }
+        
+        if let group = viewModel.selectedGroup {
+            viewModel.fetchGroupInfo(for: group)
+        }
+        
+        // Reset refreshing state after a delay
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            viewModel.refreshing = false
+        }
+    }
+}
+
+// MARK: - Extracted Subviews
+
+struct ClubDetailView: View {
+    let groupInfo: GroupInfo
+    let extractText: (String) -> String?
+    let animateList: Bool
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            LabeledContent("Title", value: groupInfo.C_NameC)
+                .offset(y: animateList ? 0 : 20)
+                .opacity(animateList ? 1 : 0)
+                .animation(.spring(response: 0.4, dampingFraction: 0.7).delay(0.1), value: animateList)
+            
+            Divider()
+            
+            LabeledContent("No", value: "\(groupInfo.C_GroupNo) (\(groupInfo.C_GroupsID))")
+                .offset(y: animateList ? 0 : 20)
+                .opacity(animateList ? 1 : 0)
+                .animation(.spring(response: 0.4, dampingFraction: 0.7).delay(0.2), value: animateList)
+            
+            if groupInfo.C_FoundTime != "0000-00-00 00:00:00" {
+                Divider()
+                
+                LabeledContent("Founded", value: groupInfo.C_FoundTime)
+                    .offset(y: animateList ? 0 : 20)
+                    .opacity(animateList ? 1 : 0)
+                    .animation(.spring(response: 0.4, dampingFraction: 0.7).delay(0.3), value: animateList)
             }
             
-            // Reset refreshing state after a delay
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                viewModel.refreshing = false
+            descriptionView
+        }
+        .padding(.vertical, 8)
+    }
+    
+    private var descriptionView: some View {
+        Group {
+            if let descriptionC = extractText(groupInfo.C_DescriptionC), 
+                !descriptionC.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                Divider()
+                
+                Text("\(descriptionC)")
+                    .padding(.vertical, 5)
+                    .offset(y: animateList ? 0 : 20)
+                    .opacity(animateList ? 1 : 0)
+                    .animation(.spring(response: 0.4, dampingFraction: 0.7).delay(0.4), value: animateList)
+            }
+            
+            if let descriptionE = extractText(groupInfo.C_DescriptionE), 
+                !descriptionE.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                if extractText(groupInfo.C_DescriptionC) != nil {
+                    Divider()
+                }
+                
+                Text("\(descriptionE)")
+                    .padding(.vertical, 5)
+                    .offset(y: animateList ? 0 : 20)
+                    .opacity(animateList ? 1 : 0)
+                    .animation(.spring(response: 0.4, dampingFraction: 0.7).delay(0.5), value: animateList)
             }
         }
     }
 }
 
-// Club skeleton view for better loading visuals
+struct MembersListView: View {
+    let members: [Member]
+    let isLoading: Bool
+    let selectedGroup: ClubGroup?
+    let animateList: Bool
+    let fetchGroupInfo: (ClubGroup) -> Void
+    
+    var body: some View {
+        Group {
+            if isLoading {
+                memberLoadingView
+            } else if members.isEmpty {
+                emptyMembersView
+            } else {
+                membersList
+            }
+        }
+    }
+    
+    private var memberLoadingView: some View {
+        VStack(spacing: 12) {
+            ForEach(0..<4, id: \.self) { _ in
+                HStack {
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color.gray.opacity(0.2))
+                        .frame(height: 18)
+                        .frame(width: 120)
+                    
+                    Spacer()
+                    
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color.gray.opacity(0.2))
+                        .frame(height: 18)
+                        .frame(width: 60)
+                }
+            }
+        }
+        .redacted(reason: .placeholder)
+        .shimmering()
+        .padding(.vertical, 8)
+    }
+    
+    private var emptyMembersView: some View {
+        Group {
+            Text("No members available.")
+                .foregroundColor(.secondary)
+                .transition(.opacity)
+            
+            // Debug button for developer use
+#if DEBUG
+            Button("Reload Members") {
+                if let group = selectedGroup {
+                    fetchGroupInfo(group)
+                }
+            }
+            .font(.footnote)
+#endif
+        }
+    }
+    
+    private var membersList: some View {
+        ForEach(Array(members.enumerated()), id: \.element.id) { index, member in
+            HStack {
+                Text(member.S_Name)
+                    .fontWeight(member.LeaderYes == "2" || member.LeaderYes == "1" ? .medium : .regular)
+                if let nickname = member.S_Nickname, !nickname.isEmpty {
+                    Text("(\(nickname))")
+                        .foregroundColor(.secondary)
+                }
+                Spacer()
+                if member.LeaderYes == "2" {
+                    Text("President")
+                        .foregroundColor(.red)
+                        .font(.subheadline)
+                } else if member.LeaderYes == "1" {
+                    Text("Vice President")
+                        .foregroundColor(.orange)
+                        .font(.subheadline)
+                }
+            }
+            .listRowBackground(Color.clear)
+            .offset(x: animateList ? 0 : 100, y: 0)
+            .opacity(animateList ? 1 : 0)
+            .animation(
+                .spring(response: 0.4, dampingFraction: 0.7)
+                .delay(Double(index) * 0.05), // Staggered animation
+                value: animateList
+            )
+        }
+    }
+}
+
+// Club skeleton view
 struct ClubSkeletonView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -354,7 +510,7 @@ struct ClubSkeletonView: View {
                 }
                 .padding(.top, 10)
             }
-            .padding(.vertical, 8)
+            .padding([.vertical], 8)
             
             // Member list skeleton
             VStack(alignment: .leading, spacing: 12) {
@@ -378,10 +534,10 @@ struct ClubSkeletonView: View {
                     }
                 }
             }
-            .padding(.vertical, 8)
+            .padding([.vertical], 8)
         }
         .redacted(reason: .placeholder)
         .shimmering()
-        .padding(.vertical, 8)
+        .padding([.vertical], 8)
     }
 }
