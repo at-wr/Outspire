@@ -31,8 +31,8 @@ class ClubInfoViewModel: ObservableObject {
                 
                 // Auto-select first category if none selected
                 if self.categories.count > 0 && self.selectedCategory == nil {
-                    self.selectedCategory = categories[0]
-                    self.fetchGroups(for: categories[0])
+                    self.selectedCategory = categories[1]
+                    self.fetchGroups(for: categories[1])
                 }
                 
             case .failure(let error):

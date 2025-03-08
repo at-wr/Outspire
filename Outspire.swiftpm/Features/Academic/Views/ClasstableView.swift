@@ -248,6 +248,7 @@ struct ClasstableView: View {
                         .offset(y: 70 * period.currentProgressPercentage())
                         .animation(.spring(response: 0.3), value: period.currentProgressPercentage())
                 }
+                .zIndex(2)
             }
         }
         .padding(.horizontal)

@@ -85,20 +85,25 @@ struct ClubInfoView: View {
     private var selectionSection: some View {
         Section {
             Picker("Category", selection: $viewModel.selectedCategory) {
-                Text("Select").tag(nil as Category?)
+                if viewModel.selectedCategory == nil {
+                    Text("Unavailable").tag(nil as Category?)
+                }
                 ForEach(viewModel.categories) { category in
                     Text(category.C_Category).tag(category as Category?)
                 }
             }
             .pickerStyle(MenuPickerStyle())
+            //.pickerStyle(.segmented)
             .onChange(of: viewModel.selectedCategory) {
                 if let category = viewModel.selectedCategory {
                     viewModel.fetchGroups(for: category)
                 }
             }
             
-            Picker("Club Name", selection: $viewModel.selectedGroup) {
-                Text("Select").tag(nil as ClubGroup?)
+            Picker("Club", selection: $viewModel.selectedGroup) {
+                if viewModel.selectedGroup == nil {
+                    Text("Unvailable").tag(nil as ClubGroup?)
+                }
                 ForEach(viewModel.groups) { group in
                     Text(group.C_NameC).tag(group as ClubGroup?)
                 }
@@ -384,6 +389,7 @@ struct ClubDetailView: View {
 }
 
 struct MembersListView: View {
+    @EnvironmentObject var sessionService: SessionService
     let members: [Member]
     let isLoading: Bool
     let selectedGroup: ClubGroup?
@@ -403,74 +409,86 @@ struct MembersListView: View {
     }
     
     private var memberLoadingView: some View {
-        VStack(spacing: 12) {
-            ForEach(0..<4, id: \.self) { _ in
-                HStack {
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.gray.opacity(0.2))
-                        .frame(height: 18)
-                        .frame(width: 120)
-                    
-                    Spacer()
-                    
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.gray.opacity(0.2))
-                        .frame(height: 18)
-                        .frame(width: 60)
-                }
+        ForEach(0..<4, id: \.self) { _ in
+            HStack {
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(Color.gray.opacity(0.2))
+                    .frame(height: 18)
+                    .frame(width: 120)
+                
+                Spacer()
+                
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(Color.gray.opacity(0.2))
+                    .frame(height: 18)
+                    .frame(width: 60)
             }
+            .padding(.vertical, 4)
         }
         .redacted(reason: .placeholder)
         .shimmering()
-        .padding(.vertical, 8)
     }
     
     private var emptyMembersView: some View {
-        Group {
-            Text("No members available.")
-                .foregroundColor(.secondary)
-                .transition(.opacity)
-            
-            // Debug button for developer use
-#if DEBUG
-            Button("Reload Members") {
-                if let group = selectedGroup {
-                    fetchGroupInfo(group)
-                }
-            }
-            .font(.footnote)
-#endif
+        if sessionService.isAuthenticated {
+            Text("No members available, possibily dissolved.")
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.vertical, 8)
+        } else {
+            Text("Authentication required")
+                .foregroundStyle(.red)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.vertical, 8)
         }
     }
     
     private var membersList: some View {
         ForEach(Array(members.enumerated()), id: \.element.id) { index, member in
-            HStack {
-                Text(member.S_Name)
-                    .fontWeight(member.LeaderYes == "2" || member.LeaderYes == "1" ? .medium : .regular)
-                if let nickname = member.S_Nickname, !nickname.isEmpty {
-                    Text("(\(nickname))")
-                        .foregroundColor(.secondary)
+            HStack(spacing: 10) {
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 4) {
+                        Text(member.S_Name)
+                            .font(.body)
+                            .fontWeight(member.LeaderYes == "2" || member.LeaderYes == "1" ? .medium : .regular)
+                        
+                        if let nickname = member.S_Nickname, !nickname.isEmpty {
+                            Text("(\(nickname))")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    
+                    if member.LeaderYes == "2" || member.LeaderYes == "1" {
+                        Text(member.LeaderYes == "2" ? "President" : "Vice President")
+                            .font(.caption)
+                            .foregroundStyle(member.LeaderYes == "2" ? .red : .orange)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 2)
+                            .background(
+                                Capsule()
+                                    .fill(member.LeaderYes == "2" ? Color.red.opacity(0.1) : Color.orange.opacity(0.1))
+                            )
+                    }
                 }
+                
                 Spacer()
-                if member.LeaderYes == "2" {
-                    Text("President")
-                        .foregroundColor(.red)
-                        .font(.subheadline)
-                } else if member.LeaderYes == "1" {
-                    Text("Vice President")
-                        .foregroundColor(.orange)
-                        .font(.subheadline)
+                
+                if member.LeaderYes == "2" || member.LeaderYes == "1" {
+                    Image(systemName: "star.fill")
+                        .foregroundStyle(member.LeaderYes == "2" ? .red : .orange)
+                        .font(.caption)
                 }
             }
-            .listRowBackground(Color.clear)
-            .offset(x: animateList ? 0 : 100, y: 0)
+            .contentShape(Rectangle())
+            .offset(x: animateList ? 0 : 60)
             .opacity(animateList ? 1 : 0)
             .animation(
-                .spring(response: 0.4, dampingFraction: 0.7)
-                .delay(Double(index) * 0.05), // Staggered animation
+                .spring(response: 0.35, dampingFraction: 0.8)
+                .delay(Double(index) * 0.04),
                 value: animateList
             )
+            .padding(.vertical, 4)
         }
     }
 }
