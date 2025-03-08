@@ -42,7 +42,7 @@ struct AccountView: View {
             }
         }
     }
-    
+
     var loginView: some View {
         VStack {
             Form {
@@ -65,19 +65,20 @@ struct AccountView: View {
                                 .resizable()
                                 .frame(width: 75, height: 30)
                                 .cornerRadius(5)
+                                .onTapGesture {
+                                    viewModel.fetchCaptchaImage()
+                                }
+                        } else {
+                            Button(action: viewModel.fetchCaptchaImage) {
+                                Text("Load Captcha")
+                                    .font(.caption)
+                            }
                         }
                     }
                     
                     Button(action: viewModel.login) {
                         Text("Sign In")
                     }
-                    
-                    /*
-                     if let errorMessage = viewModel.errorMessage {
-                     Text(errorMessage)
-                     .foregroundColor(.red)
-                     }
-                     */
                 } footer: {
                     let connectionStatus = Configuration.useSSL ?
                     "Your connection has been encrypted." :
@@ -132,8 +133,6 @@ struct AccountView: View {
                 Image(systemName: "arrow.clockwise")
                     .rotationEffect(.degrees(refreshButtonRotation))
                     .animation(.spring(response: 0.6, dampingFraction: 0.5), value: refreshButtonRotation)
-                    .disabled(!viewModel.canRefreshCaptcha) // Disable the button
-                    .opacity(viewModel.canRefreshCaptcha ? 1.0 : 0.5) // Visually indicate disabled state
             }
         }
     }

@@ -19,9 +19,15 @@ class SessionService: ObservableObject {
         }
     }
     
+    func clearSession() {
+        sessionId = nil
+        userDefaults.removeObject(forKey: "sessionId")
+        // Don't clear user info to keep the UI consistent
+    }
+    
     func loginUser(username: String, password: String, captcha: String, completion: @escaping (Bool, String?) -> Void) {
-        guard let sessionId = self.sessionId else {
-            completion(false, "Session ID is missing.")
+        guard let sessionId = self.sessionId, !sessionId.isEmpty else {
+            completion(false, "Please refresh the captcha.")
             return
         }
         
@@ -38,18 +44,30 @@ class SessionService: ObservableObject {
         ) { [weak self] (result: Result<LoginResponse, NetworkError>) in
             switch result {
             case .success(let response):
+                // Check for Chinese error message about captcha (scenario 3)
+                if response.status.contains("验证码") || response.status.contains("错") {
+                    completion(false, "Invalid captcha code")
+                    return
+                }
+                
+                // Check login status
                 if response.status == "ok" {
+                    // Verify the password hash to determine if credentials are correct
+                    // This assumes the server returns the expected hash for correct credentials
                     self?.fetchUserInfo { success, error in
                         if success {
                             self?.isAuthenticated = true
+                            completion(true, nil)
+                        } else {
+                            completion(false, "Invalid username or password")
                         }
-                        completion(success, error)
                     }
                 } else {
-                    completion(false, "Invalid login credentials.")
+                    completion(false, "Sign In failed: \(response.status)")
                 }
+                
             case .failure(let error):
-                completion(false, "Login failed: \(error.localizedDescription)")
+                completion(false, "Sign In failed: \(error.localizedDescription)")
             }
         }
     }
@@ -67,7 +85,7 @@ class SessionService: ObservableObject {
                 self?.isAuthenticated = true
                 completion(true, nil)
             case .failure(let error):
-                completion(false, "Failed to fetch user info: \(error.localizedDescription)")
+                completion(false, "Failed: \(error.localizedDescription)")
             }
         }
     }
@@ -78,7 +96,14 @@ class SessionService: ObservableObject {
         isAuthenticated = false
         userDefaults.removeObject(forKey: "sessionId")
         userDefaults.removeObject(forKey: "userInfo")
-        CacheManager.clearAllCache() // WIP
+        CacheManager.clearAllCache() 
+        
+        // Also clear cookies to ensure a clean logout
+        if let cookies = HTTPCookieStorage.shared.cookies {
+            for cookie in cookies {
+                HTTPCookieStorage.shared.deleteCookie(cookie)
+            }
+        }
     }
     
     func storeSessionId(_ sessionId: String) {

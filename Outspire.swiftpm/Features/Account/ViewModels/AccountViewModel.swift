@@ -11,11 +11,9 @@ class AccountViewModel: ObservableObject {
     @Published var successMessage: String?
     @Published var isCaptchaLoading: Bool = false
     @Published var isLoggingIn: Bool = false
-    @Published var canRefreshCaptcha: Bool = true // New state variable
     
     private let sessionService = SessionService.shared
     private let userDefaults = UserDefaults.standard
-    private var refreshTimer: Timer? // Timer to control refresh rate
     
     var isAuthenticated: Bool {
         sessionService.isAuthenticated
@@ -26,18 +24,25 @@ class AccountViewModel: ObservableObject {
     }
     
     init() {
-        if let storedCaptcha = userDefaults.data(forKey: "captchaImageData") {
-            self.captchaImageData = storedCaptcha
-        }
+        // No longer loading cached captcha on init
+        // Always fetch a fresh captcha when view appears
     }
     
     func fetchCaptchaImage() {
-        // Don't refresh captcha if we're in the middle of logging in or if refresh is disabled
-        guard !isLoggingIn, canRefreshCaptcha else { return }
+        // Only prevent refresh during active login process
+        guard !isLoggingIn else { return }
         
         isCaptchaLoading = true
-        errorMessage = nil
-        successMessage = nil
+        
+        // Don't clear error messages here - let the view handle that
+        // This ensures the toast has time to display
+        
+        // Clear previous captcha
+        self.captcha = ""
+        self.captchaImageData = nil
+        
+        // Clear previous session to ensure a fresh one
+        sessionService.clearSession()
         
         guard let captchaURL = URL(string: "\(Configuration.baseURL)/php/login_key.php") else {
             self.errorMessage = "Invalid CAPTCHA URL."
@@ -45,9 +50,20 @@ class AccountViewModel: ObservableObject {
             return
         }
         
-        print("Fetching captcha from: \(captchaURL)")
+        print("Fetching fresh captcha from: \(captchaURL)")
         
-        URLSession.shared.dataTask(with: captchaURL) { [weak self] data, response, error in
+        // Clear any cookies to ensure a fresh session
+        let cookieStorage = HTTPCookieStorage.shared
+        if let cookies = cookieStorage.cookies {
+            for cookie in cookies {
+                cookieStorage.deleteCookie(cookie)
+            }
+        }
+        
+        var request = URLRequest(url: captchaURL)
+        request.httpShouldHandleCookies = true
+        
+        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
             DispatchQueue.main.async {
                 guard let self = self else { return }
                 self.isCaptchaLoading = false
@@ -60,7 +76,6 @@ class AccountViewModel: ObservableObject {
                 
                 if let data = data {
                     self.captchaImageData = data
-                    self.userDefaults.set(data, forKey: "captchaImageData")
                     
                     // Extract session ID from response
                     if let sessionId = self.extractSessionId(from: response) {
@@ -68,26 +83,20 @@ class AccountViewModel: ObservableObject {
                         self.sessionService.storeSessionId(sessionId)
                     } else {
                         print("Failed to extract session ID from response")
-                        // self.errorMessage = "Failed to get session. Try refreshing captcha."
-                        // Not a great, but common issue, so don't show it instead
+                        self.errorMessage = "Failed to get session. Retrying automatically..."
+                        // Automatic retry after a short delay
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                            self.fetchCaptchaImage()
+                        }
                     }
                 } else {
-                    self.errorMessage = "Failed to load CAPTCHA: No data received"
+                    self.errorMessage = "Failed to load CAPTCHA: No data received. Retrying..."
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                        self.fetchCaptchaImage()
+                    }
                 }
             }
         }.resume()
-        
-        // Disable refresh and start timer
-        canRefreshCaptcha = false
-        startRefreshTimer()
-    }
-    
-    // Function to start the refresh timer
-    private func startRefreshTimer() {
-        refreshTimer?.invalidate() // Invalidate any existing timer
-        refreshTimer = Timer.scheduledTimer(withTimeInterval: 60.0, repeats: false) { [weak self] _ in
-            self?.canRefreshCaptcha = true
-        }
     }
     
     func login() {
@@ -97,17 +106,14 @@ class AccountViewModel: ObservableObject {
         }
         
         // Ensure we have a session ID before attempting login
-        guard sessionService.sessionId != nil else {
-            errorMessage = "Missing session ID. Try again after Refresh."
+        guard let sessionId = sessionService.sessionId, !sessionId.isEmpty else {
+            errorMessage = "Missing session ID. Refreshing captcha..."
             fetchCaptchaImage()
             return
         }
         
         // Set state to logging in to prevent multiple attempts
         isLoggingIn = true
-        isCaptchaLoading = true
-        errorMessage = nil
-        successMessage = nil
         
         print("Attempting login with username: \(username), captcha: \(captcha)")
         
@@ -115,7 +121,6 @@ class AccountViewModel: ObservableObject {
             guard let self = self else { return }
             
             self.isLoggingIn = false
-            self.isCaptchaLoading = false
             
             if success {
                 print("Login successful")
@@ -126,8 +131,8 @@ class AccountViewModel: ObservableObject {
                 self.successMessage = "Signed in to TSIMS"
             } else {
                 print("Login failed: \(error ?? "Unknown error")")
-                self.errorMessage = error
-                // Only refresh captcha on failure
+                self.errorMessage = error ?? "Login failed. Please try again."
+                // Always refresh captcha on failure
                 self.fetchCaptchaImage()
             }
         }
@@ -136,20 +141,31 @@ class AccountViewModel: ObservableObject {
     func logout() {
         sessionService.logoutUser()
         fetchCaptchaImage()
-        successMessage = "Signed out to TSIMS"
+        successMessage = "Signed out from TSIMS"
     }
     
     private func extractSessionId(from response: URLResponse?) -> String? {
-        guard let httpResponse = response as? HTTPURLResponse,
-              let setCookie = httpResponse.allHeaderFields["Set-Cookie"] as? String else {
+        guard let httpResponse = response as? HTTPURLResponse else {
             return nil
         }
         
-        let pattern = "PHPSESSID=([^;]+)"
-        if let regex = try? NSRegularExpression(pattern: pattern),
-           let match = regex.firstMatch(in: setCookie, options: [], range: NSRange(location: 0, length: setCookie.utf16.count)),
-           let range = Range(match.range(at: 1), in: setCookie) {
-            return String(setCookie[range])
+        // Try to get session ID from cookies first
+        if let cookies = HTTPCookieStorage.shared.cookies(for: httpResponse.url!) {
+            for cookie in cookies {
+                if cookie.name == "PHPSESSID" {
+                    return cookie.value
+                }
+            }
+        }
+        
+        // Fall back to header extraction if cookie access fails
+        if let setCookie = httpResponse.allHeaderFields["Set-Cookie"] as? String {
+            let pattern = "PHPSESSID=([^;]+)"
+            if let regex = try? NSRegularExpression(pattern: pattern),
+               let match = regex.firstMatch(in: setCookie, options: [], range: NSRange(location: 0, length: setCookie.utf16.count)),
+               let range = Range(match.range(at: 1), in: setCookie) {
+                return String(setCookie[range])
+            }
         }
         return nil
     }
