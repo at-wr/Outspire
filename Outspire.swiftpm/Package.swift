@@ -46,13 +46,15 @@ let package = Package(
         )
     ],
     dependencies: [
-        .package(url: "https://github.com/scinfu/SwiftSoup.git", "2.7.6"..<"3.0.0")
+        .package(url: "https://github.com/scinfu/SwiftSoup.git", "2.7.6"..<"3.0.0"),
+        .package(url: "https://github.com/sunghyun-k/swiftui-toasts.git", "0.2.0"..<"1.0.0")
     ],
     targets: [
         .executableTarget(
             name: "AppModule",
             dependencies: [
-                .product(name: "SwiftSoup", package: "SwiftSoup")
+                .product(name: "SwiftSoup", package: "SwiftSoup"),
+                .product(name: "Toasts", package: "swiftui-toasts")
             ],
             path: ".",
             swiftSettings: [

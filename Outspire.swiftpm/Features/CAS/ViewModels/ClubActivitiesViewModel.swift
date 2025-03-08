@@ -206,6 +206,8 @@ class ClubActivitiesViewModel: ObservableObject {
             withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                 self.activities.removeAll { $0.C_ARecordID == recordId }
                 self.cacheActivities(for: self.selectedGroupId, activities: self.activities)
+                // Duplicate in ClubActivitiesView toast
+                /*
                 self.errorMessage = "Record deleted successfully"
                 
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
@@ -215,6 +217,7 @@ class ClubActivitiesViewModel: ObservableObject {
                         }
                     }
                 }
+                */
             }
         } else {
             self.errorMessage = response["status"] ?? "Unknown error"
@@ -222,23 +225,24 @@ class ClubActivitiesViewModel: ObservableObject {
     }
     
     // MARK: - Copy Functions
+    // showTemporaryMessage duplicate in ClubActivitiesView
     func copyTitle(_ activity: ActivityRecord) {
         HapticManager.shared.playFeedback(.light)
         UIPasteboard.general.string = activity.C_Theme
-        showTemporaryMessage("Title copied to clipboard!")
+        //showTemporaryMessage("Title copied to clipboard!")
     }
     
     func copyReflection(_ activity: ActivityRecord) {
         HapticManager.shared.playFeedback(.light)
         UIPasteboard.general.string = activity.C_Reflection
-        showTemporaryMessage("Reflection copied to clipboard!")
+        //showTemporaryMessage("Reflection copied to clipboard!")
     }
     
     func copyAll(_ activity: ActivityRecord) {
         HapticManager.shared.playFeedback(.light)
         let activityInfo = formatActivityInfo(activity)
         UIPasteboard.general.string = activityInfo
-        showTemporaryMessage("Activity copied to clipboard!")
+        //showTemporaryMessage("Activity copied to clipboard!")
     }
     
     private func formatActivityInfo(_ activity: ActivityRecord) -> String {

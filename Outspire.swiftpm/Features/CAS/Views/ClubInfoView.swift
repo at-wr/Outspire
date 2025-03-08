@@ -436,7 +436,7 @@ struct MembersListView: View {
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.vertical, 8)
         } else {
-            Text("Authentication required")
+            Text("Available after signed in.")
                 .foregroundStyle(.red)
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.vertical, 8)

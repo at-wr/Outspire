@@ -1,5 +1,6 @@
 import SwiftUI
 import Combine
+import Toasts
 
 class AccountViewModel: ObservableObject {
     @Published var username: String = ""
@@ -7,11 +8,14 @@ class AccountViewModel: ObservableObject {
     @Published var captcha: String = ""
     @Published var captchaImageData: Data?
     @Published var errorMessage: String?
+    @Published var successMessage: String?
     @Published var isCaptchaLoading: Bool = false
     @Published var isLoggingIn: Bool = false
+    @Published var canRefreshCaptcha: Bool = true // New state variable
     
     private let sessionService = SessionService.shared
     private let userDefaults = UserDefaults.standard
+    private var refreshTimer: Timer? // Timer to control refresh rate
     
     var isAuthenticated: Bool {
         sessionService.isAuthenticated
@@ -28,11 +32,12 @@ class AccountViewModel: ObservableObject {
     }
     
     func fetchCaptchaImage() {
-        // Don't refresh captcha if we're in the middle of logging in
-        guard !isLoggingIn else { return }
+        // Don't refresh captcha if we're in the middle of logging in or if refresh is disabled
+        guard !isLoggingIn, canRefreshCaptcha else { return }
         
         isCaptchaLoading = true
         errorMessage = nil
+        successMessage = nil
         
         guard let captchaURL = URL(string: "\(Configuration.baseURL)/php/login_key.php") else {
             self.errorMessage = "Invalid CAPTCHA URL."
@@ -63,13 +68,26 @@ class AccountViewModel: ObservableObject {
                         self.sessionService.storeSessionId(sessionId)
                     } else {
                         print("Failed to extract session ID from response")
-                        self.errorMessage = "Failed to get session. Try refreshing captcha."
+                        // self.errorMessage = "Failed to get session. Try refreshing captcha."
+                        // Not a great, but common issue, so don't show it instead
                     }
                 } else {
                     self.errorMessage = "Failed to load CAPTCHA: No data received"
                 }
             }
         }.resume()
+        
+        // Disable refresh and start timer
+        canRefreshCaptcha = false
+        startRefreshTimer()
+    }
+    
+    // Function to start the refresh timer
+    private func startRefreshTimer() {
+        refreshTimer?.invalidate() // Invalidate any existing timer
+        refreshTimer = Timer.scheduledTimer(withTimeInterval: 60.0, repeats: false) { [weak self] _ in
+            self?.canRefreshCaptcha = true
+        }
     }
     
     func login() {
@@ -80,7 +98,7 @@ class AccountViewModel: ObservableObject {
         
         // Ensure we have a session ID before attempting login
         guard sessionService.sessionId != nil else {
-            errorMessage = "Missing session ID. Please refresh the captcha and try again."
+            errorMessage = "Missing session ID. Try again after Refresh."
             fetchCaptchaImage()
             return
         }
@@ -89,6 +107,7 @@ class AccountViewModel: ObservableObject {
         isLoggingIn = true
         isCaptchaLoading = true
         errorMessage = nil
+        successMessage = nil
         
         print("Attempting login with username: \(username), captcha: \(captcha)")
         
@@ -104,11 +123,12 @@ class AccountViewModel: ObservableObject {
                 self.username = ""
                 self.password = ""
                 self.captcha = ""
+                self.successMessage = "Signed in to TSIMS"
             } else {
                 print("Login failed: \(error ?? "Unknown error")")
                 self.errorMessage = error
                 // Only refresh captcha on failure
-                self.fetchCaptchaImage() 
+                self.fetchCaptchaImage()
             }
         }
     }
@@ -116,6 +136,7 @@ class AccountViewModel: ObservableObject {
     func logout() {
         sessionService.logoutUser()
         fetchCaptchaImage()
+        successMessage = "Signed out to TSIMS"
     }
     
     private func extractSessionId(from response: URLResponse?) -> String? {

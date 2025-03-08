@@ -1,4 +1,5 @@
 import SwiftUI
+import Toasts
 
 @main
 struct OutspireApp: App {
@@ -15,6 +16,7 @@ struct OutspireApp: App {
         WindowGroup {
             NavSplitView()
                 .environmentObject(sessionService)
+                .installToast(position: .top)
         }
     }
 }

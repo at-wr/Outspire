@@ -1,4 +1,5 @@
 import SwiftUI
+import Toasts
 
 struct ClubActivitiesView: View {
     @EnvironmentObject var sessionService: SessionService
@@ -6,6 +7,7 @@ struct ClubActivitiesView: View {
     @State private var showingAddRecordSheet = false
     @State private var animateList = false
     @State private var refreshButtonRotation = 0.0
+    @Environment(\.presentToast) var presentToast
     
     var body: some View {
         // Remove the nested NavigationView
@@ -24,6 +26,17 @@ struct ClubActivitiesView: View {
             .onChange(of: viewModel.isLoadingActivities) { _ in
                 handleLoadingChange()
             }
+            .onChange(of: viewModel.errorMessage) { errorMessage in
+                if let errorMessage = errorMessage {
+                    let icon = errorMessage.contains("copied") ? 
+                    "checkmark.circle.fill" : "exclamationmark.circle.fill"
+                    let toast = ToastValue(
+                        icon: Image(systemName: icon).foregroundStyle(.red),
+                        message: errorMessage
+                    )
+                    presentToast(toast)
+                }
+            }
     }
     
     private var contentView: some View {
@@ -35,7 +48,7 @@ struct ClubActivitiesView: View {
                 showingAddRecordSheet: $showingAddRecordSheet,
                 animateList: animateList
             )
-            ToastSection(errorMessage: viewModel.errorMessage)
+            // 删除 ToastSection，改为使用 presentToast
         }
         .scrollContentBackground(.visible)
         .animation(.spring(response: 0.4), value: viewModel.isLoadingActivities)
@@ -99,6 +112,13 @@ struct ClubActivitiesView: View {
             Button("Delete", role: .destructive) {
                 if let record = viewModel.recordToDelete {
                     viewModel.deleteRecord(record: record)
+                    
+                    let toast = ToastValue(
+                        icon: Image(systemName: "trash.fill").foregroundStyle(.red),
+                        message: "Record Deleted"
+                    )
+                    presentToast(toast)
+                    
                     viewModel.recordToDelete = nil
                 }
             }
@@ -183,6 +203,7 @@ struct ActivitiesSection: View {
     let sessionService: SessionService
     @Binding var showingAddRecordSheet: Bool
     let animateList: Bool
+    @Environment(\.presentToast) var presentToast
     
     var body: some View {
         Section {
@@ -191,7 +212,15 @@ struct ActivitiesSection: View {
                     if sessionService.userInfo != nil {
                         ErrorView(
                             errorMessage: "No clubs available. Try joining some to continue?",
-                            retryAction: { viewModel.fetchGroups(forceRefresh: true) }
+                            retryAction: { 
+                                viewModel.fetchGroups(forceRefresh: true)
+                                
+                                let toast = ToastValue(
+                                    icon: Image(systemName: "arrow.clockwise"),
+                                    message: "Refreshing clubs..."
+                                )
+                                presentToast(toast)
+                            }
                         )
                     } else {
                         ErrorView(errorMessage: "Please sign in with TSIMS to continue...")
@@ -213,32 +242,6 @@ struct ActivitiesSection: View {
                     .blur(radius: viewModel.isLoadingActivities ? 1.0 : 0)
                     .opacity(viewModel.isLoadingActivities ? 0.7 : 1.0)
             }
-        }
-    }
-}
-
-struct ToastSection: View {
-    let errorMessage: String?
-    
-    var body: some View {
-        if let errorMessage = errorMessage {
-            Section {
-                HStack {
-                    Image(systemName: errorMessage.contains("copied") ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
-                        .foregroundStyle(errorMessage.contains("copied") ? .green : .red)
-                    Text(errorMessage)
-                        .foregroundColor(errorMessage.contains("copied") ? .green : .red)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .frame(maxWidth: .infinity)
-                .contentTransition(.opacity)
-                .transition(.move(edge: .bottom).combined(with: .opacity))
-            }
-            .listRowBackground(
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(errorMessage.contains("copied") ? Color.green.opacity(0.1) : Color.red.opacity(0.1))
-                    .padding(.vertical, 2)
-            )
         }
     }
 }
@@ -344,6 +347,7 @@ struct ActivitiesList: View {
 struct ActivityCardView: View {
     let activity: ActivityRecord
     @ObservedObject var viewModel: ClubActivitiesViewModel
+    @Environment(\.presentToast) var presentToast
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -388,13 +392,34 @@ struct ActivityCardView: View {
                 Label("Delete", systemImage: "trash")
             }
             Menu {
-                Button(action: { viewModel.copyTitle(activity) }) {
+                Button(action: { 
+                    viewModel.copyTitle(activity)
+                    let toast = ToastValue(
+                        icon: Image(systemName: "doc.on.clipboard"),
+                        message: "Title Copied to Clipboard"
+                    )
+                    presentToast(toast)
+                }) {
                     Label("Copy Title", systemImage: "textformat")
                 }
-                Button(action: { viewModel.copyReflection(activity) }) {
+                Button(action: { 
+                    viewModel.copyReflection(activity)
+                    let toast = ToastValue(
+                        icon: Image(systemName: "doc.on.clipboard"),
+                        message: "Reflection Copied to Clipboard"
+                    )
+                    presentToast(toast)
+                }) {
                     Label("Copy Reflection", systemImage: "doc.text")
                 }
-                Button(action: { viewModel.copyAll(activity) }) {
+                Button(action: { 
+                    viewModel.copyAll(activity)
+                    let toast = ToastValue(
+                        icon: Image(systemName: "doc.on.clipboard"),
+                        message: "Activity Copied to Clipboard"
+                    )
+                    presentToast(toast)
+                }) {
                     Label("Copy All", systemImage: "doc.on.doc")
                 }
             } label: {

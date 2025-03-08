@@ -4,6 +4,7 @@ struct NavSplitView: View {
     @EnvironmentObject var sessionService: SessionService
     @State private var selectedLink: String? = "today"
     @State private var showSettingsSheet = false
+    @State private var refreshID = UUID()
     
     var body: some View {
         NavigationSplitView {
@@ -46,6 +47,9 @@ struct NavSplitView: View {
             .contentMargins(.vertical, 10)
             .sheet(isPresented: $showSettingsSheet, content: {
                 SettingsView(showSettingsSheet: $showSettingsSheet)
+                    .onDisappear { // Refresh when the settings sheet is dismissed
+                        refreshID = UUID()
+                    }
             })
         } detail: {
             switch selectedLink {
@@ -70,6 +74,8 @@ struct NavSplitView: View {
             if newValue && selectedLink == "score" {
                 selectedLink = "today"
             }
+            refreshID = UUID() // Also refresh on this change.
         }
+        .id(refreshID) // Force refresh of the entire view
     }
 }

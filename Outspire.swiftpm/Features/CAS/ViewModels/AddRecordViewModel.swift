@@ -34,6 +34,11 @@ class AddRecordViewModel: ObservableObject {
         durationC + durationA + durationS
     }
     
+    // Calculate word count for the description
+    var descriptionWordCount: Int {
+        activityDescription.isEmpty ? 0 : activityDescription.split(separator: " ").count
+    }
+    
     init(availableGroups: [ClubGroup], loggedInStudentId: String, onSave: @escaping () -> Void) {
         self.availableGroups = availableGroups
         self.loggedInStudentId = loggedInStudentId
@@ -69,13 +74,13 @@ class AddRecordViewModel: ObservableObject {
     private func setupPublishers() {
         // Combine all form field publishers to update cache on any change
         Publishers.CombineLatest4($selectedGroupId, $activityDate, $activityTitle, 
-            Publishers.CombineLatest3($durationC, $durationA, $durationS))
-            .debounce(for: .seconds(0.5), scheduler: RunLoop.main)
-            .sink { [weak self] _, _, _, _ in
-                self?.cacheFormData()
-            }
-            .store(in: &cancellables)
-            
+                                  Publishers.CombineLatest3($durationC, $durationA, $durationS))
+        .debounce(for: .seconds(0.5), scheduler: RunLoop.main)
+        .sink { [weak self] _, _, _, _ in
+            self?.cacheFormData()
+        }
+        .store(in: &cancellables)
+        
         $activityDescription
             .debounce(for: .seconds(0.5), scheduler: RunLoop.main)
             .sink { [weak self] _ in
@@ -120,14 +125,14 @@ class AddRecordViewModel: ObservableObject {
         guard !selectedGroupId.isEmpty,
               !activityTitle.isEmpty,
               !activityDescription.isEmpty,
-              activityDescription.count >= 80,
+              descriptionWordCount >= 80,  // Changed from character count to word count
               totalDuration > 0 else {
-            errorMessage = "Please fill all fields and ensure the description is at least 80 characters long, and CAS durations total at least 1 hour."
+            errorMessage = "All fields are required."
             return
         }
         
         guard let sessionId = sessionService.sessionId else {
-            errorMessage = "No session ID available."
+            errorMessage = "Wow, you have flexible fingers 😉"
             return
         }
         

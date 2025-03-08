@@ -1,6 +1,8 @@
 import SwiftUI
+import Toasts
 
 struct SettingsGeneralView: View {
+    @Environment(\.presentToast) var presentToast
     @State private var useSSL = Configuration.useSSL
     @State private var hideAcademicScore = Configuration.hideAcademicScore
     @State private var showClearCacheConfirmation = false
@@ -30,17 +32,6 @@ struct SettingsGeneralView: View {
                 }
                 .onChange(of: useSSL) { _, newValue in
                     Configuration.useSSL = newValue
-                }
-                
-                HStack {
-                    Text("Current Server:")
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Text(Configuration.baseURL)
-                        .font(.footnote.monospaced())
-                        .padding(6)
-                        .background(colorScheme == .dark ? Color.black.opacity(0.3) : Color.gray.opacity(0.1))
-                        .cornerRadius(6)
                 }
             } header: {
                 Text("Network")
@@ -93,6 +84,14 @@ struct SettingsGeneralView: View {
                 // Auto-dismiss success message after delay
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                     showCacheCleared = false
+                }
+                
+                if showCacheCleared {
+                    let toast = ToastValue(
+                        icon: Image(systemName: "externaldrive.badge.checkmark").foregroundStyle(.blue),
+                        message: "Cache Cleared"
+                    )
+                    presentToast(toast)
                 }
             }
             Button("Cancel", role: .cancel) {}

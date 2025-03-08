@@ -1,8 +1,11 @@
 import SwiftUI
+import Toasts
 
 struct AccountView: View {
+    @Environment(\.presentToast) var presentToast
     @StateObject private var viewModel = AccountViewModel()
     @State private var showLogoutConfirmation = false
+    @State private var refreshButtonRotation = 0.0
     
     var body: some View {
         SwiftUI.Group {
@@ -15,6 +18,27 @@ struct AccountView: View {
         .onAppear {
             if viewModel.captchaImageData == nil && !viewModel.isAuthenticated {
                 viewModel.fetchCaptchaImage()
+            }
+        }
+        .onChange(of: viewModel.errorMessage) { errorMessage in  // Observe errorMessage
+            if let errorMessage = errorMessage {
+                let toast = ToastValue(
+                    icon: Image(systemName: "exclamationmark.triangle").foregroundColor(.red),
+                    message: errorMessage
+                )
+                presentToast(toast)
+                // Optionally clear the error message after displaying the toast
+                viewModel.errorMessage = nil  // Clear the error after displaying
+            }
+        }
+        .onChange(of: viewModel.successMessage) { successMessage in  // Observe errorMessage
+            if let successMessage = successMessage {
+                let toast = ToastValue(
+                    icon: Image(systemName: "checkmark.circle").foregroundColor(.green),
+                    message: successMessage
+                )
+                presentToast(toast)
+                viewModel.successMessage = nil
             }
         }
     }
@@ -48,13 +72,15 @@ struct AccountView: View {
                         Text("Sign In")
                     }
                     
-                    if let errorMessage = viewModel.errorMessage {
-                        Text(errorMessage)
-                            .foregroundColor(.red)
-                    }
+                    /*
+                     if let errorMessage = viewModel.errorMessage {
+                     Text(errorMessage)
+                     .foregroundColor(.red)
+                     }
+                     */
                 } footer: {
-                    let connectionStatus = Configuration.useSSL ? 
-                    "Your connection has been encrypted." : 
+                    let connectionStatus = Configuration.useSSL ?
+                    "Your connection has been encrypted." :
                     "Your connection hasn't been encrypted.\nRelay Encryption is recommended if you're using a public network."
                     Text("All data will only be stored on this device and the TSIMS server. \n\(connectionStatus)")
                         .font(.caption)
@@ -63,9 +89,7 @@ struct AccountView: View {
         }
         .navigationTitle("Sign In")
         .toolbar {
-            Button(action: viewModel.fetchCaptchaImage) {
-                Image(systemName: "arrow.triangle.2.circlepath")
-            }
+            refreshButton
         }
     }
     
@@ -73,7 +97,7 @@ struct AccountView: View {
         Form {
             if let userInfo = viewModel.userInfo {
                 Section {
-                    LabeledContent("No.", value: userInfo.tUsername)
+                    LabeledContent("Username", value: userInfo.tUsername)
                     LabeledContent("ID", value: userInfo.studentid)
                     LabeledContent("Name", value: "\(userInfo.studentname) \(userInfo.nickname)")
                     
@@ -95,5 +119,22 @@ struct AccountView: View {
             }
         }
         .navigationTitle("Account Details")
+    }
+    
+    private var refreshButton: some ToolbarContent {
+        ToolbarItem(placement: .navigationBarTrailing) {
+            Button(action: {
+                withAnimation {
+                    refreshButtonRotation += 360
+                }
+                viewModel.fetchCaptchaImage()
+            }) {
+                Image(systemName: "arrow.clockwise")
+                    .rotationEffect(.degrees(refreshButtonRotation))
+                    .animation(.spring(response: 0.6, dampingFraction: 0.5), value: refreshButtonRotation)
+                    .disabled(!viewModel.canRefreshCaptcha) // Disable the button
+                    .opacity(viewModel.canRefreshCaptcha ? 1.0 : 0.5) // Visually indicate disabled state
+            }
+        }
     }
 }
