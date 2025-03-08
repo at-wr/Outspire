@@ -63,7 +63,7 @@ struct SettingsGeneralView: View {
                 HStack {
                     Label("Version", systemImage: "info.circle")
                     Spacer()
-                    Text("0.1")
+                    Text("0.2")
                         .foregroundStyle(.secondary)
                 }
             } header: {

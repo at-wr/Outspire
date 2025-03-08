@@ -38,7 +38,7 @@ struct SettingsView: View {
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
                                 } else if !sessionService.isAuthenticated {
-                                    Text("for personalized experience.")
+                                    Text("with your TSIMS account")
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
                                 }
@@ -58,7 +58,7 @@ struct SettingsView: View {
                         Label("Export App Package", systemImage: "shippingbox")
                     }
                     NavigationLink(value: SettingsMenu.license) {
-                        Label("Licenses", systemImage: "doc.text")
+                        Label("Open Source Licenses", systemImage: "doc.text")
                     }
                 }
                 
@@ -77,7 +77,7 @@ struct SettingsView: View {
                             .foregroundStyle(.primary)
                     }
                 } footer: {
-                    Text("Made by Alan Ye @WFLA\nThis is an open-source project, licensed under AGPLv3.\nPlease leave a star on GitHub if you like ✨")
+                    Text("Made by Alan Ye @WFLA\nThis is an open-source project, licensed under MIT.\nPlease leave a star on GitHub if you like ✨")
                         .font(.caption)
                 }
             }

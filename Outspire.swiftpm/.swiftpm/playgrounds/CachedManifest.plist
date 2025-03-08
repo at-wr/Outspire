@@ -20,7 +20,7 @@
 		IiwicGFja2FnZUtpbmQiOnsicm9vdCI6e319LCJwbGF0Zm9ybXMiOlt7Im9w
 		dGlvbnMiOltdLCJwbGF0Zm9ybU5hbWUiOiJpb3MiLCJ2ZXJzaW9uIjoiMTcu
 		MCJ9XSwicHJvZHVjdHMiOlt7Im5hbWUiOiJPdXRzcGlyZSIsInNldHRpbmdz
-		IjpbeyJkaXNwbGF5VmVyc2lvbiI6WyIwLjEiXX0seyJidW5kbGVWZXJzaW9u
+		IjpbeyJkaXNwbGF5VmVyc2lvbiI6WyIwLjIiXX0seyJidW5kbGVWZXJzaW9u
 		IjpbIjEiXX0seyJpT1NBcHBJbmZvIjpbeyJhY2NlbnRDb2xvciI6eyJwcmVz
 		ZXRDb2xvciI6eyJwcmVzZXRDb2xvciI6eyJyYXdWYWx1ZSI6ImN5YW4ifX19
 		LCJhcHBDYXRlZ29yeSI6eyJyYXdWYWx1ZSI6InB1YmxpYy5hcHAtY2F0ZWdv
@@ -57,7 +57,7 @@
 		</data>
 		<key>manifestHash</key>
 		<data>
-		MAprI9zzdmsRkAtYEMDMMyaLOBSzr8V1+RW2kwUsheE=
+		6jMa/69NvFTA7273c6cnNYt015a1bKAS3BEydfBwv0I=
 		</data>
 		<key>schemaVersion</key>
 		<integer>4</integer>

@@ -2,7 +2,7 @@ import SwiftUI
 
 struct LicenseView: View {
     let ravenPoem = """
-The following is the 3rd party open source software license used by Outspire.
+3rd party open source software licenses used by Outspire.
 
 --------------------
 
@@ -62,7 +62,7 @@ SOFTWARE.
         }
         .scrollIndicators(.hidden)
         .backgroundStyle(Color(UIColor.secondarySystemFill))
-        .navigationTitle("3rd Party License")
+        .navigationTitle("Open Source Licenses")
     }
 }
 

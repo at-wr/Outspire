@@ -133,7 +133,7 @@ struct AccountView: View {
                         }
                         .frame(height: 46)
                         .background(Color.accentColor)
-                        .cornerRadius(8)
+                        .cornerRadius(12)
                     }
                     .disabled(viewModel.isLoggingIn)
                     .buttonStyle(PlainButtonStyle())
@@ -142,19 +142,16 @@ struct AccountView: View {
                 }
                 
                 Section {
-                    VStack(spacing: 8) {
-                        Text("All data will only be stored on this device and the TSIMS server.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
-                        
+                    VStack(spacing: 0) {
+                        let baseText = "All data will only be stored on this device and the TSIMS server. "
                         let connectionStatus = Configuration.useSSL ?
                         "Your connection has been encrypted." :
                         "Relay Encryption is recommended if you're using a public network."
                         
-                        Text(connectionStatus)
+                        Text(baseText + connectionStatus)
                             .font(.caption)
                             .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
                     }
                     .frame(maxWidth: .infinity)
                     .listRowBackground(Color.clear)
