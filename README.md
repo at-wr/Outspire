@@ -26,6 +26,7 @@ A iOS app for WFLA TSIMS built with SwiftUI, which is also compatible with macOS
 
 ## Preview Screenshot
 
+![Screenshot of Outspire in Stage Manager](https://imgur.com/9HU9TSO)
 ![Screenshot of adding Activity Record](https://i.imgur.com/29hYWLc.png)
 
 ## Third-Party Usage and Disclaimer
