@@ -20,8 +20,9 @@ A iOS app for WFLA TSIMS built with SwiftUI, which is also compatible with macOS
 - [x] Activity Management
 - [x] Add New Activity Record
 - [x] Relay Encryption
-- [ ] Today View
-- [ ] Academic Score
+- [x] Today View
+- [x] Academic Score
+- [x] Class Countdown
 - [ ] …
 
 ## Preview Screenshot
