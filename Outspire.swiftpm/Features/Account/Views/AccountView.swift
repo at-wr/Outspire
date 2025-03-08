@@ -62,7 +62,7 @@ struct AccountView: View {
                     .focused($focusedField, equals: .username)
                     .submitLabel(.next)
                     .onSubmit { focusedField = .password }
-                    .padding(.vertical, 12)
+                    .padding(.vertical, 8)
                     .background(
                         VStack {
                             Spacer()
@@ -77,7 +77,7 @@ struct AccountView: View {
                     .focused($focusedField, equals: .password)
                     .submitLabel(.next)
                     .onSubmit { focusedField = .captcha }
-                    .padding(.vertical, 12)
+                    .padding(.vertical, 8)
                     .background(
                         VStack {
                             Spacer()
@@ -97,7 +97,7 @@ struct AccountView: View {
                                 focusedField = nil
                                 login()
                             }
-                            .padding(.vertical, 12)
+                            .padding(.vertical, 8)
                             .background(
                                 VStack {
                                     Spacer()
@@ -146,27 +146,27 @@ struct AccountView: View {
                 )
             }
             .disabled(viewModel.isLoggingIn)
-            .padding(.horizontal, 24)
+            .padding(.horizontal, 30)
             .padding(.bottom, 20)
             
             // Footer text
-            Text("Tap the CAPTCHA image to refresh. All data will only be stored on this device and the TSIMS server.")
+            Text("All data will only be stored on this device and the TSIMS server.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
             //.multilineTextAlignment(.center)
                 .padding(.horizontal, 24)
-                .padding(.bottom, 16)
+                //.padding(.bottom, 16)
             
             let connectionStatus = Configuration.useSSL ?
             "Your connection has been encrypted." :
             "Relay Encryption is recommended if you're using a public network."
             
             Text(connectionStatus)
-                .font(.caption2)
+                .font(.caption)
                 .foregroundStyle(.secondary)
-                .padding(.bottom, 24)
+                .padding(.bottom, 50)
         }
-        .background(Color(UIColor.secondarySystemBackground))
+        //.background(Color(UIColor.secondarySystemBackground))
         .toolbar {
             refreshButtonItem
         }

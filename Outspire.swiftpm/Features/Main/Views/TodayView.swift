@@ -8,6 +8,7 @@ struct TodayView: View {
     @State private var timer: Timer?
     @State private var isLoading = false
     @State private var animateCards = false
+    @State private var hasAnimatedOnce = false // Track if we've already animated
     
     // Date formatter for the subtitle
     private var formattedDate: String {
@@ -215,11 +216,17 @@ struct TodayView: View {
                 currentTime = Date()
             }
             
-            // Trigger animations after a short delay
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                withAnimation {
-                    animateCards = true
+            // Only trigger animations if we haven't animated before
+            if !hasAnimatedOnce {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    withAnimation {
+                        animateCards = true
+                        hasAnimatedOnce = true // Mark that we've done the animation
+                    }
                 }
+            } else {
+                // If returning from a sheet, make sure cards are visible
+                animateCards = true
             }
         }
         .onDisappear {
@@ -239,17 +246,19 @@ struct TodayView: View {
                 self.isLoading = false
             }
         }
-        .onChange(of: sessionService.isAuthenticated) { _, _ in
+        .onChange(of: sessionService.isAuthenticated) { _, isAuthenticated in
             // Force UI update when authentication changes
-            if !sessionService.isAuthenticated {
+            if !isAuthenticated {
                 // Clear any cached data related to the user
                 classtableViewModel.timetable = []
                 animateCards = false
+                hasAnimatedOnce = false // Reset animation state on logout
                 
                 // Re-trigger animations
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                     withAnimation {
                         animateCards = true
+                        hasAnimatedOnce = true
                     }
                 }
             }
