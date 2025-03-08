@@ -2,6 +2,9 @@ import SwiftUI
 
 struct SettingsView: View {
     @Binding var showSettingsSheet: Bool
+    @EnvironmentObject var sessionService: SessionService
+    @State private var navigationPath = NavigationPath()
+    @State private var viewRefreshID = UUID()
     
     enum SettingsMenu: String, Hashable {
         case account
@@ -11,12 +14,43 @@ struct SettingsView: View {
     }
     
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $navigationPath) {
             List {
+                // Account section
                 Section {
                     NavigationLink(value: SettingsMenu.account) {
-                        Label("Account", systemImage: "person.fill.viewfinder")
+                        HStack(spacing: 12) {
+                            // Profile avatar
+                            Image(systemName: sessionService.isAuthenticated ? "person.circle.fill" : "person.fill.viewfinder")
+                                .font(.system(size: 28))
+                                .foregroundStyle(sessionService.isAuthenticated ? Color(.cyan) : .gray)
+                                .frame(width: 36, height: 36)
+                            
+                            // User info
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(sessionService.isAuthenticated ? 
+                                     (sessionService.userInfo?.nickname ?? sessionService.userInfo?.studentname ?? "Account") : 
+                                        "Sign In")
+                                .font(.headline)
+                                
+                                if sessionService.isAuthenticated, let username = sessionService.userInfo?.studentid {
+                                    Text("ID: \(username)")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                } else if !sessionService.isAuthenticated {
+                                    Text("for personalized experience.")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+                        .padding(.vertical, 4)
                     }
+                }
+                // .listRowBackground(sessionService.isAuthenticated ? Color(UIColor.systemBackground) : nil)
+                
+                // General settings section
+                Section {
                     NavigationLink(value: SettingsMenu.general) {
                         Label("General", systemImage: "switch.2")
                     }
@@ -24,9 +58,11 @@ struct SettingsView: View {
                         Label("Export App Package", systemImage: "shippingbox")
                     }
                     NavigationLink(value: SettingsMenu.license) {
-                        Label("Licenses", systemImage: "shippingbox")
+                        Label("Licenses", systemImage: "doc.text")
                     }
                 }
+                
+                // Links section
                 Section {
                     Link(destination: URL(string: "https://github.com/at-wr/Outspire/")!) {
                         Label("GitHub Repository", systemImage: "globe.asia.australia")
@@ -37,7 +73,7 @@ struct SettingsView: View {
                             .foregroundStyle(.primary)
                     }
                     Link(destination: URL(string: "https://github.com/at-wr/Outspire/issues/new/choose")!) {
-                        Label("Report an Issue", systemImage: "tray.and.arrow.down")
+                        Label("Report an Issue", systemImage: "exclamationmark.bubble")
                             .foregroundStyle(.primary)
                     }
                 } footer: {
@@ -45,19 +81,21 @@ struct SettingsView: View {
                         .font(.caption)
                 }
             }
-            .contentMargins(.top, 10)
+            .id(viewRefreshID) // Force refresh when needed
             .navigationTitle("Settings")
             .toolbar {
                 Button(action: {
                     showSettingsSheet = false
-                }, label: {
-                    Image(systemName: "checkmark.circle")
-                })
+                }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(.secondary)
+                }
             }
             .navigationDestination(for: SettingsMenu.self) { destination in
                 switch destination {
                 case .account:
-                    AccountDetailsView()
+                    AccountWithNavigation()
                 case .general:
                     SettingsGeneralView()
                 case .export:
@@ -66,6 +104,37 @@ struct SettingsView: View {
                     LicenseView()
                 }
             }
+            .onReceive(NotificationCenter.default.publisher(for: .authenticationStatusChanged)) { notification in
+                // Force refresh the view when authentication changes
+                DispatchQueue.main.async {
+                    viewRefreshID = UUID()
+                    
+                    // If this was a logout, reset navigation path to root
+                    if (notification.userInfo?["action"] as? String) == "logout" {
+                        navigationPath = NavigationPath()
+                    }
+                    if (notification.userInfo?["action"] as? String) == "signedin" {
+                        navigationPath = NavigationPath()
+                    }
+                }
+            }
         }
+    }
+}
+
+// Redesigned account wrapper that works within parent navigation
+struct AccountWithNavigation: View {
+    @StateObject private var viewModel = AccountViewModel()
+    @EnvironmentObject var sessionService: SessionService
+    
+    var body: some View {
+        AccountView(viewModel: viewModel)
+            .navigationTitle(sessionService.isAuthenticated ? "Account" : "Sign In")
+            .navigationBarTitleDisplayMode(.large)
+            .onAppear {
+                if !sessionService.isAuthenticated && viewModel.captchaImageData == nil {
+                    viewModel.fetchCaptchaImage()
+                }
+            }
     }
 }

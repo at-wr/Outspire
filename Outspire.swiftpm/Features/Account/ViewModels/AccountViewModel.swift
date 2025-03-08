@@ -31,6 +31,15 @@ class AccountViewModel: ObservableObject {
     init() {
         // No longer loading cached captcha on init
         // Always fetch a fresh captcha when view appears
+        
+        // Listen for authentication status changes
+        NotificationCenter.default.addObserver(
+            forName: .authenticationStatusChanged,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.objectWillChange.send() // Notify observers to update
+        }
     }
     
     func fetchCaptchaImage() {
@@ -159,6 +168,11 @@ class AccountViewModel: ObservableObject {
                 self.captcha = ""
                 self.captchaImageData = nil
                 self.successMessage = "Signed in to TSIMS"
+                NotificationCenter.default.post(
+                    name: .authenticationStatusChanged,
+                    object: nil,
+                    userInfo: ["action": "signedin"]
+                )
             } else if isCaptchaError {
                 // Captcha error - retry indefinitely
                 print("CAPTCHA error, retrying... Attempt #\(self.autoRetryCount)")
@@ -262,9 +276,26 @@ class AccountViewModel: ObservableObject {
     }
     
     func logout() {
+        // Call the session service logout
         sessionService.logoutUser()
+        
+        // Reset all local state
+        username = ""
+        password = ""
+        captcha = ""
+        
+        // Fetch a new captcha
         fetchCaptchaImage()
+        
+        // Show success message
         successMessage = "Signed out from TSIMS"
+        
+        // Notify that authentication status has changed with additional context
+        NotificationCenter.default.post(
+            name: .authenticationStatusChanged,
+            object: nil,
+            userInfo: ["action": "logout"]
+        )
     }
     
     private func extractSessionId(from response: URLResponse?) -> String? {

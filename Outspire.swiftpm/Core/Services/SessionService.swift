@@ -90,23 +90,39 @@ class SessionService: ObservableObject {
     }
     
     func logoutUser() {
+        // Need to call objectWillChange before changing published properties
+        objectWillChange.send()
+        
+        // Clear all authentication state
         sessionId = nil
         userInfo = nil
         isAuthenticated = false
+        
+        // Clear user defaults
         userDefaults.removeObject(forKey: "sessionId")
         userDefaults.removeObject(forKey: "userInfo")
-        CacheManager.clearAllCache() 
         
-        // Also clear cookies to ensure a clean logout
+        // Clear all cookies to ensure clean slate
         if let cookies = HTTPCookieStorage.shared.cookies {
             for cookie in cookies {
                 HTTPCookieStorage.shared.deleteCookie(cookie)
             }
         }
+        
+        // Post notification that authentication has changed
+        NotificationCenter.default.post(
+            name: .authenticationStatusChanged, 
+            object: nil,
+            userInfo: ["action": "logout"]
+        )
     }
     
     func storeSessionId(_ sessionId: String) {
         self.sessionId = sessionId
         userDefaults.set(sessionId, forKey: "sessionId")
     }
+}
+
+extension Notification.Name {
+    static let authenticationStatusChanged = Notification.Name("authenticationStatusChanged")
 }

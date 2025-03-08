@@ -239,6 +239,23 @@ struct TodayView: View {
                 self.isLoading = false
             }
         }
+        .onChange(of: sessionService.isAuthenticated) { _, _ in
+            // Force UI update when authentication changes
+            if !sessionService.isAuthenticated {
+                // Clear any cached data related to the user
+                classtableViewModel.timetable = []
+                animateCards = false
+                
+                // Re-trigger animations
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    withAnimation {
+                        animateCards = true
+                    }
+                }
+            }
+        }
+        // Add an ID binding to force refresh when auth state changes
+        .id("todayView-\(sessionService.isAuthenticated)")
     }
     
     private func weekdayName(for index: Int) -> String {
@@ -695,11 +712,11 @@ struct SignInPromptCard: View {
         }
         .padding(.vertical, 80)
         /*
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color(UIColor.systemBackground))
-                .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
-        )
+         .background(
+         RoundedRectangle(cornerRadius: 16)
+         .fill(Color(UIColor.systemBackground))
+         .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
+         )
          */
     }
 }
