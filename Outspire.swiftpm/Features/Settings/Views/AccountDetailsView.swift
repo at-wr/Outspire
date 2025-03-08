@@ -14,3 +14,4 @@ struct AccountDetailsView: View {
             }
     }
 }
+

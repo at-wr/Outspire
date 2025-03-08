@@ -10,6 +10,8 @@ struct AccountView: View {
     @State private var isTransitioning = false
     @FocusState private var focusedField: FormField?
     @State private var lastToastId = UUID() // Track last displayed toast to prevent duplicates
+    @State private var captchaImage: Image? // Store the loaded captcha image
+    
     
     init(viewModel: AccountViewModel? = nil) {
         _viewModel = ObservedObject(wrappedValue: viewModel ?? AccountViewModel())
@@ -38,146 +40,146 @@ struct AccountView: View {
         .onChange(of: viewModel.successMessage) { _, successMessage in
             handleMessage(successMessage, isError: false)
         }
+        .onChange(of: viewModel.captchaImageData) { _, imageData in
+            // When captcha image data is available, create an Image
+            if let data = imageData, let uiImage = UIImage(data: data) {
+                captchaImage = Image(uiImage: uiImage)
+            } else {
+                captchaImage = nil
+            }
+        }
         .id(viewModel.isAuthenticated)
     }
     
     private var loginView: some View {
-        VStack(spacing: 0) {
-            // Header with icon
-            VStack(spacing: 16) {
-                Image(systemName: "person.crop.circle.badge.plus")
-                    .font(.system(size: 72))
-                    .foregroundStyle(.gray)
-                    .symbolRenderingMode(.hierarchical)
-                    .padding(.top, 30)
-            }
-            .padding(.bottom, 30)
-            
-            // Form fields
-            VStack(spacing: 20) {
-                TextField("Username", text: $viewModel.username)
-                    .textContentType(.username)
-                    .autocapitalization(.none)
-                    .autocorrectionDisabled()
-                    .focused($focusedField, equals: .username)
-                    .submitLabel(.next)
-                    .onSubmit { focusedField = .password }
-                    .padding(.vertical, 8)
-                    .background(
-                        VStack {
-                            Spacer()
-                            Divider()
-                        }
-                    )
+        NavigationView {
+            Form {
+                Section {
+                    VStack(alignment: .center, spacing: 20) {
+                        Image(systemName: "person.crop.circle.badge.plus")
+                            .font(.system(size: 72))
+                            .foregroundStyle(.gray)
+                            .symbolRenderingMode(.hierarchical)
+                            .padding(.vertical)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets())
+                }
                 
-                SecureField("Password", text: $viewModel.password)
-                    .textContentType(.password)
-                    .autocapitalization(.none)
-                    .autocorrectionDisabled()
-                    .focused($focusedField, equals: .password)
-                    .submitLabel(.next)
-                    .onSubmit { focusedField = .captcha }
-                    .padding(.vertical, 8)
-                    .background(
-                        VStack {
-                            Spacer()
-                            Divider()
-                        }
-                    )
-                
-                // CAPTCHA field and image
-                HStack(spacing: 16) {
-                    VStack(alignment: .leading) {
+                Section {
+                    TextField("Username", text: $viewModel.username)
+                        .textContentType(.username)
+                        .autocapitalization(.none)
+                        .autocorrectionDisabled()
+                        .focused($focusedField, equals: .username)
+                        .submitLabel(.next)
+                        .onSubmit { focusedField = .password }
+                    
+                    SecureField("Password", text: $viewModel.password)
+                        .textContentType(.password)
+                        .autocapitalization(.none)
+                        .autocorrectionDisabled()
+                        .focused($focusedField, equals: .password)
+                        .submitLabel(.next)
+                        .onSubmit { focusedField = .captcha }
+                    
+                    HStack {
                         TextField("CAPTCHA", text: $viewModel.captcha)
                             .autocapitalization(.none)
                             .autocorrectionDisabled()
                             .focused($focusedField, equals: .captcha)
                             .submitLabel(.done)
+                            .foregroundStyle(.secondary)
                             .onSubmit {
                                 focusedField = nil
                                 login()
                             }
-                            .padding(.vertical, 8)
-                            .background(
-                                VStack {
-                                    Spacer()
-                                    Divider()
-                                }
-                            )
                         
-                        if viewModel.isRecognizingCaptcha {
-                            HStack(spacing: 6) {
-                                ProgressView()
-                                    .controlSize(.small)
-                                Text("Auto-recognizing...")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                            .padding(.top, 4)
+                        if focusedField == .captcha {
+                            captchaImageView
+                                .frame(width: 67.5, height: 30)
                         }
                     }
                     
-                    // CAPTCHA image
-                    captchaImageView
-                        .frame(width: 90, height: 36)
-                }
-            }
-            .padding(.horizontal, 24)
-            
-            Spacer()
-            
-            // Sign In button outside form
-            Button(action: login) {
-                ZStack {
-                    if viewModel.isLoggingIn || viewModel.isAutoRetrying {
-                        ProgressView()
-                            .tint(.white)
-                            .frame(maxWidth: .infinity)
-                    } else {
-                        Text("Sign In")
-                            .font(.system(size: 17, weight: .semibold))
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
+                    /*
+                    if viewModel.isRecognizingCaptcha {
+                        HStack(spacing: 6) {
+                            ProgressView()
+                                .controlSize(.small)
+                            Text("Auto-recognizing...")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                     }
+                     */
                 }
-                .frame(height: 50)
-                .background(
-                    RoundedRectangle(cornerRadius: 10)
-                )
-            }
-            .disabled(viewModel.isLoggingIn)
-            .padding(.horizontal, 30)
-            .padding(.bottom, 20)
-            
-            // Footer text
-            Text("All data will only be stored on this device and the TSIMS server.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            //.multilineTextAlignment(.center)
-                .padding(.horizontal, 24)
-                //.padding(.bottom, 16)
-            
-            let connectionStatus = Configuration.useSSL ?
-            "Your connection has been encrypted." :
-            "Relay Encryption is recommended if you're using a public network."
-            
-            Text(connectionStatus)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .padding(.bottom, 50)
-        }
-        //.background(Color(UIColor.secondarySystemBackground))
-        .toolbar {
-            refreshButtonItem
-        }
-        .scrollDismissesKeyboard(.immediately)
-        .onChange(of: viewModel.isAuthenticated) { _, newValue in
-            if newValue {
-                withAnimation { isTransitioning = true }
                 
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    withAnimation { isTransitioning = false }
-                    NotificationCenter.default.post(name: .authenticationStatusChanged, object: nil)
+                Section {
+                    Button(action: login) {
+                        HStack {
+                            Spacer()
+                            ZStack {
+                                if viewModel.isLoggingIn || viewModel.isAutoRetrying {
+                                    ProgressView()
+                                        .tint(.white)
+                                } else {
+                                    Text("Sign In")
+                                        .font(.headline)
+                                        .foregroundColor(.white)
+                                }
+                            }
+                            Spacer()
+                        }
+                        .frame(height: 46)
+                        .background(Color.accentColor)
+                        .cornerRadius(8)
+                    }
+                    .disabled(viewModel.isLoggingIn)
+                    .buttonStyle(PlainButtonStyle())
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
+                }
+                
+                Section {
+                    VStack(spacing: 8) {
+                        Text("All data will only be stored on this device and the TSIMS server.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                        
+                        let connectionStatus = Configuration.useSSL ?
+                        "Your connection has been encrypted." :
+                        "Relay Encryption is recommended if you're using a public network."
+                        
+                        Text(connectionStatus)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .listRowBackground(Color.clear)
+                }
+            }
+            /*
+             .toolbar {
+             ToolbarItem(placement: .navigationBarTrailing) {
+             Button(action: refreshCaptcha) {
+             Image(systemName: "arrow.clockwise")
+             .rotationEffect(.degrees(refreshButtonRotation))
+             .animation(.spring(response: 0.6, dampingFraction: 0.5), value: refreshButtonRotation)
+             }
+             }
+             }
+             */
+            .scrollDismissesKeyboard(.immediately)
+            .onChange(of: viewModel.isAuthenticated) { _, newValue in
+                if newValue {
+                    withAnimation { isTransitioning = true }
+                    
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        withAnimation { isTransitioning = false }
+                        NotificationCenter.default.post(name: .authenticationStatusChanged, object: nil)
+                    }
                 }
             }
         }
@@ -185,7 +187,6 @@ struct AccountView: View {
     
     private var loggedInView: some View {
         Form {
-            // User information
             Section("Account Information") {
                 if let userInfo = viewModel.userInfo {
                     LabeledContent("Name", value: "\(userInfo.studentname ?? "") (\(userInfo.nickname ?? ""))")
@@ -194,7 +195,6 @@ struct AccountView: View {
                 }
             }
             
-            // Sign out
             Section {
                 Button("Sign Out", role: .destructive) {
                     showLogoutConfirmation = true
@@ -202,9 +202,6 @@ struct AccountView: View {
                 .frame(maxWidth: .infinity, alignment: .center)
             }
         }
-        .scrollContentBackground(.hidden)
-        .background(Color(UIColor.secondarySystemBackground))
-        .navigationTitle("Account")
         .confirmationDialog("Are you sure you want to sign out?", isPresented: $showLogoutConfirmation) {
             Button("Sign Out", role: .destructive) {
                 viewModel.logout()
@@ -214,39 +211,38 @@ struct AccountView: View {
     }
     
     private var captchaImageView: some View {
-        Group {
-            if viewModel.isCaptchaLoading {
-                ProgressView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Color(UIColor.secondarySystemBackground))
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-            } else if let data = viewModel.captchaImageData, let uiImage = UIImage(data: data) {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .background(colorScheme == .dark ? Color.black : Color.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                    .onTapGesture { refreshCaptcha() }
-            } else {
-                Text("Loading...")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Color(UIColor.secondarySystemBackground))
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                    .onTapGesture { viewModel.fetchCaptchaImage() }
+        ZStack {
+            // Background placeholder that maintains consistent size
+            Rectangle()
+                .fill(Color.clear)
+                .frame(width: 67.5, height: 30)
+            
+            Group {
+                if viewModel.isCaptchaLoading {
+                    ProgressView()
+                        .background(Color(.secondarySystemBackground))
+                        .cornerRadius(8)
+                } else if let image = captchaImage {
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .background(colorScheme == .dark ? Color.black : Color.white)
+                        .cornerRadius(8)
+                        .onTapGesture { refreshCaptcha() }
+                } else {
+                    Text("Loading...")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .background(Color(.secondarySystemBackground))
+                        .cornerRadius(8)
+                        .onTapGesture { viewModel.fetchCaptchaImage() }
+                }
             }
+            .frame(width: 67.5, height: 30)
         }
-    }
-    
-    private var refreshButtonItem: some ToolbarContent {
-        ToolbarItem(placement: .navigationBarTrailing) {
-            Button(action: refreshCaptcha) {
-                Image(systemName: "arrow.clockwise")
-                    .rotationEffect(.degrees(refreshButtonRotation))
-                    .animation(.spring(response: 0.6, dampingFraction: 0.5), value: refreshButtonRotation)
-            }
-        }
+        // Disable animations for changing states
+        .animation(.none, value: viewModel.isCaptchaLoading)
+        .animation(.none, value: captchaImage)
     }
     
     private func refreshCaptcha() {
@@ -265,7 +261,7 @@ struct AccountView: View {
         guard let message = message else { return }
         
         // Create icon for the toast
-        let icon = isError ? 
+        let icon = isError ?
         Image(systemName: "exclamationmark.triangle").foregroundColor(.red) :
         Image(systemName: "checkmark.circle").foregroundColor(.green)
         
