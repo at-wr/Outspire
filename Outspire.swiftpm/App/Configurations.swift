@@ -19,6 +19,33 @@ struct Configuration {
         }
     }
     
+    static var showMondayClass: Bool {
+        get {
+            return UserDefaults.standard.object(forKey: "showMondayClass") as? Bool ?? true
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "showMondayClass")
+        }
+    }
+    
+    static var showSecondsInLongCountdown: Bool {
+        get {
+            return UserDefaults.standard.object(forKey: "showSecondsInLongCountdown") as? Bool ?? false
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "showSecondsInLongCountdown")
+        }
+    }
+
+    static var showCountdownForFutureClasses: Bool {
+        get {
+            return UserDefaults.standard.object(forKey: "showCountdownForFutureClasses") as? Bool ?? false
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "showCountdownForFutureClasses")
+        }
+    }
+    
     static var baseURL: String {
         return useSSL ? "https://easy-tsims.vercel.app" : "http://101.230.1.173:6300"
     }
