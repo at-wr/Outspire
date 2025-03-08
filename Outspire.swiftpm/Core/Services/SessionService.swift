@@ -25,9 +25,10 @@ class SessionService: ObservableObject {
         // Don't clear user info to keep the UI consistent
     }
     
-    func loginUser(username: String, password: String, captcha: String, completion: @escaping (Bool, String?) -> Void) {
+    // Update the loginUser method    
+    func loginUser(username: String, password: String, captcha: String, completion: @escaping (Bool, String?, Bool) -> Void) {
         guard let sessionId = self.sessionId, !sessionId.isEmpty else {
-            completion(false, "Please refresh the captcha.")
+            completion(false, "Please refresh the captcha.", true) // Mark as captcha error to trigger retry
             return
         }
         
@@ -46,28 +47,26 @@ class SessionService: ObservableObject {
             case .success(let response):
                 // Check for Chinese error message about captcha (scenario 3)
                 if response.status.contains("验证码") || response.status.contains("错") {
-                    completion(false, "Invalid captcha code")
+                    completion(false, "Invalid captcha code. Retrying...", true) // Mark as captcha error
                     return
                 }
                 
                 // Check login status
                 if response.status == "ok" {
-                    // Verify the password hash to determine if credentials are correct
-                    // This assumes the server returns the expected hash for correct credentials
                     self?.fetchUserInfo { success, error in
                         if success {
                             self?.isAuthenticated = true
-                            completion(true, nil)
+                            completion(true, nil, false)
                         } else {
-                            completion(false, "Invalid username or password")
+                            completion(false, "Invalid username or password.", false)
                         }
                     }
                 } else {
-                    completion(false, "Sign In failed: \(response.status)")
+                    completion(false, "Login failed: \(response.status)", false)
                 }
                 
             case .failure(let error):
-                completion(false, "Sign In failed: \(error.localizedDescription)")
+                completion(false, "Login failed: \(error.localizedDescription)", false)
             }
         }
     }

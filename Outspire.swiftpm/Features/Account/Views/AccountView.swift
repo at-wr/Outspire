@@ -53,10 +53,20 @@ struct AccountView: View {
                     
                     SecureField("Password", text: $viewModel.password)
                     
+                    // Update the HStack with the captcha field to include OCR status
+                    
                     HStack {
                         TextField("CAPTCHA", text: $viewModel.captcha)
                             .autocapitalization(.none)
                             .disableAutocorrection(true)
+                            .overlay(
+                                viewModel.isRecognizingCaptcha ? 
+                                AnyView(HStack { 
+                                    Spacer()
+                                    ProgressView().scaleEffect(0.7)
+                                        .padding(.trailing, 5)
+                                }) : AnyView(EmptyView())
+                            )
                         
                         if viewModel.isCaptchaLoading {
                             ProgressView()
@@ -70,20 +80,32 @@ struct AccountView: View {
                                 }
                         } else {
                             Button(action: viewModel.fetchCaptchaImage) {
-                                Text("Load Captcha")
+                                Text("Loading...")
                                     .font(.caption)
                             }
                         }
+                        
                     }
                     
-                    Button(action: viewModel.login) {
-                        Text("Sign In")
+                    Button(action: {
+                        // Use normal login without auto-retry flag
+                        viewModel.login()
+                    }) {
+                        HStack {
+                            Text("Sign In")
+                            if viewModel.isAutoRetrying {
+                                ProgressView()
+                                    .scaleEffect(0.7)
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
                     }
+                    .disabled(viewModel.isLoggingIn)
                 } footer: {
                     let connectionStatus = Configuration.useSSL ?
                     "Your connection has been encrypted." :
-                    "Your connection hasn't been encrypted.\nRelay Encryption is recommended if you're using a public network."
-                    Text("All data will only be stored on this device and the TSIMS server. \n\(connectionStatus)")
+                    "Relay Encryption is recommended if you're using a public network."
+                    Text("Vision issues may occur, manual verification for CAPTCHA image is required. ✨\nAll data will only be stored on this device and the TSIMS server. \n\(connectionStatus)")
                         .font(.caption)
                 }
             }
