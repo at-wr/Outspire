@@ -145,13 +145,20 @@ class ClubInfoViewModel: ObservableObject {
             }
         }
     }
-    
+
     func extractText(from html: String) -> String? {
         do {
             let doc: Document = try SwiftSoup.parse(html)
-            let text = try doc.text()
             
-            // Return nil if text is empty or only whitespace/newlines
+            // Remove <a> Tags
+            // lol this is for you, q1zhen
+            let links: Elements = try doc.select("a")
+            for link in links {
+                try link.remove()
+            }
+            
+            // Trim Texts
+            let text = try doc.text()
             let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
             return trimmed.isEmpty ? nil : text
         } catch {
