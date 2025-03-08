@@ -1,3 +1,11 @@
+import SwiftUI
+
+struct LicenseView: View {
+    let ravenPoem = """
+The following is the 3rd party open source software license used by Outspire.
+
+--------------------
+
 SwiftSoup
 
 MIT License
@@ -45,3 +53,19 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+"""
+    var body: some View {
+        ScrollView {
+            Text(ravenPoem)
+                .padding()
+                .backgroundStyle(Color(UIColor.secondarySystemFill))
+        }
+        .scrollIndicators(.hidden)
+        .backgroundStyle(Color(UIColor.secondarySystemFill))
+        .navigationTitle("3rd Party License")
+    }
+}
+
+#Preview {
+    LicenseView()
+}

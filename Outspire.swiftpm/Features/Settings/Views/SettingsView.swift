@@ -7,6 +7,7 @@ struct SettingsView: View {
         case account
         case general
         case export
+        case license
     }
     
     var body: some View {
@@ -21,6 +22,9 @@ struct SettingsView: View {
                     }
                     NavigationLink(value: SettingsMenu.export) {
                         Label("Export App Package", systemImage: "shippingbox")
+                    }
+                    NavigationLink(value: SettingsMenu.license) {
+                        Label("Licenses", systemImage: "shippingbox")
                     }
                 }
                 Section {
@@ -58,6 +62,8 @@ struct SettingsView: View {
                     SettingsGeneralView()
                 case .export:
                     ExportView()
+                case .license:
+                    LicenseView()
                 }
             }
         }
