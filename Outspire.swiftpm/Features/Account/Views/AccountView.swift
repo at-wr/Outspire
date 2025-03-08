@@ -9,6 +9,7 @@ struct AccountView: View {
     @State private var refreshButtonRotation = 0.0
     @State private var isTransitioning = false
     @FocusState private var focusedField: FormField?
+    @State private var lastToastId = UUID() // Track last displayed toast to prevent duplicates
     
     init(viewModel: AccountViewModel? = nil) {
         _viewModel = ObservedObject(wrappedValue: viewModel ?? AccountViewModel())
@@ -152,7 +153,7 @@ struct AccountView: View {
             Text("Tap the CAPTCHA image to refresh. All data will only be stored on this device and the TSIMS server.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
-                //.multilineTextAlignment(.center)
+            //.multilineTextAlignment(.center)
                 .padding(.horizontal, 24)
                 .padding(.bottom, 16)
             
@@ -263,19 +264,31 @@ struct AccountView: View {
     private func handleMessage(_ message: String?, isError: Bool) {
         guard let message = message else { return }
         
+        // Create icon for the toast
         let icon = isError ? 
         Image(systemName: "exclamationmark.triangle").foregroundColor(.red) :
         Image(systemName: "checkmark.circle").foregroundColor(.green)
         
+        // Create toast value
         let toast = ToastValue(icon: icon, message: message)
-        presentToast(toast)
         
+        // Present toast with small delay to ensure it appears after UI updates
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            self.presentToast(toast)
+            
+            // Play feedback after toast appears
+            if isError {
+                self.playHapticFeedback(.error)
+            } else {
+                self.playHapticFeedback(.success)
+            }
+        }
+        
+        // Clear messages
         if isError {
             viewModel.errorMessage = nil
-            playHapticFeedback(.error)
         } else {
             viewModel.successMessage = nil
-            playHapticFeedback(.success)
         }
     }
     

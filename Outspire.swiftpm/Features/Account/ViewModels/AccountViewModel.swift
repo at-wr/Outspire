@@ -173,6 +173,9 @@ class AccountViewModel: ObservableObject {
                     object: nil,
                     userInfo: ["action": "signedin"]
                 )
+                DispatchQueue.main.async {
+                    self.successMessage = "Signed in successfully"
+                }
             } else if isCaptchaError {
                 // Captcha error - retry indefinitely
                 print("CAPTCHA error, retrying... Attempt #\(self.autoRetryCount)")
@@ -186,7 +189,21 @@ class AccountViewModel: ObservableObject {
                 self.autoRetryCount = 0
                 
                 print("Login failed with non-captcha error: \(error ?? "Unknown error")")
-                self.errorMessage = error ?? "Login failed. Please try again."
+                DispatchQueue.main.async {
+                    let userFriendlyError: String
+                    if let errorMsg = error?.lowercased() {
+                        if errorMsg == "no" {
+                            userFriendlyError = "Invalid username or password"
+                        } else if errorMsg.contains("captcha") {
+                            userFriendlyError = "Incorrect CAPTCHA. Please try again"
+                        } else {
+                            userFriendlyError = "Login failed: \(error!)"
+                        }
+                    } else {
+                        userFriendlyError = "Login failed. Please try again"
+                    }
+                    self.errorMessage = userFriendlyError
+                }
                 // Refresh captcha on failure
                 self.fetchCaptchaImage()
             }
@@ -296,6 +313,9 @@ class AccountViewModel: ObservableObject {
             object: nil,
             userInfo: ["action": "logout"]
         )
+        DispatchQueue.main.async {
+            self.successMessage = "Signed out successfully"
+        }
     }
     
     private func extractSessionId(from response: URLResponse?) -> String? {
