@@ -66,21 +66,49 @@ public class ClassPeriodsManager {
     }
     
     // Find current or next period
-    public func getCurrentOrNextPeriod() -> (period: ClassPeriod?, isCurrentlyActive: Bool) {
-        let now = Date()
+    public func getCurrentOrNextPeriod(useEffectiveDate: Bool = false, effectiveDate: Date? = nil) -> (period: ClassPeriod?, isCurrentlyActive: Bool) {
+        let currentDate = Date()
+        let effectiveTime: Date
         
-        // Check if we're currently in a period
-        if let activePeriod = classPeriods.first(where: { $0.isCurrentlyActive() }) {
-            return (activePeriod, true)
+        if useEffectiveDate && effectiveDate != nil {
+            // Use current time but on the effective date
+            let calendar = Calendar.current
+            let timeComponents = calendar.dateComponents([.hour, .minute, .second], from: currentDate)
+            let dateComponents = calendar.dateComponents([.year, .month, .day], from: effectiveDate!)
+            
+            var combined = DateComponents()
+            combined.year = dateComponents.year
+            combined.month = dateComponents.month
+            combined.day = dateComponents.day
+            combined.hour = timeComponents.hour
+            combined.minute = timeComponents.minute
+            combined.second = timeComponents.second
+            
+            if let date = calendar.date(from: combined) {
+                effectiveTime = date
+            } else {
+                effectiveTime = currentDate
+            }
+        } else {
+            effectiveTime = currentDate
+        }
+        
+        // Find current period
+        for period in self.classPeriods {
+            if effectiveTime >= period.startTime && effectiveTime <= period.endTime {
+                return (period: period, isCurrentlyActive: true)
+            }
         }
         
         // Find next period
-        let futurePeriods = classPeriods.filter { $0.startTime > now }
-        if let nextPeriod = futurePeriods.min(by: { $0.startTime < $1.startTime }) {
-            return (nextPeriod, false)
+        for period in self.classPeriods {
+            if effectiveTime < period.startTime {
+                return (period: period, isCurrentlyActive: false)
+            }
         }
         
-        return (nil, false)
+        // No current or next period found, return first period of the day
+        return (period: self.classPeriods.first, isCurrentlyActive: false)
     }
     
     // Helper to create a period

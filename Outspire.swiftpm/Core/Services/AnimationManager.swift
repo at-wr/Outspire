@@ -5,15 +5,15 @@ class AnimationManager {
     
     private init() {}
     
-    // Flags to track animations across app
-    private(set) var hasShownTodayViewAnimation = false
+    // Tracking app launch state
+    private(set) var isFirstLaunch = true
     
-    func markTodayViewAnimationShown() {
-        hasShownTodayViewAnimation = true
+    func markAppLaunched() {
+        isFirstLaunch = false
     }
     
     func resetAnimationFlags() {
-        // Call this when you want to reset animations (like app launch or signout)
-        hasShownTodayViewAnimation = false
+        // Reset for testing or when signing out
+        isFirstLaunch = true
     }
 }

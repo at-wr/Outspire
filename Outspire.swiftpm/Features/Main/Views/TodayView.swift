@@ -11,12 +11,13 @@ struct TodayView: View {
     @State private var isLoading = false
     @State private var animateCards = false
     @State private var selectedDayOverride: Int? = Configuration.selectedDayOverride
-    @State private var isHolidayMode: Bool = false
+    @State private var isHolidayMode: Bool = Configuration.isHolidayMode
     @State private var isSettingsSheetPresented: Bool = false
-    @State private var holidayEndDate: Date = Date().addingTimeInterval(86400)
-    @State private var holidayHasEndDate: Bool = false
+    @State private var holidayEndDate: Date = Configuration.holidayEndDate
+    @State private var holidayHasEndDate: Bool = Configuration.holidayHasEndDate
     @State private var setAsToday: Bool = Configuration.setAsToday
     @State private var allowAnimation = true
+    @State private var forceUpdate: Bool = false  // Added to force UI updates
     
     // MARK: - Body
     var body: some View {
@@ -42,6 +43,7 @@ struct TodayView: View {
             setupOnAppear()
         }
         .onDisappear {
+            saveSettings()
             timer?.invalidate()
             timer = nil
         }
@@ -54,15 +56,41 @@ struct TodayView: View {
         .onChange(of: sessionService.isAuthenticated) { _, isAuthenticated in
             handleAuthChange(isAuthenticated)
         }
-        .onChange(of: selectedDayOverride) { _, newValue in
+        .onChange(of: selectedDayOverride) { newValue in
             // Save the selected day override to Configuration
             Configuration.selectedDayOverride = newValue
+            forceUpdate.toggle() // Force UI update
+            // When day changes, force update of calculations
+            if timer == nil {
+                // If timer isn't active, create it temporarily
+                currentTime = Date() // Force time update
+            }
         }
-        .onChange(of: setAsToday) { _, newValue in
+        .onChange(of: setAsToday) { newValue in
             // Save the setAsToday setting to Configuration
             Configuration.setAsToday = newValue
+            forceUpdate.toggle() // Force UI update
         }
-        .id("todayView-\(sessionService.isAuthenticated)")
+        .onChange(of: isHolidayMode) { newValue in
+            Configuration.isHolidayMode = newValue
+            forceUpdate.toggle() // Force UI update
+        }
+        .onChange(of: holidayHasEndDate) { newValue in
+            Configuration.holidayHasEndDate = newValue
+        }
+        .onChange(of: holidayEndDate) { newValue in
+            Configuration.holidayEndDate = newValue
+        }
+        .id("todayView-\(sessionService.isAuthenticated)-\(forceUpdate)")
+    }
+    
+    // Save all settings on disappear
+    private func saveSettings() {
+        Configuration.selectedDayOverride = selectedDayOverride
+        Configuration.setAsToday = setAsToday
+        Configuration.isHolidayMode = isHolidayMode
+        Configuration.holidayHasEndDate = holidayHasEndDate
+        Configuration.holidayEndDate = holidayEndDate
     }
     
     // MARK: - Components
@@ -218,17 +246,17 @@ struct TodayView: View {
             currentTime = Date()
         }
         
-        // Only animate if this is the first launch of app (per session)
-        if !AnimationManager.shared.hasShownTodayViewAnimation {
+        // Only animate on app first launch
+        if AnimationManager.shared.isFirstLaunch {
             animateCards = false
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
+                withAnimation(.spring(response: 0.7, dampingFraction: 0.8)) {
                     animateCards = true
-                    AnimationManager.shared.markTodayViewAnimationShown()
+                    AnimationManager.shared.markAppLaunched()
                 }
             }
         } else {
-            // If we've already shown the animation, just set cards as visible
+            // Skip animation when switching between views
             animateCards = true
         }
     }
@@ -292,45 +320,23 @@ struct TodayView: View {
         if !isAuthenticated {
             classtableViewModel.timetable = []
             
-            // Only animate if this is the first time in the session
-            if !AnimationManager.shared.hasShownTodayViewAnimation {
-                animateCards = false
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                    withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
-                        animateCards = true
-                        AnimationManager.shared.markTodayViewAnimationShown()
-                    }
-                }
-            } else {
-                animateCards = true
-            }
+            // No animation when switching between views
+            animateCards = true
         }
     }
     
+    // Update the getNextClassForDay function to handle self-study periods
     private func getNextClassForDay(_ dayIndex: Int, isForToday: Bool) -> (period: ClassPeriod, classData: String, dayIndex: Int, isForToday: Bool)? {
         // If we're using "Set as Today" mode with a selected day
         if setAsToday && selectedDayOverride != nil {
-            let periodInfo = ClassPeriodsManager.shared.getCurrentOrNextPeriod()
-            guard let period = periodInfo.period,
-                  period.number < classtableViewModel.timetable.count,
-                  dayIndex + 1 < classtableViewModel.timetable[period.number].count else { return nil }
-            
-            let classData = classtableViewModel.timetable[period.number][dayIndex + 1]
-            if classData.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return nil }
-            
-            return (period: period, classData: classData, dayIndex: dayIndex, isForToday: true)
+            let periodInfo = ClassPeriodsManager.shared.getCurrentOrNextPeriod(useEffectiveDate: true, 
+                                                                               effectiveDate: effectiveDateForSelectedDay)
+            return getClassForPeriod(periodInfo, dayIndex: dayIndex, isForToday: true)
         } 
         // Normal "today" mode
         else if isForToday {
             let periodInfo = ClassPeriodsManager.shared.getCurrentOrNextPeriod()
-            guard let period = periodInfo.period,
-                  period.number < classtableViewModel.timetable.count,
-                  dayIndex + 1 < classtableViewModel.timetable[period.number].count else { return nil }
-            
-            let classData = classtableViewModel.timetable[period.number][dayIndex + 1]
-            if classData.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return nil }
-            
-            return (period: period, classData: classData, dayIndex: dayIndex, isForToday: true)
+            return getClassForPeriod(periodInfo, dayIndex: dayIndex, isForToday: true)
         } 
         // Preview mode for other days
         else {
@@ -338,8 +344,13 @@ struct TodayView: View {
             for row in 1..<classtableViewModel.timetable.count {
                 if row < classtableViewModel.timetable.count && dayIndex + 1 < classtableViewModel.timetable[row].count {
                     let classData = classtableViewModel.timetable[row][dayIndex + 1]
-                    if !classData.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                        if let period = ClassPeriodsManager.shared.classPeriods.first(where: { $0.number == row }) {
+                    let isSelfStudy = classData.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    
+                    if let period = ClassPeriodsManager.shared.classPeriods.first(where: { $0.number == row }) {
+                        // For self-study periods, we still show the period but mark it as self-study
+                        if isSelfStudy {
+                            return (period: period, classData: "Self-Study\n\nStudy Hall", dayIndex: dayIndex, isForToday: false)
+                        } else {
                             return (period: period, classData: classData, dayIndex: dayIndex, isForToday: false)
                         }
                     }
@@ -347,6 +358,23 @@ struct TodayView: View {
             }
             return nil
         }
+    }
+    
+    private func getClassForPeriod(_ periodInfo: (period: ClassPeriod?, isCurrentlyActive: Bool), 
+                                   dayIndex: Int, isForToday: Bool) -> (period: ClassPeriod, classData: String, dayIndex: Int, isForToday: Bool)? {
+        guard let period = periodInfo.period,
+              period.number < classtableViewModel.timetable.count,
+              dayIndex + 1 < classtableViewModel.timetable[period.number].count else { return nil }
+        
+        var classData = classtableViewModel.timetable[period.number][dayIndex + 1]
+        let isSelfStudy = classData.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        
+        // If it's self-study, provide a placeholder
+        if isSelfStudy {
+            classData = "Self-Study\n\nStudy Hall"
+        }
+        
+        return (period: period, classData: classData, dayIndex: dayIndex, isForToday: isForToday)
     }
     
     private func isCurrentDateWeekend() -> Bool {

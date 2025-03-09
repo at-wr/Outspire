@@ -82,4 +82,31 @@ struct Configuration {
     static var headers: [String: String] = [
         "Content-Type": "application/x-www-form-urlencoded"
     ]
+    
+    static var isHolidayMode: Bool {
+        get {
+            return UserDefaults.standard.bool(forKey: "isHolidayMode")
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "isHolidayMode")
+        }
+    }
+    
+    static var holidayHasEndDate: Bool {
+        get {
+            return UserDefaults.standard.bool(forKey: "holidayHasEndDate")
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "holidayHasEndDate")
+        }
+    }
+    
+    static var holidayEndDate: Date {
+        get {
+            return UserDefaults.standard.object(forKey: "holidayEndDate") as? Date ?? Date().addingTimeInterval(86400)
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "holidayEndDate")
+        }
+    }
 }

@@ -53,7 +53,7 @@ struct ScheduleSettingsSheet: View {
                     Section(header: Text("View Mode")) {
                         Toggle("Set as Current Day", isOn: $setAsToday)
                             .foregroundStyle(.primary)
-                            .onChange(of: setAsToday) { _, newValue in
+                            .onChange(of: setAsToday) { newValue in
                                 // When toggling setAsToday, immediately save to configuration
                                 Configuration.setAsToday = newValue
                             }
@@ -66,7 +66,7 @@ struct ScheduleSettingsSheet: View {
                         Label("Enable Holiday Mode", systemImage: "sun.max.fill")
                             .foregroundStyle(isHolidayMode ? .orange : .primary)
                     }
-                    .onChange(of: isHolidayMode) { _, enabled in
+                    .onChange(of: isHolidayMode) { enabled in
                         if enabled {
                             selectedDay = nil
                             setAsToday = false
@@ -89,7 +89,7 @@ struct ScheduleSettingsSheet: View {
                 // Display options
                 Section(header: Text("Display Options")) {
                     Toggle("Show Countdown for Future Classes", isOn: $showCountdownForFutureClasses)
-                        .onChange(of: showCountdownForFutureClasses) { _, newValue in
+                        .onChange(of: showCountdownForFutureClasses) { newValue in
                             Configuration.showCountdownForFutureClasses = newValue
                         }
                 }

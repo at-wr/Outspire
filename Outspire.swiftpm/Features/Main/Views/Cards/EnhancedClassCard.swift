@@ -160,16 +160,53 @@ struct EnhancedClassCard: View {
         .onDisappear {
             timer?.invalidate()
         }
-        .onChange(of: setAsToday) { _, _ in
+        .onChange(of: setAsToday) {
+            calculateTimeRemaining()
+        }
+        .onChange(of: day) {
+            calculateTimeRemaining()
+        }
+        .onChange(of: effectiveDate) {
             calculateTimeRemaining()
         }
     }
-
+    
     private func calculateTimeRemaining() {
         let calendar = Calendar.current
-        let now = effectiveDate ?? Date()
+        let now = Date() // Current real time
         
-        if isForToday || setAsToday {
+        if setAsToday && effectiveDate != nil {
+            // For "Set as Today" mode with an effectiveDate
+            let effectiveTime = getTimeComponents(from: now)
+            let effectiveDay = getDateComponents(from: effectiveDate!)
+            
+            // Combine the current time with the effective date
+            var effectiveNowComponents = DateComponents()
+            effectiveNowComponents.year = effectiveDay.year
+            effectiveNowComponents.month = effectiveDay.month
+            effectiveNowComponents.day = effectiveDay.day
+            effectiveNowComponents.hour = effectiveTime.hour
+            effectiveNowComponents.minute = effectiveTime.minute
+            effectiveNowComponents.second = effectiveTime.second
+            
+            guard let effectiveNow = calendar.date(from: effectiveNowComponents) else { return }
+            
+            // Create adjusted period times based on the effective date
+            let adjustedStartTime = createAdjustedTime(from: period.startTime, onDate: effectiveDate!)
+            let adjustedEndTime = createAdjustedTime(from: period.endTime, onDate: effectiveDate!)
+            
+            if effectiveNow >= adjustedStartTime && effectiveNow <= adjustedEndTime {
+                isCurrentClass = true
+                timeRemaining = adjustedEndTime.timeIntervalSince(effectiveNow)
+            } else if effectiveNow < adjustedStartTime {
+                isCurrentClass = false
+                timeRemaining = adjustedStartTime.timeIntervalSince(effectiveNow)
+            } else {
+                isCurrentClass = false
+                timeRemaining = 0
+            }
+        } else if isForToday {
+            // Regular today logic remains the same
             if now >= period.startTime && now <= period.endTime {
                 isCurrentClass = true
                 timeRemaining = period.endTime.timeIntervalSince(now)
@@ -181,7 +218,7 @@ struct EnhancedClassCard: View {
                 timeRemaining = 0
             }
         } else {
-            // Logic for future days remains the same
+            // Logic for future days (preview mode)
             guard let dayOfWeek = weekdayFromDayName(day) else { return }
             let currentWeekday = calendar.component(.weekday, from: now)
             var daysToAdd = dayOfWeek - currentWeekday
@@ -202,6 +239,19 @@ struct EnhancedClassCard: View {
         }
     }
     
+    // Helper method to create a time on a specific date
+    private func createAdjustedTime(from time: Date, onDate date: Date) -> Date {
+        let calendar = Calendar.current
+        let timeComponents = calendar.dateComponents([.hour, .minute, .second], from: time)
+        var dateComponents = calendar.dateComponents([.year, .month, .day], from: date)
+        
+        dateComponents.hour = timeComponents.hour
+        dateComponents.minute = timeComponents.minute
+        dateComponents.second = timeComponents.second
+        
+        return calendar.date(from: dateComponents) ?? date
+    }
+    
     private func calculateProgress() -> Double {
         let totalDuration = period.endTime.timeIntervalSince(period.startTime)
         let elapsed = totalDuration - timeRemaining
@@ -211,5 +261,15 @@ struct EnhancedClassCard: View {
     private func weekdayFromDayName(_ name: String) -> Int? {
         let dayMapping = ["Mon": 2, "Tue": 3, "Wed": 4, "Thu": 5, "Fri": 6]
         return dayMapping[name]
+    }
+    
+    // Helper method to get time components
+    private func getTimeComponents(from date: Date) -> DateComponents {
+        return Calendar.current.dateComponents([.hour, .minute, .second], from: date)
+    }
+    
+    // Helper method to get date components (year, month, day)
+    private func getDateComponents(from date: Date) -> DateComponents {
+        return Calendar.current.dateComponents([.year, .month, .day], from: date)
     }
 }
