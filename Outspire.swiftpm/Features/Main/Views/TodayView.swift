@@ -232,145 +232,145 @@ struct TodayView: View {
             animateCards = true
         }
     }
-
-// Check if we need to reset the selected day override
-private func checkForDateChange() {
-    let calendar = Calendar.current
-    let today = calendar.startOfDay(for: Date())
     
-    if let lastLaunch = Configuration.lastAppLaunchDate {
-        let lastLaunchDay = calendar.startOfDay(for: lastLaunch)
+    // Check if we need to reset the selected day override
+    private func checkForDateChange() {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
         
-        // Reset settings if this is a new day
-        if !calendar.isDate(today, inSameDayAs: lastLaunchDay) {
-            selectedDayOverride = nil
-            setAsToday = false
-            Configuration.selectedDayOverride = nil
-            Configuration.setAsToday = false
-        }
-    }
-    
-    // Update last app launch date
-    Configuration.lastAppLaunchDate = Date()
-}
-
-private var effectiveDateForSelectedDay: Date? {
-    guard setAsToday, let override = selectedDayOverride else { return nil }
-    
-    let calendar = Calendar.current
-    let now = Date()
-    let currentWeekday = calendar.component(.weekday, from: now)
-    
-    // Calculate target weekday (1 = Sunday, 2 = Monday, etc.)
-    // Our override is 0-based (0 = Monday), so we need to add 2
-    let targetWeekday = override + 2
-    
-    // Calculate days to add/subtract to get from current weekday to target weekday
-    var daysToAdd = targetWeekday - currentWeekday
-    
-    // Adjust to get the closest occurrence (past or future)
-    if daysToAdd > 3 {
-        daysToAdd -= 7  // Go back a week if more than 3 days ahead
-    } else if daysToAdd < -3 {
-        daysToAdd += 7  // Go forward a week if more than 3 days behind
-    }
-    
-    // Create a new date that represents the target weekday but with current time
-    return calendar.date(byAdding: .day, value: daysToAdd, to: now)
-}
-
-private func handleYearsChange(_ years: [Year]) {
-    if !years.isEmpty && !classtableViewModel.selectedYearId.isEmpty {
-        classtableViewModel.fetchTimetable()
-    } else if !years.isEmpty {
-        classtableViewModel.selectedYearId = years.first!.W_YearID
-        classtableViewModel.fetchTimetable()
-    }
-}
-
-private func handleAuthChange(_ isAuthenticated: Bool) {
-    if !isAuthenticated {
-        classtableViewModel.timetable = []
-        
-        // Only animate if this is the first time in the session
-        if !AnimationManager.shared.hasShownTodayViewAnimation {
-            animateCards = false
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
-                    animateCards = true
-                    AnimationManager.shared.markTodayViewAnimationShown()
-                }
+        if let lastLaunch = Configuration.lastAppLaunchDate {
+            let lastLaunchDay = calendar.startOfDay(for: lastLaunch)
+            
+            // Reset settings if this is a new day
+            if !calendar.isDate(today, inSameDayAs: lastLaunchDay) {
+                selectedDayOverride = nil
+                setAsToday = false
+                Configuration.selectedDayOverride = nil
+                Configuration.setAsToday = false
             }
-        } else {
-            animateCards = true
+        }
+        
+        // Update last app launch date
+        Configuration.lastAppLaunchDate = Date()
+    }
+    
+    private var effectiveDateForSelectedDay: Date? {
+        guard setAsToday, let override = selectedDayOverride else { return nil }
+        
+        let calendar = Calendar.current
+        let now = Date()
+        let currentWeekday = calendar.component(.weekday, from: now)
+        
+        // Calculate target weekday (1 = Sunday, 2 = Monday, etc.)
+        // Our override is 0-based (0 = Monday), so we need to add 2
+        let targetWeekday = override + 2
+        
+        // Calculate days to add/subtract to get from current weekday to target weekday
+        var daysToAdd = targetWeekday - currentWeekday
+        
+        // Adjust to get the closest occurrence (past or future)
+        if daysToAdd > 3 {
+            daysToAdd -= 7  // Go back a week if more than 3 days ahead
+        } else if daysToAdd < -3 {
+            daysToAdd += 7  // Go forward a week if more than 3 days behind
+        }
+        
+        // Create a new date that represents the target weekday but with current time
+        return calendar.date(byAdding: .day, value: daysToAdd, to: now)
+    }
+    
+    private func handleYearsChange(_ years: [Year]) {
+        if !years.isEmpty && !classtableViewModel.selectedYearId.isEmpty {
+            classtableViewModel.fetchTimetable()
+        } else if !years.isEmpty {
+            classtableViewModel.selectedYearId = years.first!.W_YearID
+            classtableViewModel.fetchTimetable()
         }
     }
-}
-
-private func getNextClassForDay(_ dayIndex: Int, isForToday: Bool) -> (period: ClassPeriod, classData: String, dayIndex: Int, isForToday: Bool)? {
-    // If we're using "Set as Today" mode with a selected day
-    if setAsToday && selectedDayOverride != nil {
-        let periodInfo = ClassPeriodsManager.shared.getCurrentOrNextPeriod()
-        guard let period = periodInfo.period,
-              period.number < classtableViewModel.timetable.count,
-              dayIndex + 1 < classtableViewModel.timetable[period.number].count else { return nil }
-        
-        let classData = classtableViewModel.timetable[period.number][dayIndex + 1]
-        if classData.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return nil }
-        
-        return (period: period, classData: classData, dayIndex: dayIndex, isForToday: true)
-    } 
-    // Normal "today" mode
-    else if isForToday {
-        let periodInfo = ClassPeriodsManager.shared.getCurrentOrNextPeriod()
-        guard let period = periodInfo.period,
-              period.number < classtableViewModel.timetable.count,
-              dayIndex + 1 < classtableViewModel.timetable[period.number].count else { return nil }
-        
-        let classData = classtableViewModel.timetable[period.number][dayIndex + 1]
-        if classData.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return nil }
-        
-        return (period: period, classData: classData, dayIndex: dayIndex, isForToday: true)
-    } 
-    // Preview mode for other days
-    else {
-        // Find the first class of the day when viewing other days
-        for row in 1..<classtableViewModel.timetable.count {
-            if row < classtableViewModel.timetable.count && dayIndex + 1 < classtableViewModel.timetable[row].count {
-                let classData = classtableViewModel.timetable[row][dayIndex + 1]
-                if !classData.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    if let period = ClassPeriodsManager.shared.classPeriods.first(where: { $0.number == row }) {
-                        return (period: period, classData: classData, dayIndex: dayIndex, isForToday: false)
+    
+    private func handleAuthChange(_ isAuthenticated: Bool) {
+        if !isAuthenticated {
+            classtableViewModel.timetable = []
+            
+            // Only animate if this is the first time in the session
+            if !AnimationManager.shared.hasShownTodayViewAnimation {
+                animateCards = false
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
+                        animateCards = true
+                        AnimationManager.shared.markTodayViewAnimationShown()
+                    }
+                }
+            } else {
+                animateCards = true
+            }
+        }
+    }
+    
+    private func getNextClassForDay(_ dayIndex: Int, isForToday: Bool) -> (period: ClassPeriod, classData: String, dayIndex: Int, isForToday: Bool)? {
+        // If we're using "Set as Today" mode with a selected day
+        if setAsToday && selectedDayOverride != nil {
+            let periodInfo = ClassPeriodsManager.shared.getCurrentOrNextPeriod()
+            guard let period = periodInfo.period,
+                  period.number < classtableViewModel.timetable.count,
+                  dayIndex + 1 < classtableViewModel.timetable[period.number].count else { return nil }
+            
+            let classData = classtableViewModel.timetable[period.number][dayIndex + 1]
+            if classData.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return nil }
+            
+            return (period: period, classData: classData, dayIndex: dayIndex, isForToday: true)
+        } 
+        // Normal "today" mode
+        else if isForToday {
+            let periodInfo = ClassPeriodsManager.shared.getCurrentOrNextPeriod()
+            guard let period = periodInfo.period,
+                  period.number < classtableViewModel.timetable.count,
+                  dayIndex + 1 < classtableViewModel.timetable[period.number].count else { return nil }
+            
+            let classData = classtableViewModel.timetable[period.number][dayIndex + 1]
+            if classData.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return nil }
+            
+            return (period: period, classData: classData, dayIndex: dayIndex, isForToday: true)
+        } 
+        // Preview mode for other days
+        else {
+            // Find the first class of the day when viewing other days
+            for row in 1..<classtableViewModel.timetable.count {
+                if row < classtableViewModel.timetable.count && dayIndex + 1 < classtableViewModel.timetable[row].count {
+                    let classData = classtableViewModel.timetable[row][dayIndex + 1]
+                    if !classData.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        if let period = ClassPeriodsManager.shared.classPeriods.first(where: { $0.number == row }) {
+                            return (period: period, classData: classData, dayIndex: dayIndex, isForToday: false)
+                        }
                     }
                 }
             }
+            return nil
         }
-        return nil
     }
-}
-
-private func isCurrentDateWeekend() -> Bool {
-    if let override = selectedDayOverride {
-        return override < 0 || override >= 5
-    } else {
+    
+    private func isCurrentDateWeekend() -> Bool {
+        if let override = selectedDayOverride {
+            return override < 0 || override >= 5
+        } else {
+            let calendar = Calendar.current
+            let weekday = calendar.component(.weekday, from: currentTime)
+            return weekday == 1 || weekday == 7
+        }
+    }
+    
+    private func isHolidayActive() -> Bool {
+        if !isHolidayMode {
+            return false
+        }
+        if !holidayHasEndDate {
+            return true
+        }
         let calendar = Calendar.current
-        let weekday = calendar.component(.weekday, from: currentTime)
-        return weekday == 1 || weekday == 7
+        let currentDay = calendar.startOfDay(for: currentTime)
+        let endDay = calendar.startOfDay(for: holidayEndDate)
+        return currentDay <= endDay
     }
-}
-
-private func isHolidayActive() -> Bool {
-    if !isHolidayMode {
-        return false
-    }
-    if !holidayHasEndDate {
-        return true
-    }
-    let calendar = Calendar.current
-    let currentDay = calendar.startOfDay(for: currentTime)
-    let endDay = calendar.startOfDay(for: holidayEndDate)
-    return currentDay <= endDay
-}
 }
 
 // MARK: - Supporting Views
@@ -408,7 +408,7 @@ struct HeaderView: View {
         .offset(y: animateCards ? 0 : 20)
         .opacity(animateCards ? 1 : 0)
         .animation(
-            .smoothSpring(duration: 0.7, bounce: 0.2),
+            .spring(response: 0.7, dampingFraction: 0.8),
             value: animateCards
         )
     }
@@ -540,7 +540,7 @@ struct MainContentView: View {
             .offset(y: animateCards ? 0 : 30)
             .opacity(animateCards ? 1 : 0)
             .animation(
-                .smoothSpring(duration: 0.7, bounce: 0.2) // More natural, smoother spring
+                .spring(response: 0.7, dampingFraction: 0.8)
                 .delay(delay),
                 value: animateCards
             )
