@@ -10,7 +10,6 @@ struct TodayView: View {
     @State private var timer: Timer?
     @State private var isLoading = false
     @State private var animateCards = false
-    @State private var hasAnimatedOnce = false
     @State private var selectedDayOverride: Int? = Configuration.selectedDayOverride
     @State private var isHolidayMode: Bool = false
     @State private var isSettingsSheetPresented: Bool = false
@@ -219,18 +218,17 @@ struct TodayView: View {
             currentTime = Date()
         }
         
-        // Only animate if this is the first launch of the app
-        if !Configuration.hasShownTodayViewAnimation {
+        // Only animate if this is the first launch of app (per session)
+        if !AnimationManager.shared.hasShownTodayViewAnimation {
+            animateCards = false
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                withAnimation {
+                withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
                     animateCards = true
-                    hasAnimatedOnce = true
-                    // Mark that we've shown the animation
-                    Configuration.hasShownTodayViewAnimation = true
+                    AnimationManager.shared.markTodayViewAnimationShown()
                 }
             }
         } else {
-            // If we've already shown the animation before, just set cards as visible
+            // If we've already shown the animation, just set cards as visible
             animateCards = true
         }
     }
@@ -269,6 +267,8 @@ private var effectiveDateForSelectedDay: Date? {
     
     // Calculate days to add/subtract to get from current weekday to target weekday
     var daysToAdd = targetWeekday - currentWeekday
+    
+    // Adjust to get the closest occurrence (past or future)
     if daysToAdd > 3 {
         daysToAdd -= 7  // Go back a week if more than 3 days ahead
     } else if daysToAdd < -3 {
@@ -292,13 +292,13 @@ private func handleAuthChange(_ isAuthenticated: Bool) {
     if !isAuthenticated {
         classtableViewModel.timetable = []
         
-        // Don't animate if we've already shown animations before
-        if !Configuration.hasShownTodayViewAnimation {
+        // Only animate if this is the first time in the session
+        if !AnimationManager.shared.hasShownTodayViewAnimation {
             animateCards = false
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                withAnimation {
+                withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
                     animateCards = true
-                    Configuration.hasShownTodayViewAnimation = true
+                    AnimationManager.shared.markTodayViewAnimationShown()
                 }
             }
         } else {
@@ -308,33 +308,39 @@ private func handleAuthChange(_ isAuthenticated: Bool) {
 }
 
 private func getNextClassForDay(_ dayIndex: Int, isForToday: Bool) -> (period: ClassPeriod, classData: String, dayIndex: Int, isForToday: Bool)? {
-    // If we're using "Set as Today" mode with a selected day, we need to adjust the logic
-    if isForToday && setAsToday && selectedDayOverride != nil {
-        // Use the current time but treat as if we're on the selected day
+    // If we're using "Set as Today" mode with a selected day
+    if setAsToday && selectedDayOverride != nil {
         let periodInfo = ClassPeriodsManager.shared.getCurrentOrNextPeriod()
         guard let period = periodInfo.period,
               period.number < classtableViewModel.timetable.count,
               dayIndex + 1 < classtableViewModel.timetable[period.number].count else { return nil }
+        
         let classData = classtableViewModel.timetable[period.number][dayIndex + 1]
         if classData.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return nil }
+        
         return (period: period, classData: classData, dayIndex: dayIndex, isForToday: true)
-    } else if isForToday {
-        // Original logic for normal "today" mode
+    } 
+    // Normal "today" mode
+    else if isForToday {
         let periodInfo = ClassPeriodsManager.shared.getCurrentOrNextPeriod()
         guard let period = periodInfo.period,
               period.number < classtableViewModel.timetable.count,
               dayIndex + 1 < classtableViewModel.timetable[period.number].count else { return nil }
+        
         let classData = classtableViewModel.timetable[period.number][dayIndex + 1]
         if classData.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return nil }
+        
         return (period: period, classData: classData, dayIndex: dayIndex, isForToday: true)
-    } else {
-        // Logic for previewing other days
+    } 
+    // Preview mode for other days
+    else {
+        // Find the first class of the day when viewing other days
         for row in 1..<classtableViewModel.timetable.count {
             if row < classtableViewModel.timetable.count && dayIndex + 1 < classtableViewModel.timetable[row].count {
                 let classData = classtableViewModel.timetable[row][dayIndex + 1]
                 if !classData.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     if let period = ClassPeriodsManager.shared.classPeriods.first(where: { $0.number == row }) {
-                        return (period: period, classData: classData, dayIndex: dayIndex, isForToday: setAsToday)
+                        return (period: period, classData: classData, dayIndex: dayIndex, isForToday: false)
                     }
                 }
             }
@@ -401,7 +407,10 @@ struct HeaderView: View {
         .padding(.leading, 3)
         .offset(y: animateCards ? 0 : 20)
         .opacity(animateCards ? 1 : 0)
-        .animation(.easeOut(duration: 0.5), value: animateCards)
+        .animation(
+            .smoothSpring(duration: 0.7, bounce: 0.2),
+            value: animateCards
+        )
     }
     
     @ViewBuilder
@@ -530,6 +539,10 @@ struct MainContentView: View {
             .padding(.horizontal)
             .offset(y: animateCards ? 0 : 30)
             .opacity(animateCards ? 1 : 0)
-            .animation(.easeOut(duration: 0.6).delay(delay), value: animateCards)
+            .animation(
+                .smoothSpring(duration: 0.7, bounce: 0.2) // More natural, smoother spring
+                .delay(delay),
+                value: animateCards
+            )
     }
 }

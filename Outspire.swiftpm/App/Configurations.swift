@@ -10,11 +10,6 @@ struct Configuration {
         }
     }
     
-    static var hasShownTodayViewAnimation: Bool {
-        get { UserDefaults.standard.bool(forKey: "hasShownTodayViewAnimation") }
-        set { UserDefaults.standard.set(newValue, forKey: "hasShownTodayViewAnimation") }
-    }
-    
     static var hideAcademicScore: Bool {
         get {
             return UserDefaults.standard.bool(forKey: "hideAcademicScore")

@@ -164,7 +164,7 @@ struct EnhancedClassCard: View {
             calculateTimeRemaining()
         }
     }
-    
+
     private func calculateTimeRemaining() {
         let calendar = Calendar.current
         let now = effectiveDate ?? Date()
@@ -181,6 +181,7 @@ struct EnhancedClassCard: View {
                 timeRemaining = 0
             }
         } else {
+            // Logic for future days remains the same
             guard let dayOfWeek = weekdayFromDayName(day) else { return }
             let currentWeekday = calendar.component(.weekday, from: now)
             var daysToAdd = dayOfWeek - currentWeekday
