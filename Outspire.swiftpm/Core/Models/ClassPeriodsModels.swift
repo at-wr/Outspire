@@ -65,6 +65,44 @@ public class ClassPeriodsManager {
         ]
     }
     
+    // Get available periods for a specific day
+    public func getPeriodsForDay(date: Date) -> [ClassPeriod] {
+        let calendar = Calendar.current
+        let weekday = calendar.component(.weekday, from: date)
+        let maxPeriods = getMaxPeriodsByWeekday(weekday)
+        
+        return classPeriods.filter { $0.number <= maxPeriods }
+    }
+    
+    // Get maximum number of periods based on weekday
+    public func getMaxPeriodsByWeekday(_ weekday: Int) -> Int {
+        // Friday is weekday 6, return 8 periods
+        // For all other weekdays (Mon-Thu), return 9 periods
+        return weekday == 6 ? 8 : 9
+    }
+    
+    // Get maximum number of periods for today or a specified day
+    public func getMaxPeriodsForDay(date: Date? = nil) -> Int {
+        let calendar = Calendar.current
+        let targetDate = date ?? Date()
+        let weekday = calendar.component(.weekday, from: targetDate)
+        return getMaxPeriodsByWeekday(weekday)
+    }
+    
+    // Check if a period is a self-study period
+    public func isSelfStudyPeriod(periodNumber: Int, weekday: Int, timetable: [[String]], dayIndex: Int) -> Bool {
+        let maxPeriods = getMaxPeriodsByWeekday(weekday)
+        
+        // Check if this period is within the valid range for the day
+        guard periodNumber <= maxPeriods else { return false }
+        
+        // Check if this period has empty data (self-study)
+        guard periodNumber < timetable.count && 
+                dayIndex + 1 < timetable[periodNumber].count else { return false }
+        
+        return timetable[periodNumber][dayIndex + 1].trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+    
     // Find current or next period
     public func getCurrentOrNextPeriod(useEffectiveDate: Bool = false, effectiveDate: Date? = nil) -> (period: ClassPeriod?, isCurrentlyActive: Bool) {
         let currentDate = Date()

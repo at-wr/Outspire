@@ -9,6 +9,24 @@ struct EnhancedClassCard: View {
     let setAsToday: Bool
     let effectiveDate: Date?
     
+    // Get weekday from day string for schedule adjustments
+    private var dayWeekday: Int? {
+        return weekdayFromDayName(day)
+    }
+    
+    // Determine if this class is part of a valid schedule for its day
+    private var isWithinDaySchedule: Bool {
+        guard let weekday = dayWeekday else { return true }
+        let maxPeriods = ClassPeriodsManager.shared.getMaxPeriodsByWeekday(weekday)
+        return period.number <= maxPeriods
+    }
+    
+    private var isLastPeriodOfDay: Bool {
+        guard let weekday = dayWeekday else { return false }
+        let maxPeriods = ClassPeriodsManager.shared.getMaxPeriodsByWeekday(weekday)
+        return period.number == maxPeriods
+    }
+    
     @State private var timeRemaining: TimeInterval = 0
     @State private var isCurrentClass = false
     @State private var timer: Timer?
@@ -50,7 +68,7 @@ struct EnhancedClassCard: View {
                             .foregroundStyle(Color.blue)
                     }
                     
-                    Text("\(day) • Period \(period.number)")
+                    Text("\(day) • Period \(period.number)\(isLastPeriodOfDay ? " (Last Period)" : "")")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
@@ -258,6 +276,7 @@ struct EnhancedClassCard: View {
         return max(0, min(1, elapsed / totalDuration))
     }
     
+    // Helper method to get weekday number from day name
     private func weekdayFromDayName(_ name: String) -> Int? {
         let dayMapping = ["Mon": 2, "Tue": 3, "Wed": 4, "Thu": 5, "Fri": 6]
         return dayMapping[name]
@@ -268,7 +287,7 @@ struct EnhancedClassCard: View {
         return Calendar.current.dateComponents([.hour, .minute, .second], from: date)
     }
     
-    // Helper method to get date components (year, month, day)
+    // Helper method to get date components (year, month, day)/ Helper method to get date components (year, month, day)
     private func getDateComponents(from date: Date) -> DateComponents {
         return Calendar.current.dateComponents([.year, .month, .day], from: date)
     }

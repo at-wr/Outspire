@@ -150,31 +150,41 @@ struct DailyScheduleCard: View {
     let maxClassesToShow: Int = 3
     @State private var isExpandedSchedule = false
     
-    private var hasClasses: Bool {
-        guard !viewModel.timetable.isEmpty else { return false }
-        for row in 1..<viewModel.timetable.count {
-            if row < viewModel.timetable.count &&
-                dayIndex + 1 < viewModel.timetable[row].count &&
-                !viewModel.timetable[row][dayIndex + 1].trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                return true
-            }
-        }
-        return false
+    // Convert dayIndex (0-4) to weekday (2-6, Monday-Friday)
+    private var dayWeekday: Int { dayIndex + 2 }
+    
+    // Get max periods for this day of the week
+    private var maxPeriodsForDay: Int {
+        ClassPeriodsManager.shared.getMaxPeriodsByWeekday(dayWeekday)
     }
     
-    private var classesForToday: [(period: Int, data: String)] {
-        var result: [(period: Int, data: String)] = []
-        guard !viewModel.timetable.isEmpty else { return result }
-        for row in 1..<viewModel.timetable.count {
-            if row < viewModel.timetable.count &&
-                dayIndex + 1 < viewModel.timetable[row].count {
-                let classData = viewModel.timetable[row][dayIndex + 1]
-                if !classData.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    result.append((period: row, data: classData))
-                }
-            }
+    // Check if there are any classes or self-study periods for the day
+    private var hasClasses: Bool {
+        guard !viewModel.timetable.isEmpty, viewModel.timetable.count > 1 else { return false }
+        return (1..<min(viewModel.timetable.count, maxPeriodsForDay + 1)).contains { row in
+            row < viewModel.timetable.count && dayIndex + 1 < viewModel.timetable[row].count
         }
-        return result
+    }
+    
+    // Get a list of classes/self-study periods for the day
+    private var scheduledClassesForToday: [(period: Int, data: String, isSelfStudy: Bool)] {
+        guard !viewModel.timetable.isEmpty else { return [] }
+        
+        let maxRow = min(viewModel.timetable.count, maxPeriodsForDay + 1)
+        return (1..<maxRow).compactMap { row in
+            guard row < viewModel.timetable.count && dayIndex + 1 < viewModel.timetable[row].count else {
+                return nil
+            }
+            
+            let classData = viewModel.timetable[row][dayIndex + 1]
+            let isSelfStudy = classData.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            
+            return (
+                period: row,
+                data: isSelfStudy ? "Self-Study\n\nStudy Hall" : classData,
+                isSelfStudy: isSelfStudy
+            )
+        }
     }
     
     var body: some View {
@@ -185,7 +195,10 @@ struct DailyScheduleCard: View {
                     .foregroundStyle(.primary)
                 Spacer()
                 if hasClasses {
-                    Text("\(classesForToday.count) Classes")
+                    let regularClassCount = scheduledClassesForToday.filter { !$0.isSelfStudy }.count
+                    let selfStudyCount = scheduledClassesForToday.filter { $0.isSelfStudy }.count
+                    
+                    Text("\(regularClassCount) Classes, \(selfStudyCount) Self-Study")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .padding(.horizontal, 8)
@@ -199,24 +212,28 @@ struct DailyScheduleCard: View {
             Divider()
             if hasClasses {
                 VStack(spacing: 12) {
-                    ForEach(classesForToday.prefix(isExpandedSchedule ? classesForToday.count : maxClassesToShow), id: \.period) { item in
+                    ForEach(scheduledClassesForToday.prefix(isExpandedSchedule ? scheduledClassesForToday.count : maxClassesToShow), id: \.period) { item in
                         let components = item.data
                             .replacingOccurrences(of: "<br>", with: "\n")
                             .components(separatedBy: "\n")
                             .filter { !$0.isEmpty }
-                        let period = ClassPeriodsManager.shared.classPeriods.first { $0.number == item.period }
-                        if let period = period, components.count > 0 {
+                        if let period = ClassPeriodsManager.shared.classPeriods.first(where: { $0.number == item.period }),
+                           !components.isEmpty {
                             ScheduleRow(
                                 period: item.period,
                                 time: period.timeRangeFormatted,
                                 subject: components.count > 1 ? components[1] : "Class",
-                                room: components.count > 2 ? components[2] : ""
+                                room: components.count > 2 ? components[2] : "",
+                                isSelfStudy: item.isSelfStudy
                             )
                             .transition(.move(edge: .top).combined(with: .opacity))
                         }
                     }
+                    
                     Button {
-                        isExpandedSchedule.toggle()
+                        withAnimation {
+                            isExpandedSchedule.toggle()
+                        }
                     } label: {
                         HStack {
                             Text(isExpandedSchedule ? "See Less" : "See Full Schedule")
@@ -275,11 +292,17 @@ struct SignInPromptCard: View {
     }
 }
 
-// Add this new component
+// Self Study Period Card - Optimized
 struct SelfStudyPeriodCard: View {
     let currentPeriod: Int
     let nextClassPeriod: Int?
     let nextClassName: String?
+    let dayOfWeek: Int? // 1-7, where 1 is Sunday
+    
+    private var isLastPeriodOfDay: Bool {
+        guard let dayOfWeek = dayOfWeek else { return false }
+        return currentPeriod >= ClassPeriodsManager.shared.getMaxPeriodsByWeekday(dayOfWeek)
+    }
     
     var body: some View {
         VStack(spacing: 24) {
@@ -296,7 +319,7 @@ struct SelfStudyPeriodCard: View {
                 Text("Self-Study Period")
                     .font(.headline)
                 
-                Text("Period \(currentPeriod)")
+                Text("Period \(currentPeriod)\(isLastPeriodOfDay ? " (Last Period)" : "")")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                 
