@@ -274,3 +274,102 @@ struct SignInPromptCard: View {
         .padding(.vertical, 80)
     }
 }
+
+// Add this new component
+struct SelfStudyPeriodCard: View {
+    let currentPeriod: Int
+    let nextClassPeriod: Int?
+    let nextClassName: String?
+    
+    var body: some View {
+        VStack(spacing: 24) {
+            Image(systemName: "book.fill")
+                .font(.system(size: 40))
+                .foregroundStyle(.purple)
+                .padding(12)
+                .background(
+                    Circle()
+                        .fill(Color.purple.opacity(0.1))
+                )
+            
+            VStack(spacing: 5) {
+                Text("Self-Study Period")
+                    .font(.headline)
+                
+                Text("Period \(currentPeriod)")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                
+                if let nextClassPeriod = nextClassPeriod, let nextClassName = nextClassName {
+                    Text("Next class: Period \(nextClassPeriod) - \(nextClassName)")
+                        .font(.caption)
+                        .foregroundStyle(.purple)
+                        .padding(.top, 4)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 30)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color(UIColor.systemBackground))
+                .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
+        )
+    }
+}
+
+// Self Study
+struct LunchBreakCard: View {
+    let nextClassPeriod: Int?
+    let nextClassName: String?
+    let currentTime: Date
+    let lunchEndTime: Date
+    
+    private var timeRemaining: String {
+        let formatter = DateComponentsFormatter()
+        formatter.allowedUnits = [.hour, .minute]
+        formatter.unitsStyle = .abbreviated
+        
+        let timeInterval = lunchEndTime.timeIntervalSince(currentTime)
+        return formatter.string(from: max(0, timeInterval)) ?? ""
+    }
+    
+    var body: some View {
+        VStack(spacing: 24) {
+            Image(systemName: "fork.knife")
+                .font(.system(size: 40))
+                .foregroundStyle(.orange)
+                .padding(12)
+                .background(
+                    Circle()
+                        .fill(Color.orange.opacity(0.1))
+                )
+            
+            VStack(spacing: 5) {
+                Text("Lunch Break")
+                    .font(.headline)
+                
+                Text("Time remaining: \(timeRemaining)")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                
+                if let nextClassPeriod = nextClassPeriod, let nextClassName = nextClassName {
+                    let components = nextClassName.components(separatedBy: "\n").filter { !$0.isEmpty }
+                    let subjectName = components.count > 1 ? components[1] : nextClassName
+                    
+                    Text("Next class: Period \(nextClassPeriod) - \(subjectName)")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                        .padding(.top, 4)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 30)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color(UIColor.systemBackground))
+                .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
+        )
+    }
+}

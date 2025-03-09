@@ -110,7 +110,8 @@ class ClubActivitiesViewModel: ObservableObject {
             case .success(let response):
                 self.processSuccessfulGroupsResponse(response)
             case .failure(let error):
-                self.errorMessage = "Failed to load groups: \(error.localizedDescription)"
+                //self.errorMessage = "Failed to load groups: \(error.localizedDescription)"
+                self.errorMessage = "\(error.localizedDescription)"
             }
         }
     }
@@ -169,7 +170,9 @@ class ClubActivitiesViewModel: ObservableObject {
                     self.cacheActivities(for: self.selectedGroupId, activities: response.casRecord)
                 }
             case .failure(let error):
-                self.errorMessage = "Failed to load activities: \(error.localizedDescription)"
+                // self.errorMessage = "Failed to load activities: \(error.localizedDescription)"
+                self.errorMessage = "\(error.localizedDescription)"
+
             }
         }
     }
@@ -197,7 +200,8 @@ class ClubActivitiesViewModel: ObservableObject {
         case .success(let response):
             processDeleteSuccess(response, recordId: recordId)
         case .failure(let error):
-            errorMessage = "Failed to delete record: \(error.localizedDescription)"
+            //errorMessage = "Failed to delete record: \(error.localizedDescription)"
+            errorMessage = "\(error.localizedDescription)"
         }
     }
     

@@ -55,10 +55,10 @@ struct AccountView: View {
         NavigationView {
             Form {
                 Section {
-                    VStack(alignment: .center, spacing: 20) {
+                    VStack(alignment: .center, spacing: 12) {
                         Image(systemName: "person.crop.circle.badge.plus")
-                            .font(.system(size: 72))
-                            .foregroundStyle(.gray)
+                            .font(.system(size: 64))
+                            .foregroundStyle(.primary)
                             .symbolRenderingMode(.hierarchical)
                             .padding(.vertical)
                     }
@@ -81,7 +81,7 @@ struct AccountView: View {
                         .autocapitalization(.none)
                         .autocorrectionDisabled()
                         .focused($focusedField, equals: .password)
-                        .submitLabel(.next)
+                        // .submitLabel(.next).submitLabel(.done)
                         .onSubmit { focusedField = .captcha }
                     
                     HStack {
@@ -114,35 +114,13 @@ struct AccountView: View {
                     }
                      */
                 }
+                //.padding(.bottom, 30)
                 
                 Section {
-                    Button(action: login) {
-                        HStack {
-                            Spacer()
-                            ZStack {
-                                if viewModel.isLoggingIn || viewModel.isAutoRetrying {
-                                    ProgressView()
-                                        .tint(.white)
-                                } else {
-                                    Text("Sign In")
-                                        .font(.headline)
-                                        .foregroundColor(.white)
-                                }
-                            }
-                            Spacer()
-                        }
-                        .frame(height: 46)
-                        .background(Color.accentColor)
-                        .cornerRadius(12)
-                    }
-                    .disabled(viewModel.isLoggingIn)
-                    .buttonStyle(PlainButtonStyle())
-                    .listRowBackground(Color.clear)
-                    .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
-                }
-                
-                Section {
-                    VStack(spacing: 0) {
+                    VStack(spacing: 4) {
+                        Image(systemName: "lock.circle.dotted")
+                            .foregroundStyle(.secondary)
+                            .font(.system(size: 24))
                         let baseText = "All data will only be stored on this device and the TSIMS server. "
                         let connectionStatus = Configuration.useSSL ?
                         "Your connection has been encrypted." :
@@ -156,6 +134,34 @@ struct AccountView: View {
                     .frame(maxWidth: .infinity)
                     .listRowBackground(Color.clear)
                 }
+                
+                Section {
+                    Button(action: login) {
+                        HStack {
+                            Spacer()
+                            ZStack {
+                                if viewModel.isLoggingIn || viewModel.isAutoRetrying {
+                                    ProgressView()
+                                        .tint(.white)
+                                } else {
+                                    Text("Continue")
+                                        .font(.headline)
+                                        .foregroundColor(.white)
+                                }
+                            }
+                            Spacer()
+                        }
+                        .frame(height: 46)
+                        .background(Color.accentColor)
+                        .cornerRadius(12)
+                    }
+                    .disabled(viewModel.isLoggingIn)
+                    .buttonStyle(PlainButtonStyle())
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 2, trailing: 0))
+                }
+                
+                
             }
             /*
              .toolbar {

@@ -87,7 +87,7 @@ struct SettingsGeneralView: View {
                 HStack {
                     Label("Version", systemImage: "info.circle")
                     Spacer()
-                    Text("0.2")
+                    Text("0.3")
                         .foregroundStyle(.secondary)
                 }
             } header: {
@@ -112,7 +112,7 @@ struct SettingsGeneralView: View {
                 
                 if showCacheCleared {
                     let toast = ToastValue(
-                        icon: Image(systemName: "externaldrive.badge.checkmark").foregroundStyle(.blue),
+                        icon: Image(systemName: "externaldrive.badge.checkmark").foregroundStyle(.green),
                         message: "Cache Cleared"
                     )
                     presentToast(toast)

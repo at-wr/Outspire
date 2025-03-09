@@ -6,7 +6,7 @@ struct SettingsView: View {
     @State private var navigationPath = NavigationPath()
     @State private var viewRefreshID = UUID()
     
-    enum SettingsMenu: String, Hashable {
+    enum SettingsMenu: String, Hashable, CaseIterable {
         case account
         case general
         case export
@@ -19,46 +19,18 @@ struct SettingsView: View {
                 // Account section
                 Section {
                     NavigationLink(value: SettingsMenu.account) {
-                        HStack(spacing: 12) {
-                            // Profile avatar
-                            Image(systemName: sessionService.isAuthenticated ? "person.circle.fill" : "person.fill.viewfinder")
-                                .font(.system(size: 28))
-                                .foregroundStyle(sessionService.isAuthenticated ? Color(.cyan) : .gray)
-                                .frame(width: 36, height: 36)
-                            
-                            // User info
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(sessionService.isAuthenticated ? 
-                                     (sessionService.userInfo?.nickname ?? sessionService.userInfo?.studentname ?? "Account") : 
-                                        "Sign In")
-                                .font(.headline)
-                                
-                                if sessionService.isAuthenticated, let username = sessionService.userInfo?.studentid {
-                                    Text("ID: \(username)")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                } else if !sessionService.isAuthenticated {
-                                    Text("with your TSIMS account")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-                        }
-                        .padding(.vertical, 4)
+                        ProfileHeaderView()
                     }
                 }
-                // .listRowBackground(sessionService.isAuthenticated ? Color(UIColor.systemBackground) : nil)
                 
                 // General settings section
                 Section {
-                    NavigationLink(value: SettingsMenu.general) {
-                        Label("General", systemImage: "switch.2")
-                    }
-                    NavigationLink(value: SettingsMenu.export) {
-                        Label("Export App Package", systemImage: "shippingbox")
-                    }
-                    NavigationLink(value: SettingsMenu.license) {
-                        Label("Open Source Licenses", systemImage: "doc.text")
+                    ForEach(SettingsMenu.allCases, id: \.self) { item in
+                        if item != .account {
+                            NavigationLink(value: item) {
+                                MenuItemView(item: item)
+                            }
+                        }
                     }
                 }
                 
@@ -81,7 +53,7 @@ struct SettingsView: View {
                         .font(.caption)
                 }
             }
-            .id(viewRefreshID) // Force refresh when needed
+            .id(viewRefreshID)
             .navigationTitle("Settings")
             .toolbar {
                 Button(action: {
@@ -93,36 +65,37 @@ struct SettingsView: View {
                 }
             }
             .navigationDestination(for: SettingsMenu.self) { destination in
-                switch destination {
-                case .account:
-                    AccountWithNavigation()
-                case .general:
-                    SettingsGeneralView()
-                case .export:
-                    ExportView()
-                case .license:
-                    LicenseView()
-                }
+                destinationView(for: destination)
             }
             .onReceive(NotificationCenter.default.publisher(for: .authenticationStatusChanged)) { notification in
-                // Force refresh the view when authentication changes
                 DispatchQueue.main.async {
                     viewRefreshID = UUID()
-                    
-                    // If this was a logout, reset navigation path to root
-                    if (notification.userInfo?["action"] as? String) == "logout" {
-                        navigationPath = NavigationPath()
-                    }
-                    if (notification.userInfo?["action"] as? String) == "signedin" {
-                        navigationPath = NavigationPath()
+                    if let action = notification.userInfo?["action"] as? String {
+                        if action == "logout" || action == "signedin" {
+                            navigationPath = NavigationPath()
+                        }
                     }
                 }
             }
         }
     }
+    
+    @ViewBuilder
+    private func destinationView(for destination: SettingsMenu) -> some View {
+        switch destination {
+        case .account:
+            AccountWithNavigation()
+        case .general:
+            SettingsGeneralView()
+        case .export:
+            ExportView()
+        case .license:
+            LicenseView()
+        }
+    }
 }
 
-// Redesigned account wrapper that works within parent navigation
+// AccountWithNavigation remains unchanged
 struct AccountWithNavigation: View {
     @StateObject private var viewModel = AccountViewModel()
     @EnvironmentObject var sessionService: SessionService

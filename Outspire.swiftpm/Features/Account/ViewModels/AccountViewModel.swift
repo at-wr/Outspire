@@ -56,7 +56,7 @@ class AccountViewModel: ObservableObject {
         sessionService.clearSession()
         
         guard let captchaURL = URL(string: "\(Configuration.baseURL)/php/login_key.php") else {
-            self.errorMessage = "Invalid CAPTCHA URL."
+            self.errorMessage = "Invalid CAPTCHA URL"
             self.isCaptchaLoading = false
             return
         }
@@ -82,7 +82,7 @@ class AccountViewModel: ObservableObject {
                 
                 if let error = error {
                     print("Captcha fetch error: \(error.localizedDescription)")
-                    self.errorMessage = "Failed to load CAPTCHA: \(error.localizedDescription)"
+                    self.errorMessage = "\(error.localizedDescription)"
                     return
                 }
                 
@@ -107,14 +107,14 @@ class AccountViewModel: ObservableObject {
                         }
                     } else {
                         print("Failed to extract session ID from response")
-                        self.errorMessage = "Failed to get session. Retrying automatically..."
+                        self.errorMessage = "Retrying..."
                         // Automatic retry after a short delay
                         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                             self.fetchCaptchaImage()
                         }
                     }
                 } else {
-                    self.errorMessage = "Failed to load CAPTCHA: No data received. Retrying..."
+                    self.errorMessage = "Retrying..."
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                         self.fetchCaptchaImage()
                     }
@@ -126,13 +126,13 @@ class AccountViewModel: ObservableObject {
     // Add properties and update login method
     func login(autoRetry: Bool = false) {
         guard !username.isEmpty, !password.isEmpty, !captcha.isEmpty else {
-            errorMessage = "Please fill in all fields."
+            errorMessage = "Please fill in all fields"
             return
         }
         
         // Ensure we have a session ID before attempting login
         guard let sessionId = sessionService.sessionId, !sessionId.isEmpty else {
-            errorMessage = "Missing session ID. Refreshing captcha..."
+            errorMessage = "Retrying..."
             fetchCaptchaImage()
             return
         }
@@ -167,7 +167,7 @@ class AccountViewModel: ObservableObject {
                 self.password = ""
                 self.captcha = ""
                 self.captchaImageData = nil
-                self.successMessage = "Signed in to TSIMS"
+                self.successMessage = "Signed in successfully"
                 NotificationCenter.default.post(
                     name: .authenticationStatusChanged,
                     object: nil,
