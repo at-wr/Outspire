@@ -36,13 +36,41 @@ struct Configuration {
             UserDefaults.standard.set(newValue, forKey: "showSecondsInLongCountdown")
         }
     }
-
+    
     static var showCountdownForFutureClasses: Bool {
         get {
             return UserDefaults.standard.object(forKey: "showCountdownForFutureClasses") as? Bool ?? false
         }
         set {
             UserDefaults.standard.set(newValue, forKey: "showCountdownForFutureClasses")
+        }
+    }
+    
+    static var selectedDayOverride: Int? {
+        get {
+            let value = UserDefaults.standard.integer(forKey: "selectedDayOverride")
+            return value == -1 ? nil : value
+        }
+        set {
+            UserDefaults.standard.set(newValue ?? -1, forKey: "selectedDayOverride")
+        }
+    }
+    
+    static var setAsToday: Bool {
+        get {
+            return UserDefaults.standard.bool(forKey: "setAsToday")
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "setAsToday")
+        }
+    }
+    
+    static var lastAppLaunchDate: Date? {
+        get {
+            return UserDefaults.standard.object(forKey: "lastAppLaunchDate") as? Date
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "lastAppLaunchDate")
         }
     }
     

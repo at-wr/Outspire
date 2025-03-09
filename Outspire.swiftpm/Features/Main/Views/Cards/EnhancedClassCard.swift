@@ -7,6 +7,7 @@ struct EnhancedClassCard: View {
     let currentTime: Date
     let isForToday: Bool
     let setAsToday: Bool
+    let effectiveDate: Date?
     
     @State private var timeRemaining: TimeInterval = 0
     @State private var isCurrentClass = false
@@ -39,7 +40,7 @@ struct EnhancedClassCard: View {
             // Header with class info
             HStack(alignment: .center) {
                 VStack(alignment: .leading, spacing: 2) {
-                    if isForToday || setAsToday {
+                    if isForToday {
                         Text(isCurrentClass ? "Current Class" : "Upcoming Class")
                             .font(.headline)
                             .foregroundStyle(isCurrentClass ? Color.orange : Color.blue)
@@ -151,10 +152,9 @@ struct EnhancedClassCard: View {
         )
         .onAppear {
             calculateTimeRemaining()
-            if isForToday || setAsToday {
-                timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
-                    calculateTimeRemaining()
-                }
+            // Update timer every second in all cases to ensure seconds are shown correctly
+            timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
+                calculateTimeRemaining()
             }
         }
         .onDisappear {
@@ -162,13 +162,12 @@ struct EnhancedClassCard: View {
         }
         .onChange(of: setAsToday) { _, _ in
             calculateTimeRemaining()
-            updateTimer()
         }
     }
     
     private func calculateTimeRemaining() {
         let calendar = Calendar.current
-        let now = Date()
+        let now = effectiveDate ?? Date()
         
         if isForToday || setAsToday {
             if now >= period.startTime && now <= period.endTime {
@@ -202,24 +201,14 @@ struct EnhancedClassCard: View {
         }
     }
     
-    private func updateTimer() {
-        timer?.invalidate()
-        if isForToday || setAsToday {
-            timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
-                calculateTimeRemaining()
-            }
-        }
-    }
-    
     private func calculateProgress() -> Double {
         let totalDuration = period.endTime.timeIntervalSince(period.startTime)
         let elapsed = totalDuration - timeRemaining
-        return min(max(elapsed / totalDuration, 0), 1)
+        return max(0, min(1, elapsed / totalDuration))
     }
     
     private func weekdayFromDayName(_ name: String) -> Int? {
-        let days = ["Mon", "Tue", "Wed", "Thu", "Fri"]
-        guard let index = days.firstIndex(of: name) else { return nil }
-        return index + 2
+        let dayMapping = ["Mon": 2, "Tue": 3, "Wed": 4, "Thu": 5, "Fri": 6]
+        return dayMapping[name]
     }
 }

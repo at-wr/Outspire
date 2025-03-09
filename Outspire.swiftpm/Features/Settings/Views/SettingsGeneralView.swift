@@ -30,14 +30,14 @@ struct SettingsGeneralView: View {
             
             Section {
                 Toggle(isOn: $showMondayClass) {
-                    Label("Show Monday Classes on Weekend", systemImage: "calendar")
+                    Label("Monday Classes on Weekend", systemImage: "calendar")
                 }
                 .onChange(of: showMondayClass) { _, newValue in
                     Configuration.showMondayClass = newValue
                 }
                 
                 Toggle(isOn: $showSecondsInLongCountdown) {
-                    Label("Show Seconds in Long Countdowns", systemImage: "timer")
+                    Label("Seconds in Long Countdowns", systemImage: "timer")
                 }
                 .onChange(of: showSecondsInLongCountdown) { _, newValue in
                     Configuration.showSecondsInLongCountdown = newValue

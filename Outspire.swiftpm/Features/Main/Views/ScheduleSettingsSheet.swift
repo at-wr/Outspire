@@ -2,12 +2,12 @@ import SwiftUI
 
 struct ScheduleSettingsSheet: View {
     @Binding var selectedDay: Int?
+    @Binding var setAsToday: Bool
     @Binding var isHolidayMode: Bool
     @Binding var isPresented: Bool
     @Binding var holidayEndDate: Date
     @Binding var holidayHasEndDate: Bool
     @State private var showCountdownForFutureClasses = Configuration.showCountdownForFutureClasses
-    @State private var setAsToday = false  // New toggle state
     
     var body: some View {
         NavigationStack {
@@ -53,6 +53,10 @@ struct ScheduleSettingsSheet: View {
                     Section(header: Text("View Mode")) {
                         Toggle("Set as Current Day", isOn: $setAsToday)
                             .foregroundStyle(.primary)
+                            .onChange(of: setAsToday) { _, newValue in
+                                // When toggling setAsToday, immediately save to configuration
+                                Configuration.setAsToday = newValue
+                            }
                     }
                 }
                 
