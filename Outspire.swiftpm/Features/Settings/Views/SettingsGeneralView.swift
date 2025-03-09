@@ -19,9 +19,14 @@ struct SettingsGeneralView: View {
                 }
                 .onChange(of: hideAcademicScore) { _, newValue in
                     Configuration.hideAcademicScore = newValue
+                    let toast = ToastValue(
+                        icon: Image(systemName: "person.fill.checkmark").foregroundStyle(.secondary),
+                        message: "Settings Saved"
+                    )
+                    presentToast(toast)
                 }
             } header: {
-                Text("Display Options")
+                Text("Navigation Display")
             } footer: {
                 Text("Hide the Academic Score option from the main menu")
                     .font(.footnote)
@@ -30,20 +35,20 @@ struct SettingsGeneralView: View {
             
             Section {
                 Toggle(isOn: $showMondayClass) {
-                    Label("Monday Classes on Weekend", systemImage: "calendar")
+                    Label("Future Class on Weekend", systemImage: "calendar")
                 }
                 .onChange(of: showMondayClass) { _, newValue in
                     Configuration.showMondayClass = newValue
                 }
                 
                 Toggle(isOn: $showSecondsInLongCountdown) {
-                    Label("Seconds in Long Countdowns", systemImage: "timer")
+                    Label("Always Show Seconds", systemImage: "timer")
                 }
                 .onChange(of: showSecondsInLongCountdown) { _, newValue in
                     Configuration.showSecondsInLongCountdown = newValue
                 }
             } header: {
-                Text("Class Schedule Display")
+                Text("Class Schedule")
             } footer: {
                 Text("Configure how class schedules and countdowns appear")
                     .font(.footnote)
@@ -60,7 +65,7 @@ struct SettingsGeneralView: View {
             } header: {
                 Text("Network")
             } footer: {
-                Text("Enables Hypertext Transfer Protocol Secure. Relay Service provided by Vercel & Computerization, may slow down the connection speed.")
+                Text("Enables Hypertext Transfer Protocol Secure. Relay Service provided by developer.")
                     .font(.footnote)
                     .foregroundColor(.secondary)
             }
@@ -112,7 +117,7 @@ struct SettingsGeneralView: View {
                 
                 if showCacheCleared {
                     let toast = ToastValue(
-                        icon: Image(systemName: "externaldrive.badge.checkmark").foregroundStyle(.green),
+                        icon: Image(systemName: "externaldrive.badge.checkmark").foregroundStyle(.secondary),
                         message: "Cache Cleared"
                     )
                     presentToast(toast)

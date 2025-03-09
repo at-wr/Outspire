@@ -6,7 +6,7 @@ struct AccountDetailsView: View {
     
     var body: some View {
         AccountView(viewModel: viewModel)
-            .navigationTitle(sessionService.isAuthenticated ? "Account" : "")
+            .navigationTitle(sessionService.isAuthenticated ? "Account Details" : "Account")
             .onAppear {
                 if !sessionService.isAuthenticated && viewModel.captchaImageData == nil {
                     viewModel.fetchCaptchaImage()
