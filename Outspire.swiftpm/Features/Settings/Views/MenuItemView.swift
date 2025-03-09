@@ -11,6 +11,8 @@ struct MenuItemView: View {
             Label("Export App Package", systemImage: "shippingbox")
         case .license:
             Label("Open Source Licenses", systemImage: "doc.text")
+        case .about:
+            Label("About Outspire", systemImage: "hammer")
         default:
             EmptyView()
         }

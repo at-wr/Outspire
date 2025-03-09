@@ -14,21 +14,16 @@ struct SettingsGeneralView: View {
     var body: some View {
         List {
             Section {
-                Toggle(isOn: $hideAcademicScore) {
-                    Label("Hide Academic Score", systemImage: "eye.slash")
+                Toggle(isOn: $useSSL) {
+                    Label("Enable Relay Encryption", systemImage: "lock.square")
                 }
-                .onChange(of: hideAcademicScore) { _, newValue in
-                    Configuration.hideAcademicScore = newValue
-                    let toast = ToastValue(
-                        icon: Image(systemName: "person.fill.checkmark").foregroundStyle(.secondary),
-                        message: "Settings Saved"
-                    )
-                    presentToast(toast)
+                .onChange(of: useSSL) { _, newValue in
+                    Configuration.useSSL = newValue
                 }
             } header: {
-                Text("Navigation Display")
+                Text("Network")
             } footer: {
-                Text("Hide the Academic Score option from the main menu")
+                Text("Enables Hypertext Transfer Protocol Secure. Relay Service provided by developer.")
                     .font(.footnote)
                     .foregroundColor(.secondary)
             }
@@ -56,16 +51,21 @@ struct SettingsGeneralView: View {
             }
             
             Section {
-                Toggle(isOn: $useSSL) {
-                    Label("Enable Relay Encryption", systemImage: "lock.square")
+                Toggle(isOn: $hideAcademicScore) {
+                    Label("Hide Academic Score", systemImage: "eye.slash")
                 }
-                .onChange(of: useSSL) { _, newValue in
-                    Configuration.useSSL = newValue
+                .onChange(of: hideAcademicScore) { _, newValue in
+                    Configuration.hideAcademicScore = newValue
+                    let toast = ToastValue(
+                        icon: Image(systemName: "person.fill.checkmark").foregroundStyle(.secondary),
+                        message: "Settings Saved"
+                    )
+                    presentToast(toast)
                 }
             } header: {
-                Text("Network")
+                Text("Navigation Display")
             } footer: {
-                Text("Enables Hypertext Transfer Protocol Secure. Relay Service provided by developer.")
+                Text("Hide the Academic Score option from the main menu")
                     .font(.footnote)
                     .foregroundColor(.secondary)
             }
@@ -86,17 +86,6 @@ struct SettingsGeneralView: View {
                 Text("This will remove all locally cached data including groups, activities, and academic records.")
                     .font(.footnote)
                     .foregroundColor(.secondary)
-            }
-            
-            Section {
-                HStack {
-                    Label("Version", systemImage: "info.circle")
-                    Spacer()
-                    Text("0.3")
-                        .foregroundStyle(.secondary)
-                }
-            } header: {
-                Text("About")
             }
         }
         .navigationTitle("General")

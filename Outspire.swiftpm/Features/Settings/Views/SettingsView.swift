@@ -10,6 +10,7 @@ struct SettingsView: View {
         case account
         case general
         case export
+        case about
         case license
     }
     
@@ -49,8 +50,6 @@ struct SettingsView: View {
                             .foregroundStyle(.primary)
                     }
                 } footer: {
-                    Text("Made by Alan Ye @WFLA\nThis is an open-source project, licensed under MIT.\nPlease leave a star on GitHub if you like ✨")
-                        .font(.caption)
                 }
             }
             .id(viewRefreshID)
@@ -89,6 +88,8 @@ struct SettingsView: View {
             SettingsGeneralView()
         case .export:
             ExportView()
+        case .about:
+            AboutView()
         case .license:
             LicenseView()
         }

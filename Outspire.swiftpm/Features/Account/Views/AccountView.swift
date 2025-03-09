@@ -133,6 +133,7 @@ struct AccountView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .listRowBackground(Color.clear)
+                    .padding(.top, 8)
                 }
                 
                 Section {
@@ -158,7 +159,7 @@ struct AccountView: View {
                     .disabled(viewModel.isLoggingIn)
                     .buttonStyle(PlainButtonStyle())
                     .listRowBackground(Color.clear)
-                    .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 2, trailing: 0))
+                    .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 8, trailing: 0))
                 }
                 
                 
