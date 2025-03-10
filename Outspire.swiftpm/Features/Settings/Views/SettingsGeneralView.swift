@@ -45,7 +45,7 @@ struct SettingsGeneralView: View {
             } header: {
                 Text("Class Schedule")
             } footer: {
-                Text("Configure how class schedules and countdowns appear")
+                Text("Configure how class schedules and countdowns appear.")
                     .font(.footnote)
                     .foregroundColor(.secondary)
             }
@@ -65,7 +65,7 @@ struct SettingsGeneralView: View {
             } header: {
                 Text("Navigation Display")
             } footer: {
-                Text("Hide the Academic Score option from the main menu")
+                Text("Hide the Academic Score option from the main menu.")
                     .font(.footnote)
                     .foregroundColor(.secondary)
             }
