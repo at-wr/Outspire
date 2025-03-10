@@ -344,8 +344,8 @@ struct SchoolArrangementView: View {
             viewModel.fetchArrangementDetail(for: item)
         } label: {
             HStack {
-                Text("View PDF")  // Changed from "View Details" to "View PDF"
-                Image(systemName: "doc.viewfinder")  // Updated to a PDF icon
+                Text("View as PDF")  // Changed from "View PDF" to be clearer
+                Image(systemName: "doc.viewfinder")
                     .font(.caption)
             }
             .font(.callout)
