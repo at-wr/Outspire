@@ -234,7 +234,7 @@ struct ActivitiesSection: View {
                     .transition(.opacity)
                     .animation(.easeInOut(duration: 0.5), value: viewModel.isLoadingActivities)
             } else if viewModel.activities.isEmpty {
-                EmptyStateView(action: { showingAddRecordSheet.toggle() })
+                ClubEmptyStateView(action: { showingAddRecordSheet.toggle() })
                     .transition(.scale.combined(with: .opacity))
             } else {
                 ActivitiesList(viewModel: viewModel, animateList: animateList)
@@ -290,7 +290,7 @@ struct AddButton: View {
     }
 }
 
-struct EmptyStateView: View {
+struct ClubEmptyStateView: View {
     let action: () -> Void
     
     var body: some View {

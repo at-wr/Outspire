@@ -15,6 +15,10 @@ class SchoolArrangementViewModel: ObservableObject {
     @Published var isLoadingDetail: Bool = false
     @Published var pdfURL: URL?
     
+    // Animation state management with view ID for persistent tracking
+    private let animationViewId = "SchoolArrangementView"
+    @Published var shouldAnimate = false
+    
     private let baseURL = "https://www.wflms.cn"
     private var currentTask: URLSessionDataTask?
     private var detailTask: URLSessionDataTask?
@@ -25,6 +29,8 @@ class SchoolArrangementViewModel: ObservableObject {
     
     init() {
         fetchArrangements()
+        // Check if animations have already been performed
+        shouldAnimate = AnimationManager.shared.hasAnimated(viewId: animationViewId)
     }
     
     deinit {
@@ -718,6 +724,34 @@ class SchoolArrangementViewModel: ObservableObject {
                 print("DEBUG: Removed temporary PDF file")
             } catch {
                 print("DEBUG: Failed to delete temporary PDF: \(error)")
+            }
+        }
+    }
+    
+    // Enhanced animation control method with device-specific behavior
+    func triggerInitialAnimation(isSmallScreen: Bool = UIDevice.isSmallScreen) {
+        // Skip if already animated according to the global manager
+        if AnimationManager.shared.hasAnimated(viewId: animationViewId) {
+            // For small screens, instantly set the animation state without animation
+            if isSmallScreen {
+                self.shouldAnimate = true
+            } else {
+                // For larger screens, we can still animate if needed
+                withAnimation(.easeOut(duration: 0.3)) {
+                    self.shouldAnimate = true
+                }
+            }
+            return
+        }
+        
+        // First time animation with appropriate timing
+        let delay = isSmallScreen ? 0.1 : 0.3 // Less delay on small screens
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+            withAnimation(.easeOut(duration: isSmallScreen ? 0.4 : 0.6)) {
+                self.shouldAnimate = true
+                // Mark as animated in the global manager
+                AnimationManager.shared.markAnimated(viewId: self.animationViewId)
             }
         }
     }

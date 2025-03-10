@@ -7,9 +7,20 @@ struct SchoolArrangementView: View {
     @Environment(\.presentToast) var presentToast
     @State private var searchText = ""
     @State private var refreshRotation = 0.0
-    @State private var animateIn = false
     @State private var showDetailSheet = false
-    @State private var showPDFPreview = false
+    @State private var hasFirstAppeared = false
+    
+    // Animation namespace for matching animation
+    @Namespace private var animation
+    
+    // Track content status
+    private var isEmptyState: Bool {
+        return filteredGroups.isEmpty && !viewModel.isLoading
+    }
+    
+    // Device adaptive settings
+    private let isSmallDevice = UIDevice.isSmallScreen
+    private let animationDelay = UIDevice.isSmallScreen ? 0.0 : 0.1
     
     private var filteredGroups: [ArrangementGroup] {
         if searchText.isEmpty {
@@ -33,33 +44,25 @@ struct SchoolArrangementView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(UIColor.systemGroupedBackground).ignoresSafeArea()
+                // Background
+                Color(UIColor.systemGroupedBackground)
+                    .ignoresSafeArea()
                 
-                if viewModel.isLoading && viewModel.arrangements.isEmpty {
-                    SchoolArrangementSkeletonView()
-                } else if filteredGroups.isEmpty {
-                    emptyStateView
-                } else {
-                    ScrollView {
-                        LazyVStack(spacing: 18) {
-                            ForEach(filteredGroups) { group in
-                                monthSection(group)
-                            }
-                            
-                            if viewModel.currentPage < viewModel.totalPages && !viewModel.isLoading {
-                                ProgressView("Loading more...")
-                                    .padding()
-                                    .onAppear {
-                                        viewModel.fetchNextPage()
-                                    }
-                            }
-                        }
-                        .padding()
-                    }
-                    .refreshable {
-                        await performRefresh()
+                // Content layers
+                Group {
+                    if viewModel.isLoading && viewModel.arrangements.isEmpty {
+                        loadingView
+                            .transition(.opacity)
+                    } else if isEmptyState {
+                        emptyStateView
+                            .transition(.opacity)
+                    } else {
+                        contentListView
+                            .transition(.opacity)
                     }
                 }
+                .animation(.easeInOut(duration: 0.3), value: viewModel.isLoading)
+                .animation(.easeInOut(duration: 0.3), value: isEmptyState)
             }
             .navigationTitle("School Arrangement")
             .navigationBarTitleDisplayMode(.large)
@@ -70,170 +73,228 @@ struct SchoolArrangementView: View {
             )
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    if viewModel.isLoading {
-                        ProgressView().controlSize(.small)
-                    } else {
-                        Button {
-                            withAnimation {
-                                refreshRotation += 360
-                            }
-                            viewModel.refreshData()
-                        } label: {
-                            Image(systemName: "arrow.clockwise")
-                                .rotationEffect(.degrees(refreshRotation))
-                                .animation(.spring(response: 0.6, dampingFraction: 0.5), value: refreshRotation)
-                        }
-                    }
+                    refreshButton
                 }
             }
-            .sheet(isPresented: $showDetailSheet) {
-                // Sheet dismissed callback - clear any lingering resources
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            .sheet(isPresented: $showDetailSheet, onDismiss: {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                     if viewModel.selectedDetail == nil {
-                        print("DEBUG: Ensuring selected detail is nil after sheet dismissal")
+                        viewModel.pdfURL = nil
                     }
                 }
-            } content: {
-                // Show PDF preview if available
-                if let pdfURL = viewModel.pdfURL {
-                    QuickLookPreview(url: pdfURL)
-                        .edgesIgnoringSafeArea(.all)
-                        .ignoresSafeArea()  // Add this to ensure full screen
-                } else if viewModel.isLoadingDetail {
-                    // Show loading content
-                    VStack(spacing: 16) {
-                        ProgressView()
-                            .controlSize(.large)
-                        Text("Preparing document...")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .padding(.top)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    // Fallback for errors
-                    VStack(spacing: 20) {
-                        Image(systemName: "exclamationmark.triangle")
-                            .font(.system(size: 40))
-                            .foregroundStyle(.secondary)
-                        
-                        Text("Content Unavailable")
-                            .font(.headline)
-                        
-                        Text("Unable to load the requested content")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal)
-                        
-                        Button("Dismiss") {
-                            showDetailSheet = false
-                        }
-                        .padding(.top, 10)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .onAppear {
-                        // Auto-dismiss if no data loaded after a timeout
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
-                            if viewModel.pdfURL == nil && !viewModel.isLoadingDetail {
-                                print("DEBUG: No PDF available after waiting, dismissing sheet")
-                                showDetailSheet = false
-                                viewModel.errorMessage = "Failed to load content"
-                            }
-                        }
-                    }
-                }
+            }) {
+                detailSheetContent
             }
             .onChange(of: viewModel.pdfURL) { _, newURL in
-                withAnimation {
-                    showDetailSheet = newURL != nil
-                }
-                print("DEBUG: PDF URL changed: \(newURL != nil ? "available" : "nil")")
+                showDetailSheet = newURL != nil
             }
             .onChange(of: viewModel.selectedDetail) { _, newDetail in
-                withAnimation {
-                    showDetailSheet = newDetail != nil
-                }
-                print("DEBUG: Selected detail changed: \(newDetail != nil ? "available" : "nil")")
+                showDetailSheet = newDetail != nil
             }
             .onChange(of: viewModel.errorMessage) { _, errorMessage in
                 if let message = errorMessage {
-                    print("DEBUG: Showing error toast: \(message)")
                     showToast(message)
                 }
             }
             .onAppear {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                    withAnimation(.easeOut(duration: 0.6)) {
-                        animateIn = true
+                if !hasFirstAppeared {
+                    // Trigger animation only once when view first appears
+                    hasFirstAppeared = true
+                    viewModel.triggerInitialAnimation(isSmallScreen: isSmallDevice)
+                }
+            }
+            // Assign a stable ID to prevent SwiftUI from rebuilding the view hierarchy
+            .id("SchoolArrangementViewStableID")
+        }
+    }
+    
+    // MARK: - View Components
+    
+    private var refreshButton: some View {
+        Group {
+            if viewModel.isLoading {
+                ProgressView().controlSize(.small)
+            } else {
+                RefreshButton(
+                    isLoadingActivities: viewModel.isLoading,
+                    isLoadingGroups: false,
+                    groupsEmpty: false,
+                    rotation: $refreshRotation,
+                    action: {
+                        withAnimation {
+                            refreshRotation += 360
+                        }
+                        viewModel.refreshData()
                     }
-                }
+                )
             }
-            .onDisappear {
-                animateIn = false
-            }
-            // Replace the sheet presentation with conditional fullScreenCover for iPad
-            .onChange(of: viewModel.pdfURL) { newValue in
-                if newValue != nil {
-                    showDetailSheet = true
-                }
-            }
-            .sheet(isPresented: $showDetailSheet, onDismiss: {
-                // Clear any lingering resources
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    if viewModel.selectedDetail == nil {
-                        print("DEBUG: Ensuring selected detail is nil after sheet dismissal")
-                    }
-                }
-            }) {
-                // Show PDF preview if available
-                if let pdfURL = viewModel.pdfURL, let detail = viewModel.selectedDetail {
-                    EnhancedPDFViewer(
-                        url: pdfURL,
-                        title: detail.title,
-                        publishDate: detail.publishDate
+        }
+    }
+    
+    private var loadingView: some View {
+        SchoolArrangementSkeletonView()
+            .id("LoadingSkeletonStableID")
+    }
+    
+    private var contentListView: some View {
+        ScrollView {
+            LazyVStack(spacing: 18) {
+                // Group sections
+                ForEach(filteredGroups) { group in
+                    MonthSection(
+                        group: group,
+                        toggleGroup: { viewModel.toggleGroupExpansion(group.id) },
+                        toggleItem: { viewModel.toggleItemExpansion($0) },
+                        fetchDetail: { viewModel.fetchArrangementDetail(for: $0) },
+                        isLoadingDetail: viewModel.isLoadingDetail,
+                        shouldAnimate: viewModel.shouldAnimate,
+                        isSmallScreen: isSmallDevice
                     )
-                    .edgesIgnoringSafeArea(.bottom)
+                    .id(group.id)
+                }
+                
+                if viewModel.currentPage < viewModel.totalPages && !viewModel.isLoading {
+                    loadMoreIndicator
+                }
+            }
+            .padding()
+        }
+        .refreshable {
+            await performRefresh()
+        }
+    }
+    
+    private var loadMoreIndicator: some View {
+        ProgressView("Loading more...")
+            .padding()
+            .onAppear {
+                viewModel.fetchNextPage()
+            }
+    }
+    
+    private var emptyStateView: some View {
+        EmptyStateView(
+            searchText: searchText,
+            isAnimated: viewModel.shouldAnimate,
+            isSmallScreen: isSmallDevice,
+            refreshAction: { viewModel.refreshData() }
+        )
+        .id("EmptyStateStableID")
+    }
+    
+    private var detailSheetContent: some View {
+        Group {
+            if let pdfURL = viewModel.pdfURL {
+                QuickLookPreview(url: pdfURL)
+                    .edgesIgnoringSafeArea(.all)
+                    .ignoresSafeArea()
+            } else if viewModel.isLoadingDetail {
+                detailLoadingView
+            } else {
+                detailErrorView
+            }
+        }
+    }
+    
+    private var detailLoadingView: some View {
+        VStack(spacing: 16) {
+            ProgressView()
+                .controlSize(.large)
+            Text("Preparing document...")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .padding(.top)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+    
+    private var detailErrorView: some View {
+        VStack(spacing: 20) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.system(size: 40))
+                .foregroundStyle(.secondary)
+            
+            Text("Content Unavailable")
+                .font(.headline)
+            
+            Text("Unable to load the requested content")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
+            
+            Button("Dismiss") {
+                showDetailSheet = false
+            }
+            .padding(.top, 10)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .onAppear {
+            // Auto-dismiss if no data loaded after a timeout
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                if viewModel.pdfURL == nil && !viewModel.isLoadingDetail {
+                    showDetailSheet = false
+                    viewModel.errorMessage = "Failed to load content"
                 }
             }
         }
     }
     
-    // MARK: - Helper Views
+    // MARK: - Helper Methods
     
-    private var emptyStateView: some View {
+    private func performRefresh() async {
+        viewModel.refreshData()
+        try? await Task.sleep(nanoseconds: 500_000_000)
+    }
+    
+    private func showToast(_ message: String) {
+        let toast = ToastValue(
+            icon: Image(systemName: "exclamationmark.triangle").foregroundStyle(.red),
+            message: message
+        )
+        presentToast(toast)
+        
+        // Clear the error message after showing toast
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            viewModel.errorMessage = nil
+        }
+    }
+}
+
+// MARK: - Extracted Components
+
+struct EmptyStateView: View {
+    let searchText: String
+    let isAnimated: Bool
+    let isSmallScreen: Bool
+    let refreshAction: () -> Void
+    
+    var body: some View {
         VStack(spacing: 20) {
+            // Only animate if we're not on a small screen or if this is the first load
+            let animationEnabled = !isSmallScreen || AnimationManager.shared.hasAnimated(viewId: "SchoolArrangementView")
+            
             Image(systemName: "calendar.badge.exclamationmark")
                 .font(.system(size: 60))
                 .foregroundStyle(.secondary)
-                .opacity(animateIn ? 1 : 0)
-                .scaleEffect(animateIn ? 1 : 0.8)
-                .animation(.spring(response: 0.6).delay(0.1), value: animateIn)
+                .opacity(isAnimated ? 1 : 0)
+                .scaleEffect(isAnimated ? 1 : 0.8)
+                .animation(animationEnabled ? .spring(response: 0.6).delay(0.1) : nil, value: isAnimated)
             
             Text("No Arrangements Found")
                 .font(.title3)
                 .fontWeight(.medium)
-                .opacity(animateIn ? 1 : 0)
-                .offset(y: animateIn ? 0 : 10)
-                .animation(.easeOut.delay(0.2), value: animateIn)
+                .opacity(isAnimated ? 1 : 0)
+                .offset(y: isAnimated ? 0 : 10)
+                .animation(animationEnabled ? .easeOut.delay(0.2) : nil, value: isAnimated)
             
-            if !searchText.isEmpty {
-                Text("Try changing your search terms")
-                    .foregroundStyle(.secondary)
-                    .opacity(animateIn ? 1 : 0)
-                    .offset(y: animateIn ? 0 : 10)
-                    .animation(.easeOut.delay(0.3), value: animateIn)
-            } else {
-                Text("Pull to refresh or tap the refresh button")
-                    .foregroundStyle(.secondary)
-                    .opacity(animateIn ? 1 : 0)
-                    .offset(y: animateIn ? 0 : 10)
-                    .animation(.easeOut.delay(0.3), value: animateIn)
-            }
+            Text(searchText.isEmpty ? "Pull to refresh or tap the refresh button" : "Try changing your search terms")
+                .foregroundStyle(.secondary)
+                .opacity(isAnimated ? 1 : 0)
+                .offset(y: isAnimated ? 0 : 10)
+                .animation(animationEnabled ? .easeOut.delay(0.3) : nil, value: isAnimated)
             
-            Button {
-                viewModel.refreshData()
-            } label: {
+            Button(action: refreshAction) {
                 Text("Refresh")
                     .padding(.horizontal, 24)
                     .padding(.vertical, 8)
@@ -243,22 +304,28 @@ struct SchoolArrangementView: View {
                     )
             }
             .buttonStyle(BorderlessButtonStyle())
-            .opacity(animateIn ? 1 : 0)
-            .scaleEffect(animateIn ? 1 : 0.9)
-            .animation(.spring(response: 0.6).delay(0.4), value: animateIn)
+            .opacity(isAnimated ? 1 : 0)
+            .scaleEffect(isAnimated ? 1 : 0.9)
+            .animation(animationEnabled ? .spring(response: 0.6).delay(0.4) : nil, value: isAnimated)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding()
     }
+}
+
+struct MonthSection: View {
+    let group: ArrangementGroup
+    let toggleGroup: () -> Void
+    let toggleItem: (String) -> Void
+    let fetchDetail: (SchoolArrangementItem) -> Void
+    let isLoadingDetail: Bool
+    let shouldAnimate: Bool
+    let isSmallScreen: Bool
     
-    private func monthSection(_ group: ArrangementGroup) -> some View {
+    var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             // Month header
-            Button {
-                withAnimation(.spring(response: 0.4)) {
-                    viewModel.toggleGroupExpansion(group.id)
-                }
-            } label: {
+            Button(action: toggleGroup) {
                 HStack {
                     Text(group.title)
                         .font(.headline)
@@ -275,76 +342,82 @@ struct SchoolArrangementView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(BorderlessButtonStyle())
+            .id("header-\(group.id)")
             
             // Items for this month
             if group.isExpanded {
                 VStack(spacing: 12) {
                     ForEach(group.items) { item in
-                        arrangementItemView(item)
+                        ArrangementItemView(
+                            item: item,
+                            toggleItem: { toggleItem(item.id) },
+                            fetchDetail: { fetchDetail(item) },
+                            isLoadingDetail: isLoadingDetail
+                        )
+                        .id("item-\(item.id)")
                     }
                 }
                 .transition(.move(edge: .top).combined(with: .opacity))
             }
         }
         .padding(.top, 4)
-        .opacity(animateIn ? 1 : 0)
-        .offset(y: animateIn ? 0 : 20)
-        .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.1), value: animateIn)
+        .opacity(shouldAnimate ? 1 : 0)
+        .offset(y: shouldAnimate ? 0 : 20)
+        // Only animate on larger screens or first appearance
+        .animation(
+            (isSmallScreen && AnimationManager.shared.hasAnimated(viewId: "SchoolArrangementView")) 
+            ? nil 
+            : .spring(response: 0.6, dampingFraction: 0.7).delay(0.1), 
+            value: shouldAnimate
+        )
     }
+}
+
+struct ArrangementItemView: View {
+    let item: SchoolArrangementItem
+    let toggleItem: () -> Void
+    let fetchDetail: () -> Void
+    let isLoadingDetail: Bool
     
-    private func arrangementItemView(_ item: SchoolArrangementItem) -> some View {
+    var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             // Header with title and date
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(item.title)
-                        .font(.headline)
-                        .lineLimit(2)
-                    
-                    Text(item.publishDate)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                
-                Spacer()
-                
-                Button {
-                    withAnimation(.spring(response: 0.4)) {
-                        viewModel.toggleItemExpansion(item.id)
+            Button(action: toggleItem) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(item.title)
+                            .font(.headline)
+                            .lineLimit(2)
+                            .foregroundColor(.primary)
+                        
+                        Text(item.publishDate)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
-                } label: {
+                    
+                    Spacer()
+                    
                     Image(systemName: item.isExpanded ? "chevron.up" : "chevron.down")
                         .foregroundStyle(.secondary)
                         .frame(width: 32, height: 32)
                         .contentShape(Rectangle())
                 }
-                .buttonStyle(BorderlessButtonStyle())
             }
+            .buttonStyle(BorderlessButtonStyle())
             
             // Week numbers
             if !item.weekNumbers.isEmpty {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(item.weekNumbers, id: \.self) { week in
-                            Text("W\(week)")
-                                .font(.caption)
-                                .fontWeight(.medium)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
-                                .background(
-                                    Capsule()
-                                        .fill(Color.accentColor.opacity(0.15))
-                                )
-                        }
-                    }
-                }
+                weekNumbersView
             }
             
             // View details button when expanded
             if item.isExpanded {
-                viewDetailButton(for: item)
-                    .padding(.top, 4)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
+                ViewDetailButton(
+                    action: fetchDetail,
+                    isLoading: isLoadingDetail
+                )
+                .padding(.top, 4)
+                .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
         .padding()
@@ -353,21 +426,37 @@ struct SchoolArrangementView: View {
                 .fill(Color(UIColor.secondarySystemBackground))
         )
         .contentShape(Rectangle())
-        .onTapGesture {
-            withAnimation(.spring(response: 0.4)) {
-                viewModel.toggleItemExpansion(item.id)
+    }
+    
+    private var weekNumbersView: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(item.weekNumbers, id: \.self) { week in
+                    Text("W\(week)")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(
+                            Capsule()
+                                .fill(Color.accentColor.opacity(0.15))
+                        )
+                }
             }
         }
     }
+}
+
+struct ViewDetailButton: View {
+    let action: () -> Void
+    let isLoading: Bool
     
-    private func viewDetailButton(for item: SchoolArrangementItem) -> some View {
-        Button {
-            print("DEBUG: Tapped view detail button for: \(item.id)")
-            // First, check if there's an existing PDF URL and clear it
-            viewModel.pdfURL = nil
-            // Then fetch the arrangement detail, which will generate a new PDF
-            viewModel.fetchArrangementDetail(for: item)
-        } label: {
+    var body: some View {
+        Button(action: {
+            let generator = UIImpactFeedbackGenerator(style: .light)
+            generator.impactOccurred()
+            action()
+        }) {
             HStack {
                 Text("View as PDF")
                 Image(systemName: "doc.viewfinder")
@@ -383,32 +472,7 @@ struct SchoolArrangementView: View {
             )
         }
         .buttonStyle(BorderlessButtonStyle())
-        .disabled(viewModel.isLoadingDetail)
-        .simultaneousGesture(TapGesture().onEnded {
-            // Haptic feedback when tapped
-            let generator = UIImpactFeedbackGenerator(style: .light)
-            generator.impactOccurred()
-        })
-    }
-    
-    // MARK: - Helper Methods
-    
-    private func performRefresh() async {
-        viewModel.refreshData()
-        // Give some time for the UI to update
-        try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
-    }
-    
-    private func showToast(_ message: String) {
-        let toast = ToastValue(
-            icon: Image(systemName: "exclamationmark.triangle").foregroundStyle(.red),
-            message: message
-        )
-        presentToast(toast)
-        
-        // Clear the error message after showing toast
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            viewModel.errorMessage = nil
-        }
+        .disabled(isLoading)
+        .opacity(isLoading ? 0.6 : 1.0)
     }
 }

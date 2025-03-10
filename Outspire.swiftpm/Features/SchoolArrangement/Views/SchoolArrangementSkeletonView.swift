@@ -13,7 +13,7 @@ struct SchoolArrangementSkeletonView: View {
                             .fill(Color.gray.opacity(0.2))
                             .frame(height: 22)
                             .frame(width: 200)
-                            .shimmering()
+                            //.shimmering()
                         
                         Spacer()
                         
@@ -22,7 +22,7 @@ struct SchoolArrangementSkeletonView: View {
                             .fill(Color.gray.opacity(0.2))
                             .frame(height: 16)
                             .frame(width: 100)
-                            .shimmering()
+                            //.shimmering()
                     }
                     
                     // Week numbers skeleton
@@ -31,7 +31,7 @@ struct SchoolArrangementSkeletonView: View {
                             RoundedRectangle(cornerRadius: 12)
                                 .fill(Color.gray.opacity(0.2))
                                 .frame(width: 40, height: 24)
-                                .shimmering()
+                                //.shimmering()
                         }
                         
                         Spacer()
