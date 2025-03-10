@@ -27,16 +27,22 @@ struct NavSplitView: View {
                         Label("Club List", systemImage: "person.2.circle")
                     }
                     NavigationLink(value: "club-activity") {
-                        Label("CAS Activities", systemImage: "checklist")
+                        Label("Activities", systemImage: "checklist")
                     }
-                    NavigationLink(value: "school-arrangement") {
-                        Label("School Arrangement", systemImage: "calendar.badge.clock")
-                    }
+                    
                 } header: {
                     Text("Activities")
                 }
-                NavigationLink(value: "help") {
-                    Label("Help", systemImage: "questionmark.circle.dashed")
+
+                Section {
+                    NavigationLink(value: "school-arrangement") {
+                        Label("School Arrangement", systemImage: "calendar.badge.clock")
+                    }
+                    NavigationLink(value: "help") {
+                        Label("Help", systemImage: "questionmark.circle.dashed")
+                    }
+                } header: {
+                    Text("Miscellaneous")
                 }
             }
             .toolbar {
