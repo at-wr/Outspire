@@ -3,12 +3,10 @@ import QuickLook
 
 struct SchoolArrangementDetailView: View {
     let detail: SchoolArrangementDetail
-    @State private var selectedURL: URL?
-    @State private var isShowingPreview = false
-    @State private var loadingImage = false
     @State private var animateContent = false
     @State private var showFullScreenImage = false
     @State private var selectedImageURL: URL?
+    @Environment(\.dismiss) private var dismiss
     
     var body: some View {
         ScrollView {
@@ -87,7 +85,7 @@ struct SchoolArrangementDetailView: View {
         .navigationTitle("School Arrangement")
         .navigationBarTitleDisplayMode(.inline)
         .background(Color(UIColor.systemBackground))
-        .sheet(isPresented: $showFullScreenImage) {
+        .fullScreenCover(isPresented: $showFullScreenImage) {
             if let imageURL = selectedImageURL {
                 ImageViewerSheet(imageURL: imageURL)
             }
@@ -98,20 +96,10 @@ struct SchoolArrangementDetailView: View {
                 animateContent = true
             }
         }
-        .overlay(
-            loadingImage ? 
-                ZStack {
-                    Color.black.opacity(0.4)
-                    ProgressView("Loading image...")
-                        .padding()
-                        .background(RoundedRectangle(cornerRadius: 10).fill(Color(.systemBackground)).shadow(radius: 5))
-                }
-                .edgesIgnoringSafeArea(.all) : nil
-        )
     }
 }
 
-// Replacement for ImageWithReferer that's safer and more reliable
+// Improved SafeImageView with better error handling and caching
 struct SafeImageView: View {
     let url: URL
     @State private var image: UIImage?
@@ -121,7 +109,13 @@ struct SafeImageView: View {
     var body: some View {
         ZStack {
             if isLoading {
-                ProgressView()
+                VStack {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.gray.opacity(0.2))
+                        .frame(height: 200)
+                        .frame(width: 280)
+                        .shimmering()
+                }
             } else if loadFailed {
                 VStack {
                     Image(systemName: "exclamationmark.triangle")
@@ -143,6 +137,13 @@ struct SafeImageView: View {
     }
     
     private func loadImage() {
+        // Check image cache first
+        if let cachedImage = ImageCache.shared.get(url: url.absoluteString) {
+            self.image = cachedImage
+            self.isLoading = false
+            return
+        }
+        
         isLoading = true
         loadFailed = false
         
@@ -155,6 +156,8 @@ struct SafeImageView: View {
                 
                 if let data = data, let loadedImage = UIImage(data: data) {
                     self.image = loadedImage
+                    // Cache the loaded image
+                    ImageCache.shared.set(image: loadedImage, for: url.absoluteString)
                 } else {
                     loadFailed = true
                 }
@@ -163,6 +166,7 @@ struct SafeImageView: View {
     }
 }
 
+// Improved full-screen image viewer with better gesture handling
 struct ImageViewerSheet: View {
     let imageURL: URL
     @Environment(\.dismiss) private var dismiss
@@ -192,62 +196,86 @@ struct ImageViewerSheet: View {
                             .foregroundStyle(.white)
                     }
                 } else if let image = image {
-                    Image(uiImage: image)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .scaleEffect(scale)
-                        .offset(offset)
-                        .gesture(
-                            MagnificationGesture()
-                                .onChanged { value in
-                                    let delta = value / lastScale
-                                    lastScale = value
-                                    scale = min(max(1.0, scale * delta), 5.0)
-                                }
-                                .onEnded { _ in
-                                    lastScale = 1.0
-                                }
-                        )
-                        .simultaneousGesture(
-                            DragGesture()
-                                .onChanged { value in
-                                    if scale > 1.0 {
-                                        offset = CGSize(
-                                            width: lastOffset.width + value.translation.width,
-                                            height: lastOffset.height + value.translation.height
-                                        )
+                    GeometryReader { geo in
+                        Image(uiImage: image)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .scaleEffect(scale)
+                            .offset(offset)
+                            .frame(width: geo.size.width, height: geo.size.height)
+                            .gesture(
+                                MagnificationGesture()
+                                    .onChanged { value in
+                                        let delta = value / lastScale
+                                        lastScale = value
+                                        scale = min(max(1.0, scale * delta), 5.0)
                                     }
-                                }
-                                .onEnded { _ in
-                                    lastOffset = offset
-                                }
-                        )
-                        .simultaneousGesture(
-                            TapGesture(count: 2)
-                                .onEnded {
-                                    withAnimation(.spring()) {
+                                    .onEnded { _ in
+                                        lastScale = 1.0
+                                    }
+                            )
+                            .simultaneousGesture(
+                                DragGesture()
+                                    .onChanged { value in
                                         if scale > 1.0 {
-                                            scale = 1.0
-                                            offset = .zero
-                                            lastOffset = .zero
-                                        } else {
-                                            scale = 3.0
+                                            offset = CGSize(
+                                                width: lastOffset.width + value.translation.width,
+                                                height: lastOffset.height + value.translation.height
+                                            )
                                         }
                                     }
-                                }
-                        )
-                        .onTapGesture {
+                                    .onEnded { _ in
+                                        lastOffset = offset
+                                    }
+                            )
+                            .simultaneousGesture(
+                                TapGesture(count: 2)
+                                    .onEnded {
+                                        withAnimation(.spring()) {
+                                            if scale > 1.0 {
+                                                scale = 1.0
+                                                offset = .zero
+                                                lastOffset = .zero
+                                            } else {
+                                                scale = 3.0
+                                            }
+                                        }
+                                    }
+                            )
+                    }
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        // Single tap to dismiss only if not zoomed in
+                        if scale <= 1.1 {
                             dismiss()
                         }
+                    }
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Close") {
                         dismiss()
                     }
                     .foregroundColor(.white)
+                }
+                
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    if let image = image {
+                        Button(action: {
+                            // Reset zoom/position
+                            withAnimation(.spring()) {
+                                scale = 1.0
+                                offset = .zero
+                                lastOffset = .zero
+                            }
+                        }) {
+                            Image(systemName: "arrow.counterclockwise")
+                                .foregroundColor(.white)
+                        }
+                        .disabled(scale == 1.0 && offset == .zero)
+                    }
                 }
             }
             .onAppear {
@@ -257,6 +285,13 @@ struct ImageViewerSheet: View {
     }
     
     private func loadImage() {
+        // Check cache first
+        if let cachedImage = ImageCache.shared.get(url: imageURL.absoluteString) {
+            self.image = cachedImage
+            self.isLoading = false
+            return
+        }
+        
         isLoading = true
         loadFailed = false
         
@@ -269,6 +304,8 @@ struct ImageViewerSheet: View {
                 
                 if let data = data, let loadedImage = UIImage(data: data) {
                     self.image = loadedImage
+                    // Cache the image
+                    ImageCache.shared.set(image: loadedImage, for: imageURL.absoluteString)
                 } else {
                     loadFailed = true
                 }
@@ -310,5 +347,24 @@ struct HTMLContentView: View {
         let plainText = htmlContent
             .replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression, range: nil)
         return AttributedString(plainText)
+    }
+}
+
+// Simple image cache to improve performance
+class ImageCache {
+    static let shared = ImageCache()
+    
+    private var cache = NSCache<NSString, UIImage>()
+    
+    func set(image: UIImage, for url: String) {
+        cache.setObject(image, forKey: url as NSString)
+    }
+    
+    func get(url: String) -> UIImage? {
+        return cache.object(forKey: url as NSString)
+    }
+    
+    func clear() {
+        cache.removeAllObjects()
     }
 }

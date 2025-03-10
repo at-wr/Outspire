@@ -18,6 +18,9 @@ class SchoolArrangementViewModel: ObservableObject {
     private let detailCacheKeyPrefix = "cachedSchoolArrangementDetail-"
     private let cacheDuration: TimeInterval = 3600 // 1 hour
     
+    // Track processed image URLs to avoid duplicates
+    private var processedImageUrls = Set<String>()
+    
     init() {
         loadCachedData()
     }
@@ -166,7 +169,16 @@ class SchoolArrangementViewModel: ObservableObject {
                 }
                 
                 do {
+                    // Reset processed URLs for each new detail
+                    self.processedImageUrls.removeAll()
+                    
                     let detail = try self.parseArrangementDetailHTML(htmlString, id: item.id, title: item.title, publishDate: item.publishDate)
+                    
+                    if detail.imageUrls.isEmpty {
+                        self.errorMessage = "No images found in this arrangement"
+                        return
+                    }
+                    
                     self.selectedDetail = detail
                     self.selectedDetailWrapper = DetailWrapper(detail: detail)
                     
@@ -265,7 +277,11 @@ class SchoolArrangementViewModel: ObservableObject {
                 let imgSrc = try img.attr("src")
                 if imgSrc.contains("/oss/") && !imgSrc.contains(".gif") {
                     let fullUrl = imgSrc.hasPrefix("http") ? imgSrc : "\(baseURL)\(imgSrc)"
-                    imageUrls.append(fullUrl)
+                    // Avoid duplicates
+                    if !processedImageUrls.contains(fullUrl) {
+                        imageUrls.append(fullUrl)
+                        processedImageUrls.insert(fullUrl)
+                    }
                 }
             } catch {
                 // Skip this image if there's an error
@@ -281,7 +297,11 @@ class SchoolArrangementViewModel: ObservableObject {
                     let imgSrc = try img.attr("src")
                     if imgSrc.contains("/oss/") && !imgSrc.contains(".gif") {
                         let fullUrl = imgSrc.hasPrefix("http") ? imgSrc : "\(baseURL)\(imgSrc)"
-                        imageUrls.append(fullUrl)
+                        // Avoid duplicates
+                        if !processedImageUrls.contains(fullUrl) {
+                            imageUrls.append(fullUrl)
+                            processedImageUrls.insert(fullUrl)
+                        }
                     }
                 } catch {
                     // Skip this image if there's an error
