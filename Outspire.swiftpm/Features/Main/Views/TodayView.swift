@@ -293,6 +293,12 @@ struct TodayView: View {
         // Our override is 0-based (0 = Monday), so we need to add 2
         let targetWeekday = override + 2
         
+        // If it's the same day of the week, just use today's date
+        // This prevents the "next week" issue when selecting current weekday
+        if targetWeekday == currentWeekday {
+            return now
+        }
+        
         // Calculate days to add/subtract to get from current weekday to target weekday
         var daysToAdd = targetWeekday - currentWeekday
         

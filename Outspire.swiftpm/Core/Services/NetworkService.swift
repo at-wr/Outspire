@@ -41,6 +41,17 @@ class NetworkService {
     
     private init() {}
     
+    // Form URL encoding allowed characters - stricter than .urlQueryAllowed
+    private static let formURLEncodedAllowedCharacters: CharacterSet = {
+        // Start with the URL query allowed characters
+        var allowed = CharacterSet.urlQueryAllowed
+        
+        // Remove characters that need special encoding in form submissions
+        allowed.remove(charactersIn: "!*'();:@&=+$,/?%#[]")
+        
+        return allowed
+    }()
+    
     /// Performs a network request with optional parameters and session ID
     /// - Parameters:
     ///   - endpoint: The API endpoint path
@@ -70,7 +81,12 @@ class NetworkService {
         request.allHTTPHeaderFields = headers
         
         if let parameters = parameters {
-            let paramString = parameters.map { "\($0.key)=\($0.value)" }.joined(separator: "&")
+            // URL-encode parameter values with stricter encoding for form submissions
+            let paramString = parameters.map { key, value -> String in
+                let encodedValue = value.addingPercentEncoding(withAllowedCharacters: Self.formURLEncodedAllowedCharacters) ?? value
+                return "\(key)=\(encodedValue)"
+            }.joined(separator: "&")
+            
             request.httpBody = paramString.data(using: .utf8)
         }
         
@@ -87,7 +103,7 @@ class NetworkService {
                 }
                 
                 if let httpResponse = response as? HTTPURLResponse, 
-                   httpResponse.statusCode >= 400 {
+                    httpResponse.statusCode >= 400 {
                     completion(.failure(.serverError(httpResponse.statusCode)))
                     return
                 }

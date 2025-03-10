@@ -65,88 +65,86 @@ public class ClassPeriodsManager {
         ]
     }
     
-    // Get available periods for a specific day
-    public func getPeriodsForDay(date: Date) -> [ClassPeriod] {
-        let calendar = Calendar.current
-        let weekday = calendar.component(.weekday, from: date)
-        let maxPeriods = getMaxPeriodsByWeekday(weekday)
-        
-        return classPeriods.filter { $0.number <= maxPeriods }
-    }
-    
-    // Get maximum number of periods based on weekday
-    public func getMaxPeriodsByWeekday(_ weekday: Int) -> Int {
-        // Friday is weekday 6, return 8 periods
-        // For all other weekdays (Mon-Thu), return 9 periods
-        return weekday == 6 ? 8 : 9
-    }
-    
-    // Get maximum number of periods for today or a specified day
-    public func getMaxPeriodsForDay(date: Date? = nil) -> Int {
-        let calendar = Calendar.current
-        let targetDate = date ?? Date()
-        let weekday = calendar.component(.weekday, from: targetDate)
-        return getMaxPeriodsByWeekday(weekday)
-    }
-    
-    // Check if a period is a self-study period
-    public func isSelfStudyPeriod(periodNumber: Int, weekday: Int, timetable: [[String]], dayIndex: Int) -> Bool {
-        let maxPeriods = getMaxPeriodsByWeekday(weekday)
-        
-        // Check if this period is within the valid range for the day
-        guard periodNumber <= maxPeriods else { return false }
-        
-        // Check if this period has empty data (self-study)
-        guard periodNumber < timetable.count && 
-                dayIndex + 1 < timetable[periodNumber].count else { return false }
-        
-        return timetable[periodNumber][dayIndex + 1].trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-    }
-    
     // Find current or next period
     public func getCurrentOrNextPeriod(useEffectiveDate: Bool = false, effectiveDate: Date? = nil) -> (period: ClassPeriod?, isCurrentlyActive: Bool) {
-        let currentDate = Date()
-        let effectiveTime: Date
-        
-        if useEffectiveDate && effectiveDate != nil {
-            // Use current time but on the effective date
+        if useEffectiveDate, let effectiveDate = effectiveDate {
+            // Logic for finding period with effective date
             let calendar = Calendar.current
-            let timeComponents = calendar.dateComponents([.hour, .minute, .second], from: currentDate)
-            let dateComponents = calendar.dateComponents([.year, .month, .day], from: effectiveDate!)
+            let effectiveTime = calendar.dateComponents([.hour, .minute, .second], from: Date())
+            let effectiveDay = calendar.dateComponents([.year, .month, .day], from: effectiveDate)
             
-            var combined = DateComponents()
-            combined.year = dateComponents.year
-            combined.month = dateComponents.month
-            combined.day = dateComponents.day
-            combined.hour = timeComponents.hour
-            combined.minute = timeComponents.minute
-            combined.second = timeComponents.second
+            var effectiveNowComponents = DateComponents()
+            effectiveNowComponents.year = effectiveDay.year
+            effectiveNowComponents.month = effectiveDay.month
+            effectiveNowComponents.day = effectiveDay.day
+            effectiveNowComponents.hour = effectiveTime.hour
+            effectiveNowComponents.minute = effectiveTime.minute
+            effectiveNowComponents.second = effectiveTime.second
             
-            if let date = calendar.date(from: combined) {
-                effectiveTime = date
-            } else {
-                effectiveTime = currentDate
+            guard let effectiveNow = calendar.date(from: effectiveNowComponents) else {
+                return (nil, false)
             }
+            
+            // Find active period
+            for period in classPeriods {
+                let adjustedStartTime = createAdjustedTime(from: period.startTime, onDate: effectiveDate)
+                let adjustedEndTime = createAdjustedTime(from: period.endTime, onDate: effectiveDate)
+                
+                if effectiveNow >= adjustedStartTime && effectiveNow <= adjustedEndTime {
+                    return (period, true)
+                }
+            }
+            
+            // Find next period
+            let futurePeriods = classPeriods.filter { 
+                createAdjustedTime(from: $0.startTime, onDate: effectiveDate) > effectiveNow 
+            }
+            if let nextPeriod = futurePeriods.min(by: { 
+                createAdjustedTime(from: $0.startTime, onDate: effectiveDate) < 
+                    createAdjustedTime(from: $1.startTime, onDate: effectiveDate) 
+            }) {
+                return (nextPeriod, false)
+            }
+            
+            return (nil, false)
         } else {
-            effectiveTime = currentDate
-        }
-        
-        // Find current period
-        for period in self.classPeriods {
-            if effectiveTime >= period.startTime && effectiveTime <= period.endTime {
-                return (period: period, isCurrentlyActive: true)
+            // Regular logic
+            let now = Date()
+            if let activePeriod = classPeriods.first(where: { $0.isCurrentlyActive() }) {
+                return (activePeriod, true)
             }
-        }
-        
-        // Find next period
-        for period in self.classPeriods {
-            if effectiveTime < period.startTime {
-                return (period: period, isCurrentlyActive: false)
+            let futurePeriods = classPeriods.filter { $0.startTime > now }
+            if let nextPeriod = futurePeriods.min(by: { $0.startTime < $1.startTime }) {
+                return (nextPeriod, false)
             }
+            return (nil, false)
         }
+    }
+    
+    // Add method to get max periods by weekday
+    public func getMaxPeriodsByWeekday(_ weekday: Int) -> Int {
+        // Default max periods per day (weekday is 1-7, where 1 is Sunday)
+        switch weekday {
+        case 2: return 9  // Monday
+        case 3: return 9  // Tuesday
+        case 4: return 9  // Wednesday
+        case 5: return 9  // Thursday
+        case 6: return 9  // Friday
+        default: return 0 // Weekend
+        }
+    }
+    
+    // Helper method to create a time on a specific date
+    private func createAdjustedTime(from time: Date, onDate date: Date) -> Date {
+        let calendar = Calendar.current
+        let timeComponents = calendar.dateComponents([.hour, .minute, .second], from: time)
+        var dateComponents = calendar.dateComponents([.year, .month, .day], from: date)
         
-        // No current or next period found, return first period of the day
-        return (period: self.classPeriods.first, isCurrentlyActive: false)
+        dateComponents.hour = timeComponents.hour
+        dateComponents.minute = timeComponents.minute
+        dateComponents.second = timeComponents.second
+        
+        return calendar.date(from: dateComponents) ?? date
     }
     
     // Helper to create a period

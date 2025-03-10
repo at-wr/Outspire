@@ -9,24 +9,6 @@ struct EnhancedClassCard: View {
     let setAsToday: Bool
     let effectiveDate: Date?
     
-    // Get weekday from day string for schedule adjustments
-    private var dayWeekday: Int? {
-        return weekdayFromDayName(day)
-    }
-    
-    // Determine if this class is part of a valid schedule for its day
-    private var isWithinDaySchedule: Bool {
-        guard let weekday = dayWeekday else { return true }
-        let maxPeriods = ClassPeriodsManager.shared.getMaxPeriodsByWeekday(weekday)
-        return period.number <= maxPeriods
-    }
-    
-    private var isLastPeriodOfDay: Bool {
-        guard let weekday = dayWeekday else { return false }
-        let maxPeriods = ClassPeriodsManager.shared.getMaxPeriodsByWeekday(weekday)
-        return period.number == maxPeriods
-    }
-    
     @State private var timeRemaining: TimeInterval = 0
     @State private var isCurrentClass = false
     @State private var timer: Timer?
@@ -43,11 +25,7 @@ struct EnhancedClassCard: View {
         let seconds = Int(timeRemaining) % 60
         
         if hours > 0 {
-            if Configuration.showSecondsInLongCountdown {
-                return String(format: "%d:%02d:%02d", hours, minutes, seconds)
-            } else {
-                return String(format: "%d:%02d", hours, minutes)
-            }
+            return String(format: "%d:%02d:%02d", hours, minutes, seconds)
         } else {
             return String(format: "%02d:%02d", minutes, seconds)
         }
@@ -68,7 +46,7 @@ struct EnhancedClassCard: View {
                             .foregroundStyle(Color.blue)
                     }
                     
-                    Text("\(day) • Period \(period.number)\(isLastPeriodOfDay ? " (Last Period)" : "")")
+                    Text("\(day) • Period \(period.number)")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
@@ -147,6 +125,13 @@ struct EnhancedClassCard: View {
                                     .fontWeight(.semibold)
                                     .foregroundStyle(isCurrentClass ? Color.orange : Color.blue)
                                     .contentTransition(.numericText())
+                                
+                                if Int(timeRemaining) / 3600 > 0 {
+                                    Text("\(Int(timeRemaining) / 3600)h \((Int(timeRemaining) % 3600) / 60)m \(Int(timeRemaining) % 60)s")
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                        .contentTransition(.numericText())
+                                }
                             }
                         }
                         .padding(.leading, 16)
@@ -221,7 +206,13 @@ struct EnhancedClassCard: View {
                 timeRemaining = adjustedStartTime.timeIntervalSince(effectiveNow)
             } else {
                 isCurrentClass = false
-                timeRemaining = 0
+                // Check if there's a next period today
+                if let nextPeriod = findNextPeriodToday(after: period, on: effectiveDate!) {
+                    let nextStartTime = createAdjustedTime(from: nextPeriod.startTime, onDate: effectiveDate!)
+                    timeRemaining = nextStartTime.timeIntervalSince(effectiveNow)
+                } else {
+                    timeRemaining = 0
+                }
             }
         } else if isForToday {
             // Regular today logic remains the same
@@ -276,7 +267,6 @@ struct EnhancedClassCard: View {
         return max(0, min(1, elapsed / totalDuration))
     }
     
-    // Helper method to get weekday number from day name
     private func weekdayFromDayName(_ name: String) -> Int? {
         let dayMapping = ["Mon": 2, "Tue": 3, "Wed": 4, "Thu": 5, "Fri": 6]
         return dayMapping[name]
@@ -287,8 +277,16 @@ struct EnhancedClassCard: View {
         return Calendar.current.dateComponents([.hour, .minute, .second], from: date)
     }
     
-    // Helper method to get date components (year, month, day)/ Helper method to get date components (year, month, day)
+    // Helper method to get date components (year, month, day)
     private func getDateComponents(from date: Date) -> DateComponents {
         return Calendar.current.dateComponents([.year, .month, .day], from: date)
+    }
+    
+    // Add this helper method to find the next period:
+    private func findNextPeriodToday(after currentPeriod: ClassPeriod, on date: Date) -> ClassPeriod? {
+        return ClassPeriodsManager.shared.classPeriods
+            .filter { $0.number > currentPeriod.number }
+            .sorted { $0.number < $1.number }
+            .first
     }
 }

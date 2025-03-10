@@ -9,6 +9,19 @@ struct ScheduleSettingsSheet: View {
     @Binding var holidayHasEndDate: Bool
     @State private var showCountdownForFutureClasses = Configuration.showCountdownForFutureClasses
     
+    @Environment(\.dismiss) private var dismiss
+    
+    private var currentWeekday: Int {
+        let weekday = Calendar.current.component(.weekday, from: Date())
+        // Convert to 0-based index (0 = Monday)
+        return weekday == 1 ? 6 : weekday - 2
+    }
+    
+    private var isCurrentDayWeekend: Bool {
+        let weekday = Calendar.current.component(.weekday, from: Date())
+        return weekday == 1 || weekday == 7
+    }
+    
     var body: some View {
         NavigationStack {
             List {
@@ -18,6 +31,13 @@ struct ScheduleSettingsSheet: View {
                         selectedDay = nil
                         isHolidayMode = false
                         setAsToday = false
+                        
+                        // Use a slight delay for dismissal to show the selection UI feedback
+                        withAnimation {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                                dismiss()
+                            }
+                        }
                     } label: {
                         HStack {
                             Text("Today")
@@ -32,11 +52,39 @@ struct ScheduleSettingsSheet: View {
                     
                     ForEach(0..<5) { index in
                         Button {
-                            selectedDay = index
-                            isHolidayMode = false
+                            // Only change selection if it's not the same day or we're on a weekend
+                            if index != currentWeekday || isCurrentDayWeekend {
+                                selectedDay = index
+                                isHolidayMode = false
+                                
+                                // Use a slight delay for dismissal to show the selection UI feedback
+                                withAnimation {
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                                        dismiss()
+                                    }
+                                }
+                            } else {
+                                // If selecting the current weekday when not a weekend, just reset to "today" mode
+                                selectedDay = nil
+                                
+                                // Use a slight delay for dismissal to show the selection UI feedback
+                                withAnimation {
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                                        dismiss()
+                                    }
+                                }
+                            }
                         } label: {
                             HStack {
                                 Text(dayName(for: index))
+                                
+                                // Add "Today" label for current weekday
+                                if index == currentWeekday && !isCurrentDayWeekend {
+                                    Text("(Today)")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                
                                 Spacer()
                                 if selectedDay == index && !isHolidayMode {
                                     Image(systemName: "checkmark")
@@ -48,8 +96,8 @@ struct ScheduleSettingsSheet: View {
                     }
                 }
                 
-                // Preview/Current Day toggle
-                if selectedDay != nil {
+                // Only show View Mode if selectedDay is set and not the same as today
+                if let day = selectedDay, day != currentWeekday || isCurrentDayWeekend {
                     Section(header: Text("View Mode")) {
                         Toggle("Set as Current Day", isOn: $setAsToday)
                             .foregroundStyle(.primary)
@@ -98,7 +146,7 @@ struct ScheduleSettingsSheet: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") {
-                        isPresented = false
+                        dismiss()
                     }
                 }
             }
