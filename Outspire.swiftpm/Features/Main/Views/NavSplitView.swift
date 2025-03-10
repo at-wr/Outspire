@@ -29,6 +29,9 @@ struct NavSplitView: View {
                     NavigationLink(value: "club-activity") {
                         Label("CAS Activities", systemImage: "checklist")
                     }
+                    NavigationLink(value: "school-arrangement") {
+                        Label("School Arrangement", systemImage: "calendar.badge.clock")
+                    }
                 } header: {
                     Text("Activities")
                 }
@@ -63,6 +66,8 @@ struct NavSplitView: View {
                 ClubInfoView()
             case .some("club-activity"):
                 ClubActivitiesView()
+            case .some("school-arrangement"):
+                SchoolArrangementView()
             case .some("help"):
                 HelpView()
             default:

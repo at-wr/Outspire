@@ -18,12 +18,18 @@ class CacheManager {
         userDefaults.removeObject(forKey: "termsCacheTimestamp")
         userDefaults.removeObject(forKey: "selectedTermId")
         
+        // Clear school arrangements cache
+        userDefaults.removeObject(forKey: "cachedSchoolArrangements")
+        userDefaults.removeObject(forKey: "cachedSchoolArrangements-timestamp")
+        
         // Clear pattern-based keys
         for key in userDefaults.dictionaryRepresentation().keys {
             if key.hasPrefix("cachedActivities-") || 
-                key.hasPrefix("cachedScores-") || 
-                key.hasPrefix("scoresCacheTimestamp-") {
+               key.hasPrefix("cachedScores-") || 
+               key.hasPrefix("scoresCacheTimestamp-") ||
+               key.hasPrefix("cachedSchoolArrangementDetail-") {
                 userDefaults.removeObject(forKey: key)
+                userDefaults.removeObject(forKey: "\(key)-timestamp")
             }
         }
         
