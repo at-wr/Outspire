@@ -1,11 +1,11 @@
 import Foundation
 
-struct SchoolArrangementItem: Identifiable, Codable, Equatable {
+struct SchoolArrangementItem: Identifiable, Equatable {
     let id: String
     let title: String
     let publishDate: String
     let url: String
-    var weekNumbers: [Int]
+    let weekNumbers: [Int]
     var isExpanded: Bool = false
     
     static func == (lhs: SchoolArrangementItem, rhs: SchoolArrangementItem) -> Bool {
@@ -13,13 +13,7 @@ struct SchoolArrangementItem: Identifiable, Codable, Equatable {
     }
 }
 
-struct SchoolArrangementPage: Codable {
-    let items: [SchoolArrangementItem]
-    let totalPages: Int
-    let currentPage: Int
-}
-
-struct SchoolArrangementDetail: Codable, Equatable {
+struct SchoolArrangementDetail: Identifiable, Equatable {
     let id: String
     let title: String
     let publishDate: String
@@ -28,5 +22,31 @@ struct SchoolArrangementDetail: Codable, Equatable {
     
     static func == (lhs: SchoolArrangementDetail, rhs: SchoolArrangementDetail) -> Bool {
         return lhs.id == rhs.id
+    }
+}
+
+// Helper struct for grouping arrangements
+struct ArrangementGroup: Identifiable {
+    let id: String
+    let title: String
+    var items: [SchoolArrangementItem]  // Change from let to var
+    var isExpanded: Bool = true
+}
+
+// Cache manager for image caching
+class ImageCache {
+    static let shared = ImageCache()
+    private var cache = NSCache<NSString, NSData>()
+    
+    func setImage(data: Data, for url: String) {
+        cache.setObject(data as NSData, forKey: url as NSString)
+    }
+    
+    func getImage(for url: String) -> Data? {
+        return cache.object(forKey: url as NSString) as Data?
+    }
+    
+    func clear() {
+        cache.removeAllObjects()
     }
 }

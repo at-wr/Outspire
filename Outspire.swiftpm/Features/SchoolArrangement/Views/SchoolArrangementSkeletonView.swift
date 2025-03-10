@@ -1,8 +1,8 @@
 import SwiftUI
 
+// Remove duplicate ShimmeringEffect - use the one from UI/Extensions/View+Shimmering.swift instead
+
 struct SchoolArrangementSkeletonView: View {
-    @State private var isAnimating = true
-    
     var body: some View {
         VStack(spacing: 16) {
             ForEach(0..<5, id: \.self) { index in
@@ -13,6 +13,7 @@ struct SchoolArrangementSkeletonView: View {
                             .fill(Color.gray.opacity(0.2))
                             .frame(height: 22)
                             .frame(width: 200)
+                            .shimmering()
                         
                         Spacer()
                         
@@ -21,6 +22,7 @@ struct SchoolArrangementSkeletonView: View {
                             .fill(Color.gray.opacity(0.2))
                             .frame(height: 16)
                             .frame(width: 100)
+                            .shimmering()
                     }
                     
                     // Week numbers skeleton
@@ -29,6 +31,7 @@ struct SchoolArrangementSkeletonView: View {
                             RoundedRectangle(cornerRadius: 12)
                                 .fill(Color.gray.opacity(0.2))
                                 .frame(width: 40, height: 24)
+                                .shimmering()
                         }
                         
                         Spacer()
@@ -39,18 +42,8 @@ struct SchoolArrangementSkeletonView: View {
                     RoundedRectangle(cornerRadius: 12)
                         .fill(Color(UIColor.secondarySystemBackground))
                 )
-                .opacity(isAnimating ? 0.6 : 1.0)
-                .animation(
-                    Animation.easeInOut(duration: 1.2)
-                        .repeatForever(autoreverses: true)
-                        .delay(Double(index) * 0.1),
-                    value: isAnimating
-                )
             }
         }
         .padding()
-        .onAppear {
-            isAnimating = true
-        }
     }
 }

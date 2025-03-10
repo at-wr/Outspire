@@ -4,48 +4,34 @@ import Combine
 
 class SchoolArrangementViewModel: ObservableObject {
     @Published var arrangements: [SchoolArrangementItem] = []
+    @Published var arrangementGroups: [ArrangementGroup] = []
     @Published var isLoading: Bool = false
     @Published var errorMessage: String?
     @Published var currentPage: Int = 1
     @Published var totalPages: Int = 1
     @Published var selectedDetail: SchoolArrangementDetail?
-    @Published var selectedDetailWrapper: DetailWrapper?
     @Published var isLoadingDetail: Bool = false
-    @Published var refreshing: Bool = false
     
     private let baseURL = "https://www.wflms.cn"
-    private let cacheKey = "cachedSchoolArrangements"
-    private let detailCacheKeyPrefix = "cachedSchoolArrangementDetail-"
-    private let cacheDuration: TimeInterval = 3600 // 1 hour
-    
-    // Track processed image URLs to avoid duplicates
+    private var currentTask: URLSessionDataTask?
+    private var detailTask: URLSessionDataTask?
     private var processedImageUrls = Set<String>()
     
     init() {
-        loadCachedData()
+        fetchArrangements()
     }
     
-    private func loadCachedData() {
-        if let data = UserDefaults.standard.data(forKey: cacheKey),
-           let cachedPage = try? JSONDecoder().decode(SchoolArrangementPage.self, from: data),
-           isCacheValid(for: cacheKey) {
-            self.arrangements = cachedPage.items
-            self.totalPages = cachedPage.totalPages
-            self.currentPage = cachedPage.currentPage
-        } else {
-            // No valid cache, fetch fresh data
-            fetchArrangements()
-        }
+    deinit {
+        cancelAllTasks()
     }
     
-    private func isCacheValid(for key: String) -> Bool {
-        let lastUpdate = UserDefaults.standard.double(forKey: "\(key)-timestamp")
-        let currentTime = Date().timeIntervalSince1970
-        return (currentTime - lastUpdate) < cacheDuration
-    }
+    // MARK: - Public Methods
     
     func fetchArrangements(page: Int = 1) {
         guard !isLoading else { return }
+        
+        // Cancel any existing task
+        currentTask?.cancel()
         
         isLoading = true
         errorMessage = nil
@@ -60,15 +46,15 @@ class SchoolArrangementViewModel: ObservableObject {
         
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
+        request.timeoutInterval = 15
         
-        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+        currentTask = URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
             guard let self = self else { return }
             
             DispatchQueue.main.async {
                 self.isLoading = false
-                self.refreshing = false
                 
-                if let error = error {
+                if let error = error as NSError?, error.code != NSURLErrorCancelled {
                     self.errorMessage = "Failed to load data: \(error.localizedDescription)"
                     return
                 }
@@ -81,7 +67,6 @@ class SchoolArrangementViewModel: ObservableObject {
                 do {
                     let items = try self.parseArrangementListHTML(htmlString)
                     
-                    // Parse total pages from the HTML
                     if let totalPages = try? self.parseTotalPages(htmlString) {
                         self.totalPages = totalPages
                     }
@@ -93,51 +78,35 @@ class SchoolArrangementViewModel: ObservableObject {
                     }
                     
                     self.currentPage = page
-                    
-                    // Cache the data
-                    let pageData = SchoolArrangementPage(
-                        items: self.arrangements,
-                        totalPages: self.totalPages,
-                        currentPage: self.currentPage
-                    )
-                    
-                    if let encodedData = try? JSONEncoder().encode(pageData) {
-                        UserDefaults.standard.set(encodedData, forKey: self.cacheKey)
-                        UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: "\(self.cacheKey)-timestamp")
-                    }
-                    
+                    self.updateArrangementGroups()
                 } catch {
                     self.errorMessage = "Failed to parse HTML: \(error.localizedDescription)"
                 }
             }
-        }.resume()
+        }
+        
+        currentTask?.resume()
     }
     
     func fetchNextPage() {
-        if currentPage < totalPages {
+        if currentPage < totalPages && !isLoading {
             fetchArrangements(page: currentPage + 1)
         }
     }
     
     func refreshData() {
-        refreshing = true
         fetchArrangements(page: 1)
     }
     
     func fetchArrangementDetail(for item: SchoolArrangementItem) {
-        // First check cache
-        if let detail = getCachedDetail(id: item.id) {
-            DispatchQueue.main.async {
-                self.selectedDetail = detail
-                self.selectedDetailWrapper = DetailWrapper(detail: detail)
-            }
-            return
-        }
-        
         guard !isLoadingDetail else { return }
+        
+        // Cancel any existing task
+        detailTask?.cancel()
         
         isLoadingDetail = true
         errorMessage = nil
+        selectedDetail = nil
         
         let urlString = "\(baseURL)\(item.url)"
         
@@ -150,21 +119,21 @@ class SchoolArrangementViewModel: ObservableObject {
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.addValue("Mozilla/5.0", forHTTPHeaderField: "User-Agent")
-        request.addValue(baseURL, forHTTPHeaderField: "Referer")
+        request.timeoutInterval = 15
         
-        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+        detailTask = URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
             guard let self = self else { return }
             
             DispatchQueue.main.async {
                 self.isLoadingDetail = false
                 
-                if let error = error {
+                if let error = error as NSError?, error.code != NSURLErrorCancelled {
                     self.errorMessage = "Failed to load detail: \(error.localizedDescription)"
                     return
                 }
                 
                 guard let data = data, let htmlString = String(data: data, encoding: .utf8) else {
-                    self.errorMessage = "Failed to decode detail response"
+                    self.errorMessage = "Failed to decode response"
                     return
                 }
                 
@@ -180,16 +149,96 @@ class SchoolArrangementViewModel: ObservableObject {
                     }
                     
                     self.selectedDetail = detail
-                    self.selectedDetailWrapper = DetailWrapper(detail: detail)
-                    
-                    // Cache the detail
-                    self.cacheDetail(detail)
-                    
                 } catch {
                     self.errorMessage = "Failed to parse detail: \(error.localizedDescription)"
                 }
             }
-        }.resume()
+        }
+        
+        detailTask?.resume()
+    }
+    
+    func toggleGroupExpansion(_ groupId: String) {
+        if let index = arrangementGroups.firstIndex(where: { $0.id == groupId }) {
+            arrangementGroups[index].isExpanded.toggle()
+        }
+    }
+    
+    func toggleItemExpansion(_ itemId: String) {
+        if let groupIndex = arrangementGroups.firstIndex(where: { group in
+            group.items.contains(where: { $0.id == itemId })
+        }) {
+            // Create a mutable copy of the items array
+            var updatedItems = arrangementGroups[groupIndex].items
+            
+            // Find the item and toggle its expansion state
+            if let itemIndex = updatedItems.firstIndex(where: { $0.id == itemId }) {
+                // Create a new item with toggled isExpanded value
+                var updatedItem = updatedItems[itemIndex]
+                updatedItem.isExpanded.toggle()
+                
+                // Replace the item in the array
+                updatedItems[itemIndex] = updatedItem
+                
+                // Create a new group with the updated items
+                var updatedGroup = arrangementGroups[groupIndex]
+                updatedGroup.items = updatedItems
+                
+                // Update the group in the array
+                arrangementGroups[groupIndex] = updatedGroup
+            }
+        }
+    }
+    
+    // MARK: - Private Methods
+    
+    private func updateArrangementGroups() {
+        // Group by month and year
+        var groups: [String: [SchoolArrangementItem]] = [:]
+        
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        
+        for item in arrangements {
+            let key: String
+            if let date = dateFormatter.date(from: item.publishDate) {
+                dateFormatter.dateFormat = "MMMM yyyy"
+                key = dateFormatter.string(from: date)
+            } else {
+                key = "Unknown Date"
+            }
+            
+            if groups[key] == nil {
+                groups[key] = []
+            }
+            groups[key]?.append(item)
+        }
+        
+        // Sort items within each group
+        for key in groups.keys {
+            groups[key]?.sort { $0.publishDate > $1.publishDate }
+        }
+        
+        // Create arrangement groups and sort them
+        let sortedKeys = groups.keys.sorted { key1, key2 in
+            if key1 == "Unknown Date" { return false }
+            if key2 == "Unknown Date" { return true }
+            
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateFormat = "MMMM yyyy"
+            
+            if let date1 = dateFormatter.date(from: key1),
+               let date2 = dateFormatter.date(from: key2) {
+                return date1 > date2
+            }
+            return key1 > key2
+        }
+        
+        // Create groups
+        arrangementGroups = sortedKeys.compactMap { key in
+            guard let items = groups[key] else { return nil }
+            return ArrangementGroup(id: key, title: key, items: items)
+        }
     }
     
     private func parseArrangementListHTML(_ html: String) throws -> [SchoolArrangementItem] {
@@ -201,35 +250,23 @@ class SchoolArrangementViewModel: ObservableObject {
             
             let url = try anchor.attr("href")
             
-            // Fix the titleElement optional handling
             let titleElement = try anchor.select(".list_categoryName").first()
-            let title: String
-            if let element = titleElement {
-                title = try element.text()
-            } else {
-                title = "Unknown"
-            }
+            let title = try titleElement?.text() ?? "Unknown"
             
-            // Fix the publishDateElement optional handling
             let publishDateElement = try anchor.select(".publishTime").first()
-            let publishDate: String
-            if let element = publishDateElement {
-                publishDate = try element.text()
-            } else {
-                publishDate = "Unknown Date"
-            }
+            let publishDate = try publishDateElement?.text() ?? "Unknown Date"
             
             // Extract ID from URL
             let components = url.components(separatedBy: "_")
             let id = components.last?.components(separatedBy: ".").first ?? UUID().uuidString
             
-            // Extract week numbers using regex
+            // Extract week numbers
             let weekNumbers = extractWeekNumbers(from: title)
             
             return SchoolArrangementItem(
-                id: id, 
-                title: title, 
-                publishDate: publishDate, 
+                id: id,
+                title: title,
+                publishDate: publishDate,
                 url: url,
                 weekNumbers: weekNumbers
             )
@@ -258,16 +295,11 @@ class SchoolArrangementViewModel: ObservableObject {
     private func parseArrangementDetailHTML(_ html: String, id: String, title: String, publishDate: String) throws -> SchoolArrangementDetail {
         let doc: Document = try SwiftSoup.parse(html)
         
-        // Fix contentDiv optional handling
+        // Try to get the content
         let contentDiv = try doc.select(".detailBox5").first()
-        let content: String
-        if let element = contentDiv {
-            content = try element.html()
-        } else {
-            content = ""
-        }
+        let content = try contentDiv?.html() ?? ""
         
-        // Extract image URLs more safely
+        // Extract image URLs
         var imageUrls: [String] = []
         
         // First try specific class
@@ -277,19 +309,17 @@ class SchoolArrangementViewModel: ObservableObject {
                 let imgSrc = try img.attr("src")
                 if imgSrc.contains("/oss/") && !imgSrc.contains(".gif") {
                     let fullUrl = imgSrc.hasPrefix("http") ? imgSrc : "\(baseURL)\(imgSrc)"
-                    // Avoid duplicates
                     if !processedImageUrls.contains(fullUrl) {
                         imageUrls.append(fullUrl)
                         processedImageUrls.insert(fullUrl)
                     }
                 }
             } catch {
-                // Skip this image if there's an error
                 continue
             }
         }
         
-        // If no images found with specific class, try all img tags in content
+        // If no images found, try all img tags
         if imageUrls.isEmpty {
             let allImages = try doc.select("img")
             for img in allImages {
@@ -297,14 +327,12 @@ class SchoolArrangementViewModel: ObservableObject {
                     let imgSrc = try img.attr("src")
                     if imgSrc.contains("/oss/") && !imgSrc.contains(".gif") {
                         let fullUrl = imgSrc.hasPrefix("http") ? imgSrc : "\(baseURL)\(imgSrc)"
-                        // Avoid duplicates
                         if !processedImageUrls.contains(fullUrl) {
                             imageUrls.append(fullUrl)
                             processedImageUrls.insert(fullUrl)
                         }
                     }
                 } catch {
-                    // Skip this image if there's an error
                     continue
                 }
             }
@@ -340,7 +368,7 @@ class SchoolArrangementViewModel: ObservableObject {
             // Process each component to extract numbers
             var weekNumbers: [Int] = []
             for component in components {
-                // Check for range (e.g., "1-3" or "4、5")
+                // Check for range (e.g., "1-3")
                 if component.contains("-") {
                     let rangeComponents = component.components(separatedBy: "-")
                     if rangeComponents.count == 2,
@@ -359,53 +387,11 @@ class SchoolArrangementViewModel: ObservableObject {
         return []
     }
     
-    // Detail caching methods
-    private func cacheDetail(_ detail: SchoolArrangementDetail) {
-        if let encodedData = try? JSONEncoder().encode(detail) {
-            let key = detailCacheKeyPrefix + detail.id
-            UserDefaults.standard.set(encodedData, forKey: key)
-            UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: "\(key)-timestamp")
-        }
-    }
-    
-    private func getCachedDetail(id: String) -> SchoolArrangementDetail? {
-        let key = detailCacheKeyPrefix + id
+    private func cancelAllTasks() {
+        currentTask?.cancel()
+        currentTask = nil
         
-        guard let data = UserDefaults.standard.data(forKey: key),
-              let cachedDetail = try? JSONDecoder().decode(SchoolArrangementDetail.self, from: data),
-              isCacheValid(for: key) else {
-            return nil
-        }
-        
-        return cachedDetail
-    }
-    
-    func toggleExpand(item: SchoolArrangementItem) {
-        if let index = arrangements.firstIndex(where: { $0.id == item.id }) {
-            arrangements[index].isExpanded.toggle()
-        }
-    }
-    
-    func clearCache() {
-        UserDefaults.standard.removeObject(forKey: cacheKey)
-        UserDefaults.standard.removeObject(forKey: "\(cacheKey)-timestamp")
-        
-        // Clear all detail caches
-        for key in UserDefaults.standard.dictionaryRepresentation().keys {
-            if key.hasPrefix(detailCacheKeyPrefix) {
-                UserDefaults.standard.removeObject(forKey: key)
-                UserDefaults.standard.removeObject(forKey: "\(key)-timestamp")
-            }
-        }
-    }
-}
-
-// Wrapper class to make detail Identifiable for sheet presentation
-class DetailWrapper: Identifiable {
-    let id = UUID()
-    let detail: SchoolArrangementDetail
-    
-    init(detail: SchoolArrangementDetail) {
-        self.detail = detail
+        detailTask?.cancel()
+        detailTask = nil
     }
 }

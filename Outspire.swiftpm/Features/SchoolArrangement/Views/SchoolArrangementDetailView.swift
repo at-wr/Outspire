@@ -3,8 +3,8 @@ import SwiftUI
 struct SchoolArrangementDetailView: View {
     let detail: SchoolArrangementDetail
     @State private var animateContent = false
-    @State private var showFullScreenImage = false
-    @State private var selectedImageURL: URL?
+    @State private var selectedImageIndex: Int?
+    @State private var showingFullScreenImage = false
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
@@ -37,17 +37,17 @@ struct SchoolArrangementDetailView: View {
                     
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 12) {
-                            ForEach(Array(detail.imageUrls.enumerated()), id: \.element) { index, imageUrlString in
+                            ForEach(Array(detail.imageUrls.enumerated()), id: \.1) { index, imageUrlString in
                                 if let imageUrl = URL(string: imageUrlString) {
-                                    SafeImageView(url: imageUrl)
+                                    ImageThumbnail(url: imageUrl)
                                         .frame(height: 200)
                                         .frame(width: 280)
                                         .clipShape(RoundedRectangle(cornerRadius: 12))
                                         .contentShape(Rectangle())
                                         .shadow(color: .black.opacity(0.1), radius: 5, x: 0, y: 2)
                                         .onTapGesture {
-                                            selectedImageURL = imageUrl
-                                            showFullScreenImage = true
+                                            selectedImageIndex = index
+                                            showingFullScreenImage = true
                                         }
                                         .opacity(animateContent ? 1 : 0)
                                         .offset(y: animateContent ? 0 : 15)
@@ -84,9 +84,13 @@ struct SchoolArrangementDetailView: View {
         .navigationTitle("School Arrangement")
         .navigationBarTitleDisplayMode(.inline)
         .background(Color(UIColor.systemBackground))
-        .sheet(isPresented: $showFullScreenImage) {
-            if let imageURL = selectedImageURL {
-                ArrangementImagePreview(imageURL: imageURL, title: detail.title, date: detail.publishDate)
+        .fullScreenCover(isPresented: $showingFullScreenImage) {
+            if let index = selectedImageIndex, index < detail.imageUrls.count {
+                ImageViewer(
+                    imageUrl: detail.imageUrls[index],
+                    title: detail.title,
+                    date: detail.publishDate
+                )
             }
         }
         .onAppear {
@@ -98,85 +102,53 @@ struct SchoolArrangementDetailView: View {
     }
 }
 
-// Improved SafeImageView with better error handling and caching
-struct SafeImageView: View {
+// Simple thumbnail for the image list
+struct ImageThumbnail: View {
     let url: URL
-    @State private var image: UIImage?
-    @State private var isLoading = true
-    @State private var loadFailed = false
     
     var body: some View {
-        ZStack {
-            if isLoading {
-                VStack {
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.gray.opacity(0.2))
-                        .frame(height: 200)
-                        .frame(width: 280)
-                        .shimmering()
-                }
-            } else if loadFailed {
-                VStack {
-                    Image(systemName: "exclamationmark.triangle")
-                        .font(.largeTitle)
-                        .foregroundStyle(.secondary)
-                    Text("Failed to load")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color(UIColor.tertiarySystemBackground))
-            } else if let image = image {
-                Image(uiImage: image)
+        AsyncImage(url: url) { phase in
+            switch phase {
+            case .empty:
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.gray.opacity(0.2))
+                    .overlay {
+                        ProgressView()
+                    }
+            case .success(let image):
+                image
                     .resizable()
                     .aspectRatio(contentMode: .fill)
+            case .failure:
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color(UIColor.tertiarySystemBackground))
+                    .overlay {
+                        VStack {
+                            Image(systemName: "exclamationmark.triangle")
+                                .font(.title)
+                                .foregroundStyle(.secondary)
+                            Text("Failed to load")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+            @unknown default:
+                Color.gray
             }
         }
-        .onAppear(perform: loadImage)
-    }
-    
-    private func loadImage() {
-        // Check image cache first
-        if let cachedImage = ImageCache.shared.get(url: url.absoluteString) {
-            self.image = cachedImage
-            self.isLoading = false
-            return
-        }
-        
-        isLoading = true
-        loadFailed = false
-        
-        var request = URLRequest(url: url)
-        request.addValue("https://www.wflms.cn", forHTTPHeaderField: "Referer")
-        
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            DispatchQueue.main.async {
-                isLoading = false
-                
-                if let data = data, let loadedImage = UIImage(data: data) {
-                    self.image = loadedImage
-                    // Cache the loaded image
-                    ImageCache.shared.set(image: loadedImage, for: url.absoluteString)
-                } else {
-                    loadFailed = true
-                }
-            }
-        }.resume()
     }
 }
 
-// Simple preview for arrangement images
-struct ArrangementImagePreview: View {
-    let imageURL: URL
+// Simplified full screen image viewer
+struct ImageViewer: View {
+    let imageUrl: String
     let title: String
     let date: String
     @Environment(\.dismiss) private var dismiss
-    @State private var image: UIImage?
-    @State private var isLoading = true
-    @State private var loadFailed = false
     @State private var scale: CGFloat = 1.0
+    @State private var lastScale: CGFloat = 1.0
     @State private var offset = CGSize.zero
-    @GestureState private var dragOffset = CGSize.zero
+    @State private var lastOffset = CGSize.zero
     
     var body: some View {
         NavigationStack {
@@ -196,83 +168,103 @@ struct ArrangementImagePreview: View {
                 .background(Color(UIColor.secondarySystemBackground))
                 
                 // Image content
-                ZStack {
-                    Color(UIColor.systemBackground)
-                        .ignoresSafeArea()
-                    
-                    if isLoading {
-                        ProgressView()
-                            .scaleEffect(1.5)
-                            .progressViewStyle(CircularProgressViewStyle())
-                    } else if loadFailed {
-                        VStack(spacing: 16) {
-                            Image(systemName: "exclamationmark.triangle")
-                                .font(.system(size: 50))
-                                .foregroundStyle(.secondary)
-                            Text("Image failed to load")
-                                .foregroundStyle(.secondary)
-                        }
-                    } else if let image = image {
-                        GeometryReader { geo in
-                            Image(uiImage: image)
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .scaleEffect(scale)
-                                .offset(x: offset.width + dragOffset.width, y: offset.height + dragOffset.height)
-                                .frame(width: geo.size.width, height: geo.size.height)
-                                .gesture(
-                                    DragGesture()
-                                        .updating($dragOffset) { value, state, _ in
-                                            if scale > 1 {
-                                                state = value.translation
+                GeometryReader { geo in
+                    if let url = URL(string: imageUrl) {
+                        AsyncImage(url: url) { phase in
+                            switch phase {
+                            case .empty:
+                                ProgressView()
+                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            case .success(let image):
+                                image
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fit)
+                                    .scaleEffect(scale)
+                                    .offset(offset)
+                                    .gesture(
+                                        MagnificationGesture()
+                                            .onChanged { value in
+                                                let delta = value / lastScale
+                                                lastScale = value
+                                                
+                                                // Limit zoom scale between 1 and 5
+                                                scale = min(max(1.0, scale * delta), 5.0)
                                             }
-                                        }
-                                        .onEnded { value in
-                                            if scale > 1 {
-                                                offset.width += value.translation.width
-                                                offset.height += value.translation.height
+                                            .onEnded { _ in
+                                                lastScale = 1.0
                                             }
-                                        }
-                                )
-                                .gesture(
-                                    MagnificationGesture()
-                                        .onChanged { value in
-                                            scale = min(max(1, scale * value / 1.0), 4.0)
-                                        }
-                                )
-                                .gesture(
-                                    TapGesture(count: 2)
-                                        .onEnded {
-                                            withAnimation(.spring()) {
-                                                if scale > 1 {
-                                                    scale = 1.0
-                                                    offset = .zero
-                                                } else {
-                                                    scale = 2.0
+                                    )
+                                    .simultaneousGesture(
+                                        DragGesture()
+                                            .onChanged { value in
+                                                // Only allow panning when zoomed in
+                                                if scale > 1.0 {
+                                                    offset = CGSize(
+                                                        width: lastOffset.width + value.translation.width,
+                                                        height: lastOffset.height + value.translation.height
+                                                    )
                                                 }
                                             }
-                                        }
-                                )
+                                            .onEnded { _ in
+                                                lastOffset = offset
+                                            }
+                                    )
+                                    .simultaneousGesture(
+                                        TapGesture(count: 2)
+                                            .onEnded {
+                                                withAnimation(.spring()) {
+                                                    if scale > 1.0 {
+                                                        // Reset zoom and position
+                                                        scale = 1.0
+                                                        offset = .zero
+                                                        lastOffset = .zero
+                                                    } else {
+                                                        // Zoom in to 3x at current position
+                                                        scale = 3.0
+                                                    }
+                                                }
+                                            }
+                                    )
+                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            case .failure:
+                                VStack {
+                                    Image(systemName: "exclamationmark.triangle")
+                                        .font(.largeTitle)
+                                        .foregroundStyle(.secondary)
+                                    Text("Failed to load image")
+                                        .foregroundStyle(.secondary)
+                                }
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            @unknown default:
+                                EmptyView()
+                            }
                         }
+                        .frame(width: geo.size.width, height: geo.size.height)
                     }
                 }
-                .clipped()
                 .contentShape(Rectangle())
+                .onTapGesture(count: 1) {
+                    // Single tap dismisses only if not zoomed in
+                    if scale <= 1.1 {
+                        dismiss()
+                    }
+                }
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
+                ToolbarItem(placement: .topBarLeading) {
                     Button("Close") {
                         dismiss()
                     }
                 }
                 
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    if let _ = image, scale != 1.0 || offset != .zero {
+                ToolbarItem(placement: .topBarTrailing) {
+                    if scale > 1.0 || offset != .zero {
                         Button {
-                            withAnimation {
+                            withAnimation(.spring()) {
                                 scale = 1.0
                                 offset = .zero
+                                lastOffset = .zero
                             }
                         } label: {
                             Image(systemName: "arrow.counterclockwise")
@@ -280,37 +272,8 @@ struct ArrangementImagePreview: View {
                     }
                 }
             }
+            .background(Color.black)
         }
-        .onAppear(perform: loadImage)
-    }
-    
-    private func loadImage() {
-        // Check cache first
-        if let cachedImage = ImageCache.shared.get(url: imageURL.absoluteString) {
-            self.image = cachedImage
-            self.isLoading = false
-            return
-        }
-        
-        isLoading = true
-        loadFailed = false
-        
-        var request = URLRequest(url: imageURL)
-        request.addValue("https://www.wflms.cn", forHTTPHeaderField: "Referer")
-        
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            DispatchQueue.main.async {
-                isLoading = false
-                
-                if let data = data, let loadedImage = UIImage(data: data) {
-                    self.image = loadedImage
-                    // Cache the image
-                    ImageCache.shared.set(image: loadedImage, for: imageURL.absoluteString)
-                } else {
-                    loadFailed = true
-                }
-            }
-        }.resume()
     }
 }
 
@@ -347,24 +310,5 @@ struct HTMLContentView: View {
         let plainText = htmlContent
             .replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression, range: nil)
         return AttributedString(plainText)
-    }
-}
-
-// Simple image cache to improve performance
-class ImageCache {
-    static let shared = ImageCache()
-    
-    private var cache = NSCache<NSString, UIImage>()
-    
-    func set(image: UIImage, for url: String) {
-        cache.setObject(image, forKey: url as NSString)
-    }
-    
-    func get(url: String) -> UIImage? {
-        return cache.object(forKey: url as NSString)
-    }
-    
-    func clear() {
-        cache.removeAllObjects()
     }
 }
