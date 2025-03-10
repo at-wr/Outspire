@@ -1,6 +1,8 @@
 import SwiftUI
 import SwiftSoup
 import Combine
+import PDFKit
+import QuickLook
 
 class SchoolArrangementViewModel: ObservableObject {
     @Published var arrangements: [SchoolArrangementItem] = []
@@ -11,11 +13,15 @@ class SchoolArrangementViewModel: ObservableObject {
     @Published var totalPages: Int = 1
     @Published var selectedDetail: SchoolArrangementDetail?
     @Published var isLoadingDetail: Bool = false
+    @Published var pdfURL: URL?
     
     private let baseURL = "https://www.wflms.cn"
     private var currentTask: URLSessionDataTask?
     private var detailTask: URLSessionDataTask?
     private var processedImageUrls = Set<String>()
+    
+    // Group for async image downloading
+    private let downloadGroup = DispatchGroup()
     
     init() {
         fetchArrangements()
@@ -23,6 +29,8 @@ class SchoolArrangementViewModel: ObservableObject {
     
     deinit {
         cancelAllTasks()
+        // Clean up any temporary files
+        cleanupTemporaryFiles()
     }
     
     // MARK: - Public Methods
@@ -129,34 +137,40 @@ class SchoolArrangementViewModel: ObservableObject {
         detailTask = URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
             guard let self = self else { return }
             
-            DispatchQueue.main.async {
-                self.isLoadingDetail = false
-                
-                if let error = error as NSError?, error.code != NSURLErrorCancelled {
+            if let error = error as NSError?, error.code != NSURLErrorCancelled {
+                DispatchQueue.main.async {
+                    self.isLoadingDetail = false
                     print("DEBUG: Network error: \(error)")
                     self.errorMessage = "Failed to load detail: \(error.localizedDescription)"
-                    return
                 }
-                
-                guard let data = data, let htmlString = String(data: data, encoding: .utf8) else {
+                return
+            }
+            
+            guard let data = data, let htmlString = String(data: data, encoding: .utf8) else {
+                DispatchQueue.main.async {
+                    self.isLoadingDetail = false
                     print("DEBUG: Failed to decode response")
                     self.errorMessage = "Failed to decode response"
-                    return
                 }
+                return
+            }
+            
+            do {
+                // Reset processed URLs for each new detail
+                self.processedImageUrls.removeAll()
                 
-                do {
-                    // Reset processed URLs for each new detail
-                    self.processedImageUrls.removeAll()
-                    
-                    let detail = try self.parseArrangementDetailHTML(htmlString, id: item.id, title: item.title, publishDate: item.publishDate)
-                    
-                    // IMPORTANT: We're not requiring images anymore
-                    // Just create the detail object regardless
-                    print("DEBUG: Detail parsed successfully with \(detail.imageUrls.count) images")
-                    self.selectedDetail = detail
-                    
-                } catch {
-                    print("DEBUG: Detail parsing error: \(error)")
+                let detail = try self.parseArrangementDetailHTML(htmlString, id: item.id, title: item.title, publishDate: item.publishDate)
+                
+                // Create the detail object
+                print("DEBUG: Detail parsed successfully with \(detail.imageUrls.count) images")
+                
+                // Now we need to download all images and generate a PDF
+                self.downloadImagesAndCreatePDF(detail: detail)
+                
+            } catch {
+                print("DEBUG: Detail parsing error: \(error)")
+                DispatchQueue.main.async {
+                    self.isLoadingDetail = false
                     self.errorMessage = "Failed to parse detail: \(error.localizedDescription)"
                 }
             }
@@ -302,7 +316,7 @@ class SchoolArrangementViewModel: ObservableObject {
     private func parseArrangementDetailHTML(_ html: String, id: String, title: String, publishDate: String) throws -> SchoolArrangementDetail {
         print("DEBUG: Starting to parse HTML for \(title)")
         
-        let content: String
+        var content: String = ""  // Change from 'let' to 'var' and initialize with empty string
         var imageUrls: [String] = []
         
         do {
@@ -433,10 +447,9 @@ class SchoolArrangementViewModel: ObservableObject {
                 print("DEBUG: Found alternative content, length: \(content.count)")
             }
             
-        } catch {
+        } catch let error {
             print("DEBUG: Critical HTML parsing error: \(error)")
-            // Instead of failing, return an empty content
-            content = ""
+            // No need to set content = "" since it's already initialized as empty
         }
         
         // Create detail even if no images found
@@ -508,5 +521,124 @@ class SchoolArrangementViewModel: ObservableObject {
         return urlString
             .replacingOccurrences(of: " ", with: "%20")
             .replacingOccurrences(of: "\\", with: "/")
+    }
+    
+    private func downloadImagesAndCreatePDF(detail: SchoolArrangementDetail) {
+        print("DEBUG: Starting to download images for PDF...")
+        var images: [UIImage] = []
+        // If no images, create PDF with just text
+        if detail.imageUrls.isEmpty {
+            createAndSavePDF(detail: detail, images: images)
+            return
+        }
+        
+        // Count for tracking progress
+        var completedDownloads = 0
+        let totalImages = detail.imageUrls.count
+        
+        for urlString in detail.imageUrls {
+            // URL validation and encoding
+            guard let encodedUrlString = urlString.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+                  let url = URL(string: encodedUrlString) else {
+                print("DEBUG: Invalid image URL: \(urlString)")
+                completedDownloads += 1
+                
+                // Check if all downloads are complete
+                if completedDownloads == totalImages {
+                    createAndSavePDF(detail: detail, images: images)
+                }
+                continue
+            }
+            
+            // Enter the download group
+            downloadGroup.enter()
+            
+            // Use URLSession for reliable downloading
+            let task = URLSession.shared.dataTask(with: url) { [weak self] data, response, error in
+                defer {
+                    self?.downloadGroup.leave()
+                    completedDownloads += 1
+                    
+                    // Check if all downloads are complete
+                    if completedDownloads == totalImages {
+                        self?.createAndSavePDF(detail: detail, images: images)
+                    }
+                }
+                
+                if let error = error {
+                    print("DEBUG: Failed to download image: \(error.localizedDescription)")
+                    return
+                }
+                
+                guard let data = data, 
+                      let image = UIImage(data: data) else {
+                    print("DEBUG: Invalid image data from URL: \(url)")
+                    return
+                }
+                
+                print("DEBUG: Successfully downloaded image from: \(urlString)")
+                // Safely add to our images array
+                DispatchQueue.main.async {
+                    images.append(image)
+                }
+            }
+            task.resume()
+        }
+    }
+    
+    private func createAndSavePDF(detail: SchoolArrangementDetail, images: [UIImage]) {
+        print("DEBUG: Creating PDF with \(images.count) images")
+        
+        // Sort images to ensure consistent order
+        let sortedImages = images.sorted(by: { $0.size.width * $0.size.height > $1.size.width * $1.size.height })
+        
+        // Generate PDF data
+        guard let pdfData = PDFGenerator.generatePDF(
+            title: detail.title,
+            date: detail.publishDate,
+            content: detail.content,
+            images: sortedImages
+        ) else {
+            print("DEBUG: Failed to generate PDF")
+            DispatchQueue.main.async {
+                self.isLoadingDetail = false
+                self.errorMessage = "Failed to create PDF document"
+            }
+            return
+        }
+        
+        // Save PDF to temporary directory
+        let fileName = "arrangement_\(detail.id).pdf"
+        let tempDir = FileManager.default.temporaryDirectory
+        let fileURL = tempDir.appendingPathComponent(fileName)
+        
+        do {
+            try pdfData.write(to: fileURL)
+            print("DEBUG: PDF saved to: \(fileURL.path)")
+            
+            DispatchQueue.main.async {
+                self.isLoadingDetail = false
+                self.selectedDetail = detail
+                self.pdfURL = fileURL
+            }
+        } catch {
+            print("DEBUG: Failed to save PDF: \(error)")
+            DispatchQueue.main.async {
+                self.isLoadingDetail = false
+                self.errorMessage = "Failed to save PDF document: \(error.localizedDescription)"
+            }
+        }
+    }
+    
+    private func cleanupTemporaryFiles() {
+        // Clean up the temporary PDF if it exists
+        if let pdfURL = pdfURL {
+            do {
+                try FileManager.default.removeItem(at: pdfURL)
+                print("DEBUG: Removed temporary PDF file")
+            } catch {
+                print("DEBUG: Failed to delete temporary PDF: \(error)")
+            }
+        }
     }
 }

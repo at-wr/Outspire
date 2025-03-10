@@ -1,5 +1,6 @@
 import SwiftUI
 import Toasts
+import QuickLook
 
 struct SchoolArrangementView: View {
     @StateObject private var viewModel = SchoolArrangementViewModel()
@@ -8,6 +9,7 @@ struct SchoolArrangementView: View {
     @State private var refreshRotation = 0.0
     @State private var animateIn = false
     @State private var showDetailSheet = false
+    @State private var showPDFPreview = false
     
     private var filteredGroups: [ArrangementGroup] {
         if searchText.isEmpty {
@@ -92,45 +94,60 @@ struct SchoolArrangementView: View {
                     }
                 }
             } content: {
-                if let detail = viewModel.selectedDetail {
-                    NavigationStack {
-                        SchoolArrangementDetailView(detail: detail)
-                            .onAppear {
-                                print("DEBUG: Detail sheet presented with \(detail.imageUrls.count) images")
-                            }
-                            .navigationBarTitleDisplayMode(.inline)
-                            .toolbar {
-                                ToolbarItem(placement: .navigationBarTrailing) {
-                                    Button("Done") {
-                                        showDetailSheet = false
-                                    }
-                                }
-                            }
-                    }
-                    .presentationDetents([.medium, .large])
-                    .presentationDragIndicator(.visible)
-                    .interactiveDismissDisabled(false) // Allow sheet to be dismissed by dragging
-                } else {
-                    // Fallback in case selectedDetail is nil but sheet is presented
-                    VStack {
+                // Show PDF preview if available
+                if let pdfURL = viewModel.pdfURL {
+                    QuickLookPreview(url: pdfURL)
+                        .edgesIgnoringSafeArea(.all)
+                } else if viewModel.isLoadingDetail {
+                    // Show loading content
+                    VStack(spacing: 16) {
                         ProgressView()
-                        Text("Loading content...")
+                            .controlSize(.large)
+                        Text("Preparing document...")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                             .padding(.top)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    // Fallback for errors
+                    VStack(spacing: 20) {
+                        Image(systemName: "exclamationmark.triangle")
+                            .font(.system(size: 40))
+                            .foregroundStyle(.secondary)
+                        
+                        Text("Content Unavailable")
+                            .font(.headline)
+                        
+                        Text("Unable to load the requested content")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
+                        
+                        Button("Dismiss") {
+                            showDetailSheet = false
+                        }
+                        .padding(.top, 10)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .onAppear {
                         // Auto-dismiss if no data loaded after a timeout
                         DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
-                            if viewModel.selectedDetail == nil && !viewModel.isLoadingDetail {
-                                print("DEBUG: No detail available after waiting, dismissing sheet")
+                            if viewModel.pdfURL == nil && !viewModel.isLoadingDetail {
+                                print("DEBUG: No PDF available after waiting, dismissing sheet")
                                 showDetailSheet = false
                                 viewModel.errorMessage = "Failed to load content"
                             }
                         }
                     }
                 }
+            }
+            .onChange(of: viewModel.pdfURL) { _, newURL in
+                withAnimation {
+                    showDetailSheet = newURL != nil
+                }
+                print("DEBUG: PDF URL changed: \(newURL != nil ? "available" : "nil")")
             }
             .onChange(of: viewModel.selectedDetail) { _, newDetail in
                 withAnimation {
@@ -321,11 +338,14 @@ struct SchoolArrangementView: View {
     private func viewDetailButton(for item: SchoolArrangementItem) -> some View {
         Button {
             print("DEBUG: Tapped view detail button for: \(item.id)")
+            // First, check if there's an existing PDF URL and clear it
+            viewModel.pdfURL = nil
+            // Then fetch the arrangement detail, which will generate a new PDF
             viewModel.fetchArrangementDetail(for: item)
         } label: {
             HStack {
-                Text("View Details")
-                Image(systemName: "chevron.right")
+                Text("View PDF")  // Changed from "View Details" to "View PDF"
+                Image(systemName: "doc.viewfinder")  // Updated to a PDF icon
                     .font(.caption)
             }
             .font(.callout)

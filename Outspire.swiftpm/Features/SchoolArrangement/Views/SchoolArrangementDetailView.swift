@@ -46,8 +46,11 @@ struct SchoolArrangementDetailView: View {
                                         .contentShape(Rectangle())
                                         .shadow(color: .black.opacity(0.1), radius: 5, x: 0, y: 2)
                                         .onTapGesture {
-                                            selectedImageIndex = index
-                                            showingFullScreenImage = true
+                                            // Make sure image URL is valid before setting index
+                                            if URL(string: detail.imageUrls[index]) != nil {
+                                                selectedImageIndex = index
+                                                showingFullScreenImage = true
+                                            }
                                         }
                                         .opacity(animateContent ? 1 : 0)
                                         .offset(y: animateContent ? 0 : 15)
@@ -105,12 +108,29 @@ struct SchoolArrangementDetailView: View {
         .fullScreenCover(isPresented: $showingFullScreenImage) {
             if let index = selectedImageIndex, 
                index < detail.imageUrls.count,
-               let _ = URL(string: detail.imageUrls[index]) { // Validate URL
+               let validUrlString = detail.imageUrls[index].addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+               URL(string: validUrlString) != nil { // Validate URL more thoroughly
                 ImageViewer(
-                    imageUrl: detail.imageUrls[index],
+                    imageUrl: validUrlString, // Use the encoded URL string
                     title: detail.title,
                     date: detail.publishDate
                 )
+            } else {
+                // Fallback when URL is invalid
+                VStack(spacing: 20) {
+                    Image(systemName: "exclamationmark.triangle")
+                        .font(.system(size: 40))
+                        .foregroundStyle(.secondary)
+                    Text("Invalid Image URL")
+                        .font(.headline)
+                    Button("Dismiss") {
+                        showingFullScreenImage = false
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color(UIColor.systemBackground))
+                .edgesIgnoringSafeArea(.all)
             }
         }
         .onAppear {
@@ -166,11 +186,7 @@ struct ImageThumbnail: View {
                             if retryCount < maxRetries {
                                 Button("Retry") {
                                     retryCount += 1
-                                    // Force AsyncImage to try again by briefly changing the url and back
-                                    let tempURL = url
-                                    let deadURL = URL(string: "https://example.com/retry\(UUID().uuidString)")!
-                                    
-                                    // Small hack to force AsyncImage to reload
+                                    // Simpler approach to force reload:
                                     withAnimation {
                                         loadFailed = true
                                     }
@@ -306,7 +322,6 @@ struct ImageViewer: View {
                                         Capsule()
                                             .fill(Color.blue.opacity(0.1))
                                     )
-                                    .id(UUID()) // Force view recreation
                                 }
                                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                                 .onAppear {
@@ -316,7 +331,7 @@ struct ImageViewer: View {
                                 EmptyView()
                             }
                         }
-                        .id(loadFailed ? UUID() : "stable") // Force reload when needed
+                        .id(loadFailed ? "reload-\(UUID().uuidString)" : "stable") // Force reload when needed
                         .frame(width: geo.size.width, height: geo.size.height)
                     } else {
                         // Handle invalid URL

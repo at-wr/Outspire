@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 struct SchoolArrangementItem: Identifiable, Equatable {
     let id: String
@@ -127,60 +128,8 @@ class ImageCache {
     }
 }
 
-// Add a struct that will help optimize image loading
-struct CachedImage: View {
-    let url: URL
-    let placeholder: AnyView
-    let failureView: AnyView
-    
-    @State private var imageData: Data? = nil
-    @State private var isLoading = true
-    @State private var loadFailed = false
-    
-    init(
-        url: URL,
-        @ViewBuilder placeholder: () -> some View,
-        @ViewBuilder failure: () -> some View
-    ) {
-        self.url = url
-        self.placeholder = AnyView(placeholder())
-        self.failureView = AnyView(failure())
-    }
-    
-    var body: some View {
-        Group {
-            if let imageData = imageData, let uiImage = UIImage(data: imageData) {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-            } else if loadFailed {
-                failureView
-            } else {
-                placeholder
-            }
-        }
-        .onAppear {
-            loadImage()
-        }
-    }
-    
-    private func loadImage() {
-        // Check if image is already cached
-        if let cachedData = ImageCache.shared.getImage(for: url.absoluteString) {
-            self.imageData = cachedData
-            self.isLoading = false
-            return
-        }
-        
-        // Load image asynchronously
-        isLoading = true
-        ImageCache.shared.loadImageAsync(url: url) { data in
-            self.isLoading = false
-            if let data = data {
-                self.imageData = data
-            } else {
-                self.loadFailed = true
-            }
-        }
-    }
+// Improved URL validation helper
+private func isValidURL(_ urlString: String) -> Bool {
+    guard let url = URL(string: urlString) else { return false }
+    return UIApplication.shared.canOpenURL(url)
 }
