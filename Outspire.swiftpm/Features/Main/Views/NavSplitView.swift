@@ -38,6 +38,9 @@ struct NavSplitView: View {
                     NavigationLink(value: "school-arrangement") {
                         Label("School Arrangement", systemImage: "calendar.badge.clock")
                     }
+                    NavigationLink(value: "lunch-menu") {
+                        Label("Lunch Menu", systemImage: "fork.knife")
+                    }
                     NavigationLink(value: "help") {
                         Label("Help", systemImage: "questionmark.circle.dashed")
                     }
@@ -74,6 +77,8 @@ struct NavSplitView: View {
                 ClubActivitiesView()
             case .some("school-arrangement"):
                 SchoolArrangementView()
+            case .some("lunch-menu"):
+                LunchMenuView()
             case .some("help"):
                 HelpView()
             default:
