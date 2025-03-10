@@ -1,5 +1,4 @@
 import SwiftUI
-import QuickLook
 
 struct SchoolArrangementDetailView: View {
     let detail: SchoolArrangementDetail
@@ -85,9 +84,9 @@ struct SchoolArrangementDetailView: View {
         .navigationTitle("School Arrangement")
         .navigationBarTitleDisplayMode(.inline)
         .background(Color(UIColor.systemBackground))
-        .fullScreenCover(isPresented: $showFullScreenImage) {
+        .sheet(isPresented: $showFullScreenImage) {
             if let imageURL = selectedImageURL {
-                ImageViewerSheet(imageURL: imageURL)
+                ArrangementImagePreview(imageURL: imageURL, title: detail.title, date: detail.publishDate)
             }
         }
         .onAppear {
@@ -166,91 +165,99 @@ struct SafeImageView: View {
     }
 }
 
-// Improved full-screen image viewer with better gesture handling
-struct ImageViewerSheet: View {
+// Simple preview for arrangement images
+struct ArrangementImagePreview: View {
     let imageURL: URL
+    let title: String
+    let date: String
     @Environment(\.dismiss) private var dismiss
-    @State private var scale: CGFloat = 1.0
-    @State private var lastScale: CGFloat = 1.0
-    @State private var offset = CGSize.zero
-    @State private var lastOffset = CGSize.zero
     @State private var image: UIImage?
     @State private var isLoading = true
     @State private var loadFailed = false
+    @State private var scale: CGFloat = 1.0
+    @State private var offset = CGSize.zero
+    @GestureState private var dragOffset = CGSize.zero
     
     var body: some View {
         NavigationStack {
-            ZStack {
-                Color.black.edgesIgnoringSafeArea(.all)
+            VStack(spacing: 0) {
+                // Header info
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(.headline)
+                        .lineLimit(2)
+                        
+                    Text(date)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding()
+                .background(Color(UIColor.secondarySystemBackground))
                 
-                if isLoading {
-                    ProgressView()
-                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                        .scaleEffect(1.5)
-                } else if loadFailed {
-                    VStack(spacing: 16) {
-                        Image(systemName: "exclamationmark.triangle")
-                            .font(.system(size: 50))
-                            .foregroundStyle(.white)
-                        Text("Image failed to load")
-                            .foregroundStyle(.white)
-                    }
-                } else if let image = image {
-                    GeometryReader { geo in
-                        Image(uiImage: image)
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .scaleEffect(scale)
-                            .offset(offset)
-                            .frame(width: geo.size.width, height: geo.size.height)
-                            .gesture(
-                                MagnificationGesture()
-                                    .onChanged { value in
-                                        let delta = value / lastScale
-                                        lastScale = value
-                                        scale = min(max(1.0, scale * delta), 5.0)
-                                    }
-                                    .onEnded { _ in
-                                        lastScale = 1.0
-                                    }
-                            )
-                            .simultaneousGesture(
-                                DragGesture()
-                                    .onChanged { value in
-                                        if scale > 1.0 {
-                                            offset = CGSize(
-                                                width: lastOffset.width + value.translation.width,
-                                                height: lastOffset.height + value.translation.height
-                                            )
-                                        }
-                                    }
-                                    .onEnded { _ in
-                                        lastOffset = offset
-                                    }
-                            )
-                            .simultaneousGesture(
-                                TapGesture(count: 2)
-                                    .onEnded {
-                                        withAnimation(.spring()) {
-                                            if scale > 1.0 {
-                                                scale = 1.0
-                                                offset = .zero
-                                                lastOffset = .zero
-                                            } else {
-                                                scale = 3.0
+                // Image content
+                ZStack {
+                    Color(UIColor.systemBackground)
+                        .ignoresSafeArea()
+                    
+                    if isLoading {
+                        ProgressView()
+                            .scaleEffect(1.5)
+                            .progressViewStyle(CircularProgressViewStyle())
+                    } else if loadFailed {
+                        VStack(spacing: 16) {
+                            Image(systemName: "exclamationmark.triangle")
+                                .font(.system(size: 50))
+                                .foregroundStyle(.secondary)
+                            Text("Image failed to load")
+                                .foregroundStyle(.secondary)
+                        }
+                    } else if let image = image {
+                        GeometryReader { geo in
+                            Image(uiImage: image)
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .scaleEffect(scale)
+                                .offset(x: offset.width + dragOffset.width, y: offset.height + dragOffset.height)
+                                .frame(width: geo.size.width, height: geo.size.height)
+                                .gesture(
+                                    DragGesture()
+                                        .updating($dragOffset) { value, state, _ in
+                                            if scale > 1 {
+                                                state = value.translation
                                             }
                                         }
-                                    }
-                            )
-                    }
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        // Single tap to dismiss only if not zoomed in
-                        if scale <= 1.1 {
-                            dismiss()
+                                        .onEnded { value in
+                                            if scale > 1 {
+                                                offset.width += value.translation.width
+                                                offset.height += value.translation.height
+                                            }
+                                        }
+                                )
+                                .gesture(
+                                    MagnificationGesture()
+                                        .onChanged { value in
+                                            scale = min(max(1, scale * value / 1.0), 4.0)
+                                        }
+                                )
+                                .gesture(
+                                    TapGesture(count: 2)
+                                        .onEnded {
+                                            withAnimation(.spring()) {
+                                                if scale > 1 {
+                                                    scale = 1.0
+                                                    offset = .zero
+                                                } else {
+                                                    scale = 2.0
+                                                }
+                                            }
+                                        }
+                                )
                         }
                     }
                 }
+                .clipped()
+                .contentShape(Rectangle())
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -258,30 +265,23 @@ struct ImageViewerSheet: View {
                     Button("Close") {
                         dismiss()
                     }
-                    .foregroundColor(.white)
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    if let image = image {
-                        Button(action: {
-                            // Reset zoom/position
-                            withAnimation(.spring()) {
+                    if let _ = image, scale != 1.0 || offset != .zero {
+                        Button {
+                            withAnimation {
                                 scale = 1.0
                                 offset = .zero
-                                lastOffset = .zero
                             }
-                        }) {
+                        } label: {
                             Image(systemName: "arrow.counterclockwise")
-                                .foregroundColor(.white)
                         }
-                        .disabled(scale == 1.0 && offset == .zero)
                     }
                 }
             }
-            .onAppear {
-                loadImage()
-            }
         }
+        .onAppear(perform: loadImage)
     }
     
     private func loadImage() {
