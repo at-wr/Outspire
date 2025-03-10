@@ -39,9 +39,9 @@ class PDFGenerator {
                 )
                 
                 // Add separator
-                yPosition += 10
+                yPosition += 10.0 // Fixed: Use CGFloat literal
                 drawSeparator(at: yPosition, width: pageWidth, margin: margin)
-                yPosition += 20
+                yPosition += 20.0 // Fixed: Use CGFloat literal
                 
                 // Check if we have images to show 
                 if !images.isEmpty {
@@ -55,15 +55,15 @@ class PDFGenerator {
                     let sectionTitle = "Attachments (\(images.count) images)"
                     let sectionRect = CGRect(x: margin, y: yPosition, width: contentWidth, height: 20)
                     sectionTitle.draw(in: sectionRect, withAttributes: sectionAttributes)
-                    yPosition += 24
+                    yPosition += 24.0 // Fixed: Use CGFloat literal
                     
                     // Draw each image
                     for (index, image) in images.enumerated() {
                         print("DEBUG: Drawing image \(index+1) of \(images.count)")
                         
                         // Check if we need a new page for this image
-                        let estimatedImageHeight = min(300, image.size.height * (contentWidth / max(image.size.width, 1)))
-                        if yPosition + estimatedImageHeight + 40 > pageHeight - margin {
+                        let estimatedImageHeight = min(300.0, image.size.height * (contentWidth / max(image.size.width, 1.0)))
+                        if yPosition + estimatedImageHeight + 40.0 > pageHeight - margin { // Fixed: Use CGFloat literal
                             context.beginPage()
                             yPosition = margin
                         }
@@ -80,7 +80,7 @@ class PDFGenerator {
                             at: CGPoint(x: margin, y: yPosition), 
                             withAttributes: imageNumAttributes
                         )
-                        yPosition += 20
+                        yPosition += 20.0 // Fixed: Use CGFloat literal
                         
                         // Draw the actual image
                         yPosition = drawImageWithCaptions(
@@ -92,32 +92,32 @@ class PDFGenerator {
                         )
                         
                         // Add space between images
-                        yPosition += 25
+                        yPosition += 25.0 // Fixed: Use CGFloat literal
                         
                         // Add a separator between images if not the last one
                         if index < images.count - 1 {
-                            drawSeparator(at: yPosition, width: pageWidth, margin: margin + 20)
-                            yPosition += 20
+                            drawSeparator(at: yPosition, width: pageWidth, margin: margin + 20.0) // Fixed: Use CGFloat literal
+                            yPosition += 20.0 // Fixed: Use CGFloat literal
                         }
                     }
                 }
                 
                 // Add separator before content if we have images
                 if !images.isEmpty {
-                    if yPosition + 200 > pageHeight - margin {
+                    if yPosition + 200.0 > pageHeight - margin { // Fixed: Use CGFloat literal
                         context.beginPage()
                         yPosition = margin
                     } else {
-                        yPosition += 10
+                        yPosition += 10.0 // Fixed: Use CGFloat literal
                         drawSeparator(at: yPosition, width: pageWidth, margin: margin)
-                        yPosition += 20
+                        yPosition += 20.0 // Fixed: Use CGFloat literal
                     }
                 }
                 
                 // Add content section if we have any
                 if !content.isEmpty {
                     // Content title
-                    if yPosition + 100 > pageHeight - margin {
+                    if yPosition + 100.0 > pageHeight - margin { // Fixed: Use CGFloat literal
                         context.beginPage()
                         yPosition = margin
                     }
@@ -131,7 +131,7 @@ class PDFGenerator {
                     let contentTitle = "Description"
                     let contentTitleRect = CGRect(x: margin, y: yPosition, width: contentWidth, height: 20)
                     contentTitle.draw(in: contentTitleRect, withAttributes: contentTitleAttributes)
-                    yPosition += 24
+                    yPosition += 24.0 // Fixed: Use CGFloat literal
                     
                     // Draw the actual content
                     yPosition = drawHTMLContent(
@@ -153,7 +153,7 @@ class PDFGenerator {
     }
     
     private static func drawHeader(title: String, date: String, rect: CGRect, margin: CGFloat) -> CGFloat {
-        var yPosition = margin + 10
+        var yPosition = margin + 10.0 // Fixed: Use CGFloat literal
         
         // Draw title
         let titleFont = UIFont.boldSystemFont(ofSize: 18)
@@ -172,7 +172,7 @@ class PDFGenerator {
         let titleRect = CGRect(x: margin, y: yPosition, width: titleWidth, height: titleHeight)
         title.draw(in: titleRect, withAttributes: titleAttributes)
         
-        yPosition += titleHeight + 8
+        yPosition += titleHeight + 8.0 // Fixed: Use CGFloat literal
         
         // Draw date
         let dateFont = UIFont.systemFont(ofSize: 12)
@@ -184,7 +184,7 @@ class PDFGenerator {
         let dateRect = CGRect(x: margin, y: yPosition, width: titleWidth, height: 16)
         date.draw(in: dateRect, withAttributes: dateAttributes)
         
-        yPosition += 20
+        yPosition += 20.0 // Fixed: Use CGFloat literal
         
         return yPosition
     }
@@ -202,8 +202,8 @@ class PDFGenerator {
         var yPosition = startY
         
         // Calculate image dimensions to fit within page
-        let aspectRatio = max(image.size.width, 1) / max(image.size.height, 1)
-        let maxImageHeight: CGFloat = 300
+        let aspectRatio = max(image.size.width, 1.0) / max(image.size.height, 1.0) // Fixed: Use CGFloat literal
+        let maxImageHeight: CGFloat = 300.0 // Fixed: Use CGFloat literal
         let maxImageWidth = contentWidth
         
         var imageWidth: CGFloat
@@ -234,7 +234,7 @@ class PDFGenerator {
         let imageRect = CGRect(x: xPosition, y: yPosition, width: imageWidth, height: imageHeight)
         image.draw(in: imageRect)
         
-        yPosition += imageHeight + 5
+        yPosition += imageHeight + 5.0 // Fixed: Use CGFloat literal
         
         return yPosition
     }
@@ -282,7 +282,7 @@ class PDFGenerator {
             paragraph.draw(in: paragraphRect, withAttributes: contentAttributes)
             
             // Update position
-            yPosition += paragraphHeight + 10
+            yPosition += paragraphHeight + 10.0 // Fixed: Use CGFloat literal
         }
         
         return yPosition

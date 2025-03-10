@@ -9,6 +9,9 @@ struct QuickLookPreview: UIViewControllerRepresentable {
         let controller = QLPreviewController()
         controller.dataSource = context.coordinator
         controller.delegate = context.coordinator
+        
+        // Ensure controller takes up full screen
+        controller.modalPresentationStyle = .fullScreen
         return controller
     }
     
@@ -38,18 +41,13 @@ struct QuickLookPreview: UIViewControllerRepresentable {
             return parent.url as NSURL
         }
         
-        func previewController(_ controller: QLPreviewController, didUpdateContentsOf previewItem: QLPreviewItem) {
-            print("DEBUG: QuickLook updated contents of preview item")
+        // Make sure we open in full screen
+        func previewControllerWillStartPresentation(_ controller: QLPreviewController) {
+            controller.navigationController?.isNavigationBarHidden = true
         }
         
         func previewControllerDidDismiss(_ controller: QLPreviewController) {
             print("DEBUG: QuickLook was dismissed")
-        }
-        
-        func previewController(_ controller: QLPreviewController, shouldOpen url: URL, for previewItem: QLPreviewItem) -> Bool {
-            print("DEBUG: QuickLook asked to open URL: \(url)")
-            // Allow opening the PDF
-            return true
         }
     }
 }

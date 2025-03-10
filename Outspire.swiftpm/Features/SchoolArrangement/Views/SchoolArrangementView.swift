@@ -98,6 +98,7 @@ struct SchoolArrangementView: View {
                 if let pdfURL = viewModel.pdfURL {
                     QuickLookPreview(url: pdfURL)
                         .edgesIgnoringSafeArea(.all)
+                        .ignoresSafeArea()  // Add this to ensure full screen
                 } else if viewModel.isLoadingDetail {
                     // Show loading content
                     VStack(spacing: 16) {
@@ -344,7 +345,7 @@ struct SchoolArrangementView: View {
             viewModel.fetchArrangementDetail(for: item)
         } label: {
             HStack {
-                Text("View as PDF")  // Changed from "View PDF" to be clearer
+                Text("View as PDF")
                 Image(systemName: "doc.viewfinder")
                     .font(.caption)
             }
@@ -359,11 +360,6 @@ struct SchoolArrangementView: View {
         }
         .buttonStyle(BorderlessButtonStyle())
         .disabled(viewModel.isLoadingDetail)
-        .overlay {
-            if viewModel.isLoadingDetail {
-                ProgressView().controlSize(.small)
-            }
-        }
         .simultaneousGesture(TapGesture().onEnded {
             // Haptic feedback when tapped
             let generator = UIImpactFeedbackGenerator(style: .light)

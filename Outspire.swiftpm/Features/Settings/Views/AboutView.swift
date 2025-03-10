@@ -8,7 +8,7 @@ struct AboutView: View {
                 HStack {
                     Label("Version", systemImage: "info.circle")
                     Spacer()
-                    Text("0.3.1")
+                    Text("0.4")
                         .foregroundStyle(.secondary)
                 }
                 HStack {
@@ -25,7 +25,7 @@ struct AboutView: View {
                 }
                 
             } footer: {
-                Text("Made by Alan Ye @WFLA\nThis is an open-source project, licensed under MIT.\nPlease leave a star on GitHub if you like ✨")
+                Text("Please leave a star on GitHub if you like ✨")
                     .font(.caption)
             }
         }
