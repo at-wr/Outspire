@@ -375,7 +375,7 @@ struct TodayView: View {
                     if let period = ClassPeriodsManager.shared.classPeriods.first(where: { $0.number == row }) {
                         // For self-study periods, we still show the period but mark it as self-study
                         if isSelfStudy {
-                            return (period: period, classData: "Self-Study\n\nStudy Hall", dayIndex: dayIndex, isForToday: false)
+                            return (period: period, classData: "You\nSelf-Study", dayIndex: dayIndex, isForToday: false)
                         } else {
                             return (period: period, classData: classData, dayIndex: dayIndex, isForToday: false)
                         }
@@ -397,7 +397,7 @@ struct TodayView: View {
         
         // If it's self-study, provide a placeholder
         if isSelfStudy {
-            classData = "Self-Study\n\nStudy Hall"
+            classData = "You\nSelf-Study"
         }
         
         return (period: period, classData: classData, dayIndex: dayIndex, isForToday: isForToday)

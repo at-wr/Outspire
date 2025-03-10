@@ -181,7 +181,7 @@ struct DailyScheduleCard: View {
             
             return (
                 period: row,
-                data: isSelfStudy ? "Self-Study\n\nStudy Hall" : classData,
+                data: isSelfStudy ? "Class-Free\n\nSelf-Study" : classData,
                 isSelfStudy: isSelfStudy
             )
         }
