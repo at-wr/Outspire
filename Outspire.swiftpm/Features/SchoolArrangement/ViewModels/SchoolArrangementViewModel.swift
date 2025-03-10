@@ -322,92 +322,114 @@ class SchoolArrangementViewModel: ObservableObject {
         do {
             let doc: Document = try SwiftSoup.parse(html)
             
-            // Extract the main content - use newsContent ID which contains the main article
+            // Extract the main content div
             let contentDiv = try doc.select("#newsContent").first()
             content = try contentDiv?.html() ?? ""
             print("DEBUG: Content extracted, length: \(content.count)")
             
-            // Process all images with absolute URLs
-            let allImages = try doc.select("#newsContent img")
-            print("DEBUG: Found \(allImages.count) images in content")
+            // IMPROVED: More thorough image extraction strategy
+            // 1. First try to extract images from #newsContent directly
+            let contentImages = try doc.select("#newsContent img")
+            print("DEBUG: Found \(contentImages.count) images in #newsContent")
             
-            for img in allImages {
-                do {
-                    // Try multiple image source attributes - sites often vary in how they store the real URL
-                    var imgSrc = ""
-                    
-                    // First try standard src
-                    if img.hasAttr("src") {
-                        imgSrc = try img.attr("src")
-                    }
-                    
-                    // Try _src if src doesn't contain a valid path
-                    if (imgSrc.isEmpty || !imgSrc.contains("/")) && img.hasAttr("_src") {
-                        imgSrc = try img.attr("_src")
-                    }
-                    
-                    // Try fileid if still no valid source
-                    if (imgSrc.isEmpty || !imgSrc.contains("/")) && img.hasAttr("fileid") {
-                        let fileId = try img.attr("fileid")
-                        if !fileId.isEmpty {
-                            imgSrc = "/oss/\(fileId)"
+            for img in contentImages {
+                // Try all possible attributes where image URLs might be stored
+                var imgUrl: String? = nil
+                
+                // Check multiple possible attributes in priority order
+                for attr in ["src", "_src", "data-src", "data-original"] {
+                    if img.hasAttr(attr) {
+                        if let src = try? img.attr(attr), !src.isEmpty {
+                            imgUrl = src
+                            print("DEBUG: Found image URL in '\(attr)' attribute: \(src)")
+                            break
                         }
                     }
-                    
-                    // Now process the image URL if we found one
-                    if !imgSrc.isEmpty {
-                        // Make sure URL is absolute
-                        let fullUrl = imgSrc.hasPrefix("http") ? imgSrc : "\(baseURL)\(imgSrc)"
-                        print("DEBUG: Found image URL: \(fullUrl)")
-                        
-                        // Deduplicate images
-                        if !processedImageUrls.contains(fullUrl) {
-                            imageUrls.append(fullUrl)
-                            processedImageUrls.insert(fullUrl)
-                        }
+                }
+                
+                // If no URL found but has fileid attribute, construct URL
+                if imgUrl == nil && img.hasAttr("fileid") {
+                    if let fileId = try? img.attr("fileid"), !fileId.isEmpty {
+                        imgUrl = "/oss/\(fileId)"
+                        print("DEBUG: Constructed image URL from fileid: \(imgUrl!)")
                     }
-                } catch {
-                    print("DEBUG: Error extracting image info: \(error)")
-                    continue
+                }
+                
+                // Process the found URL if any
+                if let imgUrl = imgUrl {
+                    // Build absolute URL if needed
+                    let absoluteUrl = imgUrl.hasPrefix("http") ? imgUrl : "\(baseURL)\(imgUrl)"
+                    
+                    if !processedImageUrls.contains(absoluteUrl) {
+                        imageUrls.append(absoluteUrl)
+                        processedImageUrls.insert(absoluteUrl)
+                        print("DEBUG: Added image URL: \(absoluteUrl)")
+                    }
                 }
             }
             
-            // If we didn't find any images, try more generic selectors
+            // 2. If no images found, try to find image URLs in the HTML content itself
             if imageUrls.isEmpty {
-                // Try to search for images elsewhere in the document
-                let allBodyImages = try doc.select("img")
-                for img in allBodyImages {
-                    if let imgSrc = try? img.attr("src"), 
-                       !imgSrc.isEmpty,
-                       imgSrc.contains("/oss/") || imgSrc.contains("/uploads/") {
-                        let fullUrl = imgSrc.hasPrefix("http") ? imgSrc : "\(baseURL)\(imgSrc)"
-                        if !processedImageUrls.contains(fullUrl) {
-                            imageUrls.append(fullUrl)
-                            processedImageUrls.insert(fullUrl)
+                print("DEBUG: No images found by selectors, trying regex extraction from HTML")
+                let imgPattern = "src\\s*=\\s*[\"'](.*?)[\"']"
+                if let regex = try? NSRegularExpression(pattern: imgPattern) {
+                    let range = NSRange(content.startIndex..<content.endIndex, in: content)
+                    let matches = regex.matches(in: content, range: range)
+                    
+                    for match in matches {
+                        if let range = Range(match.range(at: 1), in: content) {
+                            let imgUrl = String(content[range])
+                            if imgUrl.contains("/oss/") && !imgUrl.contains(".gif") {
+                                let absoluteUrl = imgUrl.hasPrefix("http") ? imgUrl : "\(baseURL)\(imgUrl)"
+                                if !processedImageUrls.contains(absoluteUrl) {
+                                    imageUrls.append(absoluteUrl)
+                                    processedImageUrls.insert(absoluteUrl)
+                                    print("DEBUG: Extracted image URL from content: \(absoluteUrl)")
+                                }
+                            }
                         }
                     }
                 }
             }
             
-            print("DEBUG: Found a total of \(imageUrls.count) images")
-            
-            // Try to extract content from other common containers if primary selector failed
-            if content.isEmpty {
-                if let contentDiv = try? doc.select(".detailBody").first() {
-                    content = try contentDiv.html()
-                } else if let contentDiv = try? doc.select(".detailBox5").first() {
-                    content = try contentDiv.html()
-                } else if let contentDiv = try? doc.select(".content").first() {
-                    content = try contentDiv.html()
+            // 3. Final attempt - check if any paragraph contains direct img tags
+            if imageUrls.isEmpty {
+                let paragraphs = try doc.select("#newsContent p")
+                for p in paragraphs {
+                    if let pHtml = try? p.html(), pHtml.contains("<img") {
+                        print("DEBUG: Found paragraph with img tag: \(pHtml.prefix(100))...")
+                        // Extract URLs from this paragraph
+                        if let regex = try? NSRegularExpression(pattern: "src\\s*=\\s*[\"'](.*?)[\"']") {
+                            let range = NSRange(pHtml.startIndex..<pHtml.endIndex, in: pHtml)
+                            let matches = regex.matches(in: pHtml, range: range)
+                            
+                            for match in matches {
+                                if let range = Range(match.range(at: 1), in: pHtml) {
+                                    let imgUrl = String(pHtml[range])
+                                    if !imgUrl.contains(".gif") {
+                                        let absoluteUrl = imgUrl.hasPrefix("http") ? imgUrl : "\(baseURL)\(imgUrl)"
+                                        if !processedImageUrls.contains(absoluteUrl) {
+                                            imageUrls.append(absoluteUrl)
+                                            processedImageUrls.insert(absoluteUrl)
+                                            print("DEBUG: Extracted image URL from paragraph: \(absoluteUrl)")
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
-                print("DEBUG: Found alternative content, length: \(content.count)")
+            }
+            
+            print("DEBUG: Final image count: \(imageUrls.count)")
+            for (index, url) in imageUrls.enumerated() {
+                print("DEBUG: Image \(index+1): \(url)")
             }
             
         } catch let error {
             print("DEBUG: Critical HTML parsing error: \(error)")
         }
         
-        // Create detail even if no images found
         return SchoolArrangementDetail(
             id: id,
             title: title,
@@ -479,107 +501,144 @@ class SchoolArrangementViewModel: ObservableObject {
     }
     
     private func downloadImagesAndCreatePDF(detail: SchoolArrangementDetail) {
-        print("DEBUG: Starting to download images for PDF...")
-        var images: [UIImage] = []
-        var failedURLs: [String] = []
+        print("DEBUG: Starting to download \(detail.imageUrls.count) images for PDF...")
         
         // If no images, create PDF with just text
         if detail.imageUrls.isEmpty {
             print("DEBUG: No images to download, creating text-only PDF")
-            createAndSavePDF(detail: detail, images: images)
+            createAndSavePDF(detail: detail, images: [])
             return
         }
         
-        // Use a dispatch group to wait for all downloads
-        let downloadGroup = DispatchGroup()
-        let imageQueue = DispatchQueue(label: "com.outspire.imagedownload", attributes: .concurrent)
+        // For better reliability, download images sequentially
+        downloadImagesSequentially(detail: detail, imageUrls: detail.imageUrls)
+    }
+    
+    // Sequential approach for more reliable image downloads
+    private func downloadImagesSequentially(detail: SchoolArrangementDetail, imageUrls: [String]) {
+        print("DEBUG: Using sequential image download for \(imageUrls.count) images")
         
-        // Track semaphore for downloads
-        let semaphore = DispatchSemaphore(value: 0)
-        var remainingDownloads = detail.imageUrls.count
+        // Create arrays to track progress
+        var downloadedImages: [UIImage] = []
+        var failedUrls: [String] = []
         
-        for urlString in detail.imageUrls {
-            // Process URL string - clean it up and make it valid
-            let sanitizedURL = sanitizeURL(urlString)
-            
-            guard let url = URL(string: sanitizedURL) else {
-                print("DEBUG: Invalid image URL after sanitization: \(urlString) -> \(sanitizedURL)")
-                remainingDownloads -= 1
-                failedURLs.append(urlString)
-                
-                // If this was the last download to fail, create the PDF
-                if remainingDownloads == 0 {
-                    createAndSavePDFWithNotice(detail: detail, images: images, failedURLs: failedURLs)
-                }
-                continue
-            }
-            
-            // Enter the download group
-            downloadGroup.enter()
-            
-            // Create a task with timeout and retry logic
-            let sessionConfig = URLSessionConfiguration.default
-            sessionConfig.timeoutIntervalForRequest = 15.0
-            let session = URLSession(configuration: sessionConfig)
-            
-            let task = session.dataTask(with: url) { [weak self] data, response, error in
-                defer {
-                    downloadGroup.leave()
-                    remainingDownloads -= 1
-                    
-                    // If this was the last download, create the PDF
-                    if remainingDownloads == 0 {
-                        self?.createAndSavePDFWithNotice(detail: detail, images: images, failedURLs: failedURLs)
-                    }
-                    
-                    semaphore.signal()
-                }
-                
-                if let error = error {
-                    print("DEBUG: Failed to download image: \(error.localizedDescription)")
-                    failedURLs.append(urlString)
-                    return
-                }
-                
-                guard let data = data,
-                      let httpResponse = response as? HTTPURLResponse,
-                      (200...299).contains(httpResponse.statusCode) else {
-                    print("DEBUG: Invalid response for image download: \(urlString)")
-                    failedURLs.append(urlString)
-                    return
-                }
-                
-                if let image = UIImage(data: data) {
-                    print("DEBUG: Successfully downloaded image from: \(urlString)")
-                    // Use the image queue to safely add to our array
-                    imageQueue.async {
-                        images.append(image)
-                    }
-                } else {
-                    print("DEBUG: Downloaded data is not a valid image: \(urlString)")
-                    failedURLs.append(urlString)
-                }
-            }
-            
-            task.resume()
-            
-            // Wait with a timeout to avoid blocking too long on a single image
-            let timeoutResult = semaphore.wait(timeout: .now() + 15.0)
-            if timeoutResult == .timedOut {
-                print("DEBUG: Timeout waiting for image download: \(urlString)")
-            }
+        // Start with the first image
+        downloadNextImage(
+            detail: detail, 
+            imageUrls: imageUrls, 
+            currentIndex: 0, 
+            downloadedImages: downloadedImages, 
+            failedUrls: failedUrls
+        )
+    }
+
+    private func downloadNextImage(
+        detail: SchoolArrangementDetail, 
+        imageUrls: [String], 
+        currentIndex: Int, 
+        downloadedImages: [UIImage], 
+        failedUrls: [String]
+    ) {
+        // Check if we've processed all images
+        if currentIndex >= imageUrls.count {
+            print("DEBUG: All \(imageUrls.count) images processed. Success: \(downloadedImages.count), Failed: \(failedUrls.count)")
+            createAndSavePDFWithNotice(detail: detail, images: downloadedImages, failedURLs: failedUrls)
+            return
         }
         
-        // Create PDF after a reasonable timeout in case something goes wrong
-        DispatchQueue.global().asyncAfter(deadline: .now() + 20.0) { [weak self] in
+        let urlString = imageUrls[currentIndex]
+        print("DEBUG: Downloading image \(currentIndex+1)/\(imageUrls.count): \(urlString)")
+        
+        // Process URL: clean and prepare
+        let sanitizedURL = sanitizeAndEncodeURL(urlString)
+        
+        guard let url = URL(string: sanitizedURL) else {
+            print("DEBUG: Invalid URL after sanitization: \(urlString)")
+            var newFailedUrls = failedUrls
+            newFailedUrls.append(urlString)
+            
+            // Continue with next image
+            downloadNextImage(
+                detail: detail,
+                imageUrls: imageUrls,
+                currentIndex: currentIndex + 1,
+                downloadedImages: downloadedImages,
+                failedUrls: newFailedUrls
+            )
+            return
+        }
+        
+        // Create session with timeout and appropriate headers
+        let sessionConfig = URLSessionConfiguration.default
+        sessionConfig.timeoutIntervalForRequest = 20.0
+        sessionConfig.httpAdditionalHeaders = [
+            "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148",
+            "Accept": "image/jpeg, image/png, image/*"
+        ]
+        let session = URLSession(configuration: sessionConfig)
+        
+        let task = session.dataTask(with: url) { [weak self] data, response, error in
             guard let self = self else { return }
             
-            // Check if we still need to create the PDF
-            if remainingDownloads > 0 {
-                print("DEBUG: Creating PDF after timeout with \(images.count) images")
-                self.createAndSavePDFWithNotice(detail: detail, images: images, failedURLs: failedURLs)
+            var newDownloadedImages = downloadedImages
+            var newFailedUrls = failedUrls
+            
+            if let error = error {
+                print("DEBUG: Error downloading image \(currentIndex+1): \(error.localizedDescription)")
+                newFailedUrls.append(urlString)
+            } else if let data = data, let image = UIImage(data: data) {
+                print("DEBUG: Successfully downloaded image \(currentIndex+1) - size: \(data.count) bytes")
+                newDownloadedImages.append(image)
+            } else {
+                print("DEBUG: Failed to convert data to image for URL \(currentIndex+1)")
+                newFailedUrls.append(urlString)
+            }
+            
+            // Continue with next image after a short delay
+            DispatchQueue.global().asyncAfter(deadline: .now() + 0.3) {
+                self.downloadNextImage(
+                    detail: detail,
+                    imageUrls: imageUrls,
+                    currentIndex: currentIndex + 1,
+                    downloadedImages: newDownloadedImages,
+                    failedUrls: newFailedUrls
+                )
             }
         }
+        
+        task.resume()
+    }
+
+    // More thorough URL sanitization and encoding
+    private func sanitizeAndEncodeURL(_ urlString: String) -> String {
+        // Step 1: Basic cleaning
+        var cleaned = urlString
+            .replacingOccurrences(of: " ", with: "%20")
+            .replacingOccurrences(of: "\\", with: "/")
+            .replacingOccurrences(of: "\"", with: "")
+            .replacingOccurrences(of: "'", with: "")
+        
+        // Step 2: Add prefixes if needed
+        if !cleaned.hasPrefix("http") && !cleaned.hasPrefix("/") {
+            cleaned = "/\(cleaned)"
+        }
+        
+        // Step 3: Add base URL if needed
+        if !cleaned.hasPrefix("http") {
+            cleaned = "\(baseURL)\(cleaned)"
+        }
+        
+        // Step 4: Try to create a valid URL
+        if let _ = URL(string: cleaned) {
+            return cleaned
+        }
+        
+        // Step 5: If URL still invalid, try percent encoding
+        if let encoded = cleaned.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
+            return encoded
+        }
+        
+        return cleaned  // Return original if all else fails
     }
     
     private func createAndSavePDFWithNotice(detail: SchoolArrangementDetail, images: [UIImage], failedURLs: [String]) {

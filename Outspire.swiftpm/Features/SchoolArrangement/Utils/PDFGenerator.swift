@@ -3,11 +3,14 @@ import PDFKit
 
 class PDFGenerator {
     static func generatePDF(title: String, date: String, content: String, images: [UIImage]) -> Data? {
+        print("DEBUG: Generating PDF with title: \(title), images: \(images.count)")
+        
         let pdfMetaData = [
             kCGPDFContextCreator: "Outspire",
             kCGPDFContextAuthor: "Outspire App",
             kCGPDFContextTitle: title
         ]
+        
         let format = UIGraphicsPDFRendererFormat()
         format.documentInfo = pdfMetaData as [String: Any]
         
@@ -17,93 +20,131 @@ class PDFGenerator {
         let pageRect = CGRect(x: 0, y: 0, width: pageWidth, height: pageHeight)
         
         // Margins
-        let margin: CGFloat = 50.0
+        let margin: CGFloat = 40.0
         let contentWidth = pageWidth - (margin * 2)
         
         let renderer = UIGraphicsPDFRenderer(bounds: pageRect, format: format)
         
         do {
             let data = try renderer.pdfData { (context) in
-                
-                // First page - title and initial content
+                // First page with title and content
                 context.beginPage()
-                var currentY = drawHeader(
+                
+                // Draw title and date header
+                var yPosition = drawHeader(
                     title: title,
                     date: date,
                     rect: pageRect,
                     margin: margin
                 )
                 
-                // Add horizontal rule
-                currentY += 10
-                let path = UIBezierPath()
-                path.move(to: CGPoint(x: margin, y: currentY))
-                path.addLine(to: CGPoint(x: pageWidth - margin, y: currentY))
-                UIColor.lightGray.setStroke()
-                path.lineWidth = 0.5
-                path.stroke()
-                currentY += 20
+                // Add separator
+                yPosition += 10
+                drawSeparator(at: yPosition, width: pageWidth, margin: margin)
+                yPosition += 20
                 
-                // Process content to plain text
+                // Check if we have images to show 
+                if !images.isEmpty {
+                    // Draw image section title
+                    let sectionFont = UIFont.boldSystemFont(ofSize: 14)
+                    let sectionAttributes: [NSAttributedString.Key: Any] = [
+                        .font: sectionFont,
+                        .foregroundColor: UIColor.darkGray
+                    ]
+                    
+                    let sectionTitle = "Attachments (\(images.count) images)"
+                    let sectionRect = CGRect(x: margin, y: yPosition, width: contentWidth, height: 20)
+                    sectionTitle.draw(in: sectionRect, withAttributes: sectionAttributes)
+                    yPosition += 24
+                    
+                    // Draw each image
+                    for (index, image) in images.enumerated() {
+                        print("DEBUG: Drawing image \(index+1) of \(images.count)")
+                        
+                        // Check if we need a new page for this image
+                        let estimatedImageHeight = min(300, image.size.height * (contentWidth / max(image.size.width, 1)))
+                        if yPosition + estimatedImageHeight + 40 > pageHeight - margin {
+                            context.beginPage()
+                            yPosition = margin
+                        }
+                        
+                        // Draw image number label
+                        let imageNumFont = UIFont.boldSystemFont(ofSize: 12)
+                        let imageNumAttributes: [NSAttributedString.Key: Any] = [
+                            .font: imageNumFont,
+                            .foregroundColor: UIColor.darkGray
+                        ]
+                        
+                        let imageLabel = "Image \(index+1) of \(images.count):"
+                        imageLabel.draw(
+                            at: CGPoint(x: margin, y: yPosition), 
+                            withAttributes: imageNumAttributes
+                        )
+                        yPosition += 20
+                        
+                        // Draw the actual image
+                        yPosition = drawImageWithCaptions(
+                            image: image,
+                            startY: yPosition,
+                            pageRect: pageRect,
+                            margin: margin,
+                            contentWidth: contentWidth
+                        )
+                        
+                        // Add space between images
+                        yPosition += 25
+                        
+                        // Add a separator between images if not the last one
+                        if index < images.count - 1 {
+                            drawSeparator(at: yPosition, width: pageWidth, margin: margin + 20)
+                            yPosition += 20
+                        }
+                    }
+                }
+                
+                // Add separator before content if we have images
+                if !images.isEmpty {
+                    if yPosition + 200 > pageHeight - margin {
+                        context.beginPage()
+                        yPosition = margin
+                    } else {
+                        yPosition += 10
+                        drawSeparator(at: yPosition, width: pageWidth, margin: margin)
+                        yPosition += 20
+                    }
+                }
+                
+                // Add content section if we have any
                 if !content.isEmpty {
-                    currentY = drawContent(
+                    // Content title
+                    if yPosition + 100 > pageHeight - margin {
+                        context.beginPage()
+                        yPosition = margin
+                    }
+                    
+                    let contentTitleFont = UIFont.boldSystemFont(ofSize: 14)
+                    let contentTitleAttributes: [NSAttributedString.Key: Any] = [
+                        .font: contentTitleFont,
+                        .foregroundColor: UIColor.darkGray
+                    ]
+                    
+                    let contentTitle = "Description"
+                    let contentTitleRect = CGRect(x: margin, y: yPosition, width: contentWidth, height: 20)
+                    contentTitle.draw(in: contentTitleRect, withAttributes: contentTitleAttributes)
+                    yPosition += 24
+                    
+                    // Draw the actual content
+                    yPosition = drawHTMLContent(
                         content: content,
-                        startY: currentY,
+                        startY: yPosition,
                         pageRect: pageRect,
                         margin: margin,
                         context: context
                     )
-                    
-                    // Add space after content
-                    currentY += 20
-                }
-                
-                // Add images if available
-                if !images.isEmpty {
-                    // Add a section title for images
-                    let imageSectionFont = UIFont.boldSystemFont(ofSize: 16.0)
-                    let imageSectionTitle = "Attachments (\(images.count) images)"
-                    
-                    let imageSectionAttributes: [NSAttributedString.Key: Any] = [
-                        .font: imageSectionFont,
-                        .foregroundColor: UIColor.darkGray
-                    ]
-                    
-                    // Draw section title
-                    let sectionTitleRect = CGRect(x: margin, y: currentY, width: contentWidth, height: 20)
-                    imageSectionTitle.draw(in: sectionTitleRect, withAttributes: imageSectionAttributes)
-                    currentY += 25
-                    
-                    // Check if we need a new page for images
-                    if currentY > pageHeight - 250 {
-                        context.beginPage()
-                        currentY = margin
-                    }
-                    
-                    // Draw each image
-                    for (index, image) in images.enumerated() {
-                        // Check if we need a new page
-                        if currentY + 280 > pageHeight {
-                            context.beginPage()
-                            currentY = margin
-                        }
-                        
-                        // Draw the image
-                        currentY = drawImage(
-                            image: image,
-                            index: index,
-                            total: images.count,
-                            startY: currentY,
-                            pageRect: pageRect,
-                            margin: margin
-                        )
-                        
-                        // Add spacing between images
-                        currentY += 30
-                    }
                 }
             }
             
+            print("DEBUG: PDF generated successfully with \(images.count) images")
             return data
         } catch {
             print("DEBUG: Error generating PDF: \(error)")
@@ -111,152 +152,139 @@ class PDFGenerator {
         }
     }
     
-    // Helper method to draw the header
     private static func drawHeader(title: String, date: String, rect: CGRect, margin: CGFloat) -> CGFloat {
-        var currentY = margin
+        var yPosition = margin + 10
         
-        // Title configuration
-        let titleFont = UIFont.boldSystemFont(ofSize: 20.0)
+        // Draw title
+        let titleFont = UIFont.boldSystemFont(ofSize: 18)
         let titleAttributes: [NSAttributedString.Key: Any] = [
             .font: titleFont
         ]
         
-        // Calculate title height based on available width
         let titleWidth = rect.width - (margin * 2)
-        let titleSize = title.boundingRect(
+        let titleHeight = min(100, title.boundingRect(
             with: CGSize(width: titleWidth, height: 200),
-            options: [.usesLineFragmentOrigin, .usesFontLeading],
+            options: .usesLineFragmentOrigin,
             attributes: titleAttributes,
             context: nil
-        ).size
+        ).height)
         
-        // Draw title
-        let titleRect = CGRect(x: margin, y: currentY, width: titleWidth, height: titleSize.height)
+        let titleRect = CGRect(x: margin, y: yPosition, width: titleWidth, height: titleHeight)
         title.draw(in: titleRect, withAttributes: titleAttributes)
-        currentY += titleSize.height + 10
+        
+        yPosition += titleHeight + 8
         
         // Draw date
-        let dateFont = UIFont.systemFont(ofSize: 12.0)
+        let dateFont = UIFont.systemFont(ofSize: 12)
         let dateAttributes: [NSAttributedString.Key: Any] = [
             .font: dateFont,
             .foregroundColor: UIColor.darkGray
         ]
         
-        let dateRect = CGRect(x: margin, y: currentY, width: titleWidth, height: 20)
+        let dateRect = CGRect(x: margin, y: yPosition, width: titleWidth, height: 16)
         date.draw(in: dateRect, withAttributes: dateAttributes)
-        currentY += 20
         
-        return currentY
+        yPosition += 20
+        
+        return yPosition
     }
     
-    // Helper method to draw content
-    private static func drawContent(content: String, startY: CGFloat, pageRect: CGRect, 
-                                   margin: CGFloat, context: UIGraphicsPDFRendererContext) -> CGFloat {
-        var currentY = startY
-        let contentWidth = pageRect.width - (margin * 2)
+    private static func drawSeparator(at yPos: CGFloat, width: CGFloat, margin: CGFloat) {
+        let path = UIBezierPath()
+        path.move(to: CGPoint(x: margin, y: yPos))
+        path.addLine(to: CGPoint(x: width - margin, y: yPos))
+        UIColor.lightGray.setStroke()
+        path.lineWidth = 0.5
+        path.stroke()
+    }
+    
+    private static func drawImageWithCaptions(image: UIImage, startY: CGFloat, pageRect: CGRect, margin: CGFloat, contentWidth: CGFloat) -> CGFloat {
+        var yPosition = startY
         
-        // Process HTML to plain text
-        let processedContent = content.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
+        // Calculate image dimensions to fit within page
+        let aspectRatio = max(image.size.width, 1) / max(image.size.height, 1)
+        let maxImageHeight: CGFloat = 300
+        let maxImageWidth = contentWidth
+        
+        var imageWidth: CGFloat
+        var imageHeight: CGFloat
+        
+        if aspectRatio > 1 { // Landscape
+            imageWidth = min(maxImageWidth, image.size.width)
+            imageHeight = imageWidth / aspectRatio
+        } else { // Portrait
+            imageHeight = min(maxImageHeight, image.size.height)
+            imageWidth = imageHeight * aspectRatio
+        }
+        
+        // Don't let image be too big
+        if imageHeight > maxImageHeight {
+            imageHeight = maxImageHeight
+            imageWidth = imageHeight * aspectRatio
+        }
+        if imageWidth > maxImageWidth {
+            imageWidth = maxImageWidth
+            imageHeight = imageWidth / aspectRatio
+        }
+        
+        // Center the image
+        let xPosition = margin + ((contentWidth - imageWidth) / 2)
+        
+        // Draw the image
+        let imageRect = CGRect(x: xPosition, y: yPosition, width: imageWidth, height: imageHeight)
+        image.draw(in: imageRect)
+        
+        yPosition += imageHeight + 5
+        
+        return yPosition
+    }
+    
+    private static func drawHTMLContent(content: String, startY: CGFloat, pageRect: CGRect, margin: CGFloat, context: UIGraphicsPDFRendererContext) -> CGFloat {
+        var yPosition = startY
+        
+        // Strip HTML tags to get plain text
+        let plainText = content.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
             .trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "&nbsp;", with: " ")
+            .replacingOccurrences(of: "&lt;", with: "<")
+            .replacingOccurrences(of: "&gt;", with: ">")
+            .replacingOccurrences(of: "&amp;", with: "&")
         
-        // Parse content into paragraphs
-        let paragraphs = processedContent.components(separatedBy: "\n")
+        // Split into paragraphs
+        let paragraphs = plainText.components(separatedBy: "\n")
+            .filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
         
-        // Content font configuration
-        let contentFont = UIFont.systemFont(ofSize: 12.0)
+        let contentFont = UIFont.systemFont(ofSize: 12)
         let contentAttributes: [NSAttributedString.Key: Any] = [
             .font: contentFont,
             .foregroundColor: UIColor.black
         ]
         
-        for paragraph in paragraphs {
-            if paragraph.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                currentY += 10 // Add space for empty paragraph
-                continue
-            }
-            
-            // Calculate paragraph height based on text
-            let paragraphSize = paragraph.boundingRect(
-                with: CGSize(width: contentWidth, height: 1000),
-                options: [.usesLineFragmentOrigin, .usesFontLeading],
-                attributes: contentAttributes,
-                context: nil
-            ).size
-            
-            // Check if we need a new page
-            if currentY + paragraphSize.height > pageRect.height - margin {
-                context.beginPage()
-                currentY = margin
-            }
-            
-            // Draw paragraph
-            let paragraphRect = CGRect(x: margin, y: currentY, width: contentWidth, height: paragraphSize.height)
-            paragraph.draw(in: paragraphRect, withAttributes: contentAttributes)
-            
-            currentY += paragraphSize.height + 8 // Add space after paragraph
-        }
-        
-        return currentY
-    }
-    
-    // Helper method to draw an image with caption
-    private static func drawImage(image: UIImage, index: Int, total: Int, startY: CGFloat, 
-                                 pageRect: CGRect, margin: CGFloat) -> CGFloat {
-        var currentY = startY
         let contentWidth = pageRect.width - (margin * 2)
         
-        // Calculate image size while maintaining aspect ratio
-        let maxHeight: CGFloat = 220
-        
-        let aspectRatio = image.size.width / image.size.height
-        let imageWidth: CGFloat
-        let imageHeight: CGFloat
-        
-        if aspectRatio > 1 { // Landscape
-            imageWidth = min(contentWidth, image.size.width)
-            imageHeight = imageWidth / aspectRatio
-        } else { // Portrait
-            imageHeight = min(maxHeight, image.size.height)
-            imageWidth = imageHeight * aspectRatio
+        for paragraph in paragraphs {
+            // Calculate height needed for this paragraph
+            let paragraphHeight = paragraph.boundingRect(
+                with: CGSize(width: contentWidth, height: 1000),
+                options: .usesLineFragmentOrigin,
+                attributes: contentAttributes,
+                context: nil
+            ).height
+            
+            // Check if we need a new page
+            if yPosition + paragraphHeight > pageRect.height - margin {
+                context.beginPage()
+                yPosition = margin
+            }
+            
+            // Draw the paragraph
+            let paragraphRect = CGRect(x: margin, y: yPosition, width: contentWidth, height: paragraphHeight)
+            paragraph.draw(in: paragraphRect, withAttributes: contentAttributes)
+            
+            // Update position
+            yPosition += paragraphHeight + 10
         }
         
-        // Ensure we're not exceeding max height
-        let finalHeight = min(imageHeight, maxHeight)
-        let finalWidth = aspectRatio > 1 ? finalHeight * aspectRatio : imageWidth
-        
-        // Center the image
-        let xPos = margin + (contentWidth - finalWidth) / 2
-        
-        // Draw image
-        let imageRect = CGRect(x: xPos, y: currentY, width: finalWidth, height: finalHeight)
-        image.draw(in: imageRect)
-        currentY += finalHeight + 5
-        
-        // Add caption below image
-        let captionFont = UIFont.systemFont(ofSize: 10.0)
-        let captionAttributes: [NSAttributedString.Key: Any] = [
-            .font: captionFont,
-            .foregroundColor: UIColor.darkGray
-        ]
-        
-        let caption = "Image \(index + 1) of \(total)"
-        let captionSize = caption.boundingRect(
-            with: CGSize(width: contentWidth, height: 50),
-            options: [.usesLineFragmentOrigin],
-            attributes: captionAttributes,
-            context: nil
-        ).size
-        
-        let captionRect = CGRect(
-            x: margin,
-            y: currentY,
-            width: contentWidth,
-            height: captionSize.height
-        )
-        
-        caption.draw(in: captionRect, withAttributes: captionAttributes)
-        currentY += captionSize.height
-        
-        return currentY
+        return yPosition
     }
 }
