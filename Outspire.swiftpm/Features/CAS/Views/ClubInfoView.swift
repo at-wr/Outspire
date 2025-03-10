@@ -1,44 +1,5 @@
 import SwiftUI
 
-// Add the shimmering effect extension
-extension View {
-    @ViewBuilder func shimmering() -> some View {
-        self.modifier(ShimmeringViewModifier())
-    }
-}
-
-// Shimmering view modifier implementation
-struct ShimmeringViewModifier: ViewModifier {
-    @State private var phase: CGFloat = 0
-    
-    func body(content: Content) -> some View {
-        content
-            .overlay(
-                GeometryReader { geo in
-                    LinearGradient(
-                        gradient: Gradient(colors: [
-                            .clear,
-                            Color.white.opacity(0.5),
-                            .clear
-                        ]),
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                    .mask(content)
-                    .position(
-                        x: -geo.size.width + (2 * geo.size.width * phase),
-                        y: geo.size.height / 2
-                    )
-                }
-            )
-            .onAppear {
-                withAnimation(Animation.linear(duration: 1.5).repeatForever(autoreverses: false)) {
-                    self.phase = 1
-                }
-            }
-    }
-}
-
 struct ClubInfoView: View {
     @StateObject private var viewModel = ClubInfoViewModel()
     @State private var animateList = false

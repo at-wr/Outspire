@@ -19,10 +19,14 @@ struct SchoolArrangementPage: Codable {
     let currentPage: Int
 }
 
-struct SchoolArrangementDetail: Codable {
+struct SchoolArrangementDetail: Codable, Equatable {
     let id: String
     let title: String
     let publishDate: String
     let imageUrls: [String]
     let content: String
+    
+    static func == (lhs: SchoolArrangementDetail, rhs: SchoolArrangementDetail) -> Bool {
+        return lhs.id == rhs.id
+    }
 }

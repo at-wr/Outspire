@@ -9,6 +9,7 @@ class SchoolArrangementViewModel: ObservableObject {
     @Published var currentPage: Int = 1
     @Published var totalPages: Int = 1
     @Published var selectedDetail: SchoolArrangementDetail?
+    @Published var selectedDetailWrapper: DetailWrapper?
     @Published var isLoadingDetail: Bool = false
     @Published var refreshing: Bool = false
     
@@ -123,7 +124,10 @@ class SchoolArrangementViewModel: ObservableObject {
     func fetchArrangementDetail(for item: SchoolArrangementItem) {
         // First check cache
         if let detail = getCachedDetail(id: item.id) {
-            self.selectedDetail = detail
+            DispatchQueue.main.async {
+                self.selectedDetail = detail
+                self.selectedDetailWrapper = DetailWrapper(detail: detail)
+            }
             return
         }
         
@@ -142,6 +146,8 @@ class SchoolArrangementViewModel: ObservableObject {
         
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
+        request.addValue("Mozilla/5.0", forHTTPHeaderField: "User-Agent")
+        request.addValue(baseURL, forHTTPHeaderField: "Referer")
         
         URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
             guard let self = self else { return }
@@ -162,6 +168,7 @@ class SchoolArrangementViewModel: ObservableObject {
                 do {
                     let detail = try self.parseArrangementDetailHTML(htmlString, id: item.id, title: item.title, publishDate: item.publishDate)
                     self.selectedDetail = detail
+                    self.selectedDetailWrapper = DetailWrapper(detail: detail)
                     
                     // Cache the detail
                     self.cacheDetail(detail)
@@ -181,10 +188,24 @@ class SchoolArrangementViewModel: ObservableObject {
             guard let anchor = try? element.select("a").first() else { return nil }
             
             let url = try anchor.attr("href")
+            
+            // Fix the titleElement optional handling
             let titleElement = try anchor.select(".list_categoryName").first()
-            let title = try titleElement?.text() ?? "Unknown"
+            let title: String
+            if let element = titleElement {
+                title = try element.text()
+            } else {
+                title = "Unknown"
+            }
+            
+            // Fix the publishDateElement optional handling
             let publishDateElement = try anchor.select(".publishTime").first()
-            let publishDate = try publishDateElement?.text() ?? "Unknown Date"
+            let publishDate: String
+            if let element = publishDateElement {
+                publishDate = try element.text()
+            } else {
+                publishDate = "Unknown Date"
+            }
             
             // Extract ID from URL
             let components = url.components(separatedBy: "_")
@@ -207,7 +228,7 @@ class SchoolArrangementViewModel: ObservableObject {
         let doc: Document = try SwiftSoup.parse(html)
         
         // Try to extract from the JavaScript function
-        if let scriptText = try doc.select("script").filter({ try $0.html().contains("var pageNumber =") }).first() {
+        if let scriptText = try doc.select("script").filter({ try $0.html().contains("var pageNumber =") }).first {
             let scriptContent = try scriptText.html()
             if let rangeStart = scriptContent.range(of: "var pageNumber = ('"),
                let rangeEnd = scriptContent.range(of: "'.replace", range: rangeStart.upperBound..<scriptContent.endIndex) {
@@ -225,9 +246,14 @@ class SchoolArrangementViewModel: ObservableObject {
     private func parseArrangementDetailHTML(_ html: String, id: String, title: String, publishDate: String) throws -> SchoolArrangementDetail {
         let doc: Document = try SwiftSoup.parse(html)
         
-        // Extract content from the detailBox5 div
+        // Fix contentDiv optional handling
         let contentDiv = try doc.select(".detailBox5").first()
-        let content = try contentDiv?.html() ?? ""
+        let content: String
+        if let element = contentDiv {
+            content = try element.html()
+        } else {
+            content = ""
+        }
         
         // Extract image URLs
         var imageUrls: [String] = []
@@ -328,5 +354,15 @@ class SchoolArrangementViewModel: ObservableObject {
                 UserDefaults.standard.removeObject(forKey: "\(key)-timestamp")
             }
         }
+    }
+}
+
+// Wrapper class to make detail Identifiable for sheet presentation
+class DetailWrapper: Identifiable {
+    let id = UUID()
+    let detail: SchoolArrangementDetail
+    
+    init(detail: SchoolArrangementDetail) {
+        self.detail = detail
     }
 }

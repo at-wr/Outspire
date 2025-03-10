@@ -7,7 +7,6 @@ struct SchoolArrangementView: View {
     @State private var searchText = ""
     @State private var showingDetailView = false
     @State private var refreshButtonRotation = 0.0
-    @State private var groupByWeek = true
     
     private var filteredArrangements: [SchoolArrangementItem] {
         if searchText.isEmpty {
@@ -23,62 +22,31 @@ struct SchoolArrangementView: View {
     private var groupedArrangements: [String: [SchoolArrangementItem]] {
         var groups: [String: [SchoolArrangementItem]] = [:]
         
-        if groupByWeek {
-            // Group by week numbers
-            for item in filteredArrangements {
-                for weekNumber in item.weekNumbers {
-                    let key = "Week \(weekNumber)"
-                    if groups[key] == nil {
-                        groups[key] = []
-                    }
-                    if !groups[key]!.contains(where: { $0.id == item.id }) {
-                        groups[key]!.append(item)
-                    }
+        // Group by month and year
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        
+        for item in filteredArrangements {
+            if let date = dateFormatter.date(from: item.publishDate) {
+                dateFormatter.dateFormat = "MMMM yyyy"
+                let key = dateFormatter.string(from: date)
+                if groups[key] == nil {
+                    groups[key] = []
                 }
-                
-                // Handle items without valid week numbers
-                if item.weekNumbers.isEmpty {
-                    let key = "Other"
-                    if groups[key] == nil {
-                        groups[key] = []
-                    }
-                    groups[key]!.append(item)
+                groups[key]!.append(item)
+            } else {
+                let key = "Unknown Date"
+                if groups[key] == nil {
+                    groups[key] = []
                 }
+                groups[key]!.append(item)
             }
-            
-            // Sort items within each group by publish date (newest first)
-            for key in groups.keys {
-                groups[key]!.sort { 
-                    $0.publishDate > $1.publishDate
-                }
-            }
-        } else {
-            // Group by month and year
-            let dateFormatter = DateFormatter()
-            dateFormatter.dateFormat = "yyyy-MM-dd"
-            
-            for item in filteredArrangements {
-                if let date = dateFormatter.date(from: item.publishDate) {
-                    dateFormatter.dateFormat = "MMMM yyyy"
-                    let key = dateFormatter.string(from: date)
-                    if groups[key] == nil {
-                        groups[key] = []
-                    }
-                    groups[key]!.append(item)
-                } else {
-                    let key = "Unknown Date"
-                    if groups[key] == nil {
-                        groups[key] = []
-                    }
-                    groups[key]!.append(item)
-                }
-            }
-            
-            // Sort items within each group by publish date (newest first)
-            for key in groups.keys {
-                groups[key]!.sort { 
-                    $0.publishDate > $1.publishDate
-                }
+        }
+        
+        // Sort items within each group by publish date (newest first)
+        for key in groups.keys {
+            groups[key]!.sort { 
+                $0.publishDate > $1.publishDate
             }
         }
         
@@ -86,31 +54,19 @@ struct SchoolArrangementView: View {
     }
     
     private var sortedGroupKeys: [String] {
-        if groupByWeek {
-            // Sort week numbers numerically
-            return groupedArrangements.keys.sorted { key1, key2 in
-                if key1 == "Other" { return false }
-                if key2 == "Other" { return true }
-                
-                let num1 = Int(key1.replacingOccurrences(of: "Week ", with: "")) ?? 0
-                let num2 = Int(key2.replacingOccurrences(of: "Week ", with: "")) ?? 0
-                return num1 > num2
-            }
-        } else {
-            // Sort months chronologically (newest first)
-            let dateFormatter = DateFormatter()
-            dateFormatter.dateFormat = "MMMM yyyy"
+        // Sort months chronologically (newest first)
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "MMMM yyyy"
+        
+        return groupedArrangements.keys.sorted { key1, key2 in
+            if key1 == "Unknown Date" { return false }
+            if key2 == "Unknown Date" { return true }
             
-            return groupedArrangements.keys.sorted { key1, key2 in
-                if key1 == "Unknown Date" { return false }
-                if key2 == "Unknown Date" { return true }
-                
-                if let date1 = dateFormatter.date(from: key1),
-                   let date2 = dateFormatter.date(from: key2) {
-                    return date1 > date2
-                }
-                return key1 > key2
+            if let date1 = dateFormatter.date(from: key1),
+               let date2 = dateFormatter.date(from: key2) {
+                return date1 > date2
             }
+            return key1 > key2
         }
     }
     
@@ -121,8 +77,6 @@ struct SchoolArrangementView: View {
                     .ignoresSafeArea()
                 
                 VStack {
-                    segmentedPicker
-                    
                     if viewModel.isLoading && filteredArrangements.isEmpty {
                         SchoolArrangementSkeletonView()
                     } else if filteredArrangements.isEmpty {
@@ -175,11 +129,9 @@ struct SchoolArrangementView: View {
                     }
                 }
             }
-            .sheet(isPresented: $showingDetailView) {
-                if let detail = viewModel.selectedDetail {
-                    NavigationStack {
-                        SchoolArrangementDetailView(detail: detail)
-                    }
+            .sheet(item: $viewModel.selectedDetailWrapper) { detailWrapper in
+                NavigationStack {
+                    SchoolArrangementDetailView(detail: detailWrapper.detail)
                 }
             }
             .onChange(of: viewModel.errorMessage) { newValue in
@@ -197,16 +149,6 @@ struct SchoolArrangementView: View {
                 }
             }
         }
-    }
-    
-    private var segmentedPicker: some View {
-        Picker("Group By", selection: $groupByWeek) {
-            Text("By Week").tag(true)
-            Text("By Month").tag(false)
-        }
-        .pickerStyle(.segmented)
-        .padding(.horizontal)
-        .padding(.vertical, 8)
     }
     
     private var emptyStateView: some View {
@@ -313,13 +255,20 @@ struct SchoolArrangementView: View {
                 .fill(Color(UIColor.secondarySystemBackground))
         )
         .contentShape(Rectangle())
+        .onTapGesture {
+            viewModel.toggleExpand(item: item)
+        }
         .animation(.spring(response: 0.3), value: item.isExpanded)
     }
     
     private func viewDetailButton(for item: SchoolArrangementItem) -> some View {
         Button {
-            viewModel.fetchArrangementDetail(for: item)
-            showingDetailView = true
+            Task {
+                // First ensure we're on the main thread
+                await MainActor.run {
+                    viewModel.fetchArrangementDetail(for: item)
+                }
+            }
         } label: {
             HStack {
                 Text("View Details")
@@ -336,5 +285,11 @@ struct SchoolArrangementView: View {
             )
         }
         .buttonStyle(BorderlessButtonStyle())
+        .disabled(viewModel.isLoadingDetail)
+        .overlay(
+            viewModel.isLoadingDetail ? 
+            ProgressView()
+                .controlSize(.small) : nil
+        )
     }
 }

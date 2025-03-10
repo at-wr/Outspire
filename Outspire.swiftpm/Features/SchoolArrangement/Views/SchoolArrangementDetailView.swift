@@ -1,9 +1,11 @@
 import SwiftUI
+import QuickLook
 
 struct SchoolArrangementDetailView: View {
     let detail: SchoolArrangementDetail
-    @State private var selectedImageURL: String?
-    @State private var isShowingFullScreenImage = false
+    @State private var selectedURL: URL?
+    @State private var isShowingPreview = false
+    @State private var loadingImage = false
     
     var body: some View {
         ScrollView {
@@ -29,51 +31,180 @@ struct SchoolArrangementDetailView: View {
                     
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 12) {
-                            ForEach(detail.imageUrls, id: \.self) { imageUrl in
-                                AsyncImage(url: URL(string: imageUrl)) { phase in
-                                    switch phase {
-                                    case .empty:
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .fill(Color(UIColor.tertiarySystemBackground))
-                                            .overlay(
-                                                ProgressView()
-                                            )
-                                    case .success(let image):
-                                        image
-                                            .resizable()
-                                            .aspectRatio(contentMode: .fit)
-                                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                                            .onTapGesture {
-                                                selectedImageURL = imageUrl
-                                                isShowingFullScreenImage = true
-                                            }
-                                    case .failure:
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .fill(Color(UIColor.tertiarySystemBackground))
-                                            .overlay(
-                                                Image(systemName: "exclamationmark.triangle")
-                                                    .foregroundStyle(.secondary)
-                                            )
-                                    @unknown default:
-                                        EmptyView()
+                            ForEach(detail.imageUrls, id: \.self) { imageUrlString in
+                                if let imageUrl = URL(string: imageUrlString) {
+                                    ImageWithReferer(url: imageUrl) { phase in
+                                        switch phase {
+                                        case .empty:
+                                            RoundedRectangle(cornerRadius: 8)
+                                                .fill(Color(UIColor.tertiarySystemBackground))
+                                                .overlay(
+                                                    ProgressView()
+                                                )
+                                        case .success(let image):
+                                            image
+                                                .resizable()
+                                                .aspectRatio(contentMode: .fit)
+                                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                                                .onTapGesture {
+                                                    loadAndPreviewImage(from: imageUrlString)
+                                                }
+                                        case .failure:
+                                            RoundedRectangle(cornerRadius: 8)
+                                                .fill(Color(UIColor.tertiarySystemBackground))
+                                                .overlay(
+                                                    Image(systemName: "exclamationmark.triangle")
+                                                        .foregroundStyle(.secondary)
+                                                )
+                                        @unknown default:
+                                            EmptyView()
+                                        }
                                     }
+                                    .frame(height: 200)
+                                    .frame(maxWidth: UIScreen.main.bounds.width * 0.8)
                                 }
-                                .frame(height: 200)
-                                .frame(maxWidth: UIScreen.main.bounds.width * 0.8)
                             }
                         }
                     }
+                }
+                
+                // Content section (if needed)
+                if !detail.content.isEmpty {
+                    Divider()
+                    
+                    Text("Description")
+                        .font(.headline)
+                        .padding(.bottom, 4)
+                    
+                    HTMLContentView(htmlContent: detail.content)
                 }
             }
             .padding()
         }
         .navigationTitle("School Arrangement")
         .navigationBarTitleDisplayMode(.inline)
-        .sheet(isPresented: $isShowingFullScreenImage) {
-            if let imageURL = selectedImageURL, let url = URL(string: imageURL) {
-                FullScreenImageView(imageURL: url)
+        .quickLookPreview($selectedURL)
+        .overlay(
+            loadingImage ? ProgressView("Loading image...").padding().background(RoundedRectangle(cornerRadius: 10).fill(Color(.systemBackground)).shadow(radius: 5)) : nil
+        )
+    }
+    
+    private func loadAndPreviewImage(from urlString: String) {
+        guard let sourceURL = URL(string: urlString) else { return }
+        
+        // Show loading indicator
+        loadingImage = true
+        
+        // Create a proper request with referer header
+        var request = URLRequest(url: sourceURL)
+        request.addValue("https://www.wflms.cn", forHTTPHeaderField: "Referer")
+        
+        let task = URLSession.shared.dataTask(with: request) { data, response, error in
+            DispatchQueue.main.async {
+                // Hide the loading indicator
+                loadingImage = false
+                
+                guard let data = data, error == nil else { return }
+                
+                // Create a temporary file
+                let temporaryDirectoryURL = FileManager.default.temporaryDirectory
+                let fileName = sourceURL.lastPathComponent
+                let fileURL = temporaryDirectoryURL.appendingPathComponent(fileName)
+                
+                // Write to the temporary file
+                do {
+                    try data.write(to: fileURL)
+                    self.selectedURL = fileURL
+                    self.isShowingPreview = true
+                } catch {
+                    print("Error saving file: \(error)")
+                }
             }
         }
+        task.resume()
+    }
+}
+
+// Custom AsyncImage implementation with proper referer headers
+struct ImageWithReferer<Content: View>: View {
+    private let url: URL
+    private let content: (AsyncImagePhase) -> Content
+    @State private var phase: AsyncImagePhase = .empty
+    
+    init(url: URL, @ViewBuilder content: @escaping (AsyncImagePhase) -> Content) {
+        self.url = url
+        self.content = content
+    }
+    
+    var body: some View {
+        content(phase)
+            .onAppear {
+                loadImage()
+            }
+    }
+    
+    private func loadImage() {
+        var request = URLRequest(url: url)
+        request.addValue("https://www.wflms.cn", forHTTPHeaderField: "Referer")
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                DispatchQueue.main.async {
+                    self.phase = .failure(error)
+                }
+                return
+            }
+            
+            guard let data = data else {
+                DispatchQueue.main.async {
+                    self.phase = .failure(NSError(domain: "ImageWithReferer", code: 0, userInfo: [NSLocalizedDescriptionKey: "No data received"]))
+                }
+                return
+            }
+            
+            if let uiImage = UIImage(data: data) {
+                DispatchQueue.main.async {
+                    self.phase = .success(Image(uiImage: uiImage))
+                }
+            } else {
+                DispatchQueue.main.async {
+                    self.phase = .failure(NSError(domain: "ImageWithReferer", code: 1, userInfo: [NSLocalizedDescriptionKey: "Invalid image data"]))
+                }
+            }
+        }.resume()
+    }
+}
+
+struct HTMLContentView: View {
+    let htmlContent: String
+    
+    var body: some View {
+        Text(attributedString)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+    
+    private var attributedString: AttributedString {
+        do {
+            // Process HTML content and convert to AttributedString
+            let processedHTML = htmlContent
+                .replacingOccurrences(of: "<br>", with: "\n")
+                .replacingOccurrences(of: "<br/>", with: "\n")
+                .replacingOccurrences(of: "<br />", with: "\n")
+            
+            if let data = processedHTML.data(using: .utf8) {
+                return try AttributedString(
+                    NSAttributedString(
+                        data: data,
+                        options: [.documentType: NSAttributedString.DocumentType.html],
+                        documentAttributes: nil
+                    )
+                )
+            }
+        } catch {
+            // Handle error silently
+        }
+        
+        return AttributedString(htmlContent)
     }
 }
 
