@@ -5,8 +5,8 @@ struct SchoolArrangementView: View {
     @StateObject private var viewModel = SchoolArrangementViewModel()
     @Environment(\.presentToast) var presentToast
     @State private var searchText = ""
-    @State private var showingDetailView = false
     @State private var refreshButtonRotation = 0.0
+    @State private var animateList = false
     
     private var filteredArrangements: [SchoolArrangementItem] {
         if searchText.isEmpty {
@@ -97,6 +97,8 @@ struct SchoolArrangementView: View {
                                 }
                             }
                             .padding()
+                            .opacity(animateList ? 1 : 0)
+                            .offset(y: animateList ? 0 : 20)
                         }
                         .refreshable {
                             await withCheckedContinuation { continuation in
@@ -132,6 +134,8 @@ struct SchoolArrangementView: View {
             .sheet(item: $viewModel.selectedDetailWrapper) { detailWrapper in
                 NavigationStack {
                     SchoolArrangementDetailView(detail: detailWrapper.detail)
+                        .presentationDetents([.medium, .large])
+                        .presentationDragIndicator(.visible)
                 }
             }
             .onChange(of: viewModel.errorMessage) { newValue in
@@ -147,6 +151,17 @@ struct SchoolArrangementView: View {
                         viewModel.errorMessage = nil
                     }
                 }
+            }
+            .onAppear {
+                // Animate items in when view appears
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
+                        animateList = true
+                    }
+                }
+            }
+            .onDisappear {
+                animateList = false
             }
         }
     }
@@ -263,12 +278,7 @@ struct SchoolArrangementView: View {
     
     private func viewDetailButton(for item: SchoolArrangementItem) -> some View {
         Button {
-            Task {
-                // First ensure we're on the main thread
-                await MainActor.run {
-                    viewModel.fetchArrangementDetail(for: item)
-                }
-            }
+            viewModel.fetchArrangementDetail(for: item)
         } label: {
             HStack {
                 Text("View Details")

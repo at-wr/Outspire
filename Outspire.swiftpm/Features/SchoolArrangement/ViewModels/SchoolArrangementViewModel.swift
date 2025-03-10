@@ -174,7 +174,7 @@ class SchoolArrangementViewModel: ObservableObject {
                     self.cacheDetail(detail)
                     
                 } catch {
-                    self.errorMessage = "Failed to parse detail HTML: \(error.localizedDescription)"
+                    self.errorMessage = "Failed to parse detail: \(error.localizedDescription)"
                 }
             }
         }.resume()
@@ -255,15 +255,38 @@ class SchoolArrangementViewModel: ObservableObject {
             content = ""
         }
         
-        // Extract image URLs
+        // Extract image URLs more safely
         var imageUrls: [String] = []
-        let images = try doc.select("img.uploadimages")
         
+        // First try specific class
+        let images = try doc.select("img.uploadimages")
         for img in images {
-            if try img.attr("src").contains("/oss/") && !img.attr("src").contains(".gif") {
+            do {
                 let imgSrc = try img.attr("src")
-                let fullUrl = "\(baseURL)\(imgSrc)"
-                imageUrls.append(fullUrl)
+                if imgSrc.contains("/oss/") && !imgSrc.contains(".gif") {
+                    let fullUrl = imgSrc.hasPrefix("http") ? imgSrc : "\(baseURL)\(imgSrc)"
+                    imageUrls.append(fullUrl)
+                }
+            } catch {
+                // Skip this image if there's an error
+                continue
+            }
+        }
+        
+        // If no images found with specific class, try all img tags in content
+        if imageUrls.isEmpty {
+            let allImages = try doc.select("img")
+            for img in allImages {
+                do {
+                    let imgSrc = try img.attr("src")
+                    if imgSrc.contains("/oss/") && !imgSrc.contains(".gif") {
+                        let fullUrl = imgSrc.hasPrefix("http") ? imgSrc : "\(baseURL)\(imgSrc)"
+                        imageUrls.append(fullUrl)
+                    }
+                } catch {
+                    // Skip this image if there's an error
+                    continue
+                }
             }
         }
         

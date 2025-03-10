@@ -1,9 +1,11 @@
 import SwiftUI
 
 struct SchoolArrangementSkeletonView: View {
+    @State private var isAnimating = true
+    
     var body: some View {
         VStack(spacing: 16) {
-            ForEach(0..<5, id: \.self) { _ in
+            ForEach(0..<5, id: \.self) { index in
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
                         // Title skeleton
@@ -37,9 +39,18 @@ struct SchoolArrangementSkeletonView: View {
                     RoundedRectangle(cornerRadius: 12)
                         .fill(Color(UIColor.secondarySystemBackground))
                 )
+                .opacity(isAnimating ? 0.6 : 1.0)
+                .animation(
+                    Animation.easeInOut(duration: 1.2)
+                        .repeatForever(autoreverses: true)
+                        .delay(Double(index) * 0.1),
+                    value: isAnimating
+                )
             }
         }
         .padding()
-        .shimmering()
+        .onAppear {
+            isAnimating = true
+        }
     }
 }
