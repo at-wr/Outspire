@@ -19,6 +19,26 @@ struct EnhancedClassCard: View {
             .filter { !$0.isEmpty }
     }
     
+    // Check if this is a self-study period
+    private var isSelfStudy: Bool {
+        return classData.contains("Self-Study")
+    }
+    
+    // Dynamic color based on class type and status
+    private var statusColor: Color {
+        if isSelfStudy {
+            return .purple
+        } else if isCurrentClass {
+            return .orange
+        } else {
+            // Use subject-specific color if we can determine it
+            if components.count > 1 {
+                return ClasstableView.getSubjectColor(from: components[1])
+            }
+            return .blue
+        }
+    }
+    
     private var formattedCountdown: String {
         let hours = Int(timeRemaining) / 3600
         let minutes = (Int(timeRemaining) % 3600) / 60
@@ -39,11 +59,11 @@ struct EnhancedClassCard: View {
                     if isForToday {
                         Text(isCurrentClass ? "Current Class" : "Upcoming Class")
                             .font(.headline)
-                            .foregroundStyle(isCurrentClass ? Color.orange : Color.blue)
+                            .foregroundStyle(statusColor)
                     } else {
                         Text("Scheduled Class")
                             .font(.headline)
-                            .foregroundStyle(Color.blue)
+                            .foregroundStyle(statusColor)
                     }
                     
                     Text("\(day) • Period \(period.number)")
@@ -58,7 +78,7 @@ struct EnhancedClassCard: View {
                     .padding(8)
                     .background(
                         RoundedRectangle(cornerRadius: 8)
-                            .fill(isCurrentClass ? Color.orange.opacity(0.1) : Color.blue.opacity(0.1))
+                            .fill(statusColor.opacity(0.1))
                     )
             }
             .padding([.horizontal, .top], 16)
@@ -108,11 +128,11 @@ struct EnhancedClassCard: View {
                         HStack(spacing: 12) {
                             Image(systemName: isCurrentClass ? "timer" : "hourglass")
                                 .font(.system(size: 18, weight: .medium))
-                                .foregroundStyle(isCurrentClass ? Color.orange : Color.blue)
+                                .foregroundStyle(statusColor)
                                 .frame(width: 36, height: 36)
                                 .background(
                                     Circle()
-                                        .fill(isCurrentClass ? Color.orange.opacity(0.1) : Color.blue.opacity(0.1))
+                                        .fill(statusColor.opacity(0.1))
                                 )
                             
                             VStack(alignment: .leading, spacing: 2) {
@@ -123,15 +143,8 @@ struct EnhancedClassCard: View {
                                 Text(formattedCountdown)
                                     .font(.system(.title3, design: .rounded))
                                     .fontWeight(.semibold)
-                                    .foregroundStyle(isCurrentClass ? Color.orange : Color.blue)
+                                    .foregroundStyle(statusColor)
                                     .contentTransition(.numericText())
-                                
-                                if Int(timeRemaining) / 3600 > 0 {
-                                    Text("\(Int(timeRemaining) / 3600)h \((Int(timeRemaining) % 3600) / 60)m \(Int(timeRemaining) % 60)s")
-                                        .font(.caption2)
-                                        .foregroundStyle(.secondary)
-                                        .contentTransition(.numericText())
-                                }
                             }
                         }
                         .padding(.leading, 16)

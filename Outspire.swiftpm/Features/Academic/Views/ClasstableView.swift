@@ -9,19 +9,52 @@ struct ClasstableView: View {
     @State private var timer: Timer?
     @State private var orientation = UIDevice.current.orientation // Track device orientation
     
-    // Dictionary to map subjects to consistent colors
-    private let subjectColors: [String: Color] = [
-        "Math": .blue.opacity(0.8),
-        "English": .green.opacity(0.8),
-        "Physics": .orange.opacity(0.8),
-        "Chemistry": .purple.opacity(0.8),
-        "Biology": .pink.opacity(0.8),
-        "CS": .mint.opacity(0.8),
-        "PE": .red.opacity(0.8),
-        "History": .brown.opacity(0.8),
-        "Geography": .cyan.opacity(0.8),
-        "Chinese": .indigo.opacity(0.8)
+    // Dictionary to map subject keywords to consistent colors
+    private let subjectColors: [Color: [String]] = [
+        .blue.opacity(0.8): ["Math", "Mathematics", "Maths"],
+        .green.opacity(0.8): ["English", "Language", "Literature", "General Paper", "ESL"],
+        .orange.opacity(0.8): ["Physics", "Science"],
+        .purple.opacity(0.8): ["Chemistry", "Chem"],
+        .teal.opacity(0.8): ["Biology", "Bio"],
+        .mint.opacity(0.8): ["Further Math", "Maths Further"],
+        .yellow.opacity(0.8): ["体育", "PE", "Sports", "P.E"],
+        .brown.opacity(0.8): ["Economics", "Econ"],
+        .cyan.opacity(0.8): ["Arts", "Art", "TOK"],
+        .indigo.opacity(0.8): ["Chinese", "Mandarin", "语文"],
+        .gray.opacity(0.8): ["History", "历史", "Geography", "Geo", "政治"]
     ]
+    
+    // Function to get subject color from name, used by both this view and others
+    static func getSubjectColor(from subjectName: String) -> Color {
+        let colors: [Color: [String]] = [
+            .blue.opacity(0.8): ["Math", "Mathematics", "Maths"],
+            .green.opacity(0.8): ["English", "Language", "Literature", "General Paper", "ESL"],
+            .orange.opacity(0.8): ["Physics", "Science"],
+            .purple.opacity(0.8): ["Chemistry", "Chem"],
+            .teal.opacity(0.8): ["Biology", "Bio"],
+            .mint.opacity(0.8): ["Further Math", "Maths Further"],
+            .yellow.opacity(0.8): ["体育", "PE", "Sports", "P.E"],
+            .brown.opacity(0.8): ["Economics", "Econ"],
+            .cyan.opacity(0.8): ["Arts", "Art", "TOK"],
+            .indigo.opacity(0.8): ["Chinese", "Mandarin", "语文"],
+            .gray.opacity(0.8): ["History", "历史", "Geography", "Geo", "政治"]
+        ]
+        
+        let subject = subjectName.lowercased()
+        
+        for (color, keywords) in colors {
+            for keyword in keywords {
+                if subject.contains(keyword.lowercased()) {
+                    return color
+                }
+            }
+        }
+        
+        // Default color based on subject hash for consistency
+        let hash = abs(subject.hashValue)
+        let hue = Double(hash % 12) / 12.0
+        return Color(hue: hue, saturation: 0.7, brightness: 0.9)
+    }
     
     // Add periods data based on the provided times (unchanged)
     private var classPeriods: [ClassPeriod] {
@@ -116,7 +149,7 @@ struct ClasstableView: View {
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    if !viewModel.years.isEmpty {
+                    if (!viewModel.years.isEmpty) {
                         Menu {
                             ForEach(viewModel.years) { year in
                                 Button(year.W_Year) {
@@ -280,7 +313,7 @@ struct ClasstableView: View {
 // Class cell component that displays teacher, subject, and classroom
 struct ClassCell: View {
     let cellContent: String
-    let colorMap: [String: Color]
+    let colorMap: [Color: [String]]
     @Environment(\.colorScheme) private var colorScheme
     
     private var components: [String] {
@@ -293,18 +326,7 @@ struct ClassCell: View {
         // Try to find the subject color based on keywords
         guard components.count > 1 else { return .gray.opacity(0.5) }
         
-        let subjectName = components[1].lowercased()
-        
-        for (keyword, color) in colorMap {
-            if subjectName.contains(keyword.lowercased()) {
-                return color
-            }
-        }
-        
-        // Hash-based color for consistent colors per subject
-        let hash = abs(subjectName.hashValue)
-        let hue = Double(hash % 12) / 12.0
-        return Color(hue: hue, saturation: 0.7, brightness: 0.9)
+        return ClasstableView.getSubjectColor(from: components[1])
     }
     
     private var hasContent: Bool {
@@ -316,12 +338,10 @@ struct ClassCell: View {
             VStack(alignment: .leading, spacing: 4) {
                 if components.count > 0 {
                     // Teacher name
-                    if components.count > 0 {
-                        Text(components[0])
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .lineLimit(1)
-                    }
+                    Text(components[0])
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
                     
                     // Subject name - highlighted
                     if components.count > 1 {

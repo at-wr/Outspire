@@ -111,6 +111,8 @@ struct TodayView: View {
                 .symbolRenderingMode(.hierarchical)
                 .foregroundStyle(selectedDayOverride != nil || isHolidayMode ? .blue : .primary)
         }
+        .disabled(!sessionService.isAuthenticated)
+        .opacity(sessionService.isAuthenticated ? 1.0 : 0.5)
     }
     
     private var scheduleSettingsSheet: some View {
@@ -233,6 +235,14 @@ struct TodayView: View {
     private func setupOnAppear() {
         checkForDateChange()
         
+        // Ensure that on first app launch we're not selecting any specific day
+        if AnimationManager.shared.isFirstLaunch {
+            selectedDayOverride = nil
+            setAsToday = false
+            Configuration.selectedDayOverride = nil
+            Configuration.setAsToday = false
+        }
+        
         if sessionService.isAuthenticated && sessionService.userInfo == nil {
             sessionService.fetchUserInfo { _, _ in }
         }
@@ -325,6 +335,16 @@ struct TodayView: View {
     private func handleAuthChange(_ isAuthenticated: Bool) {
         if !isAuthenticated {
             classtableViewModel.timetable = []
+            
+            // Reset all schedule settings when logged out
+            selectedDayOverride = nil
+            setAsToday = false
+            isHolidayMode = false
+            
+            // Also reset in Configuration to ensure persistence
+            Configuration.selectedDayOverride = nil
+            Configuration.setAsToday = false
+            Configuration.isHolidayMode = false
             
             // No animation when switching between views
             animateCards = true

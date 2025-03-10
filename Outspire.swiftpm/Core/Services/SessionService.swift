@@ -98,9 +98,19 @@ class SessionService: ObservableObject {
         userInfo = nil
         isAuthenticated = false
         
+        // Clear schedule settings
+        Configuration.selectedDayOverride = nil
+        Configuration.setAsToday = false
+        Configuration.isHolidayMode = false
+        Configuration.holidayHasEndDate = false
+        
         // Clear user defaults
         userDefaults.removeObject(forKey: "sessionId")
         userDefaults.removeObject(forKey: "userInfo")
+        userDefaults.removeObject(forKey: "selectedDayOverride")
+        userDefaults.removeObject(forKey: "setAsToday")
+        userDefaults.removeObject(forKey: "isHolidayMode")
+        userDefaults.removeObject(forKey: "holidayHasEndDate")
         
         // Clear all cookies to ensure clean slate
         if let cookies = HTTPCookieStorage.shared.cookies {
