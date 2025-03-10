@@ -172,6 +172,30 @@ struct SchoolArrangementView: View {
             .onDisappear {
                 animateIn = false
             }
+            // Replace the sheet presentation with conditional fullScreenCover for iPad
+            .onChange(of: viewModel.pdfURL) { newValue in
+                if newValue != nil {
+                    showDetailSheet = true
+                }
+            }
+            .sheet(isPresented: $showDetailSheet, onDismiss: {
+                // Clear any lingering resources
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    if viewModel.selectedDetail == nil {
+                        print("DEBUG: Ensuring selected detail is nil after sheet dismissal")
+                    }
+                }
+            }) {
+                // Show PDF preview if available
+                if let pdfURL = viewModel.pdfURL, let detail = viewModel.selectedDetail {
+                    EnhancedPDFViewer(
+                        url: pdfURL,
+                        title: detail.title,
+                        publishDate: detail.publishDate
+                    )
+                    .edgesIgnoringSafeArea(.bottom)
+                }
+            }
         }
     }
     

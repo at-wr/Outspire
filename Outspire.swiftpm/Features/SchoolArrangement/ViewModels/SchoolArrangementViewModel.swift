@@ -217,14 +217,16 @@ class SchoolArrangementViewModel: ObservableObject {
         // Group by month and year
         var groups: [String: [SchoolArrangementItem]] = [:]
         
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd"
+        let inputDateFormatter = DateFormatter()
+        inputDateFormatter.dateFormat = "yyyy-MM-dd"
+        
+        let outputDateFormatter = DateFormatter()
+        outputDateFormatter.dateFormat = "MMMM yyyy"
         
         for item in arrangements {
             let key: String
-            if let date = dateFormatter.date(from: item.publishDate) {
-                dateFormatter.dateFormat = "MMMM yyyy"
-                key = dateFormatter.string(from: date)
+            if let date = inputDateFormatter.date(from: item.publishDate) {
+                key = outputDateFormatter.string(from: date)
             } else {
                 key = "Unknown Date"
             }
@@ -245,11 +247,11 @@ class SchoolArrangementViewModel: ObservableObject {
             if key1 == "Unknown Date" { return false }
             if key2 == "Unknown Date" { return true }
             
-            let dateFormatter = DateFormatter()
-            dateFormatter.dateFormat = "MMMM yyyy"
+            let monthYearFormatter = DateFormatter()
+            monthYearFormatter.dateFormat = "MMMM yyyy"
             
-            if let date1 = dateFormatter.date(from: key1),
-               let date2 = dateFormatter.date(from: key2) {
+            if let date1 = monthYearFormatter.date(from: key1),
+               let date2 = monthYearFormatter.date(from: key2) {
                 return date1 > date2
             }
             return key1 > key2
@@ -492,7 +494,7 @@ class SchoolArrangementViewModel: ObservableObject {
         guard let url = URL(string: urlString) else { return false }
         return UIApplication.shared.canOpenURL(url)
     }
-
+    
     // Validate and sanitize a URL string
     private func sanitizeURL(_ urlString: String) -> String {
         return urlString
@@ -531,7 +533,7 @@ class SchoolArrangementViewModel: ObservableObject {
             failedUrls: failedUrls
         )
     }
-
+    
     private func downloadNextImage(
         detail: SchoolArrangementDetail, 
         imageUrls: [String], 
@@ -608,7 +610,7 @@ class SchoolArrangementViewModel: ObservableObject {
         
         task.resume()
     }
-
+    
     // More thorough URL sanitization and encoding
     private func sanitizeAndEncodeURL(_ urlString: String) -> String {
         // Step 1: Basic cleaning
