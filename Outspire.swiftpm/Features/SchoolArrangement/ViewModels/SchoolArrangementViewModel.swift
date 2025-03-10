@@ -108,9 +108,14 @@ class SchoolArrangementViewModel: ObservableObject {
         errorMessage = nil
         selectedDetail = nil
         
+        // Sanitize URL - handle cases where the URL might contain spaces or invalid characters
         let urlString = "\(baseURL)\(item.url)"
+            .replacingOccurrences(of: " ", with: "%20")
+        
+        print("DEBUG: Fetching detail from \(urlString)")
         
         guard let url = URL(string: urlString) else {
+            print("DEBUG: Invalid URL: \(urlString)")
             self.errorMessage = "Invalid detail URL"
             self.isLoadingDetail = false
             return
@@ -128,11 +133,13 @@ class SchoolArrangementViewModel: ObservableObject {
                 self.isLoadingDetail = false
                 
                 if let error = error as NSError?, error.code != NSURLErrorCancelled {
+                    print("DEBUG: Network error: \(error)")
                     self.errorMessage = "Failed to load detail: \(error.localizedDescription)"
                     return
                 }
                 
                 guard let data = data, let htmlString = String(data: data, encoding: .utf8) else {
+                    print("DEBUG: Failed to decode response")
                     self.errorMessage = "Failed to decode response"
                     return
                 }
@@ -143,13 +150,13 @@ class SchoolArrangementViewModel: ObservableObject {
                     
                     let detail = try self.parseArrangementDetailHTML(htmlString, id: item.id, title: item.title, publishDate: item.publishDate)
                     
-                    if detail.imageUrls.isEmpty {
-                        self.errorMessage = "No images found in this arrangement"
-                        return
-                    }
-                    
+                    // IMPORTANT: We're not requiring images anymore
+                    // Just create the detail object regardless
+                    print("DEBUG: Detail parsed successfully with \(detail.imageUrls.count) images")
                     self.selectedDetail = detail
+                    
                 } catch {
+                    print("DEBUG: Detail parsing error: \(error)")
                     self.errorMessage = "Failed to parse detail: \(error.localizedDescription)"
                 }
             }
@@ -293,51 +300,146 @@ class SchoolArrangementViewModel: ObservableObject {
     }
     
     private func parseArrangementDetailHTML(_ html: String, id: String, title: String, publishDate: String) throws -> SchoolArrangementDetail {
-        let doc: Document = try SwiftSoup.parse(html)
+        print("DEBUG: Starting to parse HTML for \(title)")
         
-        // Try to get the content
-        let contentDiv = try doc.select(".detailBox5").first()
-        let content = try contentDiv?.html() ?? ""
-        
-        // Extract image URLs
+        let content: String
         var imageUrls: [String] = []
         
-        // First try specific class
-        let images = try doc.select("img.uploadimages")
-        for img in images {
-            do {
-                let imgSrc = try img.attr("src")
-                if imgSrc.contains("/oss/") && !imgSrc.contains(".gif") {
-                    let fullUrl = imgSrc.hasPrefix("http") ? imgSrc : "\(baseURL)\(imgSrc)"
-                    if !processedImageUrls.contains(fullUrl) {
-                        imageUrls.append(fullUrl)
-                        processedImageUrls.insert(fullUrl)
-                    }
-                }
-            } catch {
-                continue
-            }
-        }
-        
-        // If no images found, try all img tags
-        if imageUrls.isEmpty {
-            let allImages = try doc.select("img")
-            for img in allImages {
+        do {
+            let doc: Document = try SwiftSoup.parse(html)
+            
+            // Try to get the content
+            let contentDiv = try doc.select(".detailBox5").first()
+            content = try contentDiv?.html() ?? ""
+            print("DEBUG: Content extracted, length: \(content.count)")
+            
+            // Extract image URLs - try multiple approaches
+            
+            // 1. First try specific class
+            let uploadImages = try doc.select("img.uploadimages")
+            print("DEBUG: Found \(uploadImages.count) images with uploadimages class")
+            
+            for img in uploadImages {
                 do {
                     let imgSrc = try img.attr("src")
                     if imgSrc.contains("/oss/") && !imgSrc.contains(".gif") {
                         let fullUrl = imgSrc.hasPrefix("http") ? imgSrc : "\(baseURL)\(imgSrc)"
+                        print("DEBUG: Found image URL: \(fullUrl)")
+                        
                         if !processedImageUrls.contains(fullUrl) {
                             imageUrls.append(fullUrl)
                             processedImageUrls.insert(fullUrl)
                         }
                     }
                 } catch {
+                    print("DEBUG: Error extracting src: \(error)")
                     continue
                 }
             }
+            
+            // 2. Try all img tags with _src attribute (some sites use this)
+            if imageUrls.isEmpty {
+                let allImages = try doc.select("img")
+                
+                for img in allImages {
+                    do {
+                        // Try standard src first
+                        let imgSrc = try img.attr("src")
+                        if imgSrc.contains("/oss/") && !imgSrc.contains(".gif") {
+                            let fullUrl = imgSrc.hasPrefix("http") ? imgSrc : "\(baseURL)\(imgSrc)"
+                            
+                            if !processedImageUrls.contains(fullUrl) {
+                                imageUrls.append(fullUrl)
+                                processedImageUrls.insert(fullUrl)
+                                continue
+                            }
+                        }
+                        
+                        // Try _src attribute
+                        if img.hasAttr("_src") {
+                            let imgSrc = try img.attr("_src")
+                            if imgSrc.contains("/oss/") && !imgSrc.contains(".gif") {
+                                let fullUrl = imgSrc.hasPrefix("http") ? imgSrc : "\(baseURL)\(imgSrc)"
+                                
+                                if !processedImageUrls.contains(fullUrl) {
+                                    imageUrls.append(fullUrl)
+                                    processedImageUrls.insert(fullUrl)
+                                }
+                            }
+                        }
+                        
+                        // Try fileid attribute which some sites use
+                        if img.hasAttr("fileid") {
+                            let fileId = try img.attr("fileid")
+                            if !fileId.isEmpty {
+                                let fullUrl = "\(baseURL)/oss/\(fileId)"
+                                
+                                if !processedImageUrls.contains(fullUrl) {
+                                    imageUrls.append(fullUrl)
+                                    processedImageUrls.insert(fullUrl)
+                                }
+                            }
+                        }
+                    } catch {
+                        continue
+                    }
+                }
+            }
+            
+            // Add more robust image finding
+            if imageUrls.isEmpty {
+                // Try another selector pattern - some sites structure differently
+                let allDivs = try doc.select("div.detailBody")
+                for div in allDivs {
+                    let divImages = try div.select("img")
+                    for img in divImages {
+                        // Check for any reasonable image URL
+                        do {
+                            if let imgSrc = try? img.attr("src") {
+                                if !imgSrc.isEmpty && (
+                                    imgSrc.contains("/oss/") || 
+                                    imgSrc.contains("/uploads/") || 
+                                    imgSrc.lowercased().hasSuffix(".jpg") || 
+                                    imgSrc.lowercased().hasSuffix(".png") || 
+                                    imgSrc.lowercased().hasSuffix(".jpeg")
+                                ) {
+                                    let fullUrl = imgSrc.hasPrefix("http") ? imgSrc : "\(baseURL)\(imgSrc)"
+                                    
+                                    if !processedImageUrls.contains(fullUrl) {
+                                        print("DEBUG: Found additional image URL: \(fullUrl)")
+                                        imageUrls.append(fullUrl)
+                                        processedImageUrls.insert(fullUrl)
+                                    }
+                                }
+                            }
+                        } catch {
+                            continue
+                        }
+                    }
+                }
+            }
+            
+            print("DEBUG: Found a total of \(imageUrls.count) images")
+            
+            // Try to extract content from other common containers if primary selector failed
+            if content.isEmpty {
+                if let contentDiv = try? doc.select(".detailBody").first() {
+                    content = try contentDiv.html()
+                } else if let contentDiv = try? doc.select(".content").first() {
+                    content = try contentDiv.html()
+                } else if let contentDiv = try? doc.select(".article-content").first() {
+                    content = try contentDiv.html()
+                }
+                print("DEBUG: Found alternative content, length: \(content.count)")
+            }
+            
+        } catch {
+            print("DEBUG: Critical HTML parsing error: \(error)")
+            // Instead of failing, return an empty content
+            content = ""
         }
         
+        // Create detail even if no images found
         return SchoolArrangementDetail(
             id: id,
             title: title,
@@ -393,5 +495,18 @@ class SchoolArrangementViewModel: ObservableObject {
         
         detailTask?.cancel()
         detailTask = nil
+    }
+    
+    // Improved URL validation helper
+    private func isValidURL(_ urlString: String) -> Bool {
+        guard let url = URL(string: urlString) else { return false }
+        return UIApplication.shared.canOpenURL(url)
+    }
+
+    // Validate and sanitize a URL string
+    private func sanitizeURL(_ urlString: String) -> String {
+        return urlString
+            .replacingOccurrences(of: " ", with: "%20")
+            .replacingOccurrences(of: "\\", with: "/")
     }
 }

@@ -26,7 +26,7 @@ struct SchoolArrangementDetailView: View {
                 .offset(y: animateContent ? 0 : 10)
                 .animation(.easeOut(duration: 0.4).delay(0.1), value: animateContent)
                 
-                // Images section
+                // Images section - only show if we have images
                 if !detail.imageUrls.isEmpty {
                     Text("Attachments")
                         .font(.headline)
@@ -57,6 +57,15 @@ struct SchoolArrangementDetailView: View {
                         }
                         .padding(.vertical, 8)
                     }
+                } else {
+                    // No images message
+                    Text("No attachments found")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding()
+                        .opacity(animateContent ? 1 : 0)
+                        .animation(.easeOut(duration: 0.4).delay(0.2), value: animateContent)
                 }
                 
                 // Content section
@@ -77,6 +86,15 @@ struct SchoolArrangementDetailView: View {
                         .opacity(animateContent ? 1 : 0)
                         .offset(y: animateContent ? 0 : 10)
                         .animation(.easeOut(duration: 0.4).delay(0.6), value: animateContent)
+                } else {
+                    // No content message
+                    Text("No description available")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding()
+                        .opacity(animateContent ? 1 : 0)
+                        .animation(.easeOut(duration: 0.4).delay(0.4), value: animateContent)
                 }
             }
             .padding()
@@ -85,7 +103,9 @@ struct SchoolArrangementDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .background(Color(UIColor.systemBackground))
         .fullScreenCover(isPresented: $showingFullScreenImage) {
-            if let index = selectedImageIndex, index < detail.imageUrls.count {
+            if let index = selectedImageIndex, 
+               index < detail.imageUrls.count,
+               let _ = URL(string: detail.imageUrls[index]) { // Validate URL
                 ImageViewer(
                     imageUrl: detail.imageUrls[index],
                     title: detail.title,
@@ -94,6 +114,8 @@ struct SchoolArrangementDetailView: View {
             }
         }
         .onAppear {
+            print("DEBUG: Detail view appeared with \(detail.imageUrls.count) images")
+            
             // Animate content when view appears
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                 animateContent = true
@@ -105,6 +127,9 @@ struct SchoolArrangementDetailView: View {
 // Simple thumbnail for the image list
 struct ImageThumbnail: View {
     let url: URL
+    @State private var loadFailed = false
+    @State private var retryCount = 0
+    private let maxRetries = 2
     
     var body: some View {
         AsyncImage(url: url) { phase in
@@ -119,6 +144,12 @@ struct ImageThumbnail: View {
                 image
                     .resizable()
                     .aspectRatio(contentMode: .fill)
+                    .onAppear {
+                        // Reset failure state if we loaded successfully after a retry
+                        if loadFailed {
+                            loadFailed = false
+                        }
+                    }
             case .failure:
                 RoundedRectangle(cornerRadius: 12)
                     .fill(Color(UIColor.tertiarySystemBackground))
@@ -127,10 +158,36 @@ struct ImageThumbnail: View {
                             Image(systemName: "exclamationmark.triangle")
                                 .font(.title)
                                 .foregroundStyle(.secondary)
+                            
                             Text("Failed to load")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
+                            
+                            if retryCount < maxRetries {
+                                Button("Retry") {
+                                    retryCount += 1
+                                    // Force AsyncImage to try again by briefly changing the url and back
+                                    let tempURL = url
+                                    let deadURL = URL(string: "https://example.com/retry\(UUID().uuidString)")!
+                                    
+                                    // Small hack to force AsyncImage to reload
+                                    withAnimation {
+                                        loadFailed = true
+                                    }
+                                    
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                        withAnimation {
+                                            loadFailed = false
+                                        }
+                                    }
+                                }
+                                .padding(.top, 5)
+                                .font(.caption)
+                            }
                         }
+                    }
+                    .onAppear {
+                        loadFailed = true
                     }
             @unknown default:
                 Color.gray
@@ -139,7 +196,7 @@ struct ImageThumbnail: View {
     }
 }
 
-// Simplified full screen image viewer
+// Update the ImageViewer to handle URL creation errors
 struct ImageViewer: View {
     let imageUrl: String
     let title: String
@@ -149,6 +206,8 @@ struct ImageViewer: View {
     @State private var lastScale: CGFloat = 1.0
     @State private var offset = CGSize.zero
     @State private var lastOffset = CGSize.zero
+    @State private var error: Bool = false
+    @State private var loadFailed = false
     
     var body: some View {
         NavigationStack {
@@ -227,19 +286,48 @@ struct ImageViewer: View {
                                     )
                                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                             case .failure:
-                                VStack {
+                                VStack(spacing: 16) {
                                     Image(systemName: "exclamationmark.triangle")
                                         .font(.largeTitle)
                                         .foregroundStyle(.secondary)
                                     Text("Failed to load image")
                                         .foregroundStyle(.secondary)
+                                    
+                                    Button("Try Again") {
+                                        // Force image reload
+                                        loadFailed = true
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                            loadFailed = false
+                                        }
+                                    }
+                                    .padding(.horizontal, 20)
+                                    .padding(.vertical, 8)
+                                    .background(
+                                        Capsule()
+                                            .fill(Color.blue.opacity(0.1))
+                                    )
+                                    .id(UUID()) // Force view recreation
                                 }
                                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                .onAppear {
+                                    loadFailed = true
+                                }
                             @unknown default:
                                 EmptyView()
                             }
                         }
+                        .id(loadFailed ? UUID() : "stable") // Force reload when needed
                         .frame(width: geo.size.width, height: geo.size.height)
+                    } else {
+                        // Handle invalid URL
+                        VStack {
+                            Image(systemName: "exclamationmark.triangle")
+                                .font(.largeTitle)
+                                .foregroundStyle(.secondary)
+                            Text("Invalid image URL")
+                                .foregroundStyle(.secondary)
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                     }
                 }
                 .contentShape(Rectangle())
@@ -283,6 +371,7 @@ struct HTMLContentView: View {
     var body: some View {
         Text(attributedString)
             .frame(maxWidth: .infinity, alignment: .leading)
+            .fixedSize(horizontal: false, vertical: true) // Important for proper text sizing
     }
     
     private var attributedString: AttributedString {
@@ -292,23 +381,52 @@ struct HTMLContentView: View {
                 .replacingOccurrences(of: "<br>", with: "\n")
                 .replacingOccurrences(of: "<br/>", with: "\n")
                 .replacingOccurrences(of: "<br />", with: "\n")
+                // Strip script tags completely
+                .replacingOccurrences(of: "<script[^>]*>.*?</script>", with: "", options: .regularExpression)
+                // Strip style tags
+                .replacingOccurrences(of: "<style[^>]*>.*?</style>", with: "", options: .regularExpression)
+                // Remove potentially problematic tags
+                .replacingOccurrences(of: "<iframe[^>]*>.*?</iframe>", with: "", options: .regularExpression)
+                .replacingOccurrences(of: "<object[^>]*>.*?</object>", with: "", options: .regularExpression)
             
-            if let data = processedHTML.data(using: .utf8) {
-                return try AttributedString(
-                    NSAttributedString(
-                        data: data,
-                        options: [.documentType: NSAttributedString.DocumentType.html],
-                        documentAttributes: nil
-                    )
-                )
+            // Ensure we have valid HTML
+            let safeHTML = """
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <style>
+                    body { font-family: -apple-system; font-size: 16px; }
+                </style>
+            </head>
+            <body>
+                \(processedHTML)
+            </body>
+            </html>
+            """
+            
+            if let data = safeHTML.data(using: .utf8) {
+                let options: [NSAttributedString.DocumentReadingOptionKey: Any] = [
+                    .documentType: NSAttributedString.DocumentType.html,
+                    .characterEncoding: String.Encoding.utf8.rawValue
+                ]
+                
+                let attributed = try NSAttributedString(data: data, options: options, documentAttributes: nil)
+                return try AttributedString(attributed)
             }
         } catch {
-            // Handle error silently
+            print("DEBUG: HTML parsing error: \(error)")
         }
         
         // Fallback to plain text if HTML parsing fails
         let plainText = htmlContent
             .replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression, range: nil)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        if plainText.isEmpty {
+            return AttributedString("No content available")
+        }
+        
         return AttributedString(plainText)
     }
 }

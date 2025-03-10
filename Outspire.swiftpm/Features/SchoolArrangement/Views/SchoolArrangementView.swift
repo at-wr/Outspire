@@ -85,19 +85,62 @@ struct SchoolArrangementView: View {
                 }
             }
             .sheet(isPresented: $showDetailSheet) {
+                // Sheet dismissed callback - clear any lingering resources
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    if viewModel.selectedDetail == nil {
+                        print("DEBUG: Ensuring selected detail is nil after sheet dismissal")
+                    }
+                }
+            } content: {
                 if let detail = viewModel.selectedDetail {
                     NavigationStack {
                         SchoolArrangementDetailView(detail: detail)
+                            .onAppear {
+                                print("DEBUG: Detail sheet presented with \(detail.imageUrls.count) images")
+                            }
+                            .navigationBarTitleDisplayMode(.inline)
+                            .toolbar {
+                                ToolbarItem(placement: .navigationBarTrailing) {
+                                    Button("Done") {
+                                        showDetailSheet = false
+                                    }
+                                }
+                            }
                     }
                     .presentationDetents([.medium, .large])
                     .presentationDragIndicator(.visible)
+                    .interactiveDismissDisabled(false) // Allow sheet to be dismissed by dragging
+                } else {
+                    // Fallback in case selectedDetail is nil but sheet is presented
+                    VStack {
+                        ProgressView()
+                        Text("Loading content...")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .padding(.top)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .onAppear {
+                        // Auto-dismiss if no data loaded after a timeout
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                            if viewModel.selectedDetail == nil && !viewModel.isLoadingDetail {
+                                print("DEBUG: No detail available after waiting, dismissing sheet")
+                                showDetailSheet = false
+                                viewModel.errorMessage = "Failed to load content"
+                            }
+                        }
+                    }
                 }
             }
             .onChange(of: viewModel.selectedDetail) { _, newDetail in
-                showDetailSheet = newDetail != nil
+                withAnimation {
+                    showDetailSheet = newDetail != nil
+                }
+                print("DEBUG: Selected detail changed: \(newDetail != nil ? "available" : "nil")")
             }
             .onChange(of: viewModel.errorMessage) { _, errorMessage in
                 if let message = errorMessage {
+                    print("DEBUG: Showing error toast: \(message)")
                     showToast(message)
                 }
             }
@@ -277,6 +320,7 @@ struct SchoolArrangementView: View {
     
     private func viewDetailButton(for item: SchoolArrangementItem) -> some View {
         Button {
+            print("DEBUG: Tapped view detail button for: \(item.id)")
             viewModel.fetchArrangementDetail(for: item)
         } label: {
             HStack {
@@ -300,6 +344,11 @@ struct SchoolArrangementView: View {
                 ProgressView().controlSize(.small)
             }
         }
+        .simultaneousGesture(TapGesture().onEnded {
+            // Haptic feedback when tapped
+            let generator = UIImpactFeedbackGenerator(style: .light)
+            generator.impactOccurred()
+        })
     }
     
     // MARK: - Helper Methods
