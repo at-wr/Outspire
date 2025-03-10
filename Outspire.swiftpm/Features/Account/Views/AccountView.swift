@@ -117,7 +117,7 @@ struct AccountView: View {
                 //.padding(.bottom, 30)
                 
                 Section {
-                    VStack(spacing: 4) {
+                    VStack(spacing: 2) {
                         Image(systemName: "lock.circle.dotted")
                             .foregroundStyle(.secondary)
                             .font(.system(size: 24))
@@ -133,7 +133,7 @@ struct AccountView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .listRowBackground(Color.clear)
-                    .padding(.top, 8)
+                    .padding(.top, 2)
                 }
                 
                 Section {
