@@ -1,8 +1,9 @@
 import SwiftUI
 
-// Remove duplicate ShimmeringEffect - use the one from UI/Extensions/View+Shimmering.swift instead
-
 struct SchoolArrangementSkeletonView: View {
+    // Animation states
+    @State private var animateItems = false
+    
     var body: some View {
         VStack(spacing: 16) {
             ForEach(0..<5, id: \.self) { index in
@@ -13,7 +14,6 @@ struct SchoolArrangementSkeletonView: View {
                             .fill(Color.gray.opacity(0.2))
                             .frame(height: 22)
                             .frame(width: 200)
-                            //.shimmering()
                         
                         Spacer()
                         
@@ -22,7 +22,6 @@ struct SchoolArrangementSkeletonView: View {
                             .fill(Color.gray.opacity(0.2))
                             .frame(height: 16)
                             .frame(width: 100)
-                            //.shimmering()
                     }
                     
                     // Week numbers skeleton
@@ -31,7 +30,6 @@ struct SchoolArrangementSkeletonView: View {
                             RoundedRectangle(cornerRadius: 12)
                                 .fill(Color.gray.opacity(0.2))
                                 .frame(width: 40, height: 24)
-                                //.shimmering()
                         }
                         
                         Spacer()
@@ -42,8 +40,23 @@ struct SchoolArrangementSkeletonView: View {
                     RoundedRectangle(cornerRadius: 12)
                         .fill(Color(UIColor.secondarySystemBackground))
                 )
+                .opacity(animateItems ? 1 : 0.4)
+                .offset(y: animateItems ? 0 : 10)
+                .animation(
+                    .spring(response: 0.5, dampingFraction: 0.8)
+                    .delay(Double(index) * 0.07),
+                    value: animateItems
+                )
             }
         }
         .padding()
+        .onAppear {
+            withAnimation(.easeOut(duration: 0.4)) {
+                animateItems = true
+            }
+        }
+        .onDisappear {
+            animateItems = false
+        }
     }
 }

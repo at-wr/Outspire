@@ -9,6 +9,7 @@ struct SchoolArrangementView: View {
     @State private var refreshRotation = 0.0
     @State private var showDetailSheet = false
     @State private var hasFirstAppeared = false
+    @State private var refreshButtonRotation = 0.0
     
     // Animation namespace for matching animation
     @Namespace private var animation
@@ -41,6 +42,10 @@ struct SchoolArrangementView: View {
         }
     }
     
+    // Animation constants for consistent timing
+    private let transitionDuration = 0.35
+    private let staggerDelay = 0.05
+    
     var body: some View {
         NavigationStack {
             ZStack {
@@ -52,17 +57,20 @@ struct SchoolArrangementView: View {
                 Group {
                     if viewModel.isLoading && viewModel.arrangements.isEmpty {
                         loadingView
-                            .transition(.opacity)
+                            .transition(.opacity.combined(with: .scale(scale: 0.98, anchor: .center)))
                     } else if isEmptyState {
                         emptyStateView
-                            .transition(.opacity)
+                            .transition(.opacity.combined(with: .scale(scale: 0.98, anchor: .center)))
                     } else {
                         contentListView
-                            .transition(.opacity)
+                            .transition(.opacity.combined(with: .asymmetric(
+                                insertion: .scale(scale: 0.98, anchor: .top).combined(with: .opacity),
+                                removal: .opacity
+                            )))
                     }
                 }
-                .animation(.easeInOut(duration: 0.3), value: viewModel.isLoading)
-                .animation(.easeInOut(duration: 0.3), value: isEmptyState)
+                .animation(.spring(response: transitionDuration, dampingFraction: 0.86), value: viewModel.isLoading)
+                .animation(.spring(response: transitionDuration, dampingFraction: 0.86), value: isEmptyState)
             }
             .navigationTitle("School Arrangement")
             .navigationBarTitleDisplayMode(.large)
@@ -73,7 +81,21 @@ struct SchoolArrangementView: View {
             )
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    refreshButton
+                    // refreshButton // replaced with LoadingIndicator and RefreshButton
+                    LoadingIndicator(isLoading: viewModel.isLoading)
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    RefreshButton(isLoading: viewModel.isLoading, rotation: $refreshButtonRotation, action: {
+                        withAnimation {
+                            refreshButtonRotation += 360
+                        }
+                        
+                        // Add subtle haptic feedback
+                        let generator = UIImpactFeedbackGenerator(style: .light)
+                        generator.impactOccurred()
+                        
+                        viewModel.refreshData()
+                    })
                 }
             }
             .sheet(isPresented: $showDetailSheet, onDismiss: {
@@ -86,10 +108,14 @@ struct SchoolArrangementView: View {
                 detailSheetContent
             }
             .onChange(of: viewModel.pdfURL) { _, newURL in
-                showDetailSheet = newURL != nil
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    showDetailSheet = newURL != nil
+                }
             }
             .onChange(of: viewModel.selectedDetail) { _, newDetail in
-                showDetailSheet = newDetail != nil
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    showDetailSheet = newDetail != nil
+                }
             }
             .onChange(of: viewModel.errorMessage) { _, errorMessage in
                 if let message = errorMessage {
@@ -110,26 +136,7 @@ struct SchoolArrangementView: View {
     
     // MARK: - View Components
     
-    private var refreshButton: some View {
-        Group {
-            if viewModel.isLoading {
-                ProgressView().controlSize(.small)
-            } else {
-                RefreshButton(
-                    isLoadingActivities: viewModel.isLoading,
-                    isLoadingGroups: false,
-                    groupsEmpty: false,
-                    rotation: $refreshRotation,
-                    action: {
-                        withAnimation {
-                            refreshRotation += 360
-                        }
-                        viewModel.refreshData()
-                    }
-                )
-            }
-        }
-    }
+    // Removed refreshButton, LoadingIndicator and RefreshButton are used instead
     
     private var loadingView: some View {
         SchoolArrangementSkeletonView()
@@ -148,7 +155,9 @@ struct SchoolArrangementView: View {
                         fetchDetail: { viewModel.fetchArrangementDetail(for: $0) },
                         isLoadingDetail: viewModel.isLoadingDetail,
                         shouldAnimate: viewModel.shouldAnimate,
-                        isSmallScreen: isSmallDevice
+                        isSmallScreen: isSmallDevice,
+                        transitionDuration: transitionDuration,
+                        staggerDelay: staggerDelay
                     )
                     .id(group.id)
                 }
@@ -159,6 +168,7 @@ struct SchoolArrangementView: View {
             }
             .padding()
         }
+        .scrollDismissesKeyboard(.immediately)
         .refreshable {
             await performRefresh()
         }
@@ -170,6 +180,8 @@ struct SchoolArrangementView: View {
             .onAppear {
                 viewModel.fetchNextPage()
             }
+            .opacity(0.8)
+            .transition(.opacity.combined(with: .move(edge: .bottom)))
     }
     
     private var emptyStateView: some View {
@@ -254,6 +266,10 @@ struct SchoolArrangementView: View {
         )
         presentToast(toast)
         
+        // Add subtle haptic feedback for errors
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.error)
+        
         // Clear the error message after showing toast
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             viewModel.errorMessage = nil
@@ -262,6 +278,40 @@ struct SchoolArrangementView: View {
 }
 
 // MARK: - Extracted Components
+
+
+// Here, we use the one from clubactivitiesview instead
+// Add LoadingIndicator and RefreshButton here, similar to ClubActivitiesView
+/*
+ struct LoadingIndicator: View {
+ let isLoading: Bool
+ 
+ var body: some View {
+ if isLoading {
+ ProgressView()
+ .controlSize(.small)
+ .transition(.opacity.combined(with: .scale))
+ }
+ }
+ }
+ */
+
+/*
+ struct RefreshButton: View {
+ let isLoading: Bool
+ @Binding var rotation: Double
+ let action: () -> Void
+ 
+ var body: some View {
+ Button(action: action) {
+ Image(systemName: "arrow.clockwise")
+ .rotationEffect(.degrees(rotation))
+ .animation(.spring(response: 0.6, dampingFraction: 0.5), value: rotation)
+ }
+ .disabled(isLoading)
+ }
+ }
+ */
 
 struct EmptyStateView: View {
     let searchText: String
@@ -321,11 +371,19 @@ struct MonthSection: View {
     let isLoadingDetail: Bool
     let shouldAnimate: Bool
     let isSmallScreen: Bool
+    let transitionDuration: Double
+    let staggerDelay: Double
+    
+    @State private var headerHovered = false
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             // Month header
-            Button(action: toggleGroup) {
+            Button(action: {
+                withAnimation(.spring(response: 0.45, dampingFraction: 0.65)) {
+                    toggleGroup()
+                }
+            }) {
                 HStack {
                     Text(group.title)
                         .font(.headline)
@@ -336,28 +394,48 @@ struct MonthSection: View {
                     Image(systemName: group.isExpanded ? "chevron.up" : "chevron.down")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                        .rotationEffect(.degrees(group.isExpanded ? 180 : 0))
+                        .animation(.spring(response: 0.4, dampingFraction: 0.7), value: group.isExpanded)
+                        .scaleEffect(headerHovered ? 1.1 : 1.0)
+                        .animation(.easeInOut(duration: 0.2), value: headerHovered)
                 }
                 .padding(.vertical, 6)
                 .padding(.horizontal, 8)
                 .contentShape(Rectangle())
+                .onHover { isHovered in
+                    headerHovered = isHovered
+                }
             }
             .buttonStyle(BorderlessButtonStyle())
+            .contentTransition(.opacity)
             .id("header-\(group.id)")
             
             // Items for this month
             if group.isExpanded {
                 VStack(spacing: 12) {
-                    ForEach(group.items) { item in
+                    ForEach(Array(group.items.enumerated()), id: \.element.id) { index, item in
                         ArrangementItemView(
                             item: item,
                             toggleItem: { toggleItem(item.id) },
                             fetchDetail: { fetchDetail(item) },
-                            isLoadingDetail: isLoadingDetail
+                            isLoadingDetail: isLoadingDetail,
+                            shouldAnimate: shouldAnimate,
+                            staggerDelay: staggerDelay,
+                            itemIndex: index
                         )
                         .id("item-\(item.id)")
+                        .transition(.asymmetric(
+                            insertion: .opacity
+                                .combined(with: .scale(scale: 0.95, anchor: .top))
+                                .combined(with: .offset(y: -5))
+                                .animation(.spring(response: 0.4, dampingFraction: 0.65)
+                                    .delay(Double(index) * 0.05)),
+                            removal: .opacity
+                                .combined(with: .scale(scale: 0.95, anchor: .top))
+                                .animation(.easeOut(duration: 0.2))
+                        ))
                     }
                 }
-                .transition(.move(edge: .top).combined(with: .opacity))
             }
         }
         .padding(.top, 4)
@@ -365,9 +443,9 @@ struct MonthSection: View {
         .offset(y: shouldAnimate ? 0 : 20)
         // Only animate on larger screens or first appearance
         .animation(
-            (isSmallScreen && AnimationManager.shared.hasAnimated(viewId: "SchoolArrangementView")) 
-            ? nil 
-            : .spring(response: 0.6, dampingFraction: 0.7).delay(0.1), 
+            (isSmallScreen && AnimationManager.shared.hasAnimated(viewId: "SchoolArrangementView"))
+            ? nil
+            : .spring(response: 0.5, dampingFraction: 0.8).delay(transitionDuration * 0.2),
             value: shouldAnimate
         )
     }
@@ -378,11 +456,31 @@ struct ArrangementItemView: View {
     let toggleItem: () -> Void
     let fetchDetail: () -> Void
     let isLoadingDetail: Bool
+    let shouldAnimate: Bool
+    let staggerDelay: Double
+    let itemIndex: Int
+    
+    @State private var buttonHovered = false
+    @State private var isPressed = false
     
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             // Header with title and date
-            Button(action: toggleItem) {
+            Button(action: {
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
+                    isPressed = true
+                    // Small haptic feedback for toggle action
+                    let generator = UIImpactFeedbackGenerator(style: .light)
+                    generator.impactOccurred(intensity: 0.5)
+                    
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
+                            isPressed = false
+                            toggleItem()
+                        }
+                    }
+                }
+            }) {
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(item.title)
@@ -401,6 +499,14 @@ struct ArrangementItemView: View {
                         .foregroundStyle(.secondary)
                         .frame(width: 32, height: 32)
                         .contentShape(Rectangle())
+                        .rotationEffect(.degrees(item.isExpanded ? 180 : 0))
+                        .animation(.spring(response: 0.45, dampingFraction: 0.65), value: item.isExpanded)
+                        .scaleEffect(buttonHovered ? 1.1 : 1.0)
+                        .animation(.easeInOut(duration: 0.2), value: buttonHovered)
+                }
+                .contentTransition(.opacity)
+                .onHover { isHovered in
+                    buttonHovered = isHovered
                 }
             }
             .buttonStyle(BorderlessButtonStyle())
@@ -417,7 +523,8 @@ struct ArrangementItemView: View {
                     isLoading: isLoadingDetail
                 )
                 .padding(.top, 4)
-                .transition(.opacity.combined(with: .move(edge: .top)))
+                .transition(.scale.combined(with: .opacity))
+                .animation(.spring(response: 0.4, dampingFraction: 0.7), value: item.isExpanded)
             }
         }
         .padding()
@@ -426,6 +533,13 @@ struct ArrangementItemView: View {
                 .fill(Color(UIColor.secondarySystemBackground))
         )
         .contentShape(Rectangle())
+        .opacity(shouldAnimate ? 1 : 0)
+        .offset(y: shouldAnimate ? 0 : 20)
+        .scaleEffect(isPressed ? 0.98 : 1.0)
+        .animation(
+            .spring(response: 0.5, dampingFraction: 0.7).delay(Double(itemIndex) * staggerDelay),
+            value: shouldAnimate
+        )
     }
     
     private var weekNumbersView: some View {
@@ -451,11 +565,25 @@ struct ViewDetailButton: View {
     let action: () -> Void
     let isLoading: Bool
     
+    @State private var isPressed = false
+    @State private var hovered = false
+    @State private var opacity: Double = 0 // Add opacity state
+    
     var body: some View {
         Button(action: {
             let generator = UIImpactFeedbackGenerator(style: .light)
             generator.impactOccurred()
-            action()
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                isPressed = true
+            }
+            
+            // Reset press state after a brief delay
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                    isPressed = false
+                }
+                action()
+            }
         }) {
             HStack {
                 Text("View as PDF")
@@ -468,11 +596,25 @@ struct ViewDetailButton: View {
             .frame(maxWidth: .infinity)
             .background(
                 RoundedRectangle(cornerRadius: 8)
-                    .fill(Color.accentColor.opacity(0.1))
+                    .fill(Color.accentColor.opacity(hovered ? 0.15 : 0.1))
             )
+            .scaleEffect(isPressed ? 0.97 : 1.0)
         }
         .buttonStyle(BorderlessButtonStyle())
         .disabled(isLoading)
         .opacity(isLoading ? 0.6 : 1.0)
+        .opacity(opacity) // Use opacity state here
+        .animation(.spring(response: 0.3, dampingFraction: 0.7).delay(0.1), value: isLoading)
+        .onAppear {
+            // Fade in animation when button appears
+            withAnimation(.easeOut(duration: 0.3).delay(0.05)) {
+                opacity = 1
+            }
+        }
+        .onHover { isHovered in
+            withAnimation(.easeOut(duration: 0.2)) {
+                hovered = isHovered
+            }
+        }
     }
 }

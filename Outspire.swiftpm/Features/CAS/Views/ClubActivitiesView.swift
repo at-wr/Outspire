@@ -259,6 +259,8 @@ struct LoadingIndicator: View {
     }
 }
 
+// also used in schoolarrangementview
+// need to use :3
 struct RefreshButton: View {
     let isLoadingActivities: Bool
     let isLoadingGroups: Bool
