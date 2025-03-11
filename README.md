@@ -54,8 +54,8 @@ If you encounter any issues, please create an issue or submit a pull request. If
 
 ## Privacy Policy
 
-Outspire doesn't collect any user data. Only data will be transmitted between the TSIMS server, the relay instance, and your device if you’ve enabled Relay Encryption.
+Outspire doesn't collect any user data. All data will be transmitted between the data source, the relay instance, and your device if you’ve enabled Relay Encryption. Relay instance does not collect or store any user data.
 
 ## License
 
-Outspire is licensed under the AGPLv3 license. The licenses for other open-source third-party packages are listed [here](./THIRD_PARTY_LICENSES).
+Outspire is licensed under the MIT license. The licenses for other open-source third-party packages are listed [here](./THIRD_PARTY_LICENSES).
