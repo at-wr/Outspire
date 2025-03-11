@@ -60,13 +60,13 @@ struct ClubActivitiesView: View {
     private var toolbarItems: some ToolbarContent {
         Group {
             ToolbarItem(placement: .navigationBarTrailing) {
-                LoadingIndicator(
+                CALoadingIndicator(
                     isLoadingActivities: viewModel.isLoadingActivities,
                     isLoadingGroups: viewModel.isLoadingGroups
                 )
             }
             ToolbarItem(placement: .navigationBarTrailing) {
-                RefreshButton(
+                CARefreshButton(
                     isLoadingActivities: viewModel.isLoadingActivities,
                     isLoadingGroups: viewModel.isLoadingGroups,
                     groupsEmpty: viewModel.groups.isEmpty,
@@ -246,7 +246,7 @@ struct ActivitiesSection: View {
     }
 }
 
-struct LoadingIndicator: View {
+struct CALoadingIndicator: View {
     let isLoadingActivities: Bool
     let isLoadingGroups: Bool
     
@@ -259,9 +259,9 @@ struct LoadingIndicator: View {
     }
 }
 
-// also used in schoolarrangementview
+// now moved to SchoolArrangement/Views/Components/UIComponents
 // need to use :3
-struct RefreshButton: View {
+struct CARefreshButton: View {
     let isLoadingActivities: Bool
     let isLoadingGroups: Bool
     let groupsEmpty: Bool
