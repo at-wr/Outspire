@@ -1,3 +1,5 @@
+<img align="left" width="60" height="60" src="https://raw.githubusercontent.com/at-wr/Outspire/refs/heads/main/Outspire.swiftpm/Assets.xcassets/AppIcon.appiconset/AppIcon.png" alt="Outspire App Icon">
+
 # Outspire
 [![Xcode Build & Test](https://github.com/at-wr/Outspire/actions/workflows/build_test.yml/badge.svg)](https://github.com/at-wr/Outspire/actions/workflows/build_test.yml)
 
