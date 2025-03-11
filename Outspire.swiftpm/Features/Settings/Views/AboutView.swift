@@ -8,13 +8,13 @@ struct AboutView: View {
                 HStack {
                     Label("Version", systemImage: "info.circle")
                     Spacer()
-                    Text("0.4")
+                    Text("0.4.2")
                         .foregroundStyle(.secondary)
                 }
                 HStack {
                     Label("Developer", systemImage: "person")
                     Spacer()
-                    Text("Alan Ye @WFLA")
+                    Text("Alan Ye @ WFLA")
                         .foregroundStyle(.secondary)
                 }
                 HStack {

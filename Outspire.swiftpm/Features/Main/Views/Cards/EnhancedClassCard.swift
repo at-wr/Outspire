@@ -144,6 +144,7 @@ struct EnhancedClassCard: View {
                                     .font(.system(.title3, design: .rounded))
                                     .fontWeight(.semibold)
                                     .foregroundStyle(statusColor)
+                                    .monospacedDigit()
                                     .contentTransition(.numericText())
                                     .transaction { t in
                                         t.animation = .default // Fix in iOS 17 API that shows no transition

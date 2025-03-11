@@ -320,7 +320,7 @@ struct LunchMenuSection: View {
                 HStack {
                     Text(group.title)
                         .font(.headline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.gray)
                     
                     Spacer()
                     
@@ -423,7 +423,7 @@ struct LunchMenuItemView: View {
                         
                         Text(item.publishDate)
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(.gray)
                     }
                     
                     Spacer()

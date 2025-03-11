@@ -24,7 +24,7 @@ struct MonthSection: View {
                 HStack {
                     Text(group.title)
                         .font(.headline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.gray)
                     
                     Spacer()
                     
@@ -127,7 +127,7 @@ struct ArrangementItemView: View {
                         
                         Text(item.publishDate)
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(.gray)
                     }
                     
                     Spacer()
@@ -167,7 +167,7 @@ struct ArrangementItemView: View {
         .padding()
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(Color(UIColor.secondarySystemBackground))
+                .fill(Color(UIColor.tertiarySystemBackground))
         )
         .contentShape(Rectangle())
         .opacity(shouldAnimate ? 1 : 0)
@@ -183,7 +183,7 @@ struct ArrangementItemView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
                 ForEach(item.weekNumbers, id: \.self) { week in
-                    Text("W\(week)")
+                    Text("Week \(week)")
                         .font(.caption)
                         .fontWeight(.medium)
                         .padding(.horizontal, 12)
