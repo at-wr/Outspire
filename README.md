@@ -10,20 +10,29 @@ A iOS app for WFLA TSIMS built with SwiftUI, which is also compatible with macOS
 
 ## Features
 
-- [x] Account Management
-- [x] Class Table
-- [x] Club Info
-- [x] Category Picker
-- [x] Member List (unstable)
-- [x] CAS Activity
-- [x] Activity History View
-- [x] Activity Management
-- [x] Add New Activity Record
-- [x] Relay Encryption
-- [x] Today View
-- [x] Academic Score
-- [x] Class Countdown
+- Today View
+	- [x] Upcoming & Current Class Countdown
+- Network / Account
+	- [x] Account
+	- [x] Relay Encryption
+- Clubs / CAS
+	- [x] Club Info
+	- [x] Club Member List (available with account)
+	- [x] Activity Record
+	- [x] Category Picker
+	- [x] Activity History View
+	- [x] Activity Management
+	- [x] New Activity Record
+- Academic
+	- [x] Academic Score
+	- [x] Class Countdown
+	- [x] Classtable
 - [ ] …
+
+### Planned
+
+- Publish on TestFlight...
+- Distribute to App Store...
 
 ## Preview Screenshot
 
