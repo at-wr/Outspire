@@ -8,7 +8,7 @@ struct AboutView: View {
                 HStack {
                     Label("Version", systemImage: "info.circle")
                     Spacer()
-                    Text("0.4.3")
+                    Text("0.4.4")
                         .foregroundStyle(.secondary)
                 }
                 HStack {
@@ -24,9 +24,30 @@ struct AboutView: View {
                         .foregroundStyle(.secondary)
                 }
                 
-            } footer: {
-                Text("Please leave a star on GitHub if you like ✨")
-                    .font(.caption)
+            }
+            
+            Section {
+                HStack {
+                    Text("TSIMS for WFLA Int'l")
+                        .foregroundStyle(.primary)
+                }
+                HStack {
+                    Text("WFLMS.cn")
+                        .foregroundStyle(.primary)
+                }                
+            } header: {
+                Text("Data Source Transparency")
+            }
+            
+            Section {
+                Link(destination: URL(string: "mailto:alanye@fastmail.com")!) {
+                    Label("Send a Mail", systemImage: "tray.and.arrow.down")
+                        .foregroundStyle(.primary)
+                }
+                Link(destination: URL(string: "https://object-battle.netlify.app/")!) {
+                    Label("Feelin' Lucky", systemImage: "dice")
+                        .foregroundStyle(.primary)
+                }
             }
         }
         .navigationTitle("About")

@@ -16,9 +16,9 @@ let package = Package(
         .iOSApplication(
             name: "Outspire",
             targets: ["AppModule"],
-            displayVersion: "0.4.3",
+            displayVersion: "0.4.4",
             bundleVersion: "1",
-            appIcon: .placeholder(icon: .sparkle),
+            appIcon: .asset("AppIcon"),
             accentColor: .presetColor(.cyan),
             supportedDeviceFamilies: [
                 .pad,
@@ -40,7 +40,7 @@ let package = Package(
                         )
                     ]
                 )),
-                .faceID(purposeString: "Required to protect sensitive privacy, including academic score, etc.")
+                .faceID(purposeString: "Required to protect sensitive privacy, including academic grades, etc.")
             ],
             appCategory: .education
         )
