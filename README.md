@@ -3,7 +3,7 @@
 # Outspire
 [![Xcode Build & Test](https://github.com/at-wr/Outspire/actions/workflows/build_test.yml/badge.svg)](https://github.com/at-wr/Outspire/actions/workflows/build_test.yml)
 
-A iOS app for WFLA TSIMS built with SwiftUI, which is also compatible with macOS.
+An iOS app for WFLA TSIMS built with SwiftUI, which is also compatible with macOS.
 
 ## Overview
 
