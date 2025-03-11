@@ -27,12 +27,15 @@ A iOS app for WFLA TSIMS built with SwiftUI, which is also compatible with macOS
 	- [x] Academic Score
 	- [x] Class Countdown
 	- [x] Classtable
+- School Data
+	- [x] Weekly Arrangements
+	- [x] Lunch Menus
 - [ ] …
 
 ### Planned
 
 - Publish on TestFlight...
-- Distribute to App Store...
+- Distribute with App Store...
 
 ## Preview Screenshot
 
