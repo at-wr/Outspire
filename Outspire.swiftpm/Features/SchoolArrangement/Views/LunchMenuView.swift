@@ -458,7 +458,7 @@ struct LunchMenuItemView: View {
         .padding()
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(Color(UIColor.secondarySystemBackground))
+                .fill(Color(UIColor.tertiarySystemBackground))
         )
         .contentShape(Rectangle())
         .opacity(shouldAnimate ? 1 : 0)

@@ -16,7 +16,7 @@ let package = Package(
         .iOSApplication(
             name: "Outspire",
             targets: ["AppModule"],
-            displayVersion: "0.4.2",
+            displayVersion: "0.4.3",
             bundleVersion: "1",
             appIcon: .placeholder(icon: .sparkle),
             accentColor: .presetColor(.cyan),

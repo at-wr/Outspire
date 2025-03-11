@@ -8,7 +8,7 @@ struct AboutView: View {
                 HStack {
                     Label("Version", systemImage: "info.circle")
                     Spacer()
-                    Text("0.4.2")
+                    Text("0.4.3")
                         .foregroundStyle(.secondary)
                 }
                 HStack {
