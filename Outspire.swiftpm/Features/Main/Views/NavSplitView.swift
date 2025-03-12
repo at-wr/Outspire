@@ -18,16 +18,16 @@ struct NavSplitView: View {
                 
                 if !Configuration.hideAcademicScore {
                     NavigationLink(value: "score") {
-                        Label("Academic Score", systemImage: "pencil.and.list.clipboard")
+                        Label("Academic Grades", systemImage: "pencil.and.list.clipboard")
                     }
                 }
                 
                 Section {
                     NavigationLink(value: "club-info") {
-                        Label("Club List", systemImage: "person.2.circle")
+                        Label("Club Gallery", systemImage: "person.2.circle")
                     }
                     NavigationLink(value: "club-activity") {
-                        Label("Activities", systemImage: "checklist")
+                        Label("Activity Logs", systemImage: "checklist")
                     }
                     
                 } header: {
@@ -35,11 +35,14 @@ struct NavSplitView: View {
                 }
 
                 Section {
+                    NavigationLink(value: "map") {
+                        Label("Campus Map", systemImage: "map")
+                    }
                     NavigationLink(value: "school-arrangement") {
                         Label("School Arrangement", systemImage: "calendar.badge.clock")
                     }
                     NavigationLink(value: "lunch-menu") {
-                        Label("Lunch Menu", systemImage: "fork.knife")
+                        Label("Dining Information", systemImage: "fork.knife")
                     }
                     NavigationLink(value: "help") {
                         Label("Help", systemImage: "questionmark.circle.dashed")
@@ -81,6 +84,8 @@ struct NavSplitView: View {
                 LunchMenuView()
             case .some("help"):
                 HelpView()
+            case .some("map"):
+                MapView()
             default:
                 TodayView()
             }
