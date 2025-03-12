@@ -19,7 +19,7 @@ let package = Package(
             bundleIdentifier: "dev.wrye.Outspire",
             teamIdentifier: "T2KTTT65L2",
             displayVersion: "0.4.5",
-            bundleVersion: "1",
+            bundleVersion: "5",
             appIcon: .asset("AppIcon"),
             accentColor: .presetColor(.cyan),
             supportedDeviceFamilies: [

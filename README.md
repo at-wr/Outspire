@@ -44,11 +44,13 @@ An iOS app for WFLA TSIMS built with SwiftUI, which is also compatible with macO
 ![Screenshot of Outspire in Stage Manager](https://i.imgur.com/9HU9TSO.png)
 ![Screenshot of adding Activity Record](https://i.imgur.com/29hYWLc.png)
 
-## Third-Party Usage and Disclaimer
+## Terms of Service
 
-Outspire is built on the Web API of TSIMS, utilizing SwiftSoup for HTML parsing. [Easy-TSIMS](https://github.com/Computerization/Easy-TSIMS) by [Computerization](https://github.com/Computerization/) and [Joshua Chen](https://github.com/Josh-Cena) is used as an encrypted relay instance.
+Outspire is built on the Web API of TSIMS, utilizing SwiftSoup for HTML parsing. 
 
 This application is a personal experiment for educational purposes. Any potential issues caused by misuse of this application are not the responsibility of the author of Outspire.
+
+When you begin using the app, you agree not to use the App outside of its intended usage.
 
 If you encounter any issues, please create an issue or submit a pull request. If you like this project, please consider giving it a star! All kinds of contributions are welcome.
 

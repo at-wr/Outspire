@@ -1,5 +1,19 @@
 import SwiftUI
 
+extension Bundle {
+    var releaseVersionNumber: String? {
+        return infoDictionary?["CFBundleShortVersionString"] as? String
+    }
+    var buildVersionNumber: String? {
+        return infoDictionary?["CFBundleVersion"] as? String
+    }
+}
+
+let appVersion = Bundle.main.releaseVersionNumber
+let appBuild = Bundle.main.buildVersionNumber
+
+
+
 struct AboutView: View {
     
     var body: some View {
@@ -8,8 +22,11 @@ struct AboutView: View {
                 HStack {
                     Label("Version", systemImage: "info.circle")
                     Spacer()
-                    Text("0.4.5")
-                        .foregroundStyle(.secondary)
+                    if let version = Bundle.main.releaseVersionNumber, let build = Bundle.main.buildVersionNumber {
+                        Text("\(version) (Build \(build))")
+                            .foregroundStyle(.secondary)
+                    }
+                    
                 }
                 HStack {
                     Label("Developer", systemImage: "person")

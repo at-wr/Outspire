@@ -43,6 +43,10 @@ struct SettingsView: View {
                         Label("GitHub Repository", systemImage: "globe.asia.australia")
                             .foregroundStyle(.primary)
                     }
+                    Link(destination: URL(string: "https://github.com/at-wr/Outspire?tab=readme-ov-file#terms-of-service")!) {
+                        Label("Terms of Service", systemImage: "text.document")
+                            .foregroundStyle(.primary)
+                    }
                     Link(destination: URL(string: "https://github.com/at-wr/Outspire?tab=readme-ov-file#privacy-policy")!) {
                         Label("Privacy Policy", systemImage: "hand.raised")
                             .foregroundStyle(.primary)
