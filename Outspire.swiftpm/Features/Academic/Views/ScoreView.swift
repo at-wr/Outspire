@@ -6,6 +6,7 @@ struct ScoreView: View {
     @State private var selectedSubjectId: String?
     @State private var animateIn = false
     @State private var refreshButtonRotation = 0.0
+    @EnvironmentObject private var sessionService: SessionService
     
     var body: some View {
         ZStack {
@@ -13,7 +14,9 @@ struct ScoreView: View {
                 .edgesIgnoringSafeArea(.all)
             
             VStack(spacing: 0) {
-                if viewModel.isUnlocked {
+                if !sessionService.isAuthenticated {
+                    notLoggedInView
+                } else if viewModel.isUnlocked {
                     mainContent
                 } else {
                     authenticationView
@@ -23,14 +26,34 @@ struct ScoreView: View {
             .toolbar {
                 toolbarItems
             }
-            // .onAppear(perform: viewModel.authenticate) // Remove to require manual trigger
         }
+        .onAppear {
+            // Only attempt to fetch data if user is logged in
+            if sessionService.isAuthenticated && viewModel.isUnlocked && viewModel.terms.isEmpty {
+                viewModel.fetchTerms()
+            }
+        }
+    }
+    
+    private var notLoggedInView: some View {
+        ContentUnavailableView(
+            "Authentication Required",
+            systemImage: "person.crop.circle.badge.exclamationmark",
+            description: Text("Please sign in to view your academic scores.")
+        )
+        .padding()
     }
     
     private var mainContent: some View {
         Group {
             if viewModel.isLoadingTerms && viewModel.terms.isEmpty {
                 LoadingView(message: "Loading terms...")
+            } else if viewModel.terms.isEmpty && !viewModel.isLoadingTerms {
+                ContentUnavailableView(
+                    "No Academic Terms",
+                    systemImage: "calendar.badge.exclamationmark",
+                    description: Text("No academic terms are available.")
+                )
             } else {
                 VStack(spacing: 0) {
                     termSelector
@@ -38,6 +61,7 @@ struct ScoreView: View {
                 }
             }
         }
+        .transition(.opacity)
     }
     
     private var termSelector: some View {
@@ -79,6 +103,7 @@ struct ScoreView: View {
         Group {
             if viewModel.isLoading {
                 ScoreSkeletonView()
+                    .transition(.opacity)
             } else if viewModel.scores.isEmpty {
                 ContentUnavailableView(
                     "No Scores Available",
@@ -104,11 +129,11 @@ struct ScoreView: View {
                                 }
                             )
                             .padding(.horizontal)
-                            .offset(y: animateIn ? 0 : 100)
+                            .offset(y: animateIn ? 0 : 30)  // Reduced offset for smoother animation
                             .opacity(animateIn ? 1 : 0)
                             .animation(
-                                .spring(response: 0.4, dampingFraction: 0.7)
-                                .delay(Double(index) * 0.05),
+                                .spring(response: 0.5, dampingFraction: 0.7)
+                                .delay(Double(index) * 0.04),  // Slightly faster staggered delay
                                 value: animateIn
                             )
                         }
@@ -119,6 +144,7 @@ struct ScoreView: View {
                     .padding(.top)
                     .id(viewModel.selectedTermId) // This ensures scrolling resets when term changes
                 }
+                .transition(.opacity)
             }
             
             if let errorMessage = viewModel.errorMessage {
@@ -131,17 +157,22 @@ struct ScoreView: View {
             }
         }
         .onAppear {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
+            // Reset animation state when appearing
+            animateIn = false
+            
+            // Use a shorter delay for better perceived performance
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                withAnimation(.spring(response: 0.5, dampingFraction: 0.75)) {
                     animateIn = true
                 }
             }
         }
         .onChange(of: viewModel.isLoading) { oldValue, isLoading in
             if !isLoading && !viewModel.scores.isEmpty && oldValue {
+                // Reset and re-trigger animation when loading completes
                 animateIn = false
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                    withAnimation(.spring(response: 0.5, dampingFraction: 0.75)) {
                         animateIn = true
                     }
                 }
@@ -188,13 +219,19 @@ struct ScoreView: View {
                     withAnimation {
                         refreshButtonRotation += 360
                     }
-                    viewModel.refreshData()
+                    
+                    // Check if we need to authenticate first
+                    if !viewModel.isUnlocked {
+                        viewModel.authenticate()
+                    } else {
+                        viewModel.refreshData()
+                    }
                 }) {
                     Image(systemName: "arrow.clockwise")
                         .rotationEffect(.degrees(refreshButtonRotation))
                         .animation(.spring(response: 0.6, dampingFraction: 0.5), value: refreshButtonRotation)
                 }
-                .disabled(!viewModel.isUnlocked || viewModel.isLoading || viewModel.isLoadingTerms) // Added !viewModel.isUnlocked to disabled condition
+                .disabled(!sessionService.isAuthenticated || viewModel.isLoading || viewModel.isLoadingTerms)
             }
         }
     }
@@ -245,31 +282,8 @@ struct SubjectScoreCard: View {
     let isExpanded: Bool
     let onTap: () -> Void
     
-    private func getSubjectColor(_ subject: String) -> Color {
-        let subjectColors: [String: Color] = [
-            "Math": .blue,
-            "Maths": .blue,
-            "English": .green,
-            "Physics": .orange,
-            "Chemistry": .purple,
-            "Biology": .pink,
-            "CS": .mint,
-            "PE": .red,
-            "History": .brown,
-            "Geography": .cyan,
-            "Chinese": .indigo
-        ]
-        
-        for (key, color) in subjectColors {
-            if subject.contains(key) {
-                return color
-            }
-        }
-        
-        // Default color based on subject hash
-        let hash = abs(subject.hashValue)
-        let hue = Double(hash % 12) / 12.0
-        return Color(hue: hue, saturation: 0.7, brightness: 0.9)
+    private var subjectColor: Color {
+        ClasstableView.getSubjectColor(from: subject.subjectName)
     }
     
     // Check if this subject has any valid scores
@@ -282,7 +296,7 @@ struct SubjectScoreCard: View {
             // Header
             HStack(spacing: 12) {
                 Circle()
-                    .fill(getSubjectColor(subject.subjectName))
+                    .fill(subjectColor)
                     .frame(width: 12, height: 12)
                 
                 Text(subject.subjectName)
@@ -300,7 +314,7 @@ struct SubjectScoreCard: View {
                     }
                     .padding(.horizontal, 10)
                     .padding(.vertical, 4)
-                    .background(getSubjectColor(subject.subjectName).opacity(0.8))
+                    .background(subjectColor.opacity(0.8))
                     .clipShape(Capsule())
                 } else {
                     Text("No scores")

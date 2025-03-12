@@ -15,18 +15,29 @@ struct ScheduleRow: View {
         self.isSelfStudy = isSelfStudy
     }
     
+    // Get dynamic color based on subject or self-study status
+    private var periodColor: Color {
+        if isSelfStudy {
+            return .purple
+        } else if !subject.isEmpty {
+            return ClasstableView.getSubjectColor(from: subject)
+        } else {
+            return .blue
+        }
+    }
+    
     var body: some View {
         HStack(alignment: .center, spacing: 10) {
-            // Period indicator
+            // Period indicator with dynamic color
             ZStack {
                 Circle()
-                    .fill(isSelfStudy ? Color.purple.opacity(0.1) : Color.blue.opacity(0.1))
+                    .fill(periodColor.opacity(0.1))
                     .frame(width: 36, height: 36)
                 
                 Text("\(period)")
                     .font(.system(.callout, design: .rounded))
                     .fontWeight(.semibold)
-                    .foregroundColor(isSelfStudy ? .purple : .blue)
+                    .foregroundColor(periodColor)
             }
             
             // Class details
@@ -37,11 +48,11 @@ struct ScheduleRow: View {
                     .foregroundStyle(isSelfStudy ? Color.purple : Color.primary)
                 
                 HStack(spacing: 8) {
-                    Text(room)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    
                     if !room.isEmpty {
+                        Text(room)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        
                         Text("•")
                             .font(.caption)
                             .foregroundStyle(.tertiary)
@@ -67,5 +78,6 @@ struct ScheduleRow: View {
                     .foregroundStyle(.purple)
             }
         }
+        .contentShape(Rectangle()) // Make the entire row tappable
     }
 }

@@ -153,6 +153,27 @@ struct DailyScheduleCard: View {
     // Convert dayIndex (0-4) to weekday (2-6, Monday-Friday)
     private var dayWeekday: Int { dayIndex + 2 }
     
+    // Class period model that conforms to Equatable and Identifiable
+    struct ClassPeriodItem: Equatable, Identifiable {
+        let id: String  // Using composite id for uniqueness
+        let period: Int
+        let data: String
+        let isSelfStudy: Bool
+        
+        init(period: Int, data: String, isSelfStudy: Bool) {
+            self.id = "\(period)-\(isSelfStudy ? "self" : "class")"
+            self.period = period
+            self.data = data
+            self.isSelfStudy = isSelfStudy
+        }
+        
+        static func == (lhs: ClassPeriodItem, rhs: ClassPeriodItem) -> Bool {
+            return lhs.period == rhs.period &&
+            lhs.data == rhs.data &&
+            lhs.isSelfStudy == rhs.isSelfStudy
+        }
+    }
+    
     // Get max periods for this day of the week
     private var maxPeriodsForDay: Int {
         ClassPeriodsManager.shared.getMaxPeriodsByWeekday(dayWeekday)
@@ -166,8 +187,8 @@ struct DailyScheduleCard: View {
         }
     }
     
-    // Get a list of classes/self-study periods for the day
-    private var scheduledClassesForToday: [(period: Int, data: String, isSelfStudy: Bool)] {
+    // Get a list of classes/self-study periods for the day using our new struct
+    private var scheduledClassesForToday: [ClassPeriodItem] {
         guard !viewModel.timetable.isEmpty else { return [] }
         
         let maxRow = min(viewModel.timetable.count, maxPeriodsForDay + 1)
@@ -179,7 +200,7 @@ struct DailyScheduleCard: View {
             let classData = viewModel.timetable[row][dayIndex + 1]
             let isSelfStudy = classData.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             
-            return (
+            return ClassPeriodItem(
                 period: row,
                 data: isSelfStudy ? "Class-Free\n\nSelf-Study" : classData,
                 isSelfStudy: isSelfStudy
@@ -189,6 +210,7 @@ struct DailyScheduleCard: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
+            // Card header with class count
             HStack {
                 Label("Today's Schedule", systemImage: "calendar.day.timeline.left")
                     .font(.headline)
@@ -210,43 +232,56 @@ struct DailyScheduleCard: View {
                 }
             }
             Divider()
+            
+            // Class listing
             if hasClasses {
                 VStack(spacing: 12) {
-                    ForEach(scheduledClassesForToday.prefix(isExpandedSchedule ? scheduledClassesForToday.count : maxClassesToShow), id: \.period) { item in
-                        let components = item.data
-                            .replacingOccurrences(of: "<br>", with: "\n")
-                            .components(separatedBy: "\n")
-                            .filter { !$0.isEmpty }
-                        if let period = ClassPeriodsManager.shared.classPeriods.first(where: { $0.number == item.period }),
-                           !components.isEmpty {
-                            ScheduleRow(
-                                period: item.period,
-                                time: period.timeRangeFormatted,
-                                subject: components.count > 1 ? components[1] : "Class",
-                                room: components.count > 2 ? components[2] : "",
-                                isSelfStudy: item.isSelfStudy
-                            )
-                            .transition(.move(edge: .top).combined(with: .opacity))
+                    // Only show periods up to maxClassesToShow or all if expanded
+                    let visibleClasses = isExpandedSchedule ? 
+                    scheduledClassesForToday : 
+                    Array(scheduledClassesForToday.prefix(maxClassesToShow))
+                    
+                    ForEach(visibleClasses) { item in
+                        if let period = ClassPeriodsManager.shared.classPeriods.first(where: { $0.number == item.period }) {
+                            // Get components - handle both regular classes and self-study
+                            let components = item.data
+                                .replacingOccurrences(of: "<br>", with: "\n")
+                                .components(separatedBy: "\n")
+                                .filter { !$0.isEmpty }
+                            
+                            if !components.isEmpty {
+                                ScheduleRow(
+                                    period: item.period,
+                                    time: period.timeRangeFormatted,
+                                    subject: components.count > 1 ? components[1] : "Class",
+                                    room: components.count > 2 ? components[2] : "",
+                                    isSelfStudy: item.isSelfStudy
+                                )
+                                .transition(.opacity.combined(with: .move(edge: .top)))
+                            }
                         }
                     }
                     
-                    Button {
-                        withAnimation {
-                            isExpandedSchedule.toggle()
+                    // Only show expand button if there are more classes than default view
+                    if scheduledClassesForToday.count > maxClassesToShow {
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                isExpandedSchedule.toggle()
+                            }
+                        } label: {
+                            HStack {
+                                Text(isExpandedSchedule ? "See Less" : "See Full Schedule")
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                Image(systemName: "chevron.down")
+                                    .font(.caption)
+                                    .rotationEffect(.degrees(isExpandedSchedule ? 180 : 0))
+                            }
+                            .frame(maxWidth: .infinity)
+                            .foregroundStyle(Color.blue)
                         }
-                    } label: {
-                        HStack {
-                            Text(isExpandedSchedule ? "See Less" : "See Full Schedule")
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-                            Image(systemName: "chevron.down")
-                                .font(.caption)
-                                .rotationEffect(.degrees(isExpandedSchedule ? 180 : 0))
-                        }
-                        .frame(maxWidth: .infinity)
-                        .foregroundStyle(Color.blue)
+                        .padding(.top, 6)
                     }
-                    .padding(.top, 6)
                 }
             } else {
                 Text("No classes scheduled for today")
@@ -262,6 +297,7 @@ struct DailyScheduleCard: View {
                 .fill(Color(UIColor.systemBackground))
                 .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
         )
+        .animation(.easeInOut(duration: 0.3), value: scheduledClassesForToday)
     }
 }
 

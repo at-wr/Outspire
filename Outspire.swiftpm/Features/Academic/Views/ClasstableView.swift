@@ -42,11 +42,15 @@ struct ClasstableView: View {
         
         let subject = subjectName.lowercased()
         
-        for (color, keywords) in colors {
-            for keyword in keywords {
-                if subject.contains(keyword.lowercased()) {
-                    return color
-                }
+        // First, try to match the exact or longer phrases to avoid "Math" matching before "Maths Further"
+        // Sort keywords by length (longest first) to prioritize more specific matches
+        let allKeywords = colors.flatMap { color, keywords in
+            keywords.map { (color, $0) }
+        }.sorted { $0.1.count > $1.1.count }
+        
+        for (color, keyword) in allKeywords {
+            if subject.contains(keyword.lowercased()) {
+                return color
             }
         }
         

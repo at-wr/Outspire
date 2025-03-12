@@ -40,10 +40,15 @@ struct EnhancedClassCard: View {
     }
     
     private var formattedCountdown: String {
+        if timeRemaining <= 0 {
+            return "00:00" // Show zeros when time is up
+        }
+        
         let hours = Int(timeRemaining) / 3600
         let minutes = (Int(timeRemaining) % 3600) / 60
         let seconds = Int(timeRemaining) % 60
         
+        // Only show hours when needed to avoid redundant "0:MM:SS" format
         if hours > 0 {
             return String(format: "%d:%02d:%02d", hours, minutes, seconds)
         } else {
@@ -228,20 +233,29 @@ struct EnhancedClassCard: View {
                     let nextStartTime = createAdjustedTime(from: nextPeriod.startTime, onDate: effectiveDate!)
                     timeRemaining = nextStartTime.timeIntervalSince(effectiveNow)
                 } else {
+                    // If no next period, show "0" but with indication it's done
                     timeRemaining = 0
                 }
             }
         } else if isForToday {
-            // Regular today logic remains the same
+            // Regular today logic - FIX the countdown bug
             if now >= period.startTime && now <= period.endTime {
+                // Current class
                 isCurrentClass = true
                 timeRemaining = period.endTime.timeIntervalSince(now)
             } else if now < period.startTime {
+                // Upcoming class
                 isCurrentClass = false
                 timeRemaining = period.startTime.timeIntervalSince(now)
             } else {
+                // Class has ended - check for next period
                 isCurrentClass = false
-                timeRemaining = 0
+                if let nextPeriod = findNextPeriodToday(after: period, on: now) {
+                    timeRemaining = nextPeriod.startTime.timeIntervalSince(now)
+                } else {
+                    // End of day, no more classes
+                    timeRemaining = 0
+                }
             }
         } else {
             // Logic for future days (preview mode)

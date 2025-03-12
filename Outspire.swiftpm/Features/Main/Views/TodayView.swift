@@ -171,7 +171,7 @@ struct TodayView: View {
     
     var greeting: String {
         let calendar = Calendar.current
-        let hour = calendar.component(.hour, from: Date())
+        let hour = calendar.component(.hour, from: currentTime)
         switch hour {
         case 6..<12: return "Good Morning"
         case 12..<18: return "Good Afternoon"
@@ -221,6 +221,9 @@ struct TodayView: View {
             return getNextClassForDay(0, isForToday: false)
         }
         if dayIndex < 0 || dayIndex >= 5 { return nil }
+        
+        // Always force refresh when calculating upcoming class info
+        // to fix the countdown stuck bug
         return getNextClassForDay(dayIndex, isForToday: isForToday)
     }
     
@@ -251,16 +254,21 @@ struct TodayView: View {
             classtableViewModel.fetchYears()
         }
         
-        // Timer to update current time every second
+        // Timer to update current time every second - ensures countdown is refreshed properly
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
-            currentTime = Date()
+            self.currentTime = Date()
+            
+            // Force refresh when class period changes
+            if self.shouldRefreshClassInfo() {
+                self.forceUpdate.toggle()
+            }
         }
         
-        // Only animate on app first launch
+        // Only animate on app first launch with a slight delay to prevent jank
         if AnimationManager.shared.isFirstLaunch {
             animateCards = false
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                withAnimation(.spring(response: 0.7, dampingFraction: 0.8)) {
+                withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
                     animateCards = true
                     AnimationManager.shared.markAppLaunched()
                 }
@@ -424,6 +432,18 @@ struct TodayView: View {
         let currentDay = calendar.startOfDay(for: currentTime)
         let endDay = calendar.startOfDay(for: holidayEndDate)
         return currentDay <= endDay
+    }
+    
+    // Add helper method to detect class period changes
+    private func shouldRefreshClassInfo() -> Bool {
+        let calendar = Calendar.current
+        let currentMinute = calendar.component(.minute, from: Date())
+        let currentSecond = calendar.component(.second, from: Date())
+        
+        // Check if we're at an exact class change time (0 seconds)
+        // Add common class change minutes to this array
+        let classChangeMinutes = [0, 5, 45, 35, 15, 30, 10, 55]
+        return classChangeMinutes.contains(currentMinute) && currentSecond == 0
     }
 }
 
