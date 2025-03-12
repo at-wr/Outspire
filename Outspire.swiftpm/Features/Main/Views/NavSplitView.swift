@@ -1,10 +1,31 @@
 import SwiftUI
+import TipKit
+
+// Define the tip for the main navigation
+struct NavigationTip: Tip {
+    var title: Text {
+        Text("Welcome to Outspire")
+    }
+    
+    var message: Text? {
+        Text("Start by signing in with your WFLA Account.")
+    }
+    
+    var image: Image? {
+        Image(systemName: "party.popper.fill")
+    }
+}
 
 struct NavSplitView: View {
     @EnvironmentObject var sessionService: SessionService
     @State private var selectedLink: String? = "today"
     @State private var showSettingsSheet = false
+    @State private var showOnboardingSheet = false
     @State private var refreshID = UUID()
+    @State private var hasCheckedOnboarding = false  // Add this line
+    
+    // Initialize the tip properly
+    private let navigationTip = NavigationTip()
     
     var body: some View {
         NavigationSplitView {
@@ -12,6 +33,7 @@ struct NavSplitView: View {
                 NavigationLink(value: "today") {
                     Label("Today", systemImage: "text.rectangle.page")
                 }
+                
                 NavigationLink(value: "classtable") {
                     Label("Classtable", systemImage: "clock.badge.questionmark")
                 }
@@ -24,16 +46,16 @@ struct NavSplitView: View {
                 
                 Section {
                     NavigationLink(value: "club-info") {
-                        Label("Club Gallery", systemImage: "person.2.circle")
+                        Label("Hall of Clubs", systemImage: "person.2.circle")
                     }
                     NavigationLink(value: "club-activity") {
-                        Label("Activity Logs", systemImage: "checklist")
+                        Label("Activity Records", systemImage: "checklist")
                     }
                     
                 } header: {
                     Text("Activities")
                 }
-
+                
                 Section {
                     NavigationLink(value: "map") {
                         Label("Campus Map", systemImage: "map")
@@ -57,6 +79,7 @@ struct NavSplitView: View {
                 }, label: {
                     Image(systemName: "gear")
                 })
+                //.popoverTip(navigationTip)
             }
             .navigationTitle("Outspire")
             .contentMargins(.vertical, 10)
@@ -66,6 +89,9 @@ struct NavSplitView: View {
                         refreshID = UUID()
                     }
             })
+            .sheet(isPresented: $showOnboardingSheet) {
+                OnboardingView(isPresented: $showOnboardingSheet)
+            }
         } detail: {
             switch selectedLink {
             case .some("today"):
@@ -98,5 +124,23 @@ struct NavSplitView: View {
             refreshID = UUID() // Also refresh on this change.
         }
         .id(refreshID) // Force refresh of the entire view
+        .task {
+            // Configure TipKit on app launch
+            try? Tips.configure([
+                .displayFrequency(.immediate)
+            ])
+            
+            // Check if onboarding should be shown
+            if !hasCheckedOnboarding {
+                hasCheckedOnboarding = true
+                
+                // Short delay to ensure view is fully loaded before showing sheet
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    if !UserDefaults.standard.bool(forKey: "hasCompletedOnboarding") {
+                        showOnboardingSheet = true
+                    }
+                }
+            }
+        }
     }
 }

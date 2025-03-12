@@ -12,7 +12,7 @@ struct ClubActivitiesView: View {
     var body: some View {
         // Remove the nested NavigationView
         contentView
-            .navigationTitle("Club Activities")
+            .navigationTitle("Activity Records")
             .contentMargins(.vertical, 10.0)
             .toolbar { toolbarItems }
             .sheet(isPresented: $showingAddRecordSheet) { addRecordSheet }

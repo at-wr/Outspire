@@ -22,7 +22,7 @@ struct ScoreView: View {
                     authenticationView
                 }
             }
-            .navigationTitle("Academic Scores")
+            .navigationTitle("Academic Grades")
             .toolbar {
                 toolbarItems
             }
@@ -39,7 +39,7 @@ struct ScoreView: View {
         ContentUnavailableView(
             "Authentication Required",
             systemImage: "person.crop.circle.badge.exclamationmark",
-            description: Text("Please sign in to view your academic scores.")
+            description: Text("Please sign in to view your academic grades.")
         )
         .padding()
     }

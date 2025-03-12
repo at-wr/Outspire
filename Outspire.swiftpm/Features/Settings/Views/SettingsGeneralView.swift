@@ -52,7 +52,7 @@ struct SettingsGeneralView: View {
             
             Section {
                 Toggle(isOn: $hideAcademicScore) {
-                    Label("Hide Academic Score", systemImage: "eye.slash")
+                    Label("Hide Academic Grades", systemImage: "eye.slash")
                 }
                 .onChange(of: hideAcademicScore) { _, newValue in
                     Configuration.hideAcademicScore = newValue
@@ -86,6 +86,23 @@ struct SettingsGeneralView: View {
                 Text("This will remove all locally cached data including groups, activities, and academic records.")
                     .font(.footnote)
                     .foregroundColor(.secondary)
+            }
+            
+            Section {
+                Button(action: {
+                    UserDefaults.standard.set(false, forKey: "hasCompletedOnboarding")
+                    let toast = ToastValue(
+                        icon: Image(systemName: "checkmark.circle").foregroundStyle(.green),
+                        message: "Onboarding reset"
+                    )
+                    presentToast(toast)
+                }) {
+                    HStack {
+                        Label("Reset Onboarding", systemImage: "arrow.counterclockwise")
+                        Spacer()
+                    }
+                    .foregroundColor(.blue)
+                }
             }
         }
         .navigationTitle("General")

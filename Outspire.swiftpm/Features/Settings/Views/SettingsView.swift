@@ -5,6 +5,7 @@ struct SettingsView: View {
     @EnvironmentObject var sessionService: SessionService
     @State private var navigationPath = NavigationPath()
     @State private var viewRefreshID = UUID()
+    @State private var showOnboardingSheet = false
     
     enum SettingsMenu: String, Hashable, CaseIterable {
         case account
@@ -57,6 +58,15 @@ struct SettingsView: View {
                     }
                 } footer: {
                 }
+                
+#if DEBUG
+                Section {
+                    Button("View Onboarding") {
+                        showOnboardingSheet = true
+                    }
+                    .foregroundStyle(.blue)
+                }
+#endif
             }
             .id(viewRefreshID)
             .navigationTitle("Settings")
@@ -81,6 +91,9 @@ struct SettingsView: View {
                         }
                     }
                 }
+            }
+            .sheet(isPresented: $showOnboardingSheet) {
+                OnboardingView(isPresented: $showOnboardingSheet)
             }
         }
     }
