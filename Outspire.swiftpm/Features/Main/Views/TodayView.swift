@@ -35,6 +35,8 @@ struct TodayView: View {
         }
         .navigationTitle("Today @ WFLA")
         .navigationBarTitleDisplayMode(.large)
+        .toolbarBackground(Color(UIColor.secondarySystemBackground), for: .navigationBar) // Add this line
+        .toolbarBackground(.visible, for: .navigationBar) // Add this line
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
                 scheduleButton
@@ -319,6 +321,7 @@ struct TodayView: View {
         
         guard shouldCheckLocation else { return }
         
+        // Use a separate property for map updates to prevent jittering
         locationManager.calculateETAToSchool(isInChina: regionChecker.isChinaRegion()) {
             // Force refresh the view when travel time updates
             DispatchQueue.main.async {
@@ -644,7 +647,7 @@ struct MainContentView: View {
                 assemblyTime: assemblyTime, 
                 arrivalTime: arrivalTime, 
                 travelInfo: shouldShowTravelInfo() ? 
-                    (travelTimeToSchool, travelDistance) : nil,
+                    (travelTime: travelTimeToSchool, distance: travelDistance) : nil,
                 isInChina: isInChinaRegion
             )
         }

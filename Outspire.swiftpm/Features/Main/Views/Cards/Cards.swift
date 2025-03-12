@@ -1,4 +1,5 @@
 import SwiftUI
+import CoreLocation
 
 // No upcoming class card
 struct NoClassCard: View {
@@ -117,7 +118,7 @@ struct HolidayModeCard: View {
 struct SchoolInfoCard: View {
     let assemblyTime: String
     let arrivalTime: String
-    let travelInfo: (travelTime: TimeInterval, distance: CLLocationDistance)?
+    let travelInfo: (travelTime: TimeInterval?, distance: CLLocationDistance?)?
     let isInChina: Bool
     
     var body: some View {
@@ -129,10 +130,10 @@ struct SchoolInfoCard: View {
                 
                 Spacer()
                 
-                if let travelInfo = travelInfo {
+                if let travelInfo = travelInfo, let travelTime = travelInfo.travelTime, let distance = travelInfo.distance {
                     TravelTimeInfoView(
-                        travelTime: travelInfo.travelTime,
-                        distance: travelInfo.distance
+                        travelTime: travelTime,
+                        distance: distance
                     )
                 }
             }
