@@ -70,6 +70,7 @@ struct SettingsView: View {
             }
             .id(viewRefreshID)
             .navigationTitle("Settings")
+            .toolbarBackground(Color(UIColor.secondarySystemBackground))
             .toolbar {
                 Button(action: {
                     showSettingsSheet = false
@@ -126,6 +127,7 @@ struct AccountWithNavigation: View {
         AccountView(viewModel: viewModel)
             .navigationTitle(sessionService.isAuthenticated ? "Account" : "Sign In")
             .navigationBarTitleDisplayMode(.large)
+            .toolbarBackground(Color(UIColor.secondarySystemBackground))
             .onAppear {
                 if !sessionService.isAuthenticated && viewModel.captchaImageData == nil {
                     viewModel.fetchCaptchaImage()

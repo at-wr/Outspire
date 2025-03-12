@@ -25,6 +25,7 @@ struct ClubInfoView: View {
             .contentMargins(.vertical, 10.0)
             .textSelection(.enabled)
             .navigationBarTitle("Clubs")
+            .toolbarBackground(Color(UIColor.systemBackground))
             .toolbar {
                 toolbarProgressView
                 refreshButton

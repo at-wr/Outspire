@@ -46,6 +46,7 @@ struct ScheduleSettingsSheet: View {
                 }
                 .padding()
                 .navigationTitle("Schedule Settings")
+                .toolbarBackground(Color(UIColor.secondarySystemBackground))
             } else {
                 List {
                     // Day selection section
@@ -154,6 +155,7 @@ struct ScheduleSettingsSheet: View {
                     }
                 }
                 .navigationTitle("Schedule Settings")
+                .toolbarBackground(Color(UIColor.secondarySystemBackground))
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button("Done") {

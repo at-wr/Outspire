@@ -61,6 +61,7 @@ SOFTWARE.
         .scrollIndicators(.hidden)
         .backgroundStyle(Color(UIColor.secondarySystemFill))
         .navigationTitle("Open Source Licenses")
+        .toolbarBackground(Color(UIColor.secondarySystemBackground))
     }
 }
 

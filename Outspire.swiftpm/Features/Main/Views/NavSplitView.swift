@@ -61,10 +61,10 @@ struct NavSplitView: View {
                         Label("Campus Map", systemImage: "map")
                     }
                     NavigationLink(value: "school-arrangement") {
-                        Label("School Arrangement", systemImage: "calendar.badge.clock")
+                        Label("School Arrangements", systemImage: "calendar.badge.clock")
                     }
                     NavigationLink(value: "lunch-menu") {
-                        Label("Dining Information", systemImage: "fork.knife")
+                        Label("Dining Menus", systemImage: "fork.knife")
                     }
 #if DEBUG
                     NavigationLink(value: "help") {
@@ -84,6 +84,7 @@ struct NavSplitView: View {
                 //.popoverTip(navigationTip)
             }
             .navigationTitle("Outspire")
+            .toolbarBackground(Color(UIColor.secondarySystemBackground))
             .contentMargins(.vertical, 10)
             .sheet(isPresented: $showSettingsSheet, content: {
                 SettingsView(showSettingsSheet: $showSettingsSheet)

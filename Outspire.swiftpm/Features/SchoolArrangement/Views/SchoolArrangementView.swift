@@ -68,7 +68,8 @@ struct SchoolArrangementView: View {
                 .animation(.spring(response: transitionDuration, dampingFraction: 0.86), value: viewModel.isLoading)
                 .animation(.spring(response: transitionDuration, dampingFraction: 0.86), value: isEmptyState)
             }
-            .navigationTitle("School Arrangement")
+            .navigationTitle("School Arrangements")
+            .toolbarBackground(Color(UIColor.secondarySystemBackground))
             .navigationBarTitleDisplayMode(.large)
             .searchable(
                 text: $searchText,

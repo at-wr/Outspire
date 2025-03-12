@@ -36,8 +36,10 @@ struct TodayView: View {
         }
         .navigationTitle("Today @ WFLA")
         .navigationBarTitleDisplayMode(.large)
-        .toolbarBackground(Color(UIColor.secondarySystemBackground), for: .navigationBar) // Add this line
-        .toolbarBackground(.visible, for: .navigationBar) // Add this line
+        //.toolbarBackground(.hidden, for: .navigationBar)
+        .toolbarBackground(Color(UIColor.secondarySystemBackground))
+        //.toolbarBackground(.visible, for: .navigationBar)
+        
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
                 scheduleButton
@@ -48,6 +50,7 @@ struct TodayView: View {
         }
         .onAppear {
             setupOnAppear()
+            customizeNavigationBarAppearance()
         }
         .onDisappear {
             saveSettings()
@@ -90,6 +93,23 @@ struct TodayView: View {
             Configuration.holidayEndDate = newValue
         }
         .id("todayView-\(sessionService.isAuthenticated)-\(forceUpdate)")
+    }
+    
+    private func customizeNavigationBarAppearance() {
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithOpaqueBackground() // Important for background customization
+        
+        // Set the background color to secondarySystemBackground
+        appearance.backgroundColor = UIColor.secondarySystemBackground
+        
+        // Remove the bottom border (shadow)
+        appearance.shadowColor = .clear  // Or set to nil if available in your iOS version
+        
+        // Apply the appearance to both standard and compact navigation bars
+        UINavigationBar.appearance().standardAppearance = appearance
+        UINavigationBar.appearance().compactAppearance = appearance
+        UINavigationBar.appearance().scrollEdgeAppearance = appearance // For iOS 15+
+        UINavigationBar.appearance().compactScrollEdgeAppearance = appearance // For iOS 15+
     }
     
     // Save all settings on disappear
@@ -282,7 +302,8 @@ struct TodayView: View {
             let newMinute = Calendar.current.component(.minute, from: self.currentTime)
             
             // Force refresh when minute changes or class period changes
-            if previousMinute != newMinute || self.shouldRefreshClassInfo() {
+            // if previousMinute != newMinute || self.shouldRefreshClassInfo() {
+            if self.shouldRefreshClassInfo() {
                 self.forceUpdate.toggle()
             }
         }
@@ -304,10 +325,9 @@ struct TodayView: View {
         NotificationCenter.default.addObserver(
             forName: .locationSignificantChange,
             object: nil,
-            queue: .main) { [weak self] _ in
-            guard let self = self else { return }
-            self.regionChecker.fetchRegionCode()
-        }
+            queue: .main) { _ in
+                self.regionChecker.fetchRegionCode()
+            }
     }
     
     private func setupLocationServices() {
@@ -330,7 +350,7 @@ struct TodayView: View {
             // Calculate ETA only once on appear, not continuously
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                 if self.locationManager.authorizationStatus == .authorizedWhenInUse || 
-                   self.locationManager.authorizationStatus == .authorizedAlways {
+                    self.locationManager.authorizationStatus == .authorizedAlways {
                     self.updateTravelTime()
                 }
             }
@@ -348,17 +368,19 @@ struct TodayView: View {
         // Use a separate property for map updates to prevent jittering
         locationManager.calculateETAToSchool(isInChina: regionChecker.isChinaRegion()) {
             // Force refresh the view when travel time updates
+            /*
             DispatchQueue.main.async { [self] in
                 self.forceUpdate.toggle()
             }
+             */
         }
     }
     
     private func shouldShowMapView() -> Bool {
         // Show map if location is authorized and user is not near school
         if let _ = locationManager.userLocation, 
-           (locationManager.authorizationStatus == .authorizedWhenInUse || 
-            locationManager.authorizationStatus == .authorizedAlways) {
+            (locationManager.authorizationStatus == .authorizedWhenInUse || 
+             locationManager.authorizationStatus == .authorizedAlways) {
             return !locationManager.isNearSchool()
         }
         return false
@@ -667,9 +689,11 @@ struct MainContentView: View {
                 if isHolidayActive {
                     HolidayModeCard(hasEndDate: holidayHasEndDate, endDate: holidayEndDate)
                         .transition(.opacity)
+                    
                 } else if isLoading {
                     UpcomingClassSkeletonView()
                         .transition(.opacity)
+                    
                 } else if let upcoming = upcomingClassInfo {
                     EnhancedClassCard(
                         day: TodayViewHelpers.weekdayName(for: upcoming.dayIndex + 1),
@@ -724,7 +748,7 @@ struct MainContentView: View {
                 assemblyTime: assemblyTime, 
                 arrivalTime: arrivalTime, 
                 travelInfo: shouldShowTravelInfo() ? 
-                    (travelTime: travelTimeToSchool, distance: travelDistance) : nil,
+                (travelTime: travelTimeToSchool, distance: travelDistance) : nil,
                 isInChina: isInChinaRegion
             )
             .padding(.horizontal)
@@ -763,20 +787,5 @@ struct MainContentView: View {
             return false
         }
         return !locationManager.isNearSchool()
-    }
-}
-
-// Add this extension at the end of the file
-extension TodayView {
-    func animatedCard<Content: View>(delay: Double, @ViewBuilder content: @escaping () -> Content) -> some View {
-        content()
-            .padding(.horizontal)
-            .offset(y: animateCards ? 0 : 30)
-            .opacity(animateCards ? 1 : 0)
-            .animation(
-                .spring(response: 0.7, dampingFraction: 0.8)
-                .delay(delay),
-                value: animateCards
-            )
     }
 }

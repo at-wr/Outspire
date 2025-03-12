@@ -68,6 +68,7 @@ struct AboutView: View {
             }
         }
         .navigationTitle("About")
+        .toolbarBackground(Color(UIColor.secondarySystemBackground))
         .contentMargins(.vertical, 10.0)
     }
 }

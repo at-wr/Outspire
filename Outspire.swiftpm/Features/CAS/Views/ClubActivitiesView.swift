@@ -13,6 +13,7 @@ struct ClubActivitiesView: View {
         // Remove the nested NavigationView
         contentView
             .navigationTitle("Activity Records")
+            .toolbarBackground(Color(UIColor.systemBackground))
             .contentMargins(.vertical, 10.0)
             .toolbar { toolbarItems }
             .sheet(isPresented: $showingAddRecordSheet) { addRecordSheet }

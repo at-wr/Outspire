@@ -106,6 +106,7 @@ struct SettingsGeneralView: View {
             }
         }
         .navigationTitle("General")
+        .toolbarBackground(Color(UIColor.secondarySystemBackground))
         .contentMargins(.vertical, 10.0)
         .confirmationDialog(
             "Clear Cache?",

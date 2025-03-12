@@ -154,7 +154,7 @@ struct EnhancedClassCard: View {
                                     .frame(minWidth: 80, alignment: .leading) // Ensures consistent minimum width
                                     .contentTransition(.numericText())
                                     .transaction { t in
-                                        t.animation = .none // Prevent unwanted animations
+                                        t.animation = .default
                                     }
                             }
                         }

@@ -67,7 +67,8 @@ struct LunchMenuView: View {
                 .animation(.spring(response: transitionDuration, dampingFraction: 0.86), value: viewModel.isLoading)
                 .animation(.spring(response: transitionDuration, dampingFraction: 0.86), value: isEmptyState)
             }
-            .navigationTitle("Lunch Menu")
+            .navigationTitle("Dining Menus")
+            .toolbarBackground(Color(UIColor.secondarySystemBackground))
             .navigationBarTitleDisplayMode(.large)
             .searchable(
                 text: $searchText,
