@@ -4,18 +4,17 @@ import CoreLocation
 
 struct MapView: View {
     @StateObject private var regionChecker = RegionChecker()
-    
     @State private var region: MKCoordinateRegion
     @State private var position: MapCameraPosition
     
-    let campusLocations: [CampusLocation]
-    let campusBoundary: [CLLocationCoordinate2D]
+    private let campusLocations: [CampusLocation]
+    private let campusBoundary: [CLLocationCoordinate2D]
+    private let baseCoordinate = CLLocationCoordinate2D(latitude: 31.1476, longitude: 121.4079)
     
     init() {
-        let baseCoordinate = CLLocationCoordinate2D(latitude: 31.1476, longitude: 121.4079)
         let initialRegion = MKCoordinateRegion(
             center: baseCoordinate,
-            span: MKCoordinateSpan(latitudeDelta: 0.015, longitudeDelta: 0.015)
+            span: MKCoordinateSpan(latitudeDelta: 0.005, longitudeDelta: 0.005)
         )
         
         self._region = State(initialValue: initialRegion)
@@ -26,63 +25,108 @@ struct MapView: View {
         ]
         
         self.campusBoundary = [
-            CLLocationCoordinate2D(latitude: 31.1470, longitude: 121.4070),
-            CLLocationCoordinate2D(latitude: 31.1480, longitude: 121.4070),
-            CLLocationCoordinate2D(latitude: 31.1480, longitude: 121.4088),
-            CLLocationCoordinate2D(latitude: 31.1470, longitude: 121.4088)
+            CLLocationCoordinate2D(latitude: 31.14792, longitude: 121.40819),
+            CLLocationCoordinate2D(latitude: 31.14736, longitude: 121.40848),
+            CLLocationCoordinate2D(latitude: 31.14714, longitude: 121.40814),
+            CLLocationCoordinate2D(latitude: 31.14693, longitude: 121.40787),
+            CLLocationCoordinate2D(latitude: 31.14674, longitude: 121.40769),
+            CLLocationCoordinate2D(latitude: 31.14659, longitude: 121.40755),
+            CLLocationCoordinate2D(latitude: 31.14637, longitude: 121.40735),
+            CLLocationCoordinate2D(latitude: 31.14748, longitude: 121.40686),
+            CLLocationCoordinate2D(latitude: 31.14792, longitude: 121.40819)
         ]
     }
     
     var body: some View {
-        Map(position: $position) {
-            ForEach(campusLocations) { location in
-                let coordinate = regionChecker.isChinaRegion() ?
-                CoordinateConverter.coordinateHandler(location.coordinate) : location.coordinate
-                Marker(location.name, coordinate: coordinate)
-                    .tint(.red)
+        VStack {
+            Map(position: $position) {
+                // Pre-compute converted coordinates
+                let convertedBoundary = convertedBoundaryCoordinates
+                let convertedLocations = convertedCampusLocations
+                
+                // Markers
+                ForEach(convertedLocations) { location in
+                    Marker(location.name, coordinate: location.coordinate)
+                        .tint(.red)
+                }
+                
+                // Boundary polygon
+                MapPolygon(coordinates: convertedBoundary)
+                    .foregroundStyle(.cyan.opacity(0.3))
+                    .stroke(.cyan, lineWidth: 2)
+                
+                UserAnnotation()
             }
-            // Boundary polygon
-            // MapPolygon(coordinates: regionChecker.isChinaRegion() ?
-            //     campusBoundary.map { CoordinateConverter.coordinateHandler($0) } : campusBoundary)
-            //     .foregroundStyle(.blue.opacity(0.3))
-            //     .stroke(.blue, lineWidth: 2)
-            UserAnnotation()
+            .mapControls {
+                MapUserLocationButton()
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .onAppear(perform: setupMap)
+            .onChange(of: position) { _ in handlePositionChange() }
+            .onChange(of: regionChecker.regionCode) { _ in updateRegionForChina() }
         }
-        .mapControls {
-            MapUserLocationButton()
+    }
+    
+    // MARK: - Computed Properties
+    private var convertedBoundaryCoordinates: [CLLocationCoordinate2D] {
+        regionChecker.isChinaRegion() ?
+        campusBoundary.map(CoordinateConverter.coordinateHandler) :
+        campusBoundary
+    }
+    
+    private var convertedCampusLocations: [CampusLocation] {
+        campusLocations.map { location in
+            let coordinate = regionChecker.isChinaRegion() ?
+            CoordinateConverter.coordinateHandler(location.coordinate) :
+            location.coordinate
+            return CampusLocation(name: location.name, coordinate: coordinate)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .onAppear {
-            let locationManager = CLLocationManager()
-            locationManager.requestWhenInUseAuthorization()
+    }
+    
+    // MARK: - Private Methods
+    private func setupMap() {
+        let locationManager = CLLocationManager()
+        locationManager.requestWhenInUseAuthorization()
+        regionChecker.fetchRegionCode()
+    }
+    
+    private func handlePositionChange() {
+        // Only fetch region code if the center has changed significantly
+        guard let currentCenter = position.region?.center else { return }
+        let distance = currentCenter.distance(from: region.center)
+        if distance > 1000 { // Adjust threshold as needed (in meters)
             regionChecker.fetchRegionCode()
         }
-        .onChange(of: position) { newPosition in
-            // Re-check region if the map position changes significantly
-            regionChecker.fetchRegionCode()
-        }
-        .onChange(of: regionChecker.regionCode) { _ in
-            // Update the map position when the region code is fetched
-            if regionChecker.isChinaRegion() {
-                let adjustedCoordinate = CoordinateConverter.coordinateHandler(
-                    CLLocationCoordinate2D(latitude: 31.1476, longitude: 121.4079)
-                )
-                let newRegion = MKCoordinateRegion(
-                    center: adjustedCoordinate,
-                    span: MKCoordinateSpan(latitudeDelta: 0.015, longitudeDelta: 0.015)
-                )
-                region = newRegion
-                position = .region(newRegion)
-            }
-        }
+    }
+    
+    private func updateRegionForChina() {
+        guard regionChecker.isChinaRegion() else { return }
+        
+        let adjustedCoordinate = CoordinateConverter.coordinateHandler(baseCoordinate)
+        let newRegion = MKCoordinateRegion(
+            center: adjustedCoordinate,
+            span: MKCoordinateSpan(latitudeDelta: 0.015, longitudeDelta: 0.015)
+        )
+        
+        region = newRegion
+        position = .region(newRegion)
     }
 }
 
-// Include the CoordinateConverter struct from the previous response here
+// MARK: - Supporting Structures
 struct CampusLocation: Identifiable {
     let id = UUID()
     let name: String
     let coordinate: CLLocationCoordinate2D
+}
+
+// MARK: - Extensions
+extension CLLocationCoordinate2D {
+    func distance(from coordinate: CLLocationCoordinate2D) -> CLLocationDistance {
+        let location1 = CLLocation(latitude: latitude, longitude: longitude)
+        let location2 = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
+        return location1.distance(from: location2)
+    }
 }
 
 #Preview {
