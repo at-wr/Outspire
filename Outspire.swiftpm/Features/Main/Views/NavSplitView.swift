@@ -66,9 +66,11 @@ struct NavSplitView: View {
                     NavigationLink(value: "lunch-menu") {
                         Label("Dining Information", systemImage: "fork.knife")
                     }
+#if DEBUG
                     NavigationLink(value: "help") {
                         Label("Help", systemImage: "questionmark.circle.dashed")
                     }
+#endif
                 } header: {
                     Text("Miscellaneous")
                 }
