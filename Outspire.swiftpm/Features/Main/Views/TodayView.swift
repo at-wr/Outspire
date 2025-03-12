@@ -53,8 +53,8 @@ struct TodayView: View {
             saveSettings()
             timer?.invalidate()
             timer = nil
-        }   NotificationCenter.default.removeObserver(self, name: .locationSignificantChange, object: nil)
-        .onChange(of: classtableViewModel.years) { _, years in
+            NotificationCenter.default.removeObserver(self, name: .locationSignificantChange, object: nil)
+        }
         .onChange(of: classtableViewModel.years) { _, years in
             handleYearsChange(years)
         }
@@ -267,15 +267,22 @@ struct TodayView: View {
             classtableViewModel.fetchYears()
         }
         
-        // Setup location services and region check
+        // Setup location services and region check - only once on appear
         setupLocationServices()
         
-        // Timer to update current time every second - ensures countdown is refreshed properly
-        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
+        // Timer to update current time - optimized to reduce unnecessary refreshes
+        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [self] _ in
+            // Store previous time for comparison
+            let previousMinute = Calendar.current.component(.minute, from: self.currentTime)
+            
+            // Update current time
             self.currentTime = Date()
             
-            // Force refresh when class period changes
-            if self.shouldRefreshClassInfo() {
+            // Only trigger updates when meaningful time changes occur
+            let newMinute = Calendar.current.component(.minute, from: self.currentTime)
+            
+            // Force refresh when minute changes or class period changes
+            if previousMinute != newMinute || self.shouldRefreshClassInfo() {
                 self.forceUpdate.toggle()
             }
         }
@@ -310,10 +317,17 @@ struct TodayView: View {
         let shouldCheckLocation = hour >= 5 && hour < 15
         
         if shouldCheckLocation {
-            regionChecker.fetchRegionCode()
-            locationManager.requestAuthorization()
+            // Fetch region code once - don't do this repeatedly
+            if regionChecker.regionCode == nil {
+                regionChecker.fetchRegionCode()
+            }
             
-            // After a short delay, calculate ETA if user has authorized location
+            // Only request authorization if not already determined
+            if locationManager.authorizationStatus == .notDetermined {
+                locationManager.requestAuthorization()
+            }
+            
+            // Calculate ETA only once on appear, not continuously
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                 if self.locationManager.authorizationStatus == .authorizedWhenInUse || 
                    self.locationManager.authorizationStatus == .authorizedAlways {
@@ -334,7 +348,7 @@ struct TodayView: View {
         // Use a separate property for map updates to prevent jittering
         locationManager.calculateETAToSchool(isInChina: regionChecker.isChinaRegion()) {
             // Force refresh the view when travel time updates
-            DispatchQueue.main.async {
+            DispatchQueue.main.async { [self] in
                 self.forceUpdate.toggle()
             }
         }
@@ -618,10 +632,30 @@ struct MainContentView: View {
         if isAuthenticated {
             authenticatedContent
         } else {
-            animatedCard(delay: 0.1) {
-                SignInPromptCard()
-            }
+            // Replace with direct implementation since animatedCard is not in scope
+            SignInPromptCard()
+                .padding(.horizontal)
+                .offset(y: animateCards ? 0 : 30)
+                .opacity(animateCards ? 1 : 0)
+                .animation(
+                    .spring(response: 0.7, dampingFraction: 0.8)
+                    .delay(0.1),
+                    value: animateCards
+                )
         }
+    }
+    
+    // Helper method for card animations, to make it accessible within this struct
+    private func animatedCard<Content: View>(delay: Double, @ViewBuilder content: @escaping () -> Content) -> some View {
+        content()
+            .padding(.horizontal)
+            .offset(y: animateCards ? 0 : 30)
+            .opacity(animateCards ? 1 : 0)
+            .animation(
+                .spring(response: 0.7, dampingFraction: 0.8)
+                .delay(delay),
+                value: animateCards
+            )
     }
     
     @ViewBuilder
@@ -724,16 +758,15 @@ struct MainContentView: View {
         guard let _ = locationManager.userLocation,
               (locationManager.authorizationStatus == .authorizedWhenInUse ||
                locationManager.authorizationStatus == .authorizedAlways),
+              travelTimeToSchool != nil,
+              travelDistance != nil else {
+            return false
+        }
+        return !locationManager.isNearSchool()
+    }
+}
 
-
-
-
-
-
-
-
-
-}    }        return !locationManager.isNearSchool()                }            return false              travelDistance != nil else {              travelTimeToSchool != nil, // Add this extension at the end of the file
+// Add this extension at the end of the file
 extension TodayView {
     func animatedCard<Content: View>(delay: Double, @ViewBuilder content: @escaping () -> Content) -> some View {
         content()

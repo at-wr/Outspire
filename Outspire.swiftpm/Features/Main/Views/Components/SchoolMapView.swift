@@ -4,25 +4,31 @@ import MapKit
 struct SchoolMapView: View {
     let userLocation: CLLocationCoordinate2D?
     let isInChina: Bool
+    @Environment(\.colorScheme) private var colorScheme
+    
+    // Cache the converted coordinates to avoid recomputing
+    private var schoolCoordinate: CLLocationCoordinate2D {
+        isInChina ? 
+            CoordinateConverter.coordinateHandler(LocationManager.schoolCoordinate) : 
+            LocationManager.schoolCoordinate
+    }
+    
+    private var adjustedUserCoordinate: CLLocationCoordinate2D? {
+        guard let userLocation = userLocation else { return nil }
+        return isInChina ? 
+            CoordinateConverter.coordinateHandler(userLocation) : 
+            userLocation
+    }
     
     var body: some View {
         ZStack {
             Map {
-                // School marker - properly convert coordinates for China
-                let schoolCoord = isInChina ? 
-                    CoordinateConverter.coordinateHandler(LocationManager.schoolCoordinate) : 
-                    LocationManager.schoolCoordinate
-                    
-                Marker("WFLA Campus", coordinate: schoolCoord)
+                // School marker with cached coordinate
+                Marker("WFLA Campus", coordinate: schoolCoordinate)
                     .tint(.red)
                 
-                // User location marker if available
-                if let userLocation = userLocation {
-                    // Use coordinate converter if in China
-                    let adjustedCoordinate = isInChina ? 
-                        CoordinateConverter.coordinateHandler(userLocation) : 
-                        userLocation
-                    
+                // User location marker if available (using cached coordinate)
+                if let adjustedCoordinate = adjustedUserCoordinate {
                     Marker("Your Location", coordinate: adjustedCoordinate)
                         .tint(.blue)
                 }
@@ -30,11 +36,11 @@ struct SchoolMapView: View {
                 // Show user location dot
                 UserAnnotation()
             }
-            .mapStyle(.standard)
+            .mapStyle(colorScheme == .dark ? .hybrid : .standard) // Use hybrid for dark mode
             .mapControls {
                 MapCompass()
                 MapScaleView()
-                MapPitchButton()
+                MapPitchToggle() // Fixed: Using MapPitchToggle instead
                 MapUserLocationButton()
             }
             
@@ -49,40 +55,36 @@ struct SchoolMapView: View {
                         .padding(.vertical, 8)
                         .background(
                             Capsule()
-                                .fill(Color(UIColor.systemBackground)) // Use system background for dark mode support
-                                .shadow(color: Color.primary.opacity(0.15), radius: 3, x: 0, y: 1)
+                                .fill(Color(UIColor.secondarySystemBackground))
+                                .shadow(color: Color.primary.opacity(colorScheme == .dark ? 0.1 : 0.15), 
+                                       radius: 3, x: 0, y: 1)
                         )
-                        .foregroundColor(Color.primary) // Use primary color for text to support dark mode
+                        .foregroundColor(.primary) // Use primary for proper contrast in light/dark mode
                 }
                 .padding(10)
             }
         }
         .frame(height: 180)
         .clipShape(RoundedRectangle(cornerRadius: 16))
-        .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
+        .shadow(color: colorScheme == .dark ? Color.black.opacity(0.2) : Color.black.opacity(0.05), 
+                radius: 8, x: 0, y: 2)
     }
     
     private func openInMaps() {
-        // Get proper school coordinates based on region
-        let schoolCoord = isInChina ? 
-            CoordinateConverter.coordinateHandler(LocationManager.schoolCoordinate) : 
-            LocationManager.schoolCoordinate
-            
-        let schoolPlacemark = MKPlacemark(coordinate: schoolCoord)
-        let mapItem = MKMapItem(placemark: schoolPlacemark)
+        // Use the cached coordinates for consistency
+        let mapItem = MKMapItem(placemark: MKPlacemark(coordinate: schoolCoordinate))
         mapItem.name = "WFLA International School"
         
         // If user location is available, get directions to school
-        if let userLocation = userLocation {
-            // Ensure the user location is also properly converted if in China
-            let adjustedUserCoordinate = isInChina ? 
-                CoordinateConverter.coordinateHandler(userLocation) : 
-                userLocation
+        if let adjustedUserCoordinate = adjustedUserCoordinate {
+            // Create a map item from the user's location
+            let userMapItem = MKMapItem.forCurrentLocation()
             
-            let userPlacemark = MKPlacemark(coordinate: adjustedUserCoordinate)
-            let userMapItem = MKMapItem(placemark: userPlacemark)
-            
-            mapItem.openInMaps(launchOptions: [MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeDriving])
+            // Open Maps with directions
+            MKMapItem.openMaps(
+                with: [userMapItem, mapItem],
+                launchOptions: [MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeDriving]
+            )
         } else {
             // Just show the school location
             mapItem.openInMaps()

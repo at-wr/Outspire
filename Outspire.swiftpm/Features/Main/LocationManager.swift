@@ -28,15 +28,20 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         locationManager.desiredAccuracy = kCLLocationAccuracyHundredMeters
         locationManager.allowsBackgroundLocationUpdates = false
         locationManager.pausesLocationUpdatesAutomatically = true
-        requestAuthorization()
+        // Don't request authorization here - do it explicitly when needed
     }
     
     func requestAuthorization() {
-        locationManager.requestWhenInUseAuthorization()
+        if authorizationStatus == .notDetermined {
+            locationManager.requestWhenInUseAuthorization()
+        }
     }
     
     func startUpdatingLocation() {
-        locationManager.startUpdatingLocation()
+        // Only start if authorized and not already updating
+        if authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways {
+            locationManager.startUpdatingLocation()
+        }
     }
     
     func stopUpdatingLocation() {
@@ -54,6 +59,7 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         return userLocation.distance(from: LocationManager.schoolLocation)
     }
     
+    // Calculate ETA using the appropriate method based on region
     func calculateETAToSchool(isInChina: Bool, completion: @escaping () -> Void) {
         guard let userLocation = userLocation,
               authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways else {
@@ -63,24 +69,25 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
             return
         }
         
-        // Check if we should recalculate
+        // Check if we should recalculate - avoid too frequent updates
         if let lastCalc = lastETACalculationTime, Date().timeIntervalSince(lastCalc) < etaRecalculationInterval {
             completion()
             return
         }
         
+        // Save distance regardless of calculation method
+        let distance = userLocation.distance(from: LocationManager.schoolLocation)
+        self.travelDistance = distance
+        
         // Use different calculation methods depending on region
         if isInChina {
             // Apply coordinate conversion for Chinese MapKit
-            calculateETAWithChineseMapKit(from: userLocation.coordinate, isInChina: isInChina) {
+            calculateETAWithMapKit(from: userLocation.coordinate, isInChina: isInChina) {
                 self.lastETACalculationTime = Date()
                 completion()
             }
         } else {
             // For non-Chinese regions, just estimate based on distance
-            let distance = userLocation.distance(from: LocationManager.schoolLocation)
-            self.travelDistance = distance
-            
             // Rough estimate: 30 km/h average speed in city traffic
             self.travelTimeToSchool = distance / (30 * 1000 / 3600)
             self.lastETACalculationTime = Date()
@@ -88,7 +95,8 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         }
     }
     
-    private func calculateETAWithChineseMapKit(from userCoordinate: CLLocationCoordinate2D, isInChina: Bool, completion: @escaping () -> Void) {
+    // Renamed and improved for both Chinese and international MapKit
+    private func calculateETAWithMapKit(from userCoordinate: CLLocationCoordinate2D, isInChina: Bool, completion: @escaping () -> Void) {
         let request = MKDirections.Request()
         
         // Apply GCJ-02 conversion for Chinese MapKit if needed
@@ -104,56 +112,60 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         
         let directions = MKDirections(request: request)
         directions.calculateETA { [weak self] response, error in
-            DispatchQueue.main.async {
-                guard let self = self, let response = response, error == nil else {
-                    self?.travelTimeToSchool = nil
-                    self?.travelDistance = nil
-                    completion()
-                    return
+            guard let self = self, let response = response, error == nil else {
+                // Fallback to distance-based estimation if directions fail
+                if let distance = self?.travelDistance {
+                    self?.travelTimeToSchool = distance / (30 * 1000 / 3600) // 30 km/h
                 }
-                
-                self.travelTimeToSchool = response.expectedTravelTime
-                self.travelDistance = response.distance
                 completion()
+                return
             }
+            
+            self.travelTimeToSchool = response.expectedTravelTime
+            completion()
         }
     }
     
     // MARK: - CLLocationManagerDelegate
-    
-    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        if let location = locations.last {
-            userLocation = location
-            
-            // Check if we should update region
-            if let lastCheck = lastRegionCheckLocation, 
-               location.distance(from: lastCheck) > regionCheckThreshold {
-                // Region check should be performed now
-                NotificationCenter.default.post(name: .locationSignificantChange, object: nil)
-                lastRegionCheckLocation = location
-            } else if lastRegionCheckLocation == nil {
-                // First time getting location
-                NotificationCenter.default.post(name: .locationSignificantChange, object: nil)
-                lastRegionCheckLocation = location
-            }
-        }
-    }
     
     func locationManager(_ manager: CLLocationManager, didChangeAuthorization status: CLAuthorizationStatus) {
         DispatchQueue.main.async {
             self.authorizationStatus = status
             
             if status == .authorizedWhenInUse || status == .authorizedAlways {
-                self.startUpdatingLocation()
+                self.locationManager.startUpdatingLocation()
+            } else {
+                self.locationManager.stopUpdatingLocation()
+            }
+        }
+    }
+    
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        guard let location = locations.last else { return }
+        
+        DispatchQueue.main.async {
+            self.userLocation = location
+            
+            // Post notification about significant location changes - but throttle them
+            if let lastCheck = self.lastRegionCheckLocation {
+                let distance = location.distance(from: lastCheck)
+                if distance > self.regionCheckThreshold {
+                    self.lastRegionCheckLocation = location
+                    NotificationCenter.default.post(name: .locationSignificantChange, object: nil)
+                }
+            } else {
+                self.lastRegionCheckLocation = location
+                NotificationCenter.default.post(name: .locationSignificantChange, object: nil)
             }
         }
     }
     
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        print("Location manager error: \(error.localizedDescription)")
+        print("Location manager failed with error: \(error.localizedDescription)")
     }
 }
 
+// Define a Notification.Name for significant location changes
 extension Notification.Name {
     static let locationSignificantChange = Notification.Name("locationSignificantChange")
 }
