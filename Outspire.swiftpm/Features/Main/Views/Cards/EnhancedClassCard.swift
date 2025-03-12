@@ -150,9 +150,11 @@ struct EnhancedClassCard: View {
                                     .fontWeight(.semibold)
                                     .foregroundStyle(statusColor)
                                     .monospacedDigit()
+                                    .fixedSize(horizontal: true, vertical: false) // Prevent horizontal resizing
+                                    .frame(minWidth: 80, alignment: .leading) // Ensures consistent minimum width
                                     .contentTransition(.numericText())
                                     .transaction { t in
-                                        t.animation = .default // Fix in iOS 17 API that shows no transition
+                                        t.animation = .none // Prevent unwanted animations
                                     }
                             }
                         }

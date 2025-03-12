@@ -130,7 +130,9 @@ struct SchoolInfoCard: View {
                 
                 Spacer()
                 
-                if let travelInfo = travelInfo, let travelTime = travelInfo.travelTime, let distance = travelInfo.distance {
+                if let travelInfo = travelInfo, 
+                   let travelTime = travelInfo.travelTime, 
+                   let distance = travelInfo.distance {
                     TravelTimeInfoView(
                         travelTime: travelTime,
                         distance: distance

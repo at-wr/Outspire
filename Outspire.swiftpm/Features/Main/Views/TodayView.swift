@@ -26,6 +26,7 @@ struct TodayView: View {
     // MARK: - Body
     var body: some View {
         ZStack {
+            // Use a consistent background color for the entire view
             Color(UIColor.secondarySystemBackground)
                 .edgesIgnoringSafeArea(.all)
             
@@ -52,7 +53,8 @@ struct TodayView: View {
             saveSettings()
             timer?.invalidate()
             timer = nil
-        }
+        }   NotificationCenter.default.removeObserver(self, name: .locationSignificantChange, object: nil)
+        .onChange(of: classtableViewModel.years) { _, years in
         .onChange(of: classtableViewModel.years) { _, years in
             handleYearsChange(years)
         }
@@ -290,6 +292,14 @@ struct TodayView: View {
         } else {
             // Skip animation when switching between views
             animateCards = true
+        }
+        
+        NotificationCenter.default.addObserver(
+            forName: .locationSignificantChange,
+            object: nil,
+            queue: .main) { [weak self] _ in
+            guard let self = self else { return }
+            self.regionChecker.fetchRegionCode()
         }
     }
     
@@ -616,33 +626,66 @@ struct MainContentView: View {
     
     @ViewBuilder
     private var authenticatedContent: some View {
-        // Main class card or alternatives based on conditions
-        if isHolidayActive {
-            animatedCard(delay: 0.1) {
-                HolidayModeCard(hasEndDate: holidayHasEndDate, endDate: holidayEndDate)
+        // Fixed-size VStack with spacing to prevent jittering
+        VStack(spacing: 20) {
+            // Main class card with fixed height to prevent layout shifts
+            ZStack {
+                if isHolidayActive {
+                    HolidayModeCard(hasEndDate: holidayHasEndDate, endDate: holidayEndDate)
+                        .transition(.opacity)
+                } else if isLoading {
+                    UpcomingClassSkeletonView()
+                        .transition(.opacity)
+                } else if let upcoming = upcomingClassInfo {
+                    EnhancedClassCard(
+                        day: TodayViewHelpers.weekdayName(for: upcoming.dayIndex + 1),
+                        period: upcoming.period,
+                        classData: upcoming.classData,
+                        currentTime: currentTime,
+                        isForToday: upcoming.isForToday,
+                        setAsToday: setAsToday && selectedDayOverride != nil,
+                        effectiveDate: setAsToday && selectedDayOverride != nil ? effectiveDate : nil
+                    )
+                    .transition(.opacity)
+                } else if isCurrentDateWeekend {
+                    WeekendCard()
+                        .transition(.opacity)
+                } else {
+                    NoClassCard()
+                        .transition(.opacity)
+                }
             }
-        } else if isLoading {
-            animatedCard(delay: 0.1) {
-                UpcomingClassSkeletonView()
-            }
-        } else if let upcoming = upcomingClassInfo {
-            upcomingClassView(upcoming: upcoming)
-        } else {
-            noClassContent
-        }
-        
-        // Conditionally show map view with user location
-        if showMapView {
-            animatedCard(delay: 0.15) {
+            .padding(.horizontal)
+            .id("ClassCardContainer") // Fixed ID to help with animations
+            .animation(.easeInOut(duration: 0.2), value: upcomingClassInfo?.period.number)
+            .animation(.easeInOut(duration: 0.2), value: isHolidayActive)
+            .animation(.easeInOut(duration: 0.2), value: isLoading)
+            .animation(.easeInOut(duration: 0.2), value: isCurrentDateWeekend)
+            .offset(y: animateCards ? 0 : 30)
+            .opacity(animateCards ? 1 : 0)
+            .animation(
+                .spring(response: 0.7, dampingFraction: 0.8)
+                .delay(0.1),
+                value: animateCards
+            )
+            
+            // Conditionally show map view with user location
+            if showMapView {
                 SchoolMapView(
                     userLocation: locationManager.userLocation?.coordinate,
                     isInChina: isInChinaRegion
                 )
+                .padding(.horizontal)
+                .offset(y: animateCards ? 0 : 30)
+                .opacity(animateCards ? 1 : 0)
+                .animation(
+                    .spring(response: 0.7, dampingFraction: 0.8)
+                    .delay(0.15),
+                    value: animateCards
+                )
             }
-        }
-        
-        // Always show these cards
-        animatedCard(delay: 0.2) {
+            
+            // Always show these cards
             SchoolInfoCard(
                 assemblyTime: assemblyTime, 
                 arrivalTime: arrivalTime, 
@@ -650,13 +693,27 @@ struct MainContentView: View {
                     (travelTime: travelTimeToSchool, distance: travelDistance) : nil,
                 isInChina: isInChinaRegion
             )
-        }
-        
-        if !isHolidayMode {
-            animatedCard(delay: 0.3) {
+            .padding(.horizontal)
+            .offset(y: animateCards ? 0 : 30)
+            .opacity(animateCards ? 1 : 0)
+            .animation(
+                .spring(response: 0.7, dampingFraction: 0.8)
+                .delay(0.2),
+                value: animateCards
+            )
+            
+            if !isHolidayMode {
                 DailyScheduleCard(
                     viewModel: classtableViewModel,
                     dayIndex: effectiveDayIndex
+                )
+                .padding(.horizontal)
+                .offset(y: animateCards ? 0 : 30)
+                .opacity(animateCards ? 1 : 0)
+                .animation(
+                    .spring(response: 0.7, dampingFraction: 0.8)
+                    .delay(0.3),
+                    value: animateCards
                 )
             }
         }
@@ -664,46 +721,21 @@ struct MainContentView: View {
     
     private func shouldShowTravelInfo() -> Bool {
         // Show travel info if user is not near school and we have travel data
-        if let _ = locationManager.userLocation, 
-           (locationManager.authorizationStatus == .authorizedWhenInUse ||
-            locationManager.authorizationStatus == .authorizedAlways),
-           travelTimeToSchool != nil, travelDistance != nil {
-            
-            return !locationManager.isNearSchool()
-        }
-        return false
-    }
-    
-    @ViewBuilder
-    private var noClassContent: some View {
-        if isCurrentDateWeekend {
-            animatedCard(delay: 0.1) {
-                WeekendCard()
-            }
-        } else {
-            animatedCard(delay: 0.1) {
-                NoClassCard()
-            }
-        }
-    }
-    
-    @ViewBuilder
-    private func upcomingClassView(upcoming: (period: ClassPeriod, classData: String, dayIndex: Int, isForToday: Bool)) -> some View {
-        animatedCard(delay: 0.1) {
-            EnhancedClassCard(
-                day: TodayViewHelpers.weekdayName(for: upcoming.dayIndex + 1),
-                period: upcoming.period,
-                classData: upcoming.classData,
-                currentTime: currentTime,
-                isForToday: upcoming.isForToday,
-                setAsToday: setAsToday && selectedDayOverride != nil,
-                effectiveDate: setAsToday && selectedDayOverride != nil ? effectiveDate : nil
-            )
-        }
-    }
-    
-    @ViewBuilder
-    private func animatedCard<Content: View>(delay: Double, @ViewBuilder content: () -> Content) -> some View {
+        guard let _ = locationManager.userLocation,
+              (locationManager.authorizationStatus == .authorizedWhenInUse ||
+               locationManager.authorizationStatus == .authorizedAlways),
+
+
+
+
+
+
+
+
+
+}    }        return !locationManager.isNearSchool()                }            return false              travelDistance != nil else {              travelTimeToSchool != nil, // Add this extension at the end of the file
+extension TodayView {
+    func animatedCard<Content: View>(delay: Double, @ViewBuilder content: @escaping () -> Content) -> some View {
         content()
             .padding(.horizontal)
             .offset(y: animateCards ? 0 : 30)

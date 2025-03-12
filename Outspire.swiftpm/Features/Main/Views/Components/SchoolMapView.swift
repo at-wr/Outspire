@@ -7,9 +7,13 @@ struct SchoolMapView: View {
     
     var body: some View {
         ZStack {
-            Map(initialPosition: .region(mapRegion)) {
-                // School marker
-                Marker("WFLA Campus", coordinate: LocationManager.schoolCoordinate)
+            Map {
+                // School marker - properly convert coordinates for China
+                let schoolCoord = isInChina ? 
+                    CoordinateConverter.coordinateHandler(LocationManager.schoolCoordinate) : 
+                    LocationManager.schoolCoordinate
+                    
+                Marker("WFLA Campus", coordinate: schoolCoord)
                     .tint(.red)
                 
                 // User location marker if available
@@ -27,70 +31,57 @@ struct SchoolMapView: View {
                 UserAnnotation()
             }
             .mapStyle(.standard)
-            .mapControlVisibility(.hidden) // Hide all controls
-            .allowsHitTesting(false) // Disable map interaction
+            .mapControls {
+                MapCompass()
+                MapScaleView()
+                MapPitchButton()
+                MapUserLocationButton()
+            }
             
             // Overlaid button for navigation action
-            Button(action: openInMaps) {
-                Text("Open in Maps")
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .background(
-                        Capsule()
-                            .fill(Color.white.opacity(0.9))
-                            .shadow(color: Color.black.opacity(0.15), radius: 3, x: 0, y: 1)
-                    )
+            VStack {
+                Spacer()
+                Button(action: openInMaps) {
+                    Text("Open in Maps")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(
+                            Capsule()
+                                .fill(Color(UIColor.systemBackground)) // Use system background for dark mode support
+                                .shadow(color: Color.primary.opacity(0.15), radius: 3, x: 0, y: 1)
+                        )
+                        .foregroundColor(Color.primary) // Use primary color for text to support dark mode
+                }
+                .padding(10)
             }
-            .padding(10)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
         }
         .frame(height: 180)
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
     }
     
-    // Calculate the appropriate region for the map
-    private var mapRegion: MKCoordinateRegion {
-        if let userLocation = userLocation {
-            // Adjust coordinates for China if needed
-            let adjustedUserCoordinate = isInChina ?
-                CoordinateConverter.coordinateHandler(userLocation) :
-                userLocation
-            
-            let adjustedSchoolCoordinate = isInChina ?
-                CoordinateConverter.coordinateHandler(LocationManager.schoolCoordinate) :
-                LocationManager.schoolCoordinate
-            
-            // Calculate midpoint between user and school
-            let midLat = (adjustedUserCoordinate.latitude + adjustedSchoolCoordinate.latitude) / 2
-            let midLong = (adjustedUserCoordinate.longitude + adjustedSchoolCoordinate.longitude) / 2
-            
-            // Calculate span to include both points with some padding
-            let latDelta = abs(adjustedUserCoordinate.latitude - adjustedSchoolCoordinate.latitude) * 1.5
-            let longDelta = abs(adjustedUserCoordinate.longitude - adjustedSchoolCoordinate.longitude) * 1.5
-            
-            return MKCoordinateRegion(
-                center: CLLocationCoordinate2D(latitude: midLat, longitude: midLong),
-                span: MKCoordinateSpan(latitudeDelta: max(0.01, latDelta), longitudeDelta: max(0.01, longDelta))
-            )
-        } else {
-            // Default to showing just the school with a reasonable zoom level
-            return MKCoordinateRegion(
-                center: LocationManager.schoolCoordinate,
-                span: MKCoordinateSpan(latitudeDelta: 0.005, longitudeDelta: 0.005)
-            )
-        }
-    }
-    
     private func openInMaps() {
-        let schoolPlacemark = MKPlacemark(coordinate: LocationManager.schoolCoordinate)
+        // Get proper school coordinates based on region
+        let schoolCoord = isInChina ? 
+            CoordinateConverter.coordinateHandler(LocationManager.schoolCoordinate) : 
+            LocationManager.schoolCoordinate
+            
+        let schoolPlacemark = MKPlacemark(coordinate: schoolCoord)
         let mapItem = MKMapItem(placemark: schoolPlacemark)
         mapItem.name = "WFLA International School"
         
         // If user location is available, get directions to school
-        if let _ = userLocation {
+        if let userLocation = userLocation {
+            // Ensure the user location is also properly converted if in China
+            let adjustedUserCoordinate = isInChina ? 
+                CoordinateConverter.coordinateHandler(userLocation) : 
+                userLocation
+            
+            let userPlacemark = MKPlacemark(coordinate: adjustedUserCoordinate)
+            let userMapItem = MKMapItem(placemark: userPlacemark)
+            
             mapItem.openInMaps(launchOptions: [MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeDriving])
         } else {
             // Just show the school location

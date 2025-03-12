@@ -84,8 +84,6 @@ struct NavSplitView: View {
                 //.popoverTip(navigationTip)
             }
             .navigationTitle("Outspire")
-            .toolbarBackground(Color(UIColor.secondarySystemBackground), for: .navigationBar)
-            .toolbarBackground(.visible, for: .navigationBar)
             .contentMargins(.vertical, 10)
             .sheet(isPresented: $showSettingsSheet, content: {
                 SettingsView(showSettingsSheet: $showSettingsSheet)

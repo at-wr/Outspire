@@ -18,6 +18,10 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     private var lastETACalculationTime: Date?
     private let etaRecalculationInterval: TimeInterval = 300 // 5 minutes
     
+    // Properties for region checking
+    private var lastRegionCheckLocation: CLLocation?
+    private let regionCheckThreshold: CLLocationDistance = 1000 // Check every 1km of movement
+    
     override init() {
         super.init()
         locationManager.delegate = self
@@ -67,7 +71,8 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         
         // Use different calculation methods depending on region
         if isInChina {
-            calculateETAWithChineseMapKit(from: userLocation.coordinate) {
+            // Apply coordinate conversion for Chinese MapKit
+            calculateETAWithChineseMapKit(from: userLocation.coordinate, isInChina: isInChina) {
                 self.lastETACalculationTime = Date()
                 completion()
             }
@@ -83,10 +88,15 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         }
     }
     
-    private func calculateETAWithChineseMapKit(from userCoordinate: CLLocationCoordinate2D, completion: @escaping () -> Void) {
+    private func calculateETAWithChineseMapKit(from userCoordinate: CLLocationCoordinate2D, isInChina: Bool, completion: @escaping () -> Void) {
         let request = MKDirections.Request()
-        let sourcePlacemark = MKPlacemark(coordinate: userCoordinate)
-        let destinationPlacemark = MKPlacemark(coordinate: LocationManager.schoolCoordinate)
+        
+        // Apply GCJ-02 conversion for Chinese MapKit if needed
+        let sourceCoordinate = isInChina ? CoordinateConverter.coordinateHandler(userCoordinate) : userCoordinate
+        let destCoordinate = isInChina ? CoordinateConverter.coordinateHandler(LocationManager.schoolCoordinate) : LocationManager.schoolCoordinate
+        
+        let sourcePlacemark = MKPlacemark(coordinate: sourceCoordinate)
+        let destinationPlacemark = MKPlacemark(coordinate: destCoordinate)
         
         request.source = MKMapItem(placemark: sourcePlacemark)
         request.destination = MKMapItem(placemark: destinationPlacemark)
@@ -114,6 +124,18 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         if let location = locations.last {
             userLocation = location
+            
+            // Check if we should update region
+            if let lastCheck = lastRegionCheckLocation, 
+               location.distance(from: lastCheck) > regionCheckThreshold {
+                // Region check should be performed now
+                NotificationCenter.default.post(name: .locationSignificantChange, object: nil)
+                lastRegionCheckLocation = location
+            } else if lastRegionCheckLocation == nil {
+                // First time getting location
+                NotificationCenter.default.post(name: .locationSignificantChange, object: nil)
+                lastRegionCheckLocation = location
+            }
         }
     }
     
@@ -130,4 +152,8 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         print("Location manager error: \(error.localizedDescription)")
     }
+}
+
+extension Notification.Name {
+    static let locationSignificantChange = Notification.Name("locationSignificantChange")
 }
