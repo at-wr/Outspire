@@ -16,7 +16,9 @@ let package = Package(
         .iOSApplication(
             name: "Outspire",
             targets: ["AppModule"],
-            displayVersion: "0.4.4",
+            bundleIdentifier: "dev.wrye.Outspire",
+            teamIdentifier: "T2KTTT65L2",
+            displayVersion: "0.4.5",
             bundleVersion: "1",
             appIcon: .asset("AppIcon"),
             accentColor: .presetColor(.cyan),

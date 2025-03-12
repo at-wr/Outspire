@@ -2,7 +2,7 @@ import SwiftUI
 
 struct LicenseView: View {
     let ravenPoem = """
-3rd party open source software licenses used by Outspire.
+Following lists the 3rd party open source software licenses used by Outspire.
 
 --------------------
 

@@ -9,7 +9,9 @@ struct SettingsView: View {
     enum SettingsMenu: String, Hashable, CaseIterable {
         case account
         case general
+#if DEBUG
         case export
+#endif
         case about
         case license
     }
@@ -86,8 +88,10 @@ struct SettingsView: View {
             AccountWithNavigation()
         case .general:
             SettingsGeneralView()
+#if DEBUG
         case .export:
             ExportView()
+#endif
         case .about:
             AboutView()
         case .license:
