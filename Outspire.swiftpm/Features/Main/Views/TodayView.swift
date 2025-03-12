@@ -1,10 +1,13 @@
 import SwiftUI
 import Foundation
+import CoreLocation
 
 struct TodayView: View {
     // MARK: - Environment & State
     @EnvironmentObject var sessionService: SessionService
     @StateObject private var classtableViewModel = ClasstableViewModel()
+    @StateObject private var locationManager = LocationManager()
+    @StateObject private var regionChecker = RegionChecker()
     
     @State private var currentTime = Date()
     @State private var timer: Timer?
@@ -18,6 +21,7 @@ struct TodayView: View {
     @State private var setAsToday: Bool = Configuration.setAsToday
     @State private var allowAnimation = true
     @State private var forceUpdate: Bool = false  // Added to force UI updates
+    @State private var showLocationUpdateSheet = false
     
     // MARK: - Body
     var body: some View {
@@ -160,7 +164,12 @@ struct TodayView: View {
             setAsToday: setAsToday,
             selectedDayOverride: selectedDayOverride,
             animateCards: animateCards,
-            effectiveDate: effectiveDateForSelectedDay
+            effectiveDate: effectiveDateForSelectedDay,
+            locationManager: locationManager,
+            isInChinaRegion: regionChecker.isChinaRegion(),
+            showMapView: shouldShowMapView(),
+            travelTimeToSchool: locationManager.travelTimeToSchool,
+            travelDistance: locationManager.travelDistance
         )
     }
     
@@ -254,6 +263,9 @@ struct TodayView: View {
             classtableViewModel.fetchYears()
         }
         
+        // Setup location services and region check
+        setupLocationServices()
+        
         // Timer to update current time every second - ensures countdown is refreshed properly
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
             self.currentTime = Date()
@@ -277,6 +289,52 @@ struct TodayView: View {
             // Skip animation when switching between views
             animateCards = true
         }
+    }
+    
+    private func setupLocationServices() {
+        // Check time of day - only enable location between 5AM and 3PM
+        let calendar = Calendar.current
+        let hour = calendar.component(.hour, from: Date())
+        let shouldCheckLocation = hour >= 5 && hour < 15
+        
+        if shouldCheckLocation {
+            regionChecker.fetchRegionCode()
+            locationManager.requestAuthorization()
+            
+            // After a short delay, calculate ETA if user has authorized location
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                if self.locationManager.authorizationStatus == .authorizedWhenInUse || 
+                   self.locationManager.authorizationStatus == .authorizedAlways {
+                    self.updateTravelTime()
+                }
+            }
+        }
+    }
+    
+    private func updateTravelTime() {
+        // Only calculate ETA if we're within the right time frame
+        let calendar = Calendar.current
+        let hour = calendar.component(.hour, from: Date())
+        let shouldCheckLocation = hour >= 5 && hour < 15
+        
+        guard shouldCheckLocation else { return }
+        
+        locationManager.calculateETAToSchool(isInChina: regionChecker.isChinaRegion()) {
+            // Force refresh the view when travel time updates
+            DispatchQueue.main.async {
+                self.forceUpdate.toggle()
+            }
+        }
+    }
+    
+    private func shouldShowMapView() -> Bool {
+        // Show map if location is authorized and user is not near school
+        if let _ = locationManager.userLocation, 
+           (locationManager.authorizationStatus == .authorizedWhenInUse || 
+            locationManager.authorizationStatus == .authorizedAlways) {
+            return !locationManager.isNearSchool()
+        }
+        return false
     }
     
     // Check if we need to reset the selected day override
@@ -537,6 +595,11 @@ struct MainContentView: View {
     let selectedDayOverride: Int?
     let animateCards: Bool
     let effectiveDate: Date?
+    let locationManager: LocationManager
+    let isInChinaRegion: Bool
+    let showMapView: Bool
+    let travelTimeToSchool: TimeInterval?
+    let travelDistance: CLLocationDistance?
     
     var body: some View {
         if isAuthenticated {
@@ -550,6 +613,7 @@ struct MainContentView: View {
     
     @ViewBuilder
     private var authenticatedContent: some View {
+        // Main class card or alternatives based on conditions
         if isHolidayActive {
             animatedCard(delay: 0.1) {
                 HolidayModeCard(hasEndDate: holidayHasEndDate, endDate: holidayEndDate)
@@ -564,9 +628,25 @@ struct MainContentView: View {
             noClassContent
         }
         
+        // Conditionally show map view with user location
+        if showMapView {
+            animatedCard(delay: 0.15) {
+                SchoolMapView(
+                    userLocation: locationManager.userLocation?.coordinate,
+                    isInChina: isInChinaRegion
+                )
+            }
+        }
+        
         // Always show these cards
         animatedCard(delay: 0.2) {
-            SchoolInfoCard(assemblyTime: assemblyTime, arrivalTime: arrivalTime)
+            SchoolInfoCard(
+                assemblyTime: assemblyTime, 
+                arrivalTime: arrivalTime, 
+                travelInfo: shouldShowTravelInfo() ? 
+                    (travelTimeToSchool, travelDistance) : nil,
+                isInChina: isInChinaRegion
+            )
         }
         
         if !isHolidayMode {
@@ -577,6 +657,18 @@ struct MainContentView: View {
                 )
             }
         }
+    }
+    
+    private func shouldShowTravelInfo() -> Bool {
+        // Show travel info if user is not near school and we have travel data
+        if let _ = locationManager.userLocation, 
+           (locationManager.authorizationStatus == .authorizedWhenInUse ||
+            locationManager.authorizationStatus == .authorizedAlways),
+           travelTimeToSchool != nil, travelDistance != nil {
+            
+            return !locationManager.isNearSchool()
+        }
+        return false
     }
     
     @ViewBuilder

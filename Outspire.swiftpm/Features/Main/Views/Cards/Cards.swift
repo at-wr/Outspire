@@ -117,6 +117,8 @@ struct HolidayModeCard: View {
 struct SchoolInfoCard: View {
     let assemblyTime: String
     let arrivalTime: String
+    let travelInfo: (travelTime: TimeInterval, distance: CLLocationDistance)?
+    let isInChina: Bool
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -124,9 +126,19 @@ struct SchoolInfoCard: View {
                 Label("Information", systemImage: "info.circle")
                     .font(.headline)
                     .foregroundStyle(.primary)
+                
                 Spacer()
+                
+                if let travelInfo = travelInfo {
+                    TravelTimeInfoView(
+                        travelTime: travelInfo.travelTime,
+                        distance: travelInfo.distance
+                    )
+                }
             }
+            
             Divider()
+            
             VStack(spacing: 12) {
                 InfoRow(icon: "door.left.hand.open", title: "Arrival Time", value: arrivalTime, color: .purple)
                 InfoRow(icon: "bell.fill", title: "Morning Assembly", value: assemblyTime, color: .blue)
