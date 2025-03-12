@@ -1,5 +1,6 @@
 import SwiftUI
 import MapKit
+import CoreLocation
 
 struct MapView: View {
     // Define the initial region
@@ -28,8 +29,17 @@ struct MapView: View {
                 Marker(location.name, coordinate: location.coordinate)
                     .tint(.red) // Customize the marker color
             }
+            UserAnnotation()
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity) // Optional: Ensures map fills available space
+        .mapControls {
+            MapUserLocationButton() // Button to center on user
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity) // Ensures map fills available space
+        .onAppear {
+            // Request location permission
+            let locationManager = CLLocationManager()
+            locationManager.requestWhenInUseAuthorization()
+        }
     }
 }
 

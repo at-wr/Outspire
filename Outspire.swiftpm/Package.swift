@@ -40,7 +40,8 @@ let package = Package(
                         )
                     ]
                 )),
-                .faceID(purposeString: "Required to protect sensitive privacy, including academic grades, etc.")
+                .faceID(purposeString: "Required to protect sensitive privacy, including academic grades, etc."),
+                .locationWhenInUse(purposeString: "Required to provide Campus Map Location and ETAs.")
             ],
             appCategory: .education
         )
