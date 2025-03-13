@@ -41,6 +41,7 @@ struct EnhancedClassCard: View {
     
     private var formattedCountdown: String {
         if timeRemaining <= 0 {
+            calculateTimeRemaining() // Try to recalculate when time is up
             return "00:00" // Show zeros when time is up
         }
         
@@ -225,6 +226,15 @@ struct EnhancedClassCard: View {
             if effectiveNow >= adjustedStartTime && effectiveNow <= adjustedEndTime {
                 isCurrentClass = true
                 timeRemaining = adjustedEndTime.timeIntervalSince(effectiveNow)
+                
+                // Check if class just ended and we need to switch to next
+                if timeRemaining <= 0 {
+                    if let nextPeriod = findNextPeriodToday(after: period, on: effectiveDate!) {
+                        let nextStartTime = createAdjustedTime(from: nextPeriod.startTime, onDate: effectiveDate!)
+                        isCurrentClass = false
+                        timeRemaining = nextStartTime.timeIntervalSince(effectiveNow)
+                    }
+                }
             } else if effectiveNow < adjustedStartTime {
                 isCurrentClass = false
                 timeRemaining = adjustedStartTime.timeIntervalSince(effectiveNow)
@@ -245,6 +255,17 @@ struct EnhancedClassCard: View {
                 // Current class
                 isCurrentClass = true
                 timeRemaining = period.endTime.timeIntervalSince(now)
+                
+                // Check if class just ended (timeRemaining is negative or zero)
+                if timeRemaining <= 0 {
+                    // Find the next class period
+                    if let nextPeriod = findNextPeriodToday(after: period, on: now) {
+                        isCurrentClass = false
+                        timeRemaining = nextPeriod.startTime.timeIntervalSince(now)
+                    } else {
+                        timeRemaining = 0 // No more classes today
+                    }
+                }
             } else if now < period.startTime {
                 // Upcoming class
                 isCurrentClass = false

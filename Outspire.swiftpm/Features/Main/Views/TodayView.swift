@@ -334,9 +334,12 @@ struct TodayView: View {
             
             // Force refresh when minute changes or class period changes
             // if previousMinute != newMinute || self.shouldRefreshClassInfo() {
+            
+            /*
             if self.shouldRefreshClassInfo() {
                 self.forceUpdate.toggle()
             }
+             */
         }
         
         // Only animate on app first launch with a slight delay to prevent jank
