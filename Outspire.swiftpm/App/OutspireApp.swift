@@ -8,7 +8,7 @@ struct OutspireApp: App {
     init() {
         // Initialize app settings
         if UserDefaults.standard.object(forKey: "useSSL") == nil {
-            Configuration.useSSL = false
+            Configuration.useSSL = true
         }
     }
     

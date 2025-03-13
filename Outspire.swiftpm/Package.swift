@@ -18,7 +18,7 @@ let package = Package(
             targets: ["AppModule"],
             bundleIdentifier: "dev.wrye.Outspire",
             teamIdentifier: "T2KTTT65L2",
-            displayVersion: "0.4.6",
+            displayVersion: "0.5",
             bundleVersion: "6",
             appIcon: .asset("AppIcon"),
             accentColor: .presetColor(.cyan),
