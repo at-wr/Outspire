@@ -9,7 +9,7 @@ struct MapView: View {
     
     private let campusLocations: [CampusLocation]
     private let campusBoundary: [CLLocationCoordinate2D]
-    private let baseCoordinate = CLLocationCoordinate2D(latitude: 31.1476, longitude: 121.4079)
+    private let baseCoordinate = CLLocationCoordinate2D(latitude: 31.14704, longitude: 121.40758)
     
     init() {
         let initialRegion = MKCoordinateRegion(
@@ -87,15 +87,17 @@ struct MapView: View {
     private func setupMap() {
         let locationManager = CLLocationManager()
         locationManager.requestWhenInUseAuthorization()
-        regionChecker.fetchRegionCode()
+        // Use the new approach that prioritizes Taiwan check
+        regionChecker.checkRegion()
     }
     
     private func handlePositionChange() {
-        // Only fetch region code if the center has changed significantly
+        // Only recheck region if the center has changed significantly
         guard let currentCenter = position.region?.center else { return }
         let distance = currentCenter.distance(from: region.center)
         if distance > 1000 { // Adjust threshold as needed (in meters)
-            regionChecker.fetchRegionCode()
+            // Use checkRegion instead of just fetchRegionCode
+            regionChecker.checkRegion()
         }
     }
     

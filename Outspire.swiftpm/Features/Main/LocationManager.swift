@@ -9,9 +9,10 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     @Published var travelTimeToSchool: TimeInterval?
     @Published var travelDistance: CLLocationDistance?
     
-    // WFLA Shanghai Campus coordinates
-    static let schoolLocation = CLLocation(latitude: 31.1476, longitude: 121.4079)
-    static let schoolCoordinate = CLLocationCoordinate2D(latitude: 31.1476, longitude: 121.4079)
+    // Int'l Campus coordinates
+    // 31.14704° N, 121.40758° E
+    static let schoolLocation = CLLocation(latitude: 31.14704, longitude: 121.40758)
+    static let schoolCoordinate = CLLocationCoordinate2D(latitude: 31.14704, longitude: 121.40758)
     static let nearSchoolThreshold: CLLocationDistance = 1000 // 1km radius
     
     // Cache to avoid frequent ETA updates
@@ -89,7 +90,8 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         } else {
             // For non-Chinese regions, just estimate based on distance
             // Rough estimate: 30 km/h average speed in city traffic
-            self.travelTimeToSchool = distance / (30 * 1000 / 3600)
+            // update: roughly 20 km/h
+            self.travelTimeToSchool = distance / (20 * 1000 / 3600)
             self.lastETACalculationTime = Date()
             completion()
         }
@@ -99,9 +101,13 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     private func calculateETAWithMapKit(from userCoordinate: CLLocationCoordinate2D, isInChina: Bool, completion: @escaping () -> Void) {
         let request = MKDirections.Request()
         
-        // Apply GCJ-02 conversion for Chinese MapKit if needed
-        let sourceCoordinate = isInChina ? CoordinateConverter.coordinateHandler(userCoordinate) : userCoordinate
-        let destCoordinate = isInChina ? CoordinateConverter.coordinateHandler(LocationManager.schoolCoordinate) : LocationManager.schoolCoordinate
+        // For MKDirections in China, we need to use GCJ-02 coordinates
+        // User coordinate from CoreLocation is already in the right format for the device's region
+        // but the school coordinate needs conversion if in China
+        let sourceCoordinate = userCoordinate
+        let destCoordinate = isInChina ? 
+        CoordinateConverter.coordinateHandler(LocationManager.schoolCoordinate) : 
+        LocationManager.schoolCoordinate
         
         let sourcePlacemark = MKPlacemark(coordinate: sourceCoordinate)
         let destinationPlacemark = MKPlacemark(coordinate: destCoordinate)
@@ -115,7 +121,7 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
             guard let self = self, let response = response, error == nil else {
                 // Fallback to distance-based estimation if directions fail
                 if let distance = self?.travelDistance {
-                    self?.travelTimeToSchool = distance / (30 * 1000 / 3600) // 30 km/h
+                    self?.travelTimeToSchool = distance / (20 * 1000 / 3600) // 20 km/h
                 }
                 completion()
                 return

@@ -10,6 +10,13 @@ struct ScheduleSettingsSheet: View {
     @Binding var holidayHasEndDate: Bool
     @State private var showCountdownForFutureClasses = Configuration.showCountdownForFutureClasses
     
+    // Debug properties
+    @State private var debugOverrideMapView = Configuration.debugOverrideMapView
+    @State private var debugShowMapView = Configuration.debugShowMapView
+    
+    // Add state for the new setting
+    @State private var manuallyHideMapAtSchool = Configuration.manuallyHideMapAtSchool
+    
     @Environment(\.dismiss) private var dismiss
     
     private var currentWeekday: Int {
@@ -57,9 +64,11 @@ struct ScheduleSettingsSheet: View {
                             setAsToday = false
                             
                             // Use a slight delay for dismissal to show the selection UI feedback
+                            /*
                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                                 isPresented = false
                             }
+                             */
                         } label: {
                             HStack {
                                 // Include the current day name in the Today option if it's a weekday
@@ -89,9 +98,11 @@ struct ScheduleSettingsSheet: View {
                                     isHolidayMode = false
                                     
                                     // Use a slight delay for dismissal
+                                    /*
                                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                                         isPresented = false
                                     }
+                                     */
                                 } label: {
                                     HStack {
                                         Text(dayName(for: index))
@@ -152,6 +163,27 @@ struct ScheduleSettingsSheet: View {
                             .onChange(of: showCountdownForFutureClasses) { newValue in
                                 Configuration.showCountdownForFutureClasses = newValue
                             }
+                        
+                        // Add option to hide map when at school
+                        Toggle("Hide Map When at School", isOn: $manuallyHideMapAtSchool)
+                            .onChange(of: manuallyHideMapAtSchool) { newValue in
+                                Configuration.manuallyHideMapAtSchool = newValue
+                            }
+                    }
+                    
+                    // Debug section
+                    Section(header: Text("Developer Options")) {
+                        Toggle("Override Map View Display", isOn: $debugOverrideMapView)
+                            .onChange(of: debugOverrideMapView) { newValue in
+                                Configuration.debugOverrideMapView = newValue
+                            }
+                        
+                        if debugOverrideMapView {
+                            Toggle("Show Map View", isOn: $debugShowMapView)
+                                .onChange(of: debugShowMapView) { newValue in
+                                    Configuration.debugShowMapView = newValue
+                                }
+                        }
                     }
                 }
                 .navigationTitle("Schedule Settings")

@@ -267,6 +267,37 @@ struct TodayView: View {
         return formatter.string(from: holidayEndDate)
     }
     
+    private var effectiveDateForSelectedDay: Date? {
+        guard setAsToday, let override = selectedDayOverride else { return nil }
+        
+        let calendar = Calendar.current
+        let now = Date()
+        let currentWeekday = calendar.component(.weekday, from: now)
+        
+        // Calculate target weekday (1 = Sunday, 2 = Monday, etc.)
+        // Our override is 0-based (0 = Monday), so we need to add 2
+        let targetWeekday = override + 2
+        
+        // If it's the same day of the week, just use today's date
+        // This prevents the "next week" issue when selecting current weekday
+        if targetWeekday == currentWeekday {
+            return now
+        }
+        
+        // Calculate days to add/subtract to get from current weekday to target weekday
+        var daysToAdd = targetWeekday - currentWeekday
+        
+        // Adjust to get the closest occurrence (past or future)
+        if daysToAdd > 3 {
+            daysToAdd -= 7  // Go back a week if more than 3 days ahead
+        } else if daysToAdd < -3 {
+            daysToAdd += 7  // Go forward a week if more than 3 days behind
+        }
+        
+        // Create a new date that represents the target weekday but with current time
+        return calendar.date(byAdding: .day, value: daysToAdd, to: now)
+    }
+    
     // MARK: - Helper Methods
     private func setupOnAppear() {
         checkForDateChange()
@@ -369,21 +400,33 @@ struct TodayView: View {
         locationManager.calculateETAToSchool(isInChina: regionChecker.isChinaRegion()) {
             // Force refresh the view when travel time updates
             /*
-            DispatchQueue.main.async { [self] in
-                self.forceUpdate.toggle()
-            }
+             DispatchQueue.main.async { [self] in
+             self.forceUpdate.toggle()
+             }
              */
         }
     }
     
     private func shouldShowMapView() -> Bool {
-        // Show map if location is authorized and user is not near school
-        if let _ = locationManager.userLocation, 
-            (locationManager.authorizationStatus == .authorizedWhenInUse || 
-             locationManager.authorizationStatus == .authorizedAlways) {
-            return !locationManager.isNearSchool()
+        // If debug override is enabled, respect its value
+        if Configuration.debugOverrideMapView {
+            return Configuration.debugShowMapView
         }
-        return false
+        
+        // Check if user location is available and authorized
+        guard let _ = locationManager.userLocation,
+              (locationManager.authorizationStatus == .authorizedWhenInUse || 
+               locationManager.authorizationStatus == .authorizedAlways) else {
+            return false
+        }
+        
+        // If user is at school and has chosen to hide map there, respect that setting
+        if locationManager.isNearSchool() && Configuration.manuallyHideMapAtSchool {
+            return false
+        }
+        
+        // Otherwise, always show the map
+        return true
     }
     
     // Check if we need to reset the selected day override
@@ -407,39 +450,8 @@ struct TodayView: View {
         Configuration.lastAppLaunchDate = Date()
     }
     
-    private var effectiveDateForSelectedDay: Date? {
-        guard setAsToday, let override = selectedDayOverride else { return nil }
-        
-        let calendar = Calendar.current
-        let now = Date()
-        let currentWeekday = calendar.component(.weekday, from: now)
-        
-        // Calculate target weekday (1 = Sunday, 2 = Monday, etc.)
-        // Our override is 0-based (0 = Monday), so we need to add 2
-        let targetWeekday = override + 2
-        
-        // If it's the same day of the week, just use today's date
-        // This prevents the "next week" issue when selecting current weekday
-        if targetWeekday == currentWeekday {
-            return now
-        }
-        
-        // Calculate days to add/subtract to get from current weekday to target weekday
-        var daysToAdd = targetWeekday - currentWeekday
-        
-        // Adjust to get the closest occurrence (past or future)
-        if daysToAdd > 3 {
-            daysToAdd -= 7  // Go back a week if more than 3 days ahead
-        } else if daysToAdd < -3 {
-            daysToAdd += 7  // Go forward a week if more than 3 days behind
-        }
-        
-        // Create a new date that represents the target weekday but with current time
-        return calendar.date(byAdding: .day, value: daysToAdd, to: now)
-    }
-    
     private func handleYearsChange(_ years: [Year]) {
-        if !years.isEmpty && !classtableViewModel.selectedYearId.isEmpty {
+        if (!years.isEmpty && !classtableViewModel.selectedYearId.isEmpty) {
             classtableViewModel.fetchTimetable()
         } else if !years.isEmpty {
             classtableViewModel.selectedYearId = years.first!.W_YearID
@@ -715,10 +727,11 @@ struct MainContentView: View {
             }
             .padding(.horizontal)
             .id("ClassCardContainer") // Fixed ID to help with animations
-            .animation(.easeInOut(duration: 0.2), value: upcomingClassInfo?.period.number)
-            .animation(.easeInOut(duration: 0.2), value: isHolidayActive)
-            .animation(.easeInOut(duration: 0.2), value: isLoading)
-            .animation(.easeInOut(duration: 0.2), value: isCurrentDateWeekend)
+            // Remove these animations that cause stretching
+            // .animation(.easeInOut(duration: 0.2), value: upcomingClassInfo?.period.number)
+            // .animation(.easeInOut(duration: 0.2), value: isHolidayActive)
+            // .animation(.easeInOut(duration: 0.2), value: isLoading)
+            // .animation(.easeInOut(duration: 0.2), value: isCurrentDateWeekend)
             .offset(y: animateCards ? 0 : 30)
             .opacity(animateCards ? 1 : 0)
             .animation(

@@ -44,6 +44,39 @@ struct CoordinateConverter {
         return CLLocationCoordinate2D(latitude: convertedLat, longitude: convertedLon)
     }
     
+    static func reverseCoordinateHandler(_ coordinate: CLLocationCoordinate2D) -> CLLocationCoordinate2D {
+        let lat = coordinate.latitude
+        let lon = coordinate.longitude
+        
+        // Check if the coordinate is outside China (no conversion needed)
+        if !isInChinaBounds(lat: lat, lon: lon) {
+            return coordinate
+        }
+        
+        var tempLat = lat
+        var tempLon = lon
+        var convertedLat = lat
+        var convertedLon = lon
+        
+        for _ in 0..<10 { // Iterative refinement for better accuracy
+            convertedLat = tempLat
+            convertedLon = tempLon
+            
+            let dLat = transformLat(tempLat - 35.0, tempLon - 105.0)
+            let dLon = transformLon(tempLat - 35.0, tempLon - 105.0)
+            
+            let radLat = tempLat / 180.0 * .pi
+            var magic = sin(radLat)
+            magic = 1 - ee * magic * magic
+            let sqrtMagic = sqrt(magic)
+            
+            tempLat = lat - (dLat * 180.0) / ((a * (1 - ee)) / (magic * sqrtMagic) * .pi)
+            tempLon = lon - (dLon * 180.0) / (a / sqrtMagic * cos(radLat) * .pi)
+        }
+        
+        return CLLocationCoordinate2D(latitude: convertedLat, longitude: convertedLon)
+    }
+    
     static func isInChinaBounds(lat: Double, lon: Double) -> Bool {
         // Rough bounding box for China
         return lon >= 72.004 && lon <= 135.05 && lat >= 3.86 && lat <= 53.55

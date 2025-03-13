@@ -109,4 +109,21 @@ struct Configuration {
             UserDefaults.standard.set(newValue, forKey: "holidayEndDate")
         }
     }
+    
+    // Add new debug configuration options
+    static var debugOverrideMapView: Bool {
+        get { UserDefaults.standard.bool(forKey: "debugOverrideMapView") }
+        set { UserDefaults.standard.set(newValue, forKey: "debugOverrideMapView") }
+    }
+    
+    static var debugShowMapView: Bool {
+        get { UserDefaults.standard.bool(forKey: "debugShowMapView") }
+        set { UserDefaults.standard.set(newValue, forKey: "debugShowMapView") }
+    }
+    
+    // Add new setting for manually hiding map
+    static var manuallyHideMapAtSchool: Bool {
+        get { UserDefaults.standard.bool(forKey: "manuallyHideMapAtSchool") }
+        set { UserDefaults.standard.set(newValue, forKey: "manuallyHideMapAtSchool") }
+    }
 }
