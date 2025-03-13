@@ -332,14 +332,10 @@ struct TodayView: View {
             // Only trigger updates when meaningful time changes occur
             let newMinute = Calendar.current.component(.minute, from: self.currentTime)
             
-            // Force refresh when minute changes or class period changes
-            // if previousMinute != newMinute || self.shouldRefreshClassInfo() {
-            
-            /*
-            if self.shouldRefreshClassInfo() {
+            // Force refresh when minute changes or special case for class changes
+            if previousMinute != newMinute || self.checkForClassTransition() {
                 self.forceUpdate.toggle()
             }
-             */
         }
         
         // Only animate on app first launch with a slight delay to prevent jank
@@ -565,7 +561,27 @@ struct TodayView: View {
         // Check if we're at an exact class change time (0 seconds)
         // Add common class change minutes to this array
         let classChangeMinutes = [0, 5, 45, 35, 15, 30, 10, 55]
+        
+        // Check if we're close to the end of a period (last 10 seconds)
+        if let upcoming = upcomingClassInfo, upcoming.isForToday && upcoming.period.isCurrentlyActive() {
+            let secondsRemaining = upcoming.period.endTime.timeIntervalSince(Date())
+            if secondsRemaining <= 10 && secondsRemaining > 0 {
+                return true
+            }
+        }
+        
         return classChangeMinutes.contains(currentMinute) && currentSecond == 0
+    }
+    
+    // Safer method to detect class transitions
+    private func checkForClassTransition() -> Bool {
+        // Only check for active periods that are about to end
+        if let upcoming = upcomingClassInfo, upcoming.isForToday && upcoming.period.isCurrentlyActive() {
+            let secondsRemaining = upcoming.period.endTime.timeIntervalSince(Date())
+            // Only trigger refresh for the last 5 seconds of a class period
+            return secondsRemaining <= 5 && secondsRemaining > 0
+        }
+        return false
     }
 }
 

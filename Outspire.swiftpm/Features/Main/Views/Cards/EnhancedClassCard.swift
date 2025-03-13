@@ -12,6 +12,7 @@ struct EnhancedClassCard: View {
     @State private var timeRemaining: TimeInterval = 0
     @State private var isCurrentClass = false
     @State private var timer: Timer?
+    @State private var isTransitioning = false
     
     private var components: [String] {
         classData.replacingOccurrences(of: "<br>", with: "\n")
@@ -180,13 +181,14 @@ struct EnhancedClassCard: View {
         )
         .onAppear {
             calculateTimeRemaining()
-            // Update timer every second in all cases to ensure seconds are shown correctly
+            // Use a simple timer that updates every second
             timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
                 calculateTimeRemaining()
             }
         }
         .onDisappear {
             timer?.invalidate()
+            timer = nil
         }
         .onChange(of: setAsToday) {
             calculateTimeRemaining()
@@ -227,12 +229,14 @@ struct EnhancedClassCard: View {
                 isCurrentClass = true
                 timeRemaining = adjustedEndTime.timeIntervalSince(effectiveNow)
                 
-                // Check if class just ended and we need to switch to next
+                // Critical fix: When time remaining is <= 0, find next period
                 if timeRemaining <= 0 {
                     if let nextPeriod = findNextPeriodToday(after: period, on: effectiveDate!) {
                         let nextStartTime = createAdjustedTime(from: nextPeriod.startTime, onDate: effectiveDate!)
                         isCurrentClass = false
                         timeRemaining = nextStartTime.timeIntervalSince(effectiveNow)
+                    } else {
+                        timeRemaining = 0
                     }
                 }
             } else if effectiveNow < adjustedStartTime {
@@ -256,7 +260,7 @@ struct EnhancedClassCard: View {
                 isCurrentClass = true
                 timeRemaining = period.endTime.timeIntervalSince(now)
                 
-                // Check if class just ended (timeRemaining is negative or zero)
+                // Fix for countdown reaching zero - check if we need to transition
                 if timeRemaining <= 0 {
                     // Find the next class period
                     if let nextPeriod = findNextPeriodToday(after: period, on: now) {
