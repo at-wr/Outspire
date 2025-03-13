@@ -121,6 +121,8 @@ struct SchoolInfoCard: View {
     let travelInfo: (travelTime: TimeInterval?, distance: CLLocationDistance?)?
     let isInChina: Bool
     
+    @State private var isTravelInfoVisible: Bool = false
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
@@ -133,10 +135,19 @@ struct SchoolInfoCard: View {
                 if let travelInfo = travelInfo, 
                    let travelTime = travelInfo.travelTime, 
                    let distance = travelInfo.distance {
+                    
+                    // Use the ID to force view recreation when data changes significantly
+                    let significantChange = Int(travelTime/60) // Minutes value for ID
+                    
                     TravelTimeInfoView(
                         travelTime: travelTime,
                         distance: distance
                     )
+                    .id("travel-\(significantChange)")
+                    .transition(.asymmetric(
+                        insertion: .scale.combined(with: .opacity),
+                        removal: .opacity
+                    ))
                 }
             }
             
@@ -155,6 +166,12 @@ struct SchoolInfoCard: View {
                 .fill(Color(UIColor.systemBackground))
                 .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
         )
+        .onAppear {
+            // Delay showing travel info to ensure smooth card animation
+            withAnimation(.easeIn.delay(0.3)) {
+                isTravelInfoVisible = true
+            }
+        }
     }
 }
 

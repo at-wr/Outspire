@@ -1,6 +1,7 @@
 import SwiftUI
 import CoreLocation
 import MapKit
+import UserNotifications
 
 class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     private let locationManager = CLLocationManager()
@@ -23,13 +24,28 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     private var lastRegionCheckLocation: CLLocation?
     private let regionCheckThreshold: CLLocationDistance = 1000 // Check every 1km of movement
     
+    // Add properties to track significant changes in travel conditions
+    private var lastNotifiedTravelTime: TimeInterval?
+    private var significantChangeThreshold: TimeInterval = 300 // 5 minutes
+    
     override init() {
         super.init()
         locationManager.delegate = self
         locationManager.desiredAccuracy = kCLLocationAccuracyHundredMeters
         locationManager.allowsBackgroundLocationUpdates = false
         locationManager.pausesLocationUpdatesAutomatically = true
+        
+        // Register as a notification handler
+        UNUserNotificationCenter.current().delegate = self
+        
+        // Setup observer for location authorization changes
+        setupLocationAuthorizationObserver()
+        
         // Don't request authorization here - do it explicitly when needed
+    }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
     
     func requestAuthorization() {
@@ -80,11 +96,15 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         let distance = userLocation.distance(from: LocationManager.schoolLocation)
         self.travelDistance = distance
         
+        // Keep previous value to detect significant changes
+        let previousTravelTime = self.travelTimeToSchool
+        
         // Use different calculation methods depending on region
         if isInChina {
             // Apply coordinate conversion for Chinese MapKit
             calculateETAWithMapKit(from: userLocation.coordinate, isInChina: isInChina) {
                 self.lastETACalculationTime = Date()
+                self.checkForSignificantETAChanges(previousTime: previousTravelTime)
                 completion()
             }
         } else {
@@ -93,6 +113,7 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
             // update: roughly 20 km/h
             self.travelTimeToSchool = distance / (20 * 1000 / 3600)
             self.lastETACalculationTime = Date()
+            self.checkForSignificantETAChanges(previousTime: previousTravelTime)
             completion()
         }
     }
@@ -129,6 +150,50 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
             
             self.travelTimeToSchool = response.expectedTravelTime
             completion()
+        }
+    }
+    
+    // Helper method to detect significant changes in ETA
+    private func checkForSignificantETAChanges(previousTime: TimeInterval?) {
+        guard let currentTime = travelTimeToSchool, let previousTime = previousTime else { return }
+        
+        // Check if there's a significant change in travel time (more than threshold)
+        let difference = abs(currentTime - previousTime)
+        if difference > significantChangeThreshold {
+            // Post notification when travel time changes significantly
+            NotificationCenter.default.post(
+                name: .travelTimeSignificantChange,
+                object: nil,
+                userInfo: [
+                    "travelTime": currentTime,
+                    "previousTime": previousTime,
+                    "distance": travelDistance ?? 0
+                ]
+            )
+        }
+    }
+    
+    // Add a method to listen for location authorization changes
+    private func setupLocationAuthorizationObserver() {
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleLocationAuthorizationChange(_:)),
+            name: .locationAuthorizationChanged,
+            object: nil
+        )
+    }
+
+    @objc private func handleLocationAuthorizationChange(_ notification: Notification) {
+        if let status = notification.object as? CLAuthorizationStatus {
+            DispatchQueue.main.async {
+                self.authorizationStatus = status
+                
+                if status == .authorizedWhenInUse || status == .authorizedAlways {
+                    self.locationManager.startUpdatingLocation()
+                } else {
+                    self.locationManager.stopUpdatingLocation()
+                }
+            }
         }
     }
     
@@ -169,9 +234,68 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         print("Location manager failed with error: \(error.localizedDescription)")
     }
+    
+    // MARK: - Handle Notifications
+    
+    func handleMorningETANotification() {
+        // Get the current region and update ETA when a morning notification arrives
+        let regionChecker = RegionChecker.shared
+        regionChecker.fetchRegionCode()
+        
+        // Request always fresh ETA calculation when handling a notification
+        lastETACalculationTime = nil
+        
+        // Start location updates if needed
+        startUpdatingLocation()
+        
+        // Wait a moment for location to update
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            self.calculateETAToSchool(isInChina: regionChecker.isChinaRegion()) {
+                // Update notification with the latest ETA
+                NotificationManager.shared.updateETANotificationContent(
+                    travelTime: self.travelTimeToSchool, 
+                    distance: self.travelDistance
+                )
+                
+                // Remember this travel time for comparison
+                self.lastNotifiedTravelTime = self.travelTimeToSchool
+                
+                // Stop location updates to save battery
+                self.stopUpdatingLocation()
+            }
+        }
+    }
 }
 
 // Define a Notification.Name for significant location changes
 extension Notification.Name {
     static let locationSignificantChange = Notification.Name("locationSignificantChange")
+    static let travelTimeSignificantChange = Notification.Name("travelTimeSignificantChange")
+}
+
+// MARK: - UNUserNotificationCenterDelegate
+extension LocationManager: UNUserNotificationCenterDelegate {
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification,
+        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+    ) {
+        // Allow showing notification even when app is in foreground
+        completionHandler([.banner, .sound, .badge])
+    }
+    
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping () -> Void
+    ) {
+        let identifier = response.notification.request.identifier
+        
+        // Handle ETA notification response
+        if identifier.hasPrefix(NotificationManager.NotificationType.morningETA.rawValue) {
+            handleMorningETANotification()
+        }
+        
+        completionHandler()
+    }
 }

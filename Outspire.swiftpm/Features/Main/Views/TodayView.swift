@@ -321,6 +321,9 @@ struct TodayView: View {
         // Setup location services and region check - only once on appear
         setupLocationServices()
         
+        // Setup notifications
+        setupNotifications()
+        
         // Timer to update current time - optimized to reduce unnecessary refreshes
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [self] _ in
             // Store previous time for comparison
@@ -360,6 +363,22 @@ struct TodayView: View {
             }
     }
     
+    // Add this method to setup notifications
+    private func setupNotifications() {
+        // Only schedule notifications if onboarding is completed
+        // (Permissions are handled by onboarding now)
+        let hasCompletedOnboarding = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
+        
+        if hasCompletedOnboarding {
+            NotificationManager.shared.checkAuthorizationStatus { status in
+                if status == .authorized {
+                    // Schedule the morning ETA notification
+                    NotificationManager.shared.scheduleMorningETANotification()
+                }
+            }
+        }
+    }
+    
     private func setupLocationServices() {
         // Check time of day - only enable location between 5AM and 3PM
         let calendar = Calendar.current
@@ -372,15 +391,14 @@ struct TodayView: View {
                 regionChecker.fetchRegionCode()
             }
             
-            // Only request authorization if not already determined
-            if locationManager.authorizationStatus == .notDetermined {
-                locationManager.requestAuthorization()
-            }
-            
-            // Calculate ETA only once on appear, not continuously
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                if self.locationManager.authorizationStatus == .authorizedWhenInUse || 
-                    self.locationManager.authorizationStatus == .authorizedAlways {
+            // Only start location services if already authorized
+            // (Permissions are handled by onboarding now)
+            if locationManager.authorizationStatus == .authorizedWhenInUse || 
+               locationManager.authorizationStatus == .authorizedAlways {
+                locationManager.startUpdatingLocation()
+                
+                // Calculate ETA only once on appear, not continuously
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                     self.updateTravelTime()
                 }
             }
@@ -681,6 +699,9 @@ struct MainContentView: View {
     let travelTimeToSchool: TimeInterval?
     let travelDistance: CLLocationDistance?
     
+    // Add state to track travel time updates for animations
+    @State private var travelInfoKey = UUID() 
+    
     var body: some View {
         if isAuthenticated {
             authenticatedContent
@@ -791,6 +812,13 @@ struct MainContentView: View {
                 .delay(0.2),
                 value: animateCards
             )
+            .id(travelInfoKey) // Force view recreation when travel info significantly changes
+            .onReceive(NotificationCenter.default.publisher(for: .travelTimeSignificantChange)) { _ in
+                // Regenerate key to trigger smooth animation when travel time changes significantly
+                withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                    travelInfoKey = UUID()
+                }
+            }
             
             if !isHolidayMode {
                 DailyScheduleCard(

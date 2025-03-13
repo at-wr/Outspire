@@ -112,6 +112,9 @@ class SessionService: ObservableObject {
         userDefaults.removeObject(forKey: "isHolidayMode")
         userDefaults.removeObject(forKey: "holidayHasEndDate")
         
+        // Cancel all notifications when user logs out
+        NotificationManager.shared.cancelAllNotifications()
+        
         // Clear all cookies to ensure clean slate
         if let cookies = HTTPCookieStorage.shared.cookies {
             for cookie in cookies {
