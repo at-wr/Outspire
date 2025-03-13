@@ -18,7 +18,7 @@ let package = Package(
             targets: ["AppModule"],
             bundleIdentifier: "dev.wrye.Outspire",
             teamIdentifier: "T2KTTT65L2",
-            displayVersion: "0.5",
+            displayVersion: "0.5.2",
             bundleVersion: "6",
             appIcon: .asset("AppIcon"),
             accentColor: .presetColor(.cyan),
@@ -43,7 +43,8 @@ let package = Package(
                     ]
                 )),
                 .faceID(purposeString: "Required to protect sensitive privacy, including academic grades, etc."),
-                .locationWhenInUse(purposeString: "Required to provide Campus Map Location and ETAs.")
+                .locationWhenInUse(purposeString: "Required to provide campus map and ETAs."),
+                .locationAlwaysAndWhenInUse(purposeString: "Required to estimate the time taken for school transportation.")
             ],
             appCategory: .education
         )

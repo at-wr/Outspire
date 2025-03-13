@@ -6,8 +6,10 @@ struct TodayView: View {
     // MARK: - Environment & State
     @EnvironmentObject var sessionService: SessionService
     @StateObject private var classtableViewModel = ClasstableViewModel()
-    @StateObject private var locationManager = LocationManager()
-    @StateObject private var regionChecker = RegionChecker()
+    // Use the shared instance for LocationManager
+    @ObservedObject private var locationManager = LocationManager.shared
+    // Use the shared instance for RegionChecker
+    @ObservedObject private var regionChecker = RegionChecker.shared
     
     @State private var currentTime = Date()
     @State private var timer: Timer?
@@ -394,7 +396,7 @@ struct TodayView: View {
             // Only start location services if already authorized
             // (Permissions are handled by onboarding now)
             if locationManager.authorizationStatus == .authorizedWhenInUse || 
-               locationManager.authorizationStatus == .authorizedAlways {
+                locationManager.authorizationStatus == .authorizedAlways {
                 locationManager.startUpdatingLocation()
                 
                 // Calculate ETA only once on appear, not continuously

@@ -3,7 +3,8 @@ import MapKit
 import CoreLocation
 
 struct MapView: View {
-    @StateObject private var regionChecker = RegionChecker()
+    // Change from @StateObject to @ObservedObject and use the shared instance
+    @ObservedObject private var regionChecker = RegionChecker.shared
     @State private var region: MKCoordinateRegion
     @State private var position: MapCameraPosition
     
@@ -87,7 +88,7 @@ struct MapView: View {
     private func setupMap() {
         let locationManager = CLLocationManager()
         locationManager.requestWhenInUseAuthorization()
-        // Use the new approach that prioritizes Taiwan check
+        // Use the checkRegion method on the shared instance
         regionChecker.checkRegion()
     }
     
@@ -96,7 +97,7 @@ struct MapView: View {
         guard let currentCenter = position.region?.center else { return }
         let distance = currentCenter.distance(from: region.center)
         if distance > 1000 { // Adjust threshold as needed (in meters)
-            // Use checkRegion instead of just fetchRegionCode
+            // Use checkRegion method on the shared instance
             regionChecker.checkRegion()
         }
     }

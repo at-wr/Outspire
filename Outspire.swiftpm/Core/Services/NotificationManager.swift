@@ -48,8 +48,8 @@ class NotificationManager {
             
             // Create notification content
             let content = UNMutableNotificationContent()
-            content.title = "Morning Commute"
-            content.body = "Checking your travel time to school..."
+            content.title = "🎒 Morning Commute to School"
+            content.body = "Get ready right now to catch up before it’s too late!"
             content.sound = UNNotificationSound.default
             content.categoryIdentifier = NotificationType.morningETA.rawValue
             

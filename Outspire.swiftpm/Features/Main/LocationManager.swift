@@ -3,12 +3,15 @@ import CoreLocation
 import MapKit
 import UserNotifications
 
-class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
+class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, UNUserNotificationCenterDelegate {
     private let locationManager = CLLocationManager()
     @Published var userLocation: CLLocation?
     @Published var authorizationStatus: CLAuthorizationStatus = .notDetermined
     @Published var travelTimeToSchool: TimeInterval?
     @Published var travelDistance: CLLocationDistance?
+    
+    // Create a shared singleton instance
+    static let shared = LocationManager()
     
     // Int'l Campus coordinates
     // 31.14704° N, 121.40758° E
@@ -28,7 +31,8 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     private var lastNotifiedTravelTime: TimeInterval?
     private var significantChangeThreshold: TimeInterval = 300 // 5 minutes
     
-    override init() {
+    // Change to private init to enforce singleton pattern
+    override private init() {
         super.init()
         locationManager.delegate = self
         locationManager.desiredAccuracy = kCLLocationAccuracyHundredMeters
@@ -182,7 +186,7 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
             object: nil
         )
     }
-
+    
     @objc private func handleLocationAuthorizationChange(_ notification: Notification) {
         if let status = notification.object as? CLAuthorizationStatus {
             DispatchQueue.main.async {
@@ -271,31 +275,4 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
 extension Notification.Name {
     static let locationSignificantChange = Notification.Name("locationSignificantChange")
     static let travelTimeSignificantChange = Notification.Name("travelTimeSignificantChange")
-}
-
-// MARK: - UNUserNotificationCenterDelegate
-extension LocationManager: UNUserNotificationCenterDelegate {
-    func userNotificationCenter(
-        _ center: UNUserNotificationCenter,
-        willPresent notification: UNNotification,
-        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
-    ) {
-        // Allow showing notification even when app is in foreground
-        completionHandler([.banner, .sound, .badge])
-    }
-    
-    func userNotificationCenter(
-        _ center: UNUserNotificationCenter,
-        didReceive response: UNNotificationResponse,
-        withCompletionHandler completionHandler: @escaping () -> Void
-    ) {
-        let identifier = response.notification.request.identifier
-        
-        // Handle ETA notification response
-        if identifier.hasPrefix(NotificationManager.NotificationType.morningETA.rawValue) {
-            handleMorningETANotification()
-        }
-        
-        completionHandler()
-    }
 }

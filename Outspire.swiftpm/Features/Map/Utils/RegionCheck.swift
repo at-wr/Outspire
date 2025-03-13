@@ -1,41 +1,55 @@
-import SwiftUI
-import MapKit
+import Foundation
 import CoreLocation
 
 class RegionChecker: ObservableObject {
-    @Published var isTaipeiInChina: Bool = false
+    // Add a shared singleton instance
+    static let shared = RegionChecker()
+    
     @Published var regionCode: String? = nil
+    @Published var isTaipeiInChina: Bool = false
+    @Published var isCheckingRegion = false
     @Published var isCheckComplete: Bool = false
     
-    init() {
+    // Make init private to enforce singleton pattern
+    private init() {
         // Run the Taiwan check on initialization
         checkTaipeiRepresentation()
     }
     
     func checkRegion() {
+        guard !isCheckingRegion else { return }
+        isCheckingRegion = true
+        
         // Primary method to check region - uses the Taiwan test
         checkTaipeiRepresentation()
         
-        // Optional: still perform URL check as a fallback or additional data point
+        // Also perform URL check as a fallback or additional data point
         fetchRegionCode()
     }
     
     func isChinaRegion() -> Bool {
-        // Only rely on the Taiwan check, regardless of what regionCode says
+        // Use the Taiwan check as the primary determinant
         return isTaipeiInChina
     }
     
     func fetchRegionCode() {
         // This is kept as a secondary/optional check
-        guard let url = URL(string: "https://gspe1-ssl.ls.apple.com/pep/gcc") else { return }
+        guard let url = URL(string: "https://gspe1-ssl.ls.apple.com/pep/gcc") else { 
+            isCheckingRegion = false
+            return 
+        }
         
-        URLSession.shared.dataTask(with: url) { data, response, error in
+        URLSession.shared.dataTask(with: url) { [weak self] data, response, error in
             if let data = data, let code = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) {
                 DispatchQueue.main.async {
-                    self.regionCode = code
+                    self?.regionCode = code
+                    self?.isCheckingRegion = false
                 }
             } else {
                 print("Failed to fetch region code: \(error?.localizedDescription ?? "Unknown error")")
+                DispatchQueue.main.async {
+                    self?.isCheckingRegion = false
+                }
             }
         }.resume()
     }
@@ -57,12 +71,16 @@ class RegionChecker: ObservableObject {
                         // If Taipei is shown as part of China (CN), this confirms Chinese MapKit
                         self.isTaipeiInChina = countryCode == "CN"
                         self.isCheckComplete = true
+                        self.isCheckingRegion = false
                         print("Taipei is shown as part of: \(country) (\(countryCode))")
                     }
                 }
             } else if let error = error {
                 print("Geocoding error: \(error.localizedDescription)")
-                self.isCheckComplete = true
+                DispatchQueue.main.async {
+                    self.isCheckComplete = true
+                    self.isCheckingRegion = false
+                }
             }
         }
     }
