@@ -46,7 +46,7 @@ struct OnboardingView: View {
         ),
         OnboardingPage(
             title: "Stay Informed",
-            description: "Access school arrangements, lunch menus, and campus information at your fingertips.",
+            description: "Access school arrangements, dining menus, and campus information at your fingertips.",
             imageName: "info.circle",
             imageColor: .red,
             pageType: .information

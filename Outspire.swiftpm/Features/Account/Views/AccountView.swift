@@ -68,7 +68,7 @@ struct AccountView: View {
                 }
                 
                 Section {
-                    TextField("Username", text: $viewModel.username)
+                    TextField("Username of TSIMS", text: $viewModel.username)
                         .textContentType(.username)
                         .autocapitalization(.none)
                         .autocorrectionDisabled()
@@ -82,7 +82,13 @@ struct AccountView: View {
                         .autocorrectionDisabled()
                         .focused($focusedField, equals: .password)
                         // .submitLabel(.next).submitLabel(.done)
-                        .onSubmit { focusedField = .captcha }
+                        //.onSubmit { focusedField = .captcha }
+                        // handle captcha all by app
+                        .submitLabel(.done)
+                        .onSubmit {
+                            focusedField = nil
+                            login()
+                        }
                     
                     HStack {
                         TextField("CAPTCHA", text: $viewModel.captcha)
