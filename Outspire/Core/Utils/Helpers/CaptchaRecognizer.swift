@@ -1,6 +1,5 @@
 import Foundation
 import Vision
-import UIKit
 import CoreImage
 
 class CaptchaRecognizer {
@@ -12,19 +11,19 @@ class CaptchaRecognizer {
     }
     
     static func recognizeText(in imageData: Data, method: RecognitionMethod = .combined, completion: @escaping (String?) -> Void) {
-        guard let uiImage = UIImage(data: imageData) else {
+        guard let cgImage = createCGImage(from: imageData) else {
             completion(nil)
             return
         }
         
         switch method {
         case .basic:
-            performRecognition(on: uiImage, completion: completion)
+            performRecognition(on: cgImage, completion: completion)
         case .contrastEnhanced:
-            let processed = enhanceContrast(image: uiImage)
+            let processed = enhanceContrast(image: cgImage)
             performRecognition(on: processed, completion: completion)
         case .binarized:
-            let processed = binarizeImage(image: uiImage)
+            let processed = binarizeImage(image: cgImage)
             performRecognition(on: processed, completion: completion)
         case .combined:
             // Try all methods and combine results for best accuracy
@@ -33,14 +32,14 @@ class CaptchaRecognizer {
             
             // Original image
             group.enter()
-            performRecognition(on: uiImage) { result in
+            performRecognition(on: cgImage) { result in
                 if let text = result { results.append(text) }
                 group.leave()
             }
             
             // Contrast enhanced
             group.enter()
-            let contrastImage = enhanceContrast(image: uiImage)
+            let contrastImage = enhanceContrast(image: cgImage)
             performRecognition(on: contrastImage) { result in
                 if let text = result { results.append(text) }
                 group.leave()
@@ -48,7 +47,7 @@ class CaptchaRecognizer {
             
             // Binarized
             group.enter()
-            let binaryImage = binarizeImage(image: uiImage)
+            let binaryImage = binarizeImage(image: cgImage)
             performRecognition(on: binaryImage) { result in
                 if let text = result { results.append(text) }
                 group.leave()
@@ -56,7 +55,7 @@ class CaptchaRecognizer {
             
             // Scale 2x
             group.enter()
-            if let scaledImage = scaleImage(uiImage, by: 2.0) {
+            if let scaledImage = scaleImage(cgImage, by: 2.0) {
                 performRecognition(on: scaledImage) { result in
                     if let text = result { results.append(text) }
                     group.leave()
@@ -73,12 +72,32 @@ class CaptchaRecognizer {
         }
     }
     
-    private static func performRecognition(on image: UIImage, completion: @escaping (String?) -> Void) {
-        guard let cgImage = image.cgImage else {
-            completion(nil)
-            return
+    private static func createCGImage(from data: Data) -> CGImage? {
+        if let provider = CGDataProvider(data: data as CFData) {
+            return CGImage(
+                jpegDataProviderSource: provider,
+                decode: nil,
+                shouldInterpolate: true,
+                intent: .defaultIntent
+            ) ?? CGImage(
+                pngDataProviderSource: provider,
+                decode: nil,
+                shouldInterpolate: true,
+                intent: .defaultIntent
+            )
         }
         
+        // Alternative approach using Core Image
+        let ciImage = CIImage(data: data)
+        if let ciImage = ciImage {
+            let context = CIContext()
+            return context.createCGImage(ciImage, from: ciImage.extent)
+        }
+        
+        return nil
+    }
+    
+    private static func performRecognition(on cgImage: CGImage, completion: @escaping (String?) -> Void) {
         // Create a request handler
         let requestHandler = VNImageRequestHandler(cgImage: cgImage, options: [:])
         
@@ -121,9 +140,8 @@ class CaptchaRecognizer {
     
     // MARK: - Image Processing Methods
     
-    private static func enhanceContrast(image: UIImage) -> UIImage {
-        guard let cgImage = image.cgImage else { return image }
-        let ciImage = CIImage(cgImage: cgImage)
+    private static func enhanceContrast(image: CGImage) -> CGImage {
+        let ciImage = CIImage(cgImage: image)
         
         let filter = CIFilter(name: "CIColorControls")!
         filter.setValue(ciImage, forKey: kCIInputImageKey)
@@ -131,17 +149,18 @@ class CaptchaRecognizer {
         filter.setValue(0.0, forKey: kCIInputSaturationKey) // Remove color
         filter.setValue(0.1, forKey: kCIInputBrightnessKey) // Slightly brighten
         
-        if let outputImage = filter.outputImage,
-           let cgImage = CIContext().createCGImage(outputImage, from: outputImage.extent) {
-            return UIImage(cgImage: cgImage)
+        if let outputImage = filter.outputImage {
+            let context = CIContext()
+            if let cgImage = context.createCGImage(outputImage, from: outputImage.extent) {
+                return cgImage
+            }
         }
         
         return image
     }
     
-    private static func binarizeImage(image: UIImage) -> UIImage {
-        guard let cgImage = image.cgImage else { return image }
-        let ciImage = CIImage(cgImage: cgImage)
+    private static func binarizeImage(image: CGImage) -> CGImage {
+        let ciImage = CIImage(cgImage: image)
         
         // First convert to grayscale
         let grayFilter = CIFilter(name: "CIColorControls")!
@@ -155,31 +174,48 @@ class CaptchaRecognizer {
         thresholdFilter.setValue(grayImage, forKey: kCIInputImageKey)
         thresholdFilter.setValue(0.5, forKey: "inputThreshold")
         
-        if let outputImage = thresholdFilter.outputImage,
-           let cgImage = CIContext().createCGImage(outputImage, from: outputImage.extent) {
-            return UIImage(cgImage: cgImage)
+        if let outputImage = thresholdFilter.outputImage {
+            let context = CIContext()
+            if let cgImage = context.createCGImage(outputImage, from: outputImage.extent) {
+                return cgImage
+            }
         }
         
         return image
     }
     
-    private static func scaleImage(_ image: UIImage, by scale: CGFloat) -> UIImage? {
-        let size = CGSize(width: image.size.width * scale, height: image.size.height * scale)
-        UIGraphicsBeginImageContextWithOptions(size, false, image.scale)
-        image.draw(in: CGRect(origin: .zero, size: size))
-        let scaledImage = UIGraphicsGetImageFromCurrentImageContext()
-        UIGraphicsEndImageContext()
-        return scaledImage
+    private static func scaleImage(_ image: CGImage, by scale: CGFloat) -> CGImage? {
+        let width = Int(CGFloat(image.width) * scale)
+        let height = Int(CGFloat(image.height) * scale)
+        
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        let bitmapInfo = CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedLast.rawValue)
+        
+        guard let context = CGContext(
+            data: nil,
+            width: width,
+            height: height,
+            bitsPerComponent: 8,
+            bytesPerRow: 0,
+            space: colorSpace,
+            bitmapInfo: bitmapInfo.rawValue
+        ) else {
+            return nil
+        }
+        
+        context.interpolationQuality = .high
+        context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
+        
+        return context.makeImage()
     }
     
     private static func findBestResult(from results: [String]) -> String? {
         guard !results.isEmpty else { return nil }
         
         // Filter for 4 character result
-        let validResults = results.filter { 
+        let validResults = results.filter {
             let filtered = $0.filter { $0.isLetter || $0.isNumber }
-            // return filtered.count >= 4 && filtered.count <= 6 
-            return filtered.count == 4 
+            return filtered.count == 4
         }
         
         if !validResults.isEmpty {

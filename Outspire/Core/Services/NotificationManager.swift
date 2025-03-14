@@ -224,4 +224,29 @@ class NotificationManager {
     private func getCurrentWeekday() -> Int {
         return Calendar.current.component(.weekday, from: Date())
     }
+    
+    // Remove all pending notifications
+    func removeAllPendingNotifications() {
+        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+    }
+    
+    // Set up notification categories
+    func setupNotificationCategories() {
+        // Create ETA notification category with actions
+        let viewETAAction = UNNotificationAction(
+            identifier: "VIEW_ETA",
+            title: "View ETA",
+            options: .foreground
+        )
+        
+        let etaCategory = UNNotificationCategory(
+            identifier: "MORNING_ETA",
+            actions: [viewETAAction],
+            intentIdentifiers: [],
+            options: []
+        )
+        
+        // Register the notification categories
+        UNUserNotificationCenter.current().setNotificationCategories([etaCategory])
+    }
 }

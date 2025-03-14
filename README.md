@@ -1,14 +1,15 @@
-<img align="left" width="60" height="60" src="https://raw.githubusercontent.com/at-wr/Outspire/refs/heads/main/Outspire.swiftpm/Assets.xcassets/AppIcon.appiconset/AppIcon.png" alt="Outspire App Icon">
+<img align="left" width="60" height="60" src="https://raw.githubusercontent.com/at-wr/Outspire/refs/heads/main/Icon.png" alt="Outspire App Icon">
 
 # Outspire
 [![Xcode Build & Test](https://github.com/at-wr/Outspire/actions/workflows/build_test.yml/badge.svg)](https://github.com/at-wr/Outspire/actions/workflows/build_test.yml)
 
-An iOS app for WFLA TSIMS built with SwiftUI, which is also compatible with macOS.
+Your all-in-one WFLA campus companian. It's an iOS app for WFLA TSIMS, which is also compatible with macOS.
 
 ## Overview
 
-- Written in Swift with SwiftUI on Swift Playground
-- Can be generally used
+- Written in Swift with SwiftUI
+- Migrated to Xcode, from Swift Playgrounds
+- Can be daily used
 
 ## Features
 
