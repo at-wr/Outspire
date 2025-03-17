@@ -195,15 +195,15 @@ struct OutspireWidgetControlView: View {
     
     // MARK: - Accessory View
     
+    @ViewBuilder
     private func accessoryRectangularView(entry: ClassTableProvider.Entry) -> some View {
         if case .hasClasses = entry.state, !entry.classes.isEmpty {
-            // Convert dayOfWeek string to index
             let dayMapping = ["Mon": 1, "Tue": 2, "Wed": 3, "Thu": 4, "Fri": 5]
-            let dayIndex = dayMapping[entry.dayOfWeek] ?? 1 // Default to Monday if not found
+            let dayIndex = dayMapping[entry.dayOfWeek] ?? 1
             let dayName = WidgetHelpers.weekdayName(for: dayIndex)
             let classCount = entry.classes.count
             
-            return VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 2) {
                 // Day header
                 Text("\(dayName)'s Classes")
                     .font(.headline)
@@ -233,12 +233,12 @@ struct OutspireWidgetControlView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         } else {
-            // Default state
-            return Text("No classes today")
+            Text("No classes today")
                 .font(.headline)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
+
     
     // MARK: - State Views
     

@@ -11,8 +11,12 @@
 			<array>
 				<string>com.apple.maps.directionsrequest</string>
 			</array>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
 		</dict>
 	</array>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
 	<key>MKDirectionsApplicationSupportedModes</key>
 	<array>
 		<string>MKDirectionsModeBus</string>
