@@ -172,7 +172,7 @@ struct EnhancedClassCard: View {
                                 .padding(.trailing, 16)
                         }
                     }
-                    .padding(.vertical, 12)
+                    .padding(.vertical, 10)
                     
                     // Live Activity toggle button
                     if (isForToday || setAsToday) && toggleLiveActivity != nil {
@@ -185,13 +185,13 @@ struct EnhancedClassCard: View {
                             toggleLiveActivity?()
                         }) {
                             HStack {
-                                Image(systemName: hasActiveActivity ? "livephoto.slash" : "livephoto")
+                                Image(systemName: hasActiveActivity ? "pause.circle" : "play.circle")
                                     .font(.caption)
                                 Text(hasActiveActivity ? "Stop Live Activity" : "Start Live Activity")
                                     .font(.caption)
                             }
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 8)
+                            .padding(.vertical, 3)
                             .foregroundStyle(statusColor)
                             .contentShape(Rectangle())
                         }

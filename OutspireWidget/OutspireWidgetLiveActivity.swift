@@ -68,14 +68,18 @@ struct OutspireWidgetLiveActivity: Widget {
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                         
-                        Text(formatTimeRemaining(context.state.timeRemaining))
-                            .font(.system(.headline, design: .rounded))
-                            .fontWeight(.bold)
-                            .monospacedDigit()
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.7)
-                            .frame(maxWidth: .infinity, alignment: .trailing)
-                            .foregroundStyle(statusColor(for: context.state.currentStatus))
+                        Text("00:00") // Placeholder to stabilize layout
+                            .hidden() // Hide the placeholder
+                            .overlay(alignment: .leading) {
+                                Text(timerInterval: context.state.startTime...context.state.endTime, countsDown: true)
+                                    .font(.system(.headline, design: .rounded))
+                                    .fontWeight(.bold)
+                                    .monospacedDigit()
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.9)
+                                    .frame(width: 80, alignment: .trailing) // Fixed width to match max timer string
+                                    .foregroundStyle(statusColor(for: context.state.currentStatus))
+                            }
                     }
                     .padding(.trailing, 4)
                 }
@@ -86,13 +90,12 @@ struct OutspireWidgetLiveActivity: Widget {
                             Label {
                                 Text(context.attributes.roomNumber)
                             } icon: {
-                                Image(systemName: "mappin.circle.fill")
+                                Image(systemName: "mappin")
                             }
                             .font(.caption)
                             .foregroundStyle(.secondary)
                         }
                         
-                        Spacer()
                         
                         if !context.attributes.teacherName.isEmpty {
                             Label {
@@ -126,16 +129,18 @@ struct OutspireWidgetLiveActivity: Widget {
                         .foregroundStyle(.tint)
                 }
             } compactTrailing: {
-                HStack {
-                    Spacer()
-                    Text(formatTimeRemaining(context.state.timeRemaining))
-                        .font(.system(.headline, design: .rounded))
-                        .fontWeight(.bold)
-                        .monospacedDigit()
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.9)
-                        .foregroundStyle(statusColor(for: context.state.currentStatus))
-                }
+                Text("00:00") // Placeholder to stabilize layout
+                    .hidden() // Hide the placeholder
+                    .overlay(alignment: .leading) {
+                        Text(timerInterval: context.state.startTime...context.state.endTime, countsDown: true)
+                            .font(.system(.headline, design: .rounded))
+                            .fontWeight(.bold)
+                            .monospacedDigit()
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.9)
+                            .frame(width: 80, alignment: .trailing) // Fixed width to match max timer string
+                            .foregroundStyle(statusColor(for: context.state.currentStatus))
+                    }
             } minimal: {
                 Text("\(context.state.periodNumber)")
                     .font(.system(size: 12, weight: .bold, design: .rounded))
@@ -189,7 +194,8 @@ struct LockScreenView: View {
                 Text(context.state.currentStatus == .upcoming ? "Next Class" : "Current Class")
                     .font(.caption2)
                     .fontWeight(.medium)
-                    .foregroundStyle(.tint)
+                    //.foregroundStyle(.tint)
+                    .foregroundStyle(statusColor(for: context.state.currentStatus))
                 
                 Text(context.attributes.className)
                     .font(.headline)
@@ -230,14 +236,18 @@ struct LockScreenView: View {
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                 
-                Text(formatTimeRemaining(context.state.timeRemaining))
-                    .font(.system(.title3, design: .rounded))
-                    .fontWeight(.bold)
-                    .monospacedDigit()
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                    .frame(maxWidth: .infinity, alignment: .trailing)
-                    .foregroundStyle(statusColor(for: context.state.currentStatus))
+                Text("00:00") // Placeholder to stabilize layout
+                    .hidden() // Hide the placeholder
+                    .overlay(alignment: .leading) {
+                        Text(timerInterval: context.state.startTime...context.state.endTime, countsDown: true)
+                            .font(.system(.headline, design: .rounded))
+                            .fontWeight(.bold)
+                            .monospacedDigit()
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.9)
+                            .frame(width: 80, alignment: .trailing) // Fixed width to match max timer string
+                            .foregroundStyle(statusColor(for: context.state.currentStatus))
+                    }
                 
                 if context.state.currentStatus != .upcoming {
                     ProgressView(value: context.state.progress)
