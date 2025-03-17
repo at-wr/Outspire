@@ -9,19 +9,17 @@ import ActivityKit
 import WidgetKit
 import SwiftUI
 
-// Make sure we're using a single consistent attributes structure
+// ClassActivityAttributes remains unchanged
 struct ClassActivityAttributes: ActivityAttributes {
     public struct ContentState: Codable, Hashable {
-        // Dynamic content that can change during updates
         var startTime: Date
         var endTime: Date
         var currentStatus: ClassStatus
         var periodNumber: Int
-        var progress: Double // Add progress for UI visualization
-        var timeRemaining: TimeInterval // Add time remaining for simpler display
+        var progress: Double
+        var timeRemaining: TimeInterval
     }
     
-    // Static content that doesn't change during the activity lifecycle
     var className: String
     var roomNumber: String
     var teacherName: String
@@ -29,10 +27,9 @@ struct ClassActivityAttributes: ActivityAttributes {
     enum ClassStatus: String, Codable {
         case upcoming
         case ongoing
-        case ending   // last 5 minutes
+        case ending
     }
     
-    // Preview helper
     static var preview: ClassActivityAttributes {
         ClassActivityAttributes(
             className: "Mathematics",
@@ -75,13 +72,16 @@ struct OutspireWidgetLiveActivity: Widget {
                             .font(.system(.headline, design: .rounded))
                             .fontWeight(.bold)
                             .monospacedDigit()
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                            .foregroundStyle(statusColor(for: context.state.currentStatus))
                     }
                     .padding(.trailing, 4)
                 }
                 
                 DynamicIslandExpandedRegion(.bottom) {
                     HStack {
-                        // Room info
                         if !context.attributes.roomNumber.isEmpty {
                             Label {
                                 Text(context.attributes.roomNumber)
@@ -94,7 +94,6 @@ struct OutspireWidgetLiveActivity: Widget {
                         
                         Spacer()
                         
-                        // Teacher info
                         if !context.attributes.teacherName.isEmpty {
                             Label {
                                 Text(context.attributes.teacherName)
@@ -107,40 +106,37 @@ struct OutspireWidgetLiveActivity: Widget {
                         
                         Spacer()
                         
-                        // Progress indicator
+                        // Progress indicator without percentage text
                         if context.state.currentStatus != .upcoming {
-                            VStack(spacing: 2) {
-                                ProgressView(value: context.state.progress)
-                                    .progressViewStyle(.linear)
-                                    .frame(width: 60)
-                                    .tint(.orange)
-                                
-                                Text("\(Int(context.state.progress * 100))%")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                            .padding(.horizontal, 4)
+                            ProgressView(value: context.state.progress)
+                                .progressViewStyle(.linear)
+                                .frame(width: 60)
+                                .tint(statusColor(for: context.state.currentStatus))
                         }
                     }
                 }
             } compactLeading: {
-                // Compact leading - Period number
                 ZStack {
                     Circle()
                         .fill(Color.tint.opacity(0.2))
-                        .frame(width: 20, height: 20)
+                        .frame(width: 18, height: 18)
                     
                     Text("\(context.state.periodNumber)")
-                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                        .font(.system(size: 10, weight: .bold, design: .rounded))
                         .foregroundStyle(.tint)
                 }
             } compactTrailing: {
-                // Compact trailing - Time remaining
-                Text(formatTimeRemaining(context.state.timeRemaining, compact: true))
-                    .font(.system(size: 12, weight: .semibold, design: .rounded))
-                    .monospacedDigit()
+                HStack {
+                    Spacer()
+                    Text(formatTimeRemaining(context.state.timeRemaining))
+                        .font(.system(.headline, design: .rounded))
+                        .fontWeight(.bold)
+                        .monospacedDigit()
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.9)
+                        .foregroundStyle(statusColor(for: context.state.currentStatus))
+                }
             } minimal: {
-                // Minimal - Just period number
                 Text("\(context.state.periodNumber)")
                     .font(.system(size: 12, weight: .bold, design: .rounded))
                     .foregroundStyle(.tint)
@@ -150,7 +146,7 @@ struct OutspireWidgetLiveActivity: Widget {
         }
     }
     
-    // Helper to format time for display
+    // Helper functions remain unchanged
     private func formatTimeRemaining(_ timeInterval: TimeInterval, compact: Bool = false) -> String {
         let hours = Int(timeInterval) / 3600
         let minutes = (Int(timeInterval) % 3600) / 60
@@ -173,7 +169,6 @@ struct OutspireWidgetLiveActivity: Widget {
         }
     }
     
-    // Helper for status-based color
     private func statusColor(for status: ClassActivityAttributes.ClassStatus) -> Color {
         switch status {
         case .upcoming: return .blue
@@ -183,7 +178,7 @@ struct OutspireWidgetLiveActivity: Widget {
     }
 }
 
-// Lock screen view
+// Updated Lock Screen View
 struct LockScreenView: View {
     let context: ActivityViewContext<ClassActivityAttributes>
     
@@ -191,68 +186,74 @@ struct LockScreenView: View {
         HStack(spacing: 12) {
             // Left side with class info
             VStack(alignment: .leading, spacing: 4) {
-                // Status and period
-                HStack {
-                    Text(context.state.currentStatus == .upcoming ? "Next Class" : "Current Class")
-                        .font(.caption2)
-                        .fontWeight(.medium)
-                        .foregroundStyle(.tint)
-                    
-                    Spacer()
-                    
-                    Text("Period \(context.state.periodNumber)")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
+                Text(context.state.currentStatus == .upcoming ? "Next Class" : "Current Class")
+                    .font(.caption2)
+                    .fontWeight(.medium)
+                    .foregroundStyle(.tint)
                 
-                // Class name
                 Text(context.attributes.className)
                     .font(.headline)
                     .fontWeight(.semibold)
                     .lineLimit(1)
                 
-                // Room number
-                if !context.attributes.roomNumber.isEmpty {
-                    Label {
-                        Text(context.attributes.roomNumber)
-                    } icon: {
-                        Image(systemName: "mappin.circle.fill")
+                HStack(spacing: 16) {
+                    if !context.attributes.roomNumber.isEmpty {
+                        Label {
+                            Text(context.attributes.roomNumber)
+                        } icon: {
+                            Image(systemName: "mappin.circle.fill")
+                        }
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                     }
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    if !context.attributes.teacherName.isEmpty {
+                        Label {
+                            Text(context.attributes.teacherName)
+                        } icon: {
+                            Image(systemName: "person.fill")
+                        }
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    }
                 }
             }
             
             Spacer()
             
-            // Right side with timer
+            // Right side with period and timer
             VStack(alignment: .trailing, spacing: 2) {
-                // Timer label
+                Text("#\(context.state.periodNumber)")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                
                 Text(context.state.currentStatus == .upcoming ? "Starts in" : "Ends in")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                 
-                // Timer value
                 Text(formatTimeRemaining(context.state.timeRemaining))
                     .font(.system(.title3, design: .rounded))
                     .fontWeight(.bold)
                     .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+                    .foregroundStyle(statusColor(for: context.state.currentStatus))
                 
-                // Progress indicator (only for current class)
                 if context.state.currentStatus != .upcoming {
                     ProgressView(value: context.state.progress)
                         .progressViewStyle(.linear)
                         .frame(width: 60)
-                        .tint(.orange)
+                        .tint(statusColor(for: context.state.currentStatus))
                 }
             }
+            .frame(width: 100)
         }
         .padding()
         .activityBackgroundTint(Color(.secondarySystemBackground))
         .activitySystemActionForegroundColor(.primary)
     }
     
-    // Helper to format time for display
+    // Helper functions remain unchanged
     private func formatTimeRemaining(_ timeInterval: TimeInterval) -> String {
         let hours = Int(timeInterval) / 3600
         let minutes = (Int(timeInterval) % 3600) / 60
@@ -266,29 +267,37 @@ struct LockScreenView: View {
             return "\(seconds)s"
         }
     }
+    
+    private func statusColor(for status: ClassActivityAttributes.ClassStatus) -> Color {
+        switch status {
+        case .upcoming: return .blue
+        case .ongoing: return .green
+        case .ending: return .orange
+        }
+    }
 }
 
-// MARK: - Preview Helpers
+// Preview code remains unchanged
 extension ClassActivityAttributes.ContentState {
     static var current: ClassActivityAttributes.ContentState {
         ClassActivityAttributes.ContentState(
-            startTime: Date().addingTimeInterval(-15 * 60), // 15 min ago
-            endTime: Date().addingTimeInterval(15 * 60),    // 15 min from now
+            startTime: Date().addingTimeInterval(-15 * 60),
+            endTime: Date().addingTimeInterval(15 * 60),
             currentStatus: .ongoing,
             periodNumber: 3,
             progress: 0.6,
-            timeRemaining: 15 * 60 // 15 minutes
+            timeRemaining: 15 * 60
         )
     }
      
     static var next: ClassActivityAttributes.ContentState {
         ClassActivityAttributes.ContentState(
-            startTime: Date().addingTimeInterval(15 * 60),  // 15 min from now
-            endTime: Date().addingTimeInterval(60 * 60),    // 1 hour from now
+            startTime: Date().addingTimeInterval(15 * 60),
+            endTime: Date().addingTimeInterval(60 * 60),
             currentStatus: .upcoming,
             periodNumber: 4,
             progress: 0.0,
-            timeRemaining: 15 * 60 // 15 minutes
+            timeRemaining: 15 * 60
         )
     }
 }

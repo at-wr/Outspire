@@ -244,7 +244,7 @@ struct DailyScheduleCard: View {
         VStack(alignment: .leading, spacing: 16) {
             // Card header with class count
             HStack {
-                Label("Today's Schedule", systemImage: "calendar.day.timeline.left")
+                Label("Schedule", systemImage: "calendar.day.timeline.left")
                     .font(.headline)
                     .foregroundStyle(.primary)
                 Spacer()

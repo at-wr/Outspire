@@ -109,13 +109,24 @@ class ClassActivityManager {
         }
     }
     
-    // Schedule periodic updates (every 60 seconds) to keep countdown accurate
+    // Schedule periodic updates that increase frequency as time gets closer to transitions
     private func schedulePeriodicUpdates(activityId: String, startTime: Date, endTime: Date) {
         // Create a repeating timer that updates the activity state
-        let timer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] timer in
-            guard let self = self, let _ = self.activeClassActivities[activityId] else {
+        let timer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] timer in
+            guard let self = self, let activity = self.activeClassActivities[activityId] else {
                 timer.invalidate()
                 return
+            }
+            
+            let now = Date()
+            
+            // Increase update frequency for transitions
+            if (activity.content.state.currentStatus == .upcoming && startTime.timeIntervalSince(now) < 300) ||
+               (activity.content.state.currentStatus != .upcoming && endTime.timeIntervalSince(now) < 300) {
+                // If within 5 minutes of a transition, update more frequently
+                timer.tolerance = 5  // Allow some tolerance for system optimization
+            } else {
+                timer.tolerance = 15  // Default tolerance
             }
             
             self.updateActivityState(activityId: activityId, startTime: startTime, endTime: endTime)
@@ -134,54 +145,63 @@ class ClassActivityManager {
         let timeRemaining: TimeInterval
         let progress: Double
         
-        // Update status based on current time
+        // Update status based on current time - check and handle transitions
         if now < startTime {
             newStatus = .upcoming
             timeRemaining = startTime.timeIntervalSince(now)
             progress = 0.0
-        } else if now >= startTime && endTime.timeIntervalSince(now) <= 300 {
-            newStatus = .ending
-            timeRemaining = max(0, endTime.timeIntervalSince(now))
-            let totalDuration = endTime.timeIntervalSince(startTime)
-            let elapsed = now.timeIntervalSince(startTime)
-            progress = max(0, min(1, elapsed / totalDuration))
-        } else if now >= startTime {
-            newStatus = .ongoing
+        } else if now >= startTime && now < endTime {
+            // Class is in progress
+            if endTime.timeIntervalSince(now) <= 300 {
+                newStatus = .ending
+            } else {
+                newStatus = .ongoing
+            }
             timeRemaining = max(0, endTime.timeIntervalSince(now))
             let totalDuration = endTime.timeIntervalSince(startTime)
             let elapsed = now.timeIntervalSince(startTime)
             progress = max(0, min(1, elapsed / totalDuration))
         } else {
-            // Fall back to whatever status it had before
-            timeRemaining = max(0, endTime.timeIntervalSince(now))
-            let totalDuration = endTime.timeIntervalSince(startTime)
-            let elapsed = now.timeIntervalSince(startTime)
-            progress = max(0, min(1, elapsed / totalDuration))
+            // Class has ended - prepare to end activity
+            timeRemaining = 0
+            progress = 1.0
+            
+            // End the activity after the update
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
+                self?.endActivity(for: activityId)
+            }
+            return
         }
         
-        Task {
-            if #available(iOS 16.2, *) {
-                await activity.update(
-                    .init(state: ClassActivityAttributes.ContentState(
-                        startTime: startTime,
-                        endTime: endTime,
-                        currentStatus: newStatus,
-                        periodNumber: activity.content.state.periodNumber,
-                        progress: progress,
-                        timeRemaining: timeRemaining
-                    ), staleDate: nil)
-                )
-            } else {
-                await activity.update(
-                    using: ClassActivityAttributes.ContentState(
-                        startTime: startTime,
-                        endTime: endTime,
-                        currentStatus: newStatus,
-                        periodNumber: activity.content.state.periodNumber,
-                        progress: progress,
-                        timeRemaining: timeRemaining
+        // Only update if status or progress changed significantly
+        let shouldUpdate = newStatus != activity.content.state.currentStatus ||
+                          abs(progress - activity.content.state.progress) > 0.01
+        
+        if shouldUpdate {
+            Task {
+                if #available(iOS 16.2, *) {
+                    await activity.update(
+                        .init(state: ClassActivityAttributes.ContentState(
+                            startTime: startTime,
+                            endTime: endTime,
+                            currentStatus: newStatus,
+                            periodNumber: activity.content.state.periodNumber,
+                            progress: progress,
+                            timeRemaining: timeRemaining
+                        ), staleDate: nil)
                     )
-                )
+                } else {
+                    await activity.update(
+                        using: ClassActivityAttributes.ContentState(
+                            startTime: startTime,
+                            endTime: endTime,
+                            currentStatus: newStatus,
+                            periodNumber: activity.content.state.periodNumber,
+                            progress: progress,
+                            timeRemaining: timeRemaining
+                        )
+                    )
+                }
             }
         }
     }

@@ -48,7 +48,7 @@ struct TravelTimeInfoView: View {
                 .foregroundStyle(.blue)
                 .symbolEffect(.bounce, options: .repeat(2), value: actualTravelMinutes)
             
-            Text("To School: \(formattedTravelTime)")
+            Text("\(formattedTravelTime)")
                 .font(.caption)
                 .fontWeight(.medium)
             

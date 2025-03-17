@@ -311,6 +311,8 @@ struct ClassBottomView: View {
                     .font(.system(.headline, design: .rounded).monospacedDigit())
                     .fontWeight(.bold)
                     .foregroundColor(statusColor(for: context.state.currentStatus))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             }
             
             Spacer()
