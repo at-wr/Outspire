@@ -129,4 +129,10 @@ struct Configuration {
         get { UserDefaults.standard.bool(forKey: "manuallyHideMapAtSchool") }
         set { UserDefaults.standard.set(newValue, forKey: "manuallyHideMapAtSchool") }
     }
+    
+    // Add new setting for automatic Live Activities
+    static var automaticallyStartLiveActivities: Bool {
+        get { UserDefaults.standard.bool(forKey: "automaticallyStartLiveActivities") }
+        set { UserDefaults.standard.set(newValue, forKey: "automaticallyStartLiveActivities") }
+    }
 }

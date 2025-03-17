@@ -24,6 +24,9 @@ struct TodayView: View {
     @State private var allowAnimation = true
     @State private var forceUpdate: Bool = false  // Added to force UI updates
     @State private var showLocationUpdateSheet = false
+    // Track if we've already started a Live Activity for the current class
+    @State private var hasStartedLiveActivity = false
+    @State private var activeClassLiveActivities: [String: Bool] = [:]
     
     // MARK: - Body
     var body: some View {
@@ -195,7 +198,9 @@ struct TodayView: View {
             isInChinaRegion: regionChecker.isChinaRegion(),
             showMapView: shouldShowMapView(),
             travelTimeToSchool: locationManager.travelTimeToSchool,
-            travelDistance: locationManager.travelDistance
+            travelDistance: locationManager.travelDistance,
+            activeClassLiveActivities: activeClassLiveActivities,
+            toggleLiveActivity: toggleLiveActivityForCurrentClass
         )
     }
     
@@ -363,6 +368,9 @@ struct TodayView: View {
             queue: .main) { _ in
                 self.regionChecker.fetchRegionCode()
             }
+        
+        // Start Live Activity for the current class if available
+        startClassLiveActivityIfNeeded()
     }
     
     // Add this method to setup notifications
@@ -599,9 +607,86 @@ struct TodayView: View {
         if let upcoming = upcomingClassInfo, upcoming.isForToday && upcoming.period.isCurrentlyActive() {
             let secondsRemaining = upcoming.period.endTime.timeIntervalSince(Date())
             // Only trigger refresh for the last 5 seconds of a class period
-            return secondsRemaining <= 5 && secondsRemaining > 0
+            if secondsRemaining <= 5 && secondsRemaining > 0 {
+                return true
+            }
+            
+            // Check if we're about to transition, then see if we need to start a Live Activity for the next period
+            if secondsRemaining <= 60 && secondsRemaining > 0 && Configuration.automaticallyStartLiveActivities {
+                DispatchQueue.main.asyncAfter(deadline: .now() + secondsRemaining + 1) {
+                    self.startClassLiveActivityIfNeeded(forceCheck: true)
+                }
+            }
         }
         return false
+    }
+    
+    // Function to start Live Activity for the current or next class
+    private func startClassLiveActivityIfNeeded(forceCheck: Bool = false) {
+        // Don't start Live Activity if holiday mode is active
+        guard !isHolidayActive() else { return }
+        
+        // Only process when we have class info and timetable data
+        guard let upcoming = upcomingClassInfo,
+              !classtableViewModel.timetable.isEmpty else { return }
+        
+        // Create a unique ID for this class period
+        let activityId = "\(upcoming.period.number)_\(upcoming.classData)"
+        
+        // Skip if we've already started a Live Activity for this specific class period
+        // unless we're explicitly forcing a check
+        if !forceCheck && activeClassLiveActivities[activityId] == true {
+            return
+        }
+        
+        // Process the class data to extract required information
+        let components = upcoming.classData.replacingOccurrences(of: "<br>", with: "\n")
+            .components(separatedBy: "\n")
+            .filter { !$0.isEmpty }
+        
+        // Only proceed if we have enough data
+        guard components.count >= 2 else { return }
+        
+        let teacherName = components.count > 0 ? components[0] : "Unknown Teacher"
+        let className = components.count > 1 ? components[1] : "Unknown Class"
+        let roomNumber = components.count > 2 ? components[2] : "Unknown Room"
+        
+        // Start the Live Activity
+        ClassActivityManager.shared.startClassActivity(
+            className: className,
+            periodNumber: upcoming.period.number,
+            roomNumber: roomNumber,
+            teacherName: teacherName,
+            startTime: upcoming.period.startTime,
+            endTime: upcoming.period.endTime
+        )
+        
+        // Mark this specific class period as having an active Live Activity
+        activeClassLiveActivities[activityId] = true
+    }
+    
+    // Add method to toggle Live Activity for current class
+    private func toggleLiveActivityForCurrentClass() {
+        guard let upcoming = upcomingClassInfo else { return }
+        
+        let activityId = "\(upcoming.period.number)_\(upcoming.classData)"
+        
+        if activeClassLiveActivities[activityId] == true {
+            // Stop the existing activity
+            ClassActivityManager.shared.endActivity(for: activityId)
+            activeClassLiveActivities[activityId] = false
+            
+            // Give haptic feedback for turning off
+            let generator = UIImpactFeedbackGenerator(style: .medium)
+            generator.impactOccurred()
+        } else {
+            // Start a new activity
+            startClassLiveActivityIfNeeded(forceCheck: true)
+            
+            // Give haptic feedback for turning on
+            let generator = UIImpactFeedbackGenerator(style: .medium)
+            generator.impactOccurred(intensity: 0.7)
+        }
     }
 }
 
@@ -700,6 +785,8 @@ struct MainContentView: View {
     let showMapView: Bool
     let travelTimeToSchool: TimeInterval?
     let travelDistance: CLLocationDistance?
+    let activeClassLiveActivities: [String: Bool]
+    let toggleLiveActivity: () -> Void
     
     // Add state to track travel time updates for animations
     @State private var travelInfoKey = UUID() 
@@ -743,11 +830,9 @@ struct MainContentView: View {
                 if isHolidayActive {
                     HolidayModeCard(hasEndDate: holidayHasEndDate, endDate: holidayEndDate)
                         .transition(.opacity)
-                    
-                } else if isLoading {
+                } else if isLoading { 
                     UpcomingClassSkeletonView()
                         .transition(.opacity)
-                    
                 } else if let upcoming = upcomingClassInfo {
                     EnhancedClassCard(
                         day: TodayViewHelpers.weekdayName(for: upcoming.dayIndex + 1),
@@ -756,7 +841,9 @@ struct MainContentView: View {
                         currentTime: currentTime,
                         isForToday: upcoming.isForToday,
                         setAsToday: setAsToday && selectedDayOverride != nil,
-                        effectiveDate: setAsToday && selectedDayOverride != nil ? effectiveDate : nil
+                        effectiveDate: setAsToday && selectedDayOverride != nil ? effectiveDate : nil,
+                        hasActiveActivity: activeClassLiveActivities["\(upcoming.period.number)_\(upcoming.classData)"] == true,
+                        toggleLiveActivity: toggleLiveActivity
                     )
                     .transition(.opacity)
                 } else if isCurrentDateWeekend {
@@ -769,11 +856,6 @@ struct MainContentView: View {
             }
             .padding(.horizontal)
             .id("ClassCardContainer") // Fixed ID to help with animations
-            // Remove these animations that cause stretching
-            // .animation(.easeInOut(duration: 0.2), value: upcomingClassInfo?.period.number)
-            // .animation(.easeInOut(duration: 0.2), value: isHolidayActive)
-            // .animation(.easeInOut(duration: 0.2), value: isLoading)
-            // .animation(.easeInOut(duration: 0.2), value: isCurrentDateWeekend)
             .offset(y: animateCards ? 0 : 30)
             .opacity(animateCards ? 1 : 0)
             .animation(
@@ -815,27 +897,20 @@ struct MainContentView: View {
                 value: animateCards
             )
             .id(travelInfoKey) // Force view recreation when travel info significantly changes
-            .onReceive(NotificationCenter.default.publisher(for: .travelTimeSignificantChange)) { _ in
-                // Regenerate key to trigger smooth animation when travel time changes significantly
-                withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-                    travelInfoKey = UUID()
-                }
-            }
             
-            if !isHolidayMode {
-                DailyScheduleCard(
-                    viewModel: classtableViewModel,
-                    dayIndex: effectiveDayIndex
-                )
-                .padding(.horizontal)
-                .offset(y: animateCards ? 0 : 30)
-                .opacity(animateCards ? 1 : 0)
-                .animation(
-                    .spring(response: 0.7, dampingFraction: 0.8)
-                    .delay(0.3),
-                    value: animateCards
-                )
-            }
+            // Show the schedule card
+            DailyScheduleCard(
+                viewModel: classtableViewModel, // Changed parameter name from classtableViewModel to viewModel
+                dayIndex: effectiveDayIndex
+            )
+            .padding(.horizontal)
+            .offset(y: animateCards ? 0 : 30)
+            .opacity(animateCards ? 1 : 0)
+            .animation(
+                .spring(response: 0.7, dampingFraction: 0.8)
+                .delay(0.3),
+                value: animateCards
+            )
         }
     }
     

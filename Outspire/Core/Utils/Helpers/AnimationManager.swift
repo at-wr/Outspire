@@ -7,34 +7,38 @@ class AnimationManager {
     private init() {}
     
     // Tracking app launch state
-    private(set) var isFirstLaunch = true
+    private(set) var isFirstLaunch = !UserDefaults.standard.bool(forKey: "hasLaunchedBefore")
     
     // Dictionary to track animation states for different views
-    private var animatedViews: [String: Bool] = [:]
+    private var animatedViews = Set<String>()
     
     func markAppLaunched() {
-        isFirstLaunch = false
+        if isFirstLaunch {
+            UserDefaults.standard.set(true, forKey: "hasLaunchedBefore")
+            isFirstLaunch = false
+        }
     }
     
     func resetAnimationFlags() {
         // Reset for testing or when signing out
         isFirstLaunch = true
         animatedViews.removeAll()
+        UserDefaults.standard.set(false, forKey: "hasLaunchedBefore")
     }
     
     // Track if a specific view has been animated
     func hasAnimated(viewId: String) -> Bool {
-        return animatedViews[viewId] ?? false
+        return animatedViews.contains(viewId)
     }
     
     // Mark a specific view as animated
     func markAnimated(viewId: String) {
-        animatedViews[viewId] = true
+        animatedViews.insert(viewId)
     }
     
     // Force a view to animate again
     func resetAnimation(viewId: String) {
-        animatedViews[viewId] = false
+        animatedViews.remove(viewId)
     }
 }
 

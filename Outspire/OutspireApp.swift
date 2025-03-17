@@ -20,6 +20,11 @@ struct OutspireApp: App {
         if UserDefaults.standard.object(forKey: "useSSL") == nil {
             Configuration.useSSL = false
         }
+        
+        // Register the Live Activity widget
+        if #available(iOS 16.1, *) {
+            LiveActivityRegistration.registerLiveActivities()
+        }
     }
     
     var body: some Scene {
@@ -148,4 +153,18 @@ extension Notification.Name {
     static let holidayModeDidChange = Notification.Name("holidayModeDidChange")
     static let timetableDataDidChange = Notification.Name("timetableDataDidChange")
     static let authenticationStatusChanged = Notification.Name("authenticationStatusChanged")
+}
+
+/// Helper class to register Live Activities
+@available(iOS 16.1, *)
+class LiveActivityRegistration {
+    static func registerLiveActivities() {
+        // We don't directly reference the OutspireWidgetLiveActivity class here
+        // Instead we just ensure the ClassActivityAttributes type is ready
+        _ = ClassActivityAttributes(
+            className: "",
+            roomNumber: "",
+            teacherName: ""
+        )
+    }
 }

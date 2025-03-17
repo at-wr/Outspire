@@ -191,7 +191,7 @@ class NotificationManager: ObservableObject {
         let weekday = calendar.component(.weekday, from: now)
         
         // Determine target arrival time based on weekday
-        var arrivalHour = 7
+        let arrivalHour = 7  // Changed from 'var' to 'let' as it's never mutated
         var arrivalMinute = 55 // Default for Tue-Fri
         
         if weekday == 2 { // Monday

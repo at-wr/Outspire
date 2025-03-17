@@ -8,6 +8,8 @@ struct EnhancedClassCard: View {
     let isForToday: Bool
     let setAsToday: Bool
     let effectiveDate: Date?
+    var hasActiveActivity: Bool = false
+    var toggleLiveActivity: (() -> Void)?
     
     @State private var timeRemaining: TimeInterval = 0
     @State private var isCurrentClass = false
@@ -165,12 +167,39 @@ struct EnhancedClassCard: View {
                         Spacer()
                         
                         if isCurrentClass && (isForToday || setAsToday) {
-                            CircularProgressView(progress: calculateProgress())
+                            EnhancedCircularProgressView(progress: calculateProgress())
                                 .frame(width: 36, height: 36)
                                 .padding(.trailing, 16)
                         }
                     }
                     .padding(.vertical, 12)
+                    
+                    // Live Activity toggle button
+                    if (isForToday || setAsToday) && toggleLiveActivity != nil {
+                        Divider()
+                            .padding(.horizontal, 16)
+                        
+                        Button(action: {
+                            let generator = UIImpactFeedbackGenerator(style: .light)
+                            generator.impactOccurred()
+                            toggleLiveActivity?()
+                        }) {
+                            HStack {
+                                Image(systemName: hasActiveActivity ? "livephoto.slash" : "livephoto")
+                                    .font(.caption)
+                                Text(hasActiveActivity ? "Stop Live Activity" : "Start Live Activity")
+                                    .font(.caption)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 8)
+                            .foregroundStyle(statusColor)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.horizontal, 16)
+                        .padding(.top, 4)
+                        .padding(.bottom, 12)
+                    }
                 }
             }
         }
@@ -346,5 +375,40 @@ struct EnhancedClassCard: View {
             .filter { $0.number > currentPeriod.number }
             .sorted { $0.number < $1.number }
             .first
+    }
+}
+
+// Circular progress view component
+private struct EnhancedCircularProgressView: View {
+    let progress: Double
+    
+    var body: some View {
+        ZStack {
+            // Background circle
+            Circle()
+                .stroke(
+                    Color.gray.opacity(0.2),
+                    lineWidth: 4
+                )
+            
+            // Progress circle
+            Circle()
+                .trim(from: 0, to: CGFloat(progress))
+                .stroke(
+                    Color.orange,
+                    style: StrokeStyle(
+                        lineWidth: 4,
+                        lineCap: .round
+                    )
+                )
+                .rotationEffect(.degrees(-90)) // Start from the top
+                .animation(.linear(duration: 0.1), value: progress)
+            
+            // Percentage text
+            Text("\(Int(progress * 100))%")
+                .font(.system(.caption2, design: .rounded))
+                .fontWeight(.bold)
+                .foregroundStyle(.secondary)
+        }
     }
 }
