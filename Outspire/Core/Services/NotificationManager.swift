@@ -1,8 +1,9 @@
 import Foundation
 import UserNotifications
 import CoreLocation
+import Combine
 
-class NotificationManager {
+class NotificationManager: ObservableObject {
     static let shared = NotificationManager()
     
     private let notificationCenter = UNUserNotificationCenter.current()
@@ -49,7 +50,7 @@ class NotificationManager {
             // Create notification content
             let content = UNMutableNotificationContent()
             content.title = "🎒 Morning Commute to School"
-            content.body = "Get ready right now to catch up before it’s too late!"
+            content.body = "Get ready right now to catch up before it's too late!"
             content.sound = UNNotificationSound.default
             content.categoryIdentifier = NotificationType.morningETA.rawValue
             

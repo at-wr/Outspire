@@ -4,7 +4,12 @@ import Combine
 class SessionService: ObservableObject {
     @Published var sessionId: String?
     @Published var userInfo: UserInfo?
-    @Published var isAuthenticated: Bool = false
+    @Published var isAuthenticated: Bool = false {
+        didSet {
+            // Notify about authentication changes
+            NotificationCenter.default.post(name: Notification.Name.authStateDidChange, object: nil)
+        }
+    }
     
     private let userDefaults = UserDefaults.standard
     static let shared = SessionService()
@@ -124,18 +129,19 @@ class SessionService: ObservableObject {
         
         // Post notification that authentication has changed
         NotificationCenter.default.post(
-            name: .authenticationStatusChanged, 
+            name: Notification.Name.authenticationStatusChanged, 
             object: nil,
             userInfo: ["action": "logout"]
         )
     }
     
-    func storeSessionId(_ sessionId: String) {
+    // Public method to update session ID
+    func updateSessionId(_ sessionId: String) {
+        storeSessionId(sessionId)
+    }
+    
+    private func storeSessionId(_ sessionId: String) {
         self.sessionId = sessionId
         userDefaults.set(sessionId, forKey: "sessionId")
     }
-}
-
-extension Notification.Name {
-    static let authenticationStatusChanged = Notification.Name("authenticationStatusChanged")
 }

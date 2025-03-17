@@ -188,7 +188,7 @@ struct AccountView: View {
                     
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                         withAnimation { isTransitioning = false }
-                        NotificationCenter.default.post(name: .authenticationStatusChanged, object: nil)
+                        NotificationCenter.default.post(name: Notification.Name.authenticationStatusChanged, object: nil)
                     }
                 }
             }
@@ -199,7 +199,7 @@ struct AccountView: View {
         Form {
             Section("Account Information") {
                 if let userInfo = viewModel.userInfo {
-                    LabeledContent("Name", value: "\(userInfo.studentname ?? "") (\(userInfo.nickname ?? ""))")
+                    LabeledContent("Name", value: "\(userInfo.studentname) (\(userInfo.nickname))")
                     LabeledContent("Student ID", value: userInfo.studentid)
                     LabeledContent("Student No", value: userInfo.studentNo)
                 }

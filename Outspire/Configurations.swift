@@ -89,6 +89,7 @@ struct Configuration {
         }
         set {
             UserDefaults.standard.set(newValue, forKey: "isHolidayMode")
+            NotificationCenter.default.post(name: .holidayModeDidChange, object: nil)
         }
     }
     
@@ -98,6 +99,7 @@ struct Configuration {
         }
         set {
             UserDefaults.standard.set(newValue, forKey: "holidayHasEndDate")
+            NotificationCenter.default.post(name: .holidayModeDidChange, object: nil)
         }
     }
     
@@ -107,6 +109,7 @@ struct Configuration {
         }
         set {
             UserDefaults.standard.set(newValue, forKey: "holidayEndDate")
+            NotificationCenter.default.post(name: .holidayModeDidChange, object: nil)
         }
     }
     

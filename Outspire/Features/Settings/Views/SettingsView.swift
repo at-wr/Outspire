@@ -83,7 +83,7 @@ struct SettingsView: View {
             .navigationDestination(for: SettingsMenu.self) { destination in
                 destinationView(for: destination)
             }
-            .onReceive(NotificationCenter.default.publisher(for: .authenticationStatusChanged)) { notification in
+            .onReceive(NotificationCenter.default.publisher(for: Notification.Name.authenticationStatusChanged)) { notification in
                 DispatchQueue.main.async {
                     viewRefreshID = UUID()
                     if let action = notification.userInfo?["action"] as? String {

@@ -34,7 +34,7 @@ class AccountViewModel: ObservableObject {
         
         // Listen for authentication status changes
         NotificationCenter.default.addObserver(
-            forName: .authenticationStatusChanged,
+            forName: Notification.Name.authenticationStatusChanged,
             object: nil,
             queue: .main
         ) { [weak self] _ in
@@ -92,7 +92,7 @@ class AccountViewModel: ObservableObject {
                     // Extract session ID from response
                     if let sessionId = self.extractSessionId(from: response) {
                         print("Extracted session ID: \(sessionId)")
-                        self.sessionService.storeSessionId(sessionId)
+                        self.sessionService.updateSessionId(sessionId)
                         
                         // Try to recognize the captcha text with enhanced recognition
                         self.isRecognizingCaptcha = true
@@ -169,7 +169,7 @@ class AccountViewModel: ObservableObject {
                 self.captchaImageData = nil
                 self.successMessage = "Signed in successfully"
                 NotificationCenter.default.post(
-                    name: .authenticationStatusChanged,
+                    name: Notification.Name.authenticationStatusChanged,
                     object: nil,
                     userInfo: ["action": "signedin"]
                 )
@@ -255,7 +255,7 @@ class AccountViewModel: ObservableObject {
                     self.captchaImageData = data
                     
                     if let sessionId = self.extractSessionId(from: response) {
-                        self.sessionService.storeSessionId(sessionId)
+                        self.sessionService.updateSessionId(sessionId)
                         
                         // Try to recognize the captcha
                         CaptchaRecognizer.recognizeText(in: data, method: .combined) { recognizedText in
@@ -309,7 +309,7 @@ class AccountViewModel: ObservableObject {
         
         // Notify that authentication status has changed with additional context
         NotificationCenter.default.post(
-            name: .authenticationStatusChanged,
+            name: Notification.Name.authenticationStatusChanged,
             object: nil,
             userInfo: ["action": "logout"]
         )

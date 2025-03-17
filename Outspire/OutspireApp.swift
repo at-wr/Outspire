@@ -6,6 +6,13 @@ import CoreLocation
 @main
 struct OutspireApp: App {
     @StateObject private var sessionService = SessionService.shared
+    @StateObject private var locationManager = LocationManager.shared
+    @StateObject private var regionChecker = RegionChecker.shared
+    @StateObject private var notificationManager = NotificationManager.shared
+    
+    // Add observer for widget data updates
+    @StateObject private var widgetDataManager = WidgetDataManager()
+    
     @UIApplicationDelegateAdaptor(OutspireAppDelegate.self) var appDelegate
     
     init() {
@@ -19,7 +26,54 @@ struct OutspireApp: App {
         WindowGroup {
             NavSplitView()
                 .environmentObject(sessionService)
+                .environmentObject(locationManager)
+                .environmentObject(regionChecker)
+                .environmentObject(notificationManager)
                 .installToast(position: .top)
+                .environmentObject(widgetDataManager)
+                .onAppear {
+                    // Setup widget data sharing
+                    setupWidgetDataSharing()
+                }
+        }
+    }
+    
+    private func setupWidgetDataSharing() {
+        // Ensure app group container exists
+        guard let _ = UserDefaults(suiteName: "group.dev.wrye.Outspire") else {
+            print("Failed to access app group container")
+            return
+        }
+        
+        // Share authentication state with widgets
+        widgetDataManager.updateAuthenticationState(isAuthenticated: sessionService.isAuthenticated)
+        
+        // Share holiday mode settings with widgets
+        widgetDataManager.updateHolidayMode(
+            isEnabled: Configuration.isHolidayMode,
+            hasEndDate: Configuration.holidayHasEndDate,
+            endDate: Configuration.holidayEndDate
+        )
+        
+        // Observe authentication changes
+        NotificationCenter.default.addObserver(forName: .authStateDidChange, object: nil, queue: .main) { _ in
+            self.widgetDataManager.updateAuthenticationState(isAuthenticated: self.sessionService.isAuthenticated)
+        }
+        
+        // Observe holiday mode changes
+        NotificationCenter.default.addObserver(forName: .holidayModeDidChange, object: nil, queue: .main) { _ in
+            self.widgetDataManager.updateHolidayMode(
+                isEnabled: Configuration.isHolidayMode,
+                hasEndDate: Configuration.holidayHasEndDate,
+                endDate: Configuration.holidayEndDate
+            )
+        }
+        
+        // Observe timetable data changes
+        NotificationCenter.default.addObserver(forName: .timetableDataDidChange, object: nil, queue: .main) { notification in
+            if let timetable = notification.userInfo?["timetable"] as? [[String]] {
+                self.widgetDataManager.updateTimetableData(timetable: timetable)
+            }
         }
     }
 }
@@ -57,4 +111,41 @@ class OutspireAppDelegate: NSObject, UIApplicationDelegate {
             }
         }
     }
+}
+
+// Widget Data Manager for sharing data with widgets
+class WidgetDataManager: ObservableObject {
+    private let appGroupDefaults = UserDefaults(suiteName: "group.dev.wrye.Outspire")
+    
+    init() {
+        // Initialize with default values
+        updateAuthenticationState(isAuthenticated: false)
+    }
+    
+    // Update authentication state for widgets
+    func updateAuthenticationState(isAuthenticated: Bool) {
+        appGroupDefaults?.set(isAuthenticated, forKey: "isAuthenticated")
+    }
+    
+    // Update timetable data for widgets
+    func updateTimetableData(timetable: [[String]]) {
+        if let encoded = try? JSONEncoder().encode(timetable) {
+            appGroupDefaults?.set(encoded, forKey: "widgetTimetableData")
+        }
+    }
+    
+    // Update holiday mode settings for widgets
+    func updateHolidayMode(isEnabled: Bool, hasEndDate: Bool, endDate: Date) {
+        appGroupDefaults?.set(isEnabled, forKey: "isHolidayMode")
+        appGroupDefaults?.set(hasEndDate, forKey: "holidayHasEndDate")
+        appGroupDefaults?.set(endDate, forKey: "holidayEndDate")
+    }
+}
+
+// Notification names for widget data updates
+extension Notification.Name {
+    static let authStateDidChange = Notification.Name("authStateDidChange")
+    static let holidayModeDidChange = Notification.Name("holidayModeDidChange")
+    static let timetableDataDidChange = Notification.Name("timetableDataDidChange")
+    static let authenticationStatusChanged = Notification.Name("authenticationStatusChanged")
 }

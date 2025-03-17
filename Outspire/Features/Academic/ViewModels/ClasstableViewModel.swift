@@ -3,7 +3,12 @@ import SwiftUI
 class ClasstableViewModel: ObservableObject {
     @Published var years: [Year] = []
     @Published var selectedYearId: String = ""
-    @Published var timetable: [[String]] = []
+    @Published var timetable: [[String]] = [] {
+        didSet {
+            // Share timetable data with widgets when it changes
+            shareTimetableWithWidgets()
+        }
+    }
     @Published var errorMessage: String?
     @Published var isLoadingYears: Bool = false
     @Published var isLoadingTimetable: Bool = false
@@ -62,6 +67,24 @@ class ClasstableViewModel: ObservableObject {
                 self.timetable = timetable
             case .failure(let error):
                 self.errorMessage = "Failed to load timetable: \(error.localizedDescription)"
+            }
+        }
+    }
+    
+    // Share timetable data with widgets
+    private func shareTimetableWithWidgets() {
+        // Only share if timetable is not empty
+        if !timetable.isEmpty {
+            // Post notification for widget data manager
+            NotificationCenter.default.post(
+                name: .timetableDataDidChange,
+                object: nil,
+                userInfo: ["timetable": timetable]
+            )
+            
+            // Also directly save to app group container as a backup
+            if let encoded = try? JSONEncoder().encode(timetable) {
+                UserDefaults(suiteName: "group.dev.wrye.Outspire")?.set(encoded, forKey: "widgetTimetableData")
             }
         }
     }
