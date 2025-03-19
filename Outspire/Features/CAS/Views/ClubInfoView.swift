@@ -1,10 +1,15 @@
 import SwiftUI
+import Toasts
 
 struct ClubInfoView: View {
     @StateObject private var viewModel = ClubInfoViewModel()
+    @EnvironmentObject var sessionService: SessionService
+    @Environment(\.presentToast) var presentToast
     @State private var animateList = false
     @State private var refreshButtonRotation = 0.0
-    
+    @State private var showingJoinOptions = false
+    @State private var showingExitConfirmation = false
+    @State private var preservedGroupId: String? = nil
     
     var body: some View {
         VStack {
@@ -28,6 +33,7 @@ struct ClubInfoView: View {
             .toolbarBackground(Color(UIColor.systemBackground))
             .toolbar {
                 toolbarProgressView
+                clubActionButton
                 refreshButton
             }
             .scrollDismissesKeyboard(.immediately)
@@ -36,10 +42,126 @@ struct ClubInfoView: View {
                 handleLoadingChange(newValue)
             } // use this to fix the stupid iOS 17 deprecation warning
             .animation(.spring(response: 0.4), value: viewModel.isLoading)
+            .onChange(of: viewModel.selectedCategory) { _, _ in
+                // Store current group ID when category changes
+                if let currentGroup = viewModel.selectedGroup {
+                    preservedGroupId = currentGroup.C_GroupsID
+                }
+            }
+            .onChange(of: viewModel.groups) { _, newGroups in
+                // Try to restore the previously selected group when groups list changes
+                if let id = preservedGroupId, 
+                   let previousGroup = newGroups.first(where: { $0.C_GroupsID == id }) {
+                    viewModel.selectedGroup = previousGroup
+                }
+            }
+            .confirmationDialog(
+                "Exit Club",
+                isPresented: $showingExitConfirmation,
+                actions: {
+                    Button("Exit Club", role: .destructive) {
+                        viewModel.exitClub()
+                    }
+                    Button("Cancel", role: .cancel) {}
+                },
+                message: {
+                    Text("Are you sure you want to exit this club?")
+                }
+            )
         }
         .refreshable {
             handleRefresh()
         }
+    }
+    
+    // MARK: - Toolbar Items
+    
+    private var clubActionButton: some ToolbarContent {
+        ToolbarItem(placement: .navigationBarTrailing) {
+            if sessionService.isAuthenticated, 
+               !viewModel.isLoading, 
+               viewModel.selectedGroup != nil {
+                #if targetEnvironment(macCatalyst)
+                // Use a more compatible approach for Mac Catalyst
+                Button(action: {
+                    if viewModel.isUserMember {
+                        showingExitConfirmation = true
+                    } else {
+                        viewModel.joinClub(asProject: false)
+                    }
+                }) {
+                    HStack {
+                        Image(systemName: viewModel.isUserMember ? "person.fill.checkmark" : "person.crop.circle.badge.plus")
+                            .symbolRenderingMode(.hierarchical)
+                            .foregroundStyle(viewModel.isUserMember ? .green : .blue)
+                        if viewModel.isJoiningClub || viewModel.isExitingClub {
+                            ProgressView()
+                                .controlSize(.mini)
+                                .scaleEffect(0.7)
+                        }
+                    }
+                }
+                .disabled(viewModel.isJoiningClub || viewModel.isExitingClub)
+                .onChange(of: viewModel.isUserMember) { _, newValue in
+                    if newValue {
+                        presentSuccessToast(message: "Successfully joined club")
+                    } else {
+                        presentSuccessToast(message: "Successfully exited club")
+                    }
+                }
+                .help(viewModel.isUserMember ? "Exit Club" : "Join Club")
+                #else
+                Menu {
+                    if viewModel.isUserMember {
+                        Button(role: .destructive, action: {
+                            showingExitConfirmation = true
+                        }) {
+                            Label("Exit Club", systemImage: "rectangle.portrait.and.arrow.right")
+                        }
+                    } else {
+                        Button(action: {
+                            viewModel.joinClub(asProject: false)
+                        }) {
+                            Label("Join Club", systemImage: "person.badge.plus")
+                        }
+                        
+                        Button(action: {
+                            viewModel.joinClub(asProject: true)
+                        }) {
+                            Label("Join as Project", systemImage: "star.circle")
+                        }
+                    }
+                } label: {
+                    Image(systemName: viewModel.isUserMember ? "person.fill.checkmark" : "person.crop.circle.badge.plus")
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(viewModel.isUserMember ? .green : .blue)
+                        .opacity(viewModel.isJoiningClub || viewModel.isExitingClub ? 0.5 : 1.0)
+                        .overlay {
+                            if viewModel.isJoiningClub || viewModel.isExitingClub {
+                                ProgressView()
+                                    .controlSize(.mini)
+                            }
+                        }
+                }
+                .disabled(viewModel.isJoiningClub || viewModel.isExitingClub)
+                .onChange(of: viewModel.isUserMember) { _, newValue in
+                    if newValue {
+                        presentSuccessToast(message: "Successfully joined club")
+                    } else {
+                        presentSuccessToast(message: "Successfully exited club")
+                    }
+                }
+                #endif
+            }
+        }
+    }
+    
+    private func presentSuccessToast(message: String) {
+        let toast = ToastValue(
+            icon: Image(systemName: "checkmark.circle").foregroundStyle(.green),
+            message: message
+        )
+        presentToast(toast)
     }
     
     // MARK: - View Components
@@ -47,12 +169,22 @@ struct ClubInfoView: View {
     private var selectionSection: some View {
         Section {
             Picker("Category", selection: $viewModel.selectedCategory) {
+                #if targetEnvironment(macCatalyst)
+                if viewModel.categories.isEmpty {
+                    Text("Loading...").tag(nil as Category?)
+                } else {
+                    ForEach(viewModel.categories) { category in
+                        Text(category.C_Category).tag(category as Category?)
+                    }
+                }
+                #else
                 if viewModel.selectedCategory == nil {
                     Text("Unavailable").tag(nil as Category?)
                 }
                 ForEach(viewModel.categories) { category in
                     Text(category.C_Category).tag(category as Category?)
                 }
+                #endif
             }
             .pickerStyle(MenuPickerStyle())
             //.pickerStyle(.segmented)
@@ -63,12 +195,22 @@ struct ClubInfoView: View {
             }
             
             Picker("Club", selection: $viewModel.selectedGroup) {
+                #if targetEnvironment(macCatalyst)
+                if viewModel.groups.isEmpty {
+                    Text("Loading...").tag(nil as ClubGroup?)
+                } else {
+                    ForEach(viewModel.groups) { group in
+                        Text(group.C_NameC).tag(group as ClubGroup?)
+                    }
+                }
+                #else
                 if viewModel.selectedGroup == nil {
-                    Text("Unvailable").tag(nil as ClubGroup?)
+                    Text("Unavailable").tag(nil as ClubGroup?)
                 }
                 ForEach(viewModel.groups) { group in
                     Text(group.C_NameC).tag(group as ClubGroup?)
                 }
+                #endif
             }
             .pickerStyle(MenuPickerStyle())
             .disabled(viewModel.groups.isEmpty)
@@ -234,6 +376,15 @@ struct ClubInfoView: View {
                 animateList = true
             }
         }
+        
+        #if targetEnvironment(macCatalyst)
+        // Force a refresh on Mac Catalyst to avoid the "Unavailable" issue
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            if let category = viewModel.selectedCategory, viewModel.selectedGroup == nil {
+                viewModel.fetchGroups(for: category)
+            }
+        }
+        #endif
     }
     
     private func handleGroupSelection() {
@@ -269,6 +420,9 @@ struct ClubInfoView: View {
         
         viewModel.refreshing = true
         
+        // Store current selection before refresh
+        let currentGroupId = viewModel.selectedGroup?.C_GroupsID
+        
         if let category = viewModel.selectedCategory {
             viewModel.fetchGroups(for: category)
         } else {
@@ -277,6 +431,7 @@ struct ClubInfoView: View {
         
         if let group = viewModel.selectedGroup {
             viewModel.fetchGroupInfo(for: group)
+            preservedGroupId = group.C_GroupsID
         }
         
         // Reset refreshing state after a delay
@@ -407,51 +562,115 @@ struct MembersListView: View {
     
     private var membersList: some View {
         ForEach(Array(members.enumerated()), id: \.element.id) { index, member in
-            HStack(spacing: 10) {
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 4) {
-                        Text(member.S_Name)
-                            .font(.body)
-                            .fontWeight(member.LeaderYes == "2" || member.LeaderYes == "1" ? .medium : .regular)
-                        
-                        if let nickname = member.S_Nickname, !nickname.isEmpty {
-                            Text("(\(nickname))")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    
-                    if member.LeaderYes == "2" || member.LeaderYes == "1" {
-                        Text(member.LeaderYes == "2" ? "President" : "Vice President")
-                            .font(.caption)
-                            .foregroundStyle(member.LeaderYes == "2" ? .red : .orange)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 2)
-                            .background(
-                                Capsule()
-                                    .fill(member.LeaderYes == "2" ? Color.red.opacity(0.1) : Color.orange.opacity(0.1))
-                            )
-                    }
+            // Break down the complex member row into smaller components
+            MemberRow(
+                member: member,
+                isCurrentUser: member.StudentID == sessionService.userInfo?.studentid,
+                animateList: animateList,
+                index: index
+            )
+        }
+    }
+}
+
+// New component to simplify the complex member row
+struct MemberRow: View {
+    let member: Member
+    let isCurrentUser: Bool
+    let animateList: Bool
+    let index: Int
+    
+    var body: some View {
+        HStack(spacing: 10) {
+            MemberInfo(
+                member: member,
+                isCurrentUser: isCurrentUser
+            )
+            
+            Spacer()
+            
+            // Leadership star badge
+            if member.LeaderYes == "2" || member.LeaderYes == "1" {
+                Image(systemName: "star.fill")
+                    .foregroundStyle(member.LeaderYes == "2" ? .red : .orange)
+                    .font(.caption)
+            }
+        }
+        .contentShape(Rectangle())
+        .offset(x: animateList ? 0 : 60)
+        .opacity(animateList ? 1 : 0)
+        .animation(
+            .spring(response: 0.35, dampingFraction: 0.8)
+            .delay(Double(index) * 0.04),
+            value: animateList
+        )
+        .padding(.vertical, 4)
+    }
+}
+
+// Further break down member info component
+struct MemberInfo: View {
+    let member: Member
+    let isCurrentUser: Bool
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(spacing: 4) {
+                // Member name
+                Text(member.S_Name)
+                    .font(.body)
+                    .fontWeight(member.LeaderYes == "2" || member.LeaderYes == "1" ? .medium : .regular)
+                    .foregroundStyle(isCurrentUser ? .blue : .primary)
+                
+                // Nickname if available
+                if let nickname = member.S_Nickname, !nickname.isEmpty {
+                    Text("(\(nickname))")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
                 }
                 
-                Spacer()
-                
-                if member.LeaderYes == "2" || member.LeaderYes == "1" {
-                    Image(systemName: "star.fill")
-                        .foregroundStyle(member.LeaderYes == "2" ? .red : .orange)
-                        .font(.caption)
+                // "You" badge for current user
+                if isCurrentUser {
+                    UserBadge()
                 }
             }
-            .contentShape(Rectangle())
-            .offset(x: animateList ? 0 : 60)
-            .opacity(animateList ? 1 : 0)
-            .animation(
-                .spring(response: 0.35, dampingFraction: 0.8)
-                .delay(Double(index) * 0.04),
-                value: animateList
-            )
-            .padding(.vertical, 4)
+            
+            // Leadership badge
+            if member.LeaderYes == "2" || member.LeaderYes == "1" {
+                LeadershipBadge(isPresident: member.LeaderYes == "2")
+            }
         }
+    }
+}
+
+// Small components to further simplify
+struct UserBadge: View {
+    var body: some View {
+        Text("You")
+            .font(.caption)
+            .foregroundStyle(.blue)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 2)
+            .background(
+                Capsule()
+                    .fill(Color.blue.opacity(0.1))
+            )
+    }
+}
+
+struct LeadershipBadge: View {
+    let isPresident: Bool
+    
+    var body: some View {
+        Text(isPresident ? "President" : "Vice President")
+            .font(.caption)
+            .foregroundStyle(isPresident ? .red : .orange)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 2)
+            .background(
+                Capsule()
+                    .fill(isPresident ? Color.red.opacity(0.1) : Color.orange.opacity(0.1))
+            )
     }
 }
 
