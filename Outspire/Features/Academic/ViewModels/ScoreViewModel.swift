@@ -120,12 +120,14 @@ class ScoreViewModel: ObservableObject {
     
     func authenticate() {
         let context = LAContext()
+        context.localizedFallbackTitle = "Use device password" // Allows fallback option
         var error: NSError?
         
-        if context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) {
+        // Use deviceOwnerAuthentication which supports both biometrics and password
+        if context.canEvaluatePolicy(.deviceOwnerAuthentication, error: &error) {
             let reason = "Authentication required for requesting sensitive information."
             
-            context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: reason) { [weak self] success, authenticationError in
+            context.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason) { [weak self] success, authenticationError in
                 DispatchQueue.main.async {
                     if success {
                         self?.isUnlocked = true
@@ -139,9 +141,9 @@ class ScoreViewModel: ObservableObject {
                 }
             }
         } else {
-            // No biometrics available, could implement alternative authentication
-            isUnlocked = true
-            fetchTerms()
+            // Authentication not available; update error message accordingly.
+            isUnlocked = false
+            errorMessage = "Authentication is not available on this device."
         }
     }
     
