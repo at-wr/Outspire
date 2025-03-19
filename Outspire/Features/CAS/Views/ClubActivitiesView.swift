@@ -15,8 +15,33 @@ struct ClubActivitiesView: View {
             .navigationTitle("Activity Records")
             .toolbarBackground(Color(UIColor.systemBackground))
             .contentMargins(.vertical, 10.0)
-            .toolbar { toolbarItems }
-            .sheet(isPresented: $showingAddRecordSheet) { addRecordSheet }
+            .toolbar {
+                ToolbarItem(id: "loadingIndicator", placement: .navigationBarTrailing) {
+                    if viewModel.isLoadingActivities || viewModel.isLoadingGroups {
+                        ProgressView()
+                            .controlSize(.small)
+                    }
+                }
+                
+                ToolbarItem(id: "refreshButton", placement: .navigationBarTrailing) {
+                    Button(action: handleRefreshAction) {
+                        Image(systemName: "arrow.clockwise")
+                            .rotationEffect(.degrees(refreshButtonRotation))
+                    }
+                    .disabled(viewModel.isLoadingActivities || viewModel.isLoadingGroups)
+                }
+                
+                ToolbarItem(id: "addButton", placement: .navigationBarTrailing) {
+                    Button(action: { showingAddRecordSheet.toggle() }) {
+                        Image(systemName: "square.and.pencil")
+                    }
+                    .disabled(viewModel.isLoadingGroups || viewModel.isLoadingActivities || sessionService.userInfo == nil)
+                }
+            }
+            .sheet(isPresented: $showingAddRecordSheet) { 
+                addRecordSheet
+                    .environmentObject(sessionService) // Explicitly pass environment object
+            }
             .confirmationDialog(
                 "Delete Record",
                 isPresented: $viewModel.showingDeleteConfirmation,
@@ -56,34 +81,6 @@ struct ClubActivitiesView: View {
         .animation(.spring(response: 0.4), value: viewModel.activities.isEmpty)
         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: viewModel.errorMessage)
         .refreshable(action: handleRefresh) // Fixed refreshable syntax
-    }
-    
-    private var toolbarItems: some ToolbarContent {
-        Group {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                CALoadingIndicator(
-                    isLoadingActivities: viewModel.isLoadingActivities,
-                    isLoadingGroups: viewModel.isLoadingGroups
-                )
-            }
-            ToolbarItem(placement: .navigationBarTrailing) {
-                CARefreshButton(
-                    isLoadingActivities: viewModel.isLoadingActivities,
-                    isLoadingGroups: viewModel.isLoadingGroups,
-                    groupsEmpty: viewModel.groups.isEmpty,
-                    rotation: $refreshButtonRotation,
-                    action: handleRefreshAction
-                )
-            }
-            ToolbarItem(placement: .navigationBarTrailing) {
-                AddButton(
-                    isLoadingGroups: viewModel.isLoadingGroups,
-                    isLoadingActivities: viewModel.isLoadingActivities,
-                    userInfo: sessionService.userInfo,
-                    action: { showingAddRecordSheet.toggle() }
-                )
-            }
-        }
     }
     
     @ViewBuilder
@@ -204,6 +201,7 @@ struct ActivitiesSection: View {
     let sessionService: SessionService
     @Binding var showingAddRecordSheet: Bool
     let animateList: Bool
+    @State private var hasCompletedInitialLoad = false
     @Environment(\.presentToast) var presentToast
     
     var body: some View {
@@ -228,13 +226,15 @@ struct ActivitiesSection: View {
                     }
                 }
                 .transition(.scale.combined(with: .opacity))
-            } else if viewModel.isLoadingActivities && viewModel.activities.isEmpty {
+            } else if viewModel.isLoadingActivities || !hasCompletedInitialLoad {
+                // Show skeleton during loading or before completing initial load
                 ActivitySkeletonView()
                     .listRowInsets(EdgeInsets())
                     .listRowBackground(Color.clear)
                     .transition(.opacity)
                     .animation(.easeInOut(duration: 0.5), value: viewModel.isLoadingActivities)
             } else if viewModel.activities.isEmpty {
+                // Only show empty state after loading is complete and we confirmed no activities
                 ClubEmptyStateView(action: { showingAddRecordSheet.toggle() })
                     .transition(.scale.combined(with: .opacity))
             } else {
@@ -242,6 +242,12 @@ struct ActivitiesSection: View {
                     .transition(.opacity)
                     .blur(radius: viewModel.isLoadingActivities ? 1.0 : 0)
                     .opacity(viewModel.isLoadingActivities ? 0.7 : 1.0)
+            }
+        }
+        .onChange(of: viewModel.isLoadingActivities) { isLoading in
+            // After loading completes, mark initial load as complete
+            if !isLoading && !hasCompletedInitialLoad {
+                hasCompletedInitialLoad = true
             }
         }
     }

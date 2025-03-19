@@ -41,4 +41,20 @@ class CacheManager {
         // instead of directly accessing a private property
         NotificationCenter.default.post(name: Notification.Name("ClearCachedFormData"), object: nil)
     }
+    
+    // Clear only club activities related cache
+    static func clearClubActivitiesCache() {
+        let userDefaults = UserDefaults.standard
+        
+        userDefaults.removeObject(forKey: "cachedClubGroups")
+        userDefaults.removeObject(forKey: "clubActivitiesCacheTimestamp")
+        userDefaults.removeObject(forKey: "selectedClubGroupId")
+        
+        // Clear all cached activities but preserve the groups list
+        for key in userDefaults.dictionaryRepresentation().keys {
+            if key.hasPrefix("cachedActivities-") {
+                userDefaults.removeObject(forKey: key)
+            }
+        }
+    }
 }

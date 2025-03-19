@@ -75,9 +75,19 @@ struct SettingsView: View {
                 Button(action: {
                     showSettingsSheet = false
                 }) {
-                    Image(systemName: "xmark.circle.fill")
-                        .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(.secondary)
+                    #if targetEnvironment(macCatalyst)
+                        Text("Close")
+                            .font(.system(size: 14, weight: .medium))
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(Color(.tertiarySystemFill))
+                            .cornerRadius(6)
+                            .foregroundStyle(.primary)
+                        #else
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.title2)
+                            .foregroundStyle(.secondary)
+                        #endif
                 }
             }
             .navigationDestination(for: SettingsMenu.self) { destination in

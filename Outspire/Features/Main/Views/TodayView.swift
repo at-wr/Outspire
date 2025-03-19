@@ -52,6 +52,7 @@ struct TodayView: View {
         }
         .sheet(isPresented: $isSettingsSheetPresented) {
             scheduleSettingsSheet
+                .environmentObject(sessionService) // Explicitly pass the SessionService to fix Mac Catalyst crash
         }
         .onAppear {
             setupOnAppear()

@@ -32,9 +32,127 @@ struct ClubInfoView: View {
             .navigationBarTitle("Clubs")
             .toolbarBackground(Color(UIColor.systemBackground))
             .toolbar {
-                toolbarProgressView
-                clubActionButton
-                refreshButton
+                // Replace individual toolbar content with inline implementation
+                ToolbarItem(id: "progressView", placement: .navigationBarTrailing) {
+                    if viewModel.isLoading {
+                        ProgressView()
+                            .controlSize(.small)
+                    }
+                }
+                
+                ToolbarItem(id: "clubAction", placement: .navigationBarTrailing) {
+                    if sessionService.isAuthenticated, 
+                       !viewModel.isLoading, 
+                       viewModel.selectedGroup != nil {
+                        #if targetEnvironment(macCatalyst)
+                        // Use a menu approach for Mac Catalyst
+                        Menu {
+                            if viewModel.isUserMember {
+                                Button(role: .destructive, action: {
+                                    showingExitConfirmation = true
+                                }) {
+                                    Label("Exit Club", systemImage: "rectangle.portrait.and.arrow.right")
+                                }
+                            } else {
+                                Button(action: {
+                                    viewModel.joinClub(asProject: false)
+                                }) {
+                                    Label("Join Club", systemImage: "person.badge.plus")
+                                }
+                                
+                                Button(action: {
+                                    viewModel.joinClub(asProject: true)
+                                }) {
+                                    Label("Join as Project", systemImage: "star.circle")
+                                }
+                            }
+                        } label: {
+                            HStack {
+                                Image(systemName: viewModel.isUserMember ? "person.fill.checkmark" : "person.crop.circle.badge.plus")
+                                    .symbolRenderingMode(.hierarchical)
+                                    .foregroundStyle(viewModel.isUserMember ? .green : .blue)
+                                if viewModel.isJoiningClub || viewModel.isExitingClub {
+                                    ProgressView()
+                                        .controlSize(.mini)
+                                        .scaleEffect(0.7)
+                                }
+                            }
+                        }
+                        .disabled(viewModel.isJoiningClub || viewModel.isExitingClub)
+                        .onChange(of: viewModel.isUserMember) { _, newValue in
+                            if newValue {
+                                presentSuccessToast(message: "Successfully joined club")
+                            } else {
+                                presentSuccessToast(message: "Successfully exited club")
+                            }
+                        }
+                        .help(viewModel.isUserMember ? "Exit Club" : "Join Club")
+                        #else
+                        Menu {
+                            if viewModel.isUserMember {
+                                Button(role: .destructive, action: {
+                                    showingExitConfirmation = true
+                                }) {
+                                    Label("Exit Club", systemImage: "rectangle.portrait.and.arrow.right")
+                                }
+                            } else {
+                                Button(action: {
+                                    viewModel.joinClub(asProject: false)
+                                }) {
+                                    Label("Join Club", systemImage: "person.badge.plus")
+                                }
+                                
+                                Button(action: {
+                                    viewModel.joinClub(asProject: true)
+                                }) {
+                                    Label("Join as Project", systemImage: "star.circle")
+                                }
+                            }
+                        } label: {
+                            Image(systemName: viewModel.isUserMember ? "person.fill.checkmark" : "person.crop.circle.badge.plus")
+                                .symbolRenderingMode(.hierarchical)
+                                .foregroundStyle(viewModel.isUserMember ? .green : .blue)
+                                .opacity(viewModel.isJoiningClub || viewModel.isExitingClub ? 0.5 : 1.0)
+                                .overlay {
+                                    if viewModel.isJoiningClub || viewModel.isExitingClub {
+                                        ProgressView()
+                                            .controlSize(.mini)
+                                    }
+                                }
+                        }
+                        .disabled(viewModel.isJoiningClub || viewModel.isExitingClub)
+                        .onChange(of: viewModel.isUserMember) { _, newValue in
+                            if newValue {
+                                presentSuccessToast(message: "Successfully joined club")
+                            } else {
+                                presentSuccessToast(message: "Successfully exited club")
+                            }
+                        }
+                        #endif
+                    }
+                }
+                
+                ToolbarItem(id: "refreshButton", placement: .navigationBarTrailing) {
+                    Button(action: {
+                        withAnimation {
+                            refreshButtonRotation += 360
+                        }
+                        
+                        if viewModel.selectedCategory != nil {
+                            viewModel.fetchGroups(for: viewModel.selectedCategory!)
+                        } else {
+                            viewModel.fetchCategories()
+                        }
+                        
+                        if viewModel.selectedGroup != nil {
+                            viewModel.fetchGroupInfo(for: viewModel.selectedGroup!)
+                        }
+                    }) {
+                        Image(systemName: "arrow.clockwise")
+                            .rotationEffect(.degrees(refreshButtonRotation))
+                    }
+                    .disabled(viewModel.isLoading)
+                }
             }
             .scrollDismissesKeyboard(.immediately)
             .onAppear(perform: onAppearSetup)

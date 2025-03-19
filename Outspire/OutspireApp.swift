@@ -3,12 +3,20 @@ import Toasts
 import UserNotifications
 import CoreLocation
 
+// Create an environment object to manage settings state globally
+class SettingsManager: ObservableObject {
+    @Published var showSettingsSheet = false
+}
+
 @main
 struct OutspireApp: App {
     @StateObject private var sessionService = SessionService.shared
     @StateObject private var locationManager = LocationManager.shared
     @StateObject private var regionChecker = RegionChecker.shared
     @StateObject private var notificationManager = NotificationManager.shared
+    
+    // Add settings manager
+    @StateObject private var settingsManager = SettingsManager()
     
     // Add observer for widget data updates
     @StateObject private var widgetDataManager = WidgetDataManager()
@@ -36,6 +44,7 @@ struct OutspireApp: App {
                 .environmentObject(locationManager)
                 .environmentObject(regionChecker)
                 .environmentObject(notificationManager)
+                .environmentObject(settingsManager) // Add settings manager
                 .installToast(position: .top)
                 .environmentObject(widgetDataManager)
                 .onAppear {
@@ -43,6 +52,16 @@ struct OutspireApp: App {
                     setupWidgetDataSharing()
                 }
         }
+        #if targetEnvironment(macCatalyst)
+        .commands {
+            CommandGroup(after: .appSettings) {
+                Button("Settings") {
+                    settingsManager.showSettingsSheet = true
+                }
+                .keyboardShortcut(",", modifiers: .command)
+            }
+        }
+        #endif
     }
     
     private func setupWidgetDataSharing() {

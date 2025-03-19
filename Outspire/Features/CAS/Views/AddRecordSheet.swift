@@ -83,7 +83,7 @@ struct AddRecordSheet: View {
             .navigationTitle("New Record")
             .toolbarBackground(Color(UIColor.systemBackground))
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
+                ToolbarItem(id: "cancelButton", placement: .navigationBarLeading) {
                     Button("Cancel") {
                         viewModel.cacheFormData()  // Cache data when cancelling
                         presentationMode.wrappedValue.dismiss()
@@ -96,7 +96,7 @@ struct AddRecordSheet: View {
                     }
                 }
                 
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItem(id: "saveButton", placement: .navigationBarTrailing) {
                     Button("Save") {
                         viewModel.saveRecord()
                         if let errorMessage = viewModel.errorMessage {

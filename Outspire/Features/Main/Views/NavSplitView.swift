@@ -48,10 +48,11 @@ struct TodayTip: Tip {
 
 struct NavSplitView: View {
     @EnvironmentObject var sessionService: SessionService
+    @EnvironmentObject var settingsManager: SettingsManager // Add environment object
     @State private var selectedLink: String? = "today"
-    @State private var showSettingsSheet = false
-    @State private var showOnboardingSheet = false
+    // Remove the local showSettingsSheet state and use the one from settingsManager
     @State private var refreshID = UUID()
+    @State private var showOnboardingSheet = false
     @State private var hasCheckedOnboarding = false
     @AppStorage("lastVersionRun") private var lastVersionRun: String?
     @State private var shouldShowTip = false
@@ -116,7 +117,7 @@ struct NavSplitView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: {
-                        showSettingsSheet.toggle()
+                        settingsManager.showSettingsSheet.toggle()
                     }) {
                         Image(systemName: "gear")
                     }
@@ -126,8 +127,8 @@ struct NavSplitView: View {
             .navigationTitle("Outspire")
             .toolbarBackground(Color(UIColor.secondarySystemBackground))
             .contentMargins(.vertical, 10)
-            .sheet(isPresented: $showSettingsSheet) {
-                SettingsView(showSettingsSheet: $showSettingsSheet)
+            .sheet(isPresented: $settingsManager.showSettingsSheet) {
+                SettingsView(showSettingsSheet: $settingsManager.showSettingsSheet)
                     .onDisappear {
                         refreshID = UUID()
                     }

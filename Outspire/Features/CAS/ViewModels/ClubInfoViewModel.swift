@@ -215,6 +215,9 @@ class ClubInfoViewModel: ObservableObject {
                         if let currentGroup = self.selectedGroup {
                             self.fetchGroupInfo(for: currentGroup)
                         }
+                        
+                        // Clear club activities cache to ensure fresh data on next view
+                        CacheManager.clearClubActivitiesCache()
                     } else {
                         self.errorMessage = response["status"] ?? "Failed to join club"
                     }
@@ -253,6 +256,9 @@ class ClubInfoViewModel: ObservableObject {
                         if let currentGroup = self.selectedGroup {
                             self.fetchGroupInfo(for: currentGroup)
                         }
+                        
+                        // Clear club activities cache to ensure fresh data on next view
+                        CacheManager.clearClubActivitiesCache()
                     } else {
                         self.errorMessage = response["status"] ?? "Failed to exit club"
                     }
