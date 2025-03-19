@@ -15,6 +15,7 @@ struct EnhancedClassCard: View {
     @State private var isCurrentClass = false
     @State private var timer: Timer?
     @State private var isTransitioning = false
+    @State private var isTimeComplete = false // New state to track if time is actually complete
     
     private var components: [String] {
         classData.replacingOccurrences(of: "<br>", with: "\n")
@@ -43,14 +44,16 @@ struct EnhancedClassCard: View {
     }
     
     private var formattedCountdown: String {
-        // Don't modify state during view rendering
-        if timeRemaining <= 0 {
-            return "00:00" // Just show zeros when time is up
+        if isTimeComplete {
+            return "00:00" // Only show zeros when we've confirmed time is complete
         }
         
-        let hours = Int(timeRemaining) / 3600
-        let minutes = (Int(timeRemaining) % 3600) / 60
-        let seconds = Int(timeRemaining) % 60
+        // Always show positive time remaining
+        let remainingSeconds = max(0, timeRemaining)
+        
+        let hours = Int(remainingSeconds) / 3600
+        let minutes = (Int(remainingSeconds) % 3600) / 60
+        let seconds = Int(remainingSeconds) % 60
         
         // Only show hours when needed to avoid redundant "0:MM:SS" format
         if hours > 0 {
@@ -210,9 +213,11 @@ struct EnhancedClassCard: View {
                 .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
         )
         .onAppear {
+            isTimeComplete = false
+            isTransitioning = false
             calculateTimeRemaining()
-            // Use a simple timer that updates every second
-            timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
+            // Use a timer that updates every second but prevents UI jitter
+            timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [self] _ in
                 self.calculateTimeRemaining()
             }
         }
@@ -233,9 +238,8 @@ struct EnhancedClassCard: View {
     
     // Make this function not update state if we're already at zero
     private func calculateTimeRemaining() {
-        // If we're already at zero, don't recalculate if already showing zeros
-        // This avoids the warning about modifying state during view updates
-        if timeRemaining <= 0 && isCurrentClass == false {
+        // Don't recalculate if we've determined time is complete and UI shows correct state
+        if isTimeComplete && !isCurrentClass {
             return
         }
         
@@ -264,21 +268,47 @@ struct EnhancedClassCard: View {
             
             if effectiveNow >= adjustedStartTime && effectiveNow <= adjustedEndTime {
                 isCurrentClass = true
-                timeRemaining = adjustedEndTime.timeIntervalSince(effectiveNow)
+                let newTimeRemaining = adjustedEndTime.timeIntervalSince(effectiveNow)
+                
+                // Only update time if it has meaningfully changed (more than 0.5s difference)
+                // This prevents unnecessary UI refreshes
+                if abs(newTimeRemaining - timeRemaining) > 0.5 {
+                    timeRemaining = newTimeRemaining
+                }
                 
                 // Critical fix: When time remaining is <= 0, find next period
-                if timeRemaining <= 0 {
+                // But do this check without changing state unnecessarily
+                if timeRemaining <= 1 {
                     if let nextPeriod = findNextPeriodToday(after: period, on: effectiveDate!) {
                         let nextStartTime = createAdjustedTime(from: nextPeriod.startTime, onDate: effectiveDate!)
-                        isCurrentClass = false
-                        timeRemaining = nextStartTime.timeIntervalSince(effectiveNow)
+                        // Use isTransitioning state to prevent flickering during transition
+                        if !isTransitioning {
+                            isTransitioning = true
+                            
+                            // Slight delay before transitioning to next period
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                                withAnimation(.easeInOut(duration: 0.3)) {
+                                    isCurrentClass = false
+                                    timeRemaining = nextStartTime.timeIntervalSince(effectiveNow)
+                                    isTimeComplete = false
+                                    isTransitioning = false
+                                }
+                            }
+                        }
                     } else {
+                        isTimeComplete = true
                         timeRemaining = 0
                     }
                 }
             } else if effectiveNow < adjustedStartTime {
                 isCurrentClass = false
-                timeRemaining = adjustedStartTime.timeIntervalSince(effectiveNow)
+                let newTimeRemaining = adjustedStartTime.timeIntervalSince(effectiveNow)
+                
+                // Only update time if it has meaningfully changed
+                if abs(newTimeRemaining - timeRemaining) > 0.5 {
+                    timeRemaining = newTimeRemaining
+                }
+                isTimeComplete = false
             } else {
                 isCurrentClass = false
                 // Check if there's a next period today
@@ -295,29 +325,61 @@ struct EnhancedClassCard: View {
             if now >= period.startTime && now <= period.endTime {
                 // Current class
                 isCurrentClass = true
-                timeRemaining = period.endTime.timeIntervalSince(now)
+                let newTimeRemaining = period.endTime.timeIntervalSince(now)
+                
+                // Only update time if it has meaningfully changed
+                if abs(newTimeRemaining - timeRemaining) > 0.5 {
+                    timeRemaining = newTimeRemaining
+                }
+                isTimeComplete = false
                 
                 // Fix for countdown reaching zero - check if we need to transition
-                if timeRemaining <= 0 {
+                if timeRemaining <= 1 {
                     // Find the next class period
                     if let nextPeriod = findNextPeriodToday(after: period, on: now) {
-                        isCurrentClass = false
-                        timeRemaining = nextPeriod.startTime.timeIntervalSince(now)
+                        // Use isTransitioning state to prevent flickering during transition
+                        if !isTransitioning {
+                            isTransitioning = true
+                            
+                            // Slight delay before transitioning to next period
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                                withAnimation(.easeInOut(duration: 0.3)) {
+                                    isCurrentClass = false
+                                    timeRemaining = nextPeriod.startTime.timeIntervalSince(now)
+                                    isTimeComplete = false
+                                    isTransitioning = false
+                                }
+                            }
+                        }
                     } else {
-                        timeRemaining = 0 // No more classes today
+                        isTimeComplete = true
+                        timeRemaining = 0
                     }
                 }
             } else if now < period.startTime {
                 // Upcoming class
                 isCurrentClass = false
-                timeRemaining = period.startTime.timeIntervalSince(now)
+                let newTimeRemaining = period.startTime.timeIntervalSince(now)
+                
+                // Only update time if it has meaningfully changed
+                if abs(newTimeRemaining - timeRemaining) > 0.5 {
+                    timeRemaining = newTimeRemaining
+                }
+                isTimeComplete = false
             } else {
-                // Class has ended - check for next period
+                // Class has ended - check for next period more robustly
                 isCurrentClass = false
                 if let nextPeriod = findNextPeriodToday(after: period, on: now) {
-                    timeRemaining = nextPeriod.startTime.timeIntervalSince(now)
+                    let newTimeRemaining = nextPeriod.startTime.timeIntervalSince(now)
+                    
+                    // Only update time if it has meaningfully changed
+                    if abs(newTimeRemaining - timeRemaining) > 0.5 {
+                        timeRemaining = newTimeRemaining
+                    }
+                    isTimeComplete = false
                 } else {
                     // End of day, no more classes
+                    isTimeComplete = true
                     timeRemaining = 0
                 }
             }
@@ -339,7 +401,11 @@ struct EnhancedClassCard: View {
             
             guard let futureStartTime = calendar.date(from: components) else { return }
             isCurrentClass = false
-            timeRemaining = futureStartTime.timeIntervalSince(now)
+            let newTimeRemaining = futureStartTime.timeIntervalSince(now)
+            if abs(newTimeRemaining - timeRemaining) > 0.5 {
+                timeRemaining = newTimeRemaining
+            }
+            isTimeComplete = false
         }
     }
     

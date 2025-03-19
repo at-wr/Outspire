@@ -263,8 +263,8 @@ struct TodayView: View {
         }
         if dayIndex < 0 || dayIndex >= 5 { return nil }
         
-        // Always force refresh when calculating upcoming class info
-        // to fix the countdown stuck bug
+        // Calculate class info with accurate time context
+        // This ensures we get the right class period without causing unnecessary updates
         return getNextClassForDay(dayIndex, isForToday: isForToday)
     }
     
