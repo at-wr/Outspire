@@ -110,7 +110,9 @@ struct NavSplitView: View {
                     Text("Miscellaneous")
                 }
             }
+#if targetEnvironment(macCatalyst)
             .navigationSplitViewColumnWidth(min: 100, ideal: 200, max: 300)
+#endif
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: {
