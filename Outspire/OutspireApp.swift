@@ -118,6 +118,15 @@ class OutspireAppDelegate: NSObject, UIApplicationDelegate {
             }
         }
     }
+    
+    func applicationWillTerminate(_ application: UIApplication) {
+#if !targetEnvironment(macCatalyst)
+        // Clean up Live Activities
+        if #available(iOS 16.1, *) {
+            ClassActivityManager.shared.cleanup()
+        }
+#endif
+    }
 }
 
 // Widget Data Manager for sharing data with widgets

@@ -8,8 +8,255 @@ class ClassActivityManager {
     
     private init() {}
     
-    // Store active classes to prevent duplicates
-    private var activeClassActivities: [String: Activity<ClassActivityAttributes>] = [:]
+    // Store active classes to prevent duplicates - change from fileprivate to internal
+    internal var activeClassActivities: [String: Activity<ClassActivityAttributes>] = [:]
+    
+    // Add a new method to check if activity exists and recycle it if needed
+    func startOrUpdateClassActivity(
+        className: String,
+        periodNumber: Int,
+        roomNumber: String,
+        teacherName: String,
+        startTime: Date,
+        endTime: Date
+    ) {
+        // Create a unique identifier for this class
+        let activityId = "\(periodNumber)_\(className)"
+        
+        // End all other active activities if starting a new one
+        if activeClassActivities[activityId] == nil {
+            endAllActivitiesExcept(activityId: activityId)
+        }
+        
+        // Check if activity already exists
+        if let existingActivity = activeClassActivities[activityId] {
+            // Update existing activity instead of creating a new one
+            updateExistingActivity(
+                activity: existingActivity,
+                activityId: activityId,
+                startTime: startTime,
+                endTime: endTime
+            )
+            return
+        }
+        
+        // If no existing activity, create a new one
+        startClassActivity(
+            className: className,
+            periodNumber: periodNumber,
+            roomNumber: roomNumber,
+            teacherName: teacherName,
+            startTime: startTime,
+            endTime: endTime
+        )
+    }
+    
+    // Helper to end all activities except for a specific one
+    internal func endAllActivitiesExcept(activityId: String) {
+        for (id, activity) in activeClassActivities where id != activityId {
+            Task {
+                if #available(iOS 16.2, *) {
+                    await activity.end(nil, dismissalPolicy: .immediate)
+                } else {
+                    await activity.end(dismissalPolicy: .immediate)
+                }
+                print("Ended Live Activity with ID: \(activity.id)")
+                activeClassActivities.removeValue(forKey: id)
+            }
+        }
+    }
+    
+    // Method to update an existing activity with new times - change from fileprivate to internal
+    internal func updateExistingActivity(
+        activity: Activity<ClassActivityAttributes>,
+        activityId: String,
+        startTime: Date,
+        endTime: Date
+    ) {
+        let now = Date()
+        var newStatus: ClassActivityAttributes.ClassStatus
+        let timeRemaining: TimeInterval
+        let progress: Double
+        
+        // Determine status based on current time
+        if now < startTime {
+            newStatus = .upcoming
+            timeRemaining = startTime.timeIntervalSince(now)
+            progress = 0.0
+        } else if now >= startTime && now < endTime {
+            if endTime.timeIntervalSince(now) <= 300 {
+                newStatus = .ending
+            } else {
+                newStatus = .ongoing
+            }
+            timeRemaining = max(0, endTime.timeIntervalSince(now))
+            let totalDuration = endTime.timeIntervalSince(startTime)
+            let elapsed = now.timeIntervalSince(startTime)
+            progress = max(0, min(1, elapsed / totalDuration))
+        } else {
+            // If class has ended, end the activity
+            endActivity(for: activityId)
+            return
+        }
+        
+        // Update the activity with new content state
+        Task {
+            if #available(iOS 16.2, *) {
+                await activity.update(
+                    .init(state: ClassActivityAttributes.ContentState(
+                        startTime: startTime,
+                        endTime: endTime,
+                        currentStatus: newStatus,
+                        periodNumber: activity.content.state.periodNumber,
+                        progress: progress,
+                        timeRemaining: timeRemaining
+                    ), staleDate: nil)
+                )
+            } else {
+                await activity.update(
+                    using: ClassActivityAttributes.ContentState(
+                        startTime: startTime,
+                        endTime: endTime,
+                        currentStatus: newStatus,
+                        periodNumber: activity.content.state.periodNumber,
+                        progress: progress,
+                        timeRemaining: timeRemaining
+                    )
+                )
+            }
+            
+            // Reschedule updates based on new times
+            scheduleUpdatesForActivity(activity: activity, activityId: activityId, startTime: startTime, endTime: endTime)
+        }
+        
+        print("Updated existing Live Activity with ID: \(activity.id)")
+    }
+    
+    // Schedule all needed updates for an activity (new or recycled)
+    private func scheduleUpdatesForActivity(activity: Activity<ClassActivityAttributes>, activityId: String, startTime: Date, endTime: Date) {
+        // Cancel any existing timers for this activity
+        cancelExistingTimers(for: activityId)
+        
+        // Schedule periodic updates
+        schedulePeriodicUpdates(activityId: activityId, startTime: startTime, endTime: endTime)
+        
+        // Schedule end of activity
+        scheduleEndOfActivity(activity: activity, endTime: endTime)
+        
+        let now = Date()
+        // If it's an upcoming class, schedule a status update when it starts
+        if now < startTime {
+            scheduleStatusUpdate(activity: activity, activityId: activityId, startTime: startTime, endTime: endTime)
+        } else if now < endTime {
+            // If already ongoing, schedule a status update for "ending soon" when appropriate
+            scheduleEndingSoonUpdate(activity: activity, activityId: activityId, endTime: endTime)
+        }
+    }
+    
+    // Store timers for activities
+    private var activityTimers: [String: [Timer]] = [:]
+    
+    // Cancel existing timers for an activity
+    private func cancelExistingTimers(for activityId: String) {
+        activityTimers[activityId]?.forEach { $0.invalidate() }
+        activityTimers[activityId] = []
+    }
+    
+    // Modified schedulePeriodicUpdates to store references to timers
+    private func schedulePeriodicUpdates(activityId: String, startTime: Date, endTime: Date) {
+        let timer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] timer in
+            guard let self = self, let activity = self.activeClassActivities[activityId] else {
+                timer.invalidate()
+                return
+            }
+            
+            let now = Date()
+            
+            // Increase update frequency for transitions
+            if (activity.content.state.currentStatus == .upcoming && startTime.timeIntervalSince(now) < 300) ||
+               (activity.content.state.currentStatus != .upcoming && endTime.timeIntervalSince(now) < 300) {
+                timer.tolerance = 5  // Higher frequency updates near transitions
+            } else {
+                timer.tolerance = 15  // Normal frequency
+            }
+            
+            self.updateActivityState(activityId: activityId, startTime: startTime, endTime: endTime)
+        }
+        
+        // Store the timer
+        if activityTimers[activityId] == nil {
+            activityTimers[activityId] = []
+        }
+        activityTimers[activityId]?.append(timer)
+        
+        // Make sure timer runs in background
+        RunLoop.current.add(timer, forMode: .common)
+    }
+    
+    // Update an activity's status based on a specific transition event
+    func transitionClassStatus(activityId: String, to status: ClassActivityAttributes.ClassStatus) {
+        guard let activity = activeClassActivities[activityId] else { return }
+        
+        let now = Date()
+        let startTime = activity.content.state.startTime
+        let endTime = activity.content.state.endTime
+        
+        var timeRemaining: TimeInterval
+        var progress: Double
+        
+        switch status {
+        case .upcoming:
+            timeRemaining = startTime.timeIntervalSince(now)
+            progress = 0.0
+        case .ongoing:
+            timeRemaining = endTime.timeIntervalSince(now)
+            let totalDuration = endTime.timeIntervalSince(startTime)
+            let elapsed = now.timeIntervalSince(startTime)
+            progress = max(0, min(1, elapsed / totalDuration))
+        case .ending:
+            timeRemaining = endTime.timeIntervalSince(now)
+            let totalDuration = endTime.timeIntervalSince(startTime)
+            let elapsed = now.timeIntervalSince(startTime)
+            progress = max(0, min(1, elapsed / totalDuration))
+        }
+        
+        Task {
+            if #available(iOS 16.2, *) {
+                await activity.update(
+                    .init(state: ClassActivityAttributes.ContentState(
+                        startTime: startTime,
+                        endTime: endTime,
+                        currentStatus: status,
+                        periodNumber: activity.content.state.periodNumber,
+                        progress: progress,
+                        timeRemaining: timeRemaining
+                    ), staleDate: nil)
+                )
+            } else {
+                await activity.update(
+                    using: ClassActivityAttributes.ContentState(
+                        startTime: startTime,
+                        endTime: endTime,
+                        currentStatus: status,
+                        periodNumber: activity.content.state.periodNumber,
+                        progress: progress,
+                        timeRemaining: timeRemaining
+                    )
+                )
+            }
+        }
+        
+        print("Transitioned Live Activity to \(status) state")
+    }
+    
+    // Clean up when app terminates
+    func cleanup() {
+        // Cancel all timers
+        for (activityId, timers) in activityTimers {
+            timers.forEach { $0.invalidate() }
+            activityTimers[activityId] = []
+        }
+    }
     
     // Start a new class activity
     func startClassActivity(
@@ -108,33 +355,6 @@ class ClassActivityManager {
         } catch {
             print("Error starting Live Activity: \(error.localizedDescription)")
         }
-    }
-    
-    // Schedule periodic updates that increase frequency as time gets closer to transitions
-    private func schedulePeriodicUpdates(activityId: String, startTime: Date, endTime: Date) {
-        // Create a repeating timer that updates the activity state
-        let timer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] timer in
-            guard let self = self, let activity = self.activeClassActivities[activityId] else {
-                timer.invalidate()
-                return
-            }
-            
-            let now = Date()
-            
-            // Increase update frequency for transitions
-            if (activity.content.state.currentStatus == .upcoming && startTime.timeIntervalSince(now) < 300) ||
-               (activity.content.state.currentStatus != .upcoming && endTime.timeIntervalSince(now) < 300) {
-                // If within 5 minutes of a transition, update more frequently
-                timer.tolerance = 5  // Allow some tolerance for system optimization
-            } else {
-                timer.tolerance = 15  // Default tolerance
-            }
-            
-            self.updateActivityState(activityId: activityId, startTime: startTime, endTime: endTime)
-        }
-        
-        // Make sure the timer continues running even when app is in background
-        RunLoop.current.add(timer, forMode: .common)
     }
     
     // Update activity state with current progress and time remaining

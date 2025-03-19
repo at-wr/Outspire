@@ -621,9 +621,10 @@ struct TodayView: View {
         return false
     }
     
-    // Function to start Live Activity for the current or next class
+    // In the existing startClassLiveActivityIfNeeded method, update to use the enhanced functionality:
+
     private func startClassLiveActivityIfNeeded(forceCheck: Bool = false) {
-#if !targetEnvironment(macCatalyst)
+    #if !targetEnvironment(macCatalyst)
         // Don't start Live Activity if holiday mode is active
         guard !isHolidayActive() else { return }
         
@@ -652,8 +653,8 @@ struct TodayView: View {
         let className = components.count > 1 ? components[1] : "Unknown Class"
         let roomNumber = components.count > 2 ? components[2] : "Unknown Room"
         
-        // Start the Live Activity
-        ClassActivityManager.shared.startClassActivity(
+        // Use the enhanced method that handles either creating a new activity or updating existing
+        ClassActivityManager.shared.startOrUpdateClassActivity(
             className: className,
             periodNumber: upcoming.period.number,
             roomNumber: roomNumber,
@@ -664,33 +665,44 @@ struct TodayView: View {
         
         // Mark this specific class period as having an active Live Activity
         activeClassLiveActivities[activityId] = true
-        #endif
+    #endif
     }
-    
-    // Add method to toggle Live Activity for current class
+
+    // Update the toggleLiveActivityForCurrentClass method to use the new toggle functionality:
+
     private func toggleLiveActivityForCurrentClass() {
-#if !targetEnvironment(macCatalyst)
+    #if !targetEnvironment(macCatalyst)
         guard let upcoming = upcomingClassInfo else { return }
         
+        let components = upcoming.classData.replacingOccurrences(of: "<br>", with: "\n")
+            .components(separatedBy: "\n")
+            .filter { !$0.isEmpty }
+        
+        // Only proceed if we have enough data
+        guard components.count >= 2 else { return }
+        
+        let teacherName = components.count > 0 ? components[0] : "Unknown Teacher"
+        let className = components.count > 1 ? components[1] : "Unknown Class"
+        let roomNumber = components.count > 2 ? components[2] : "Unknown Room"
         let activityId = "\(upcoming.period.number)_\(upcoming.classData)"
         
-        if activeClassLiveActivities[activityId] == true {
-            // Stop the existing activity
-            ClassActivityManager.shared.endActivity(for: activityId)
-            activeClassLiveActivities[activityId] = false
-            
-            // Give haptic feedback for turning off
-            let generator = UIImpactFeedbackGenerator(style: .medium)
-            generator.impactOccurred()
-        } else {
-            // Start a new activity
-            startClassLiveActivityIfNeeded(forceCheck: true)
-            
-            // Give haptic feedback for turning on
-            let generator = UIImpactFeedbackGenerator(style: .medium)
-            generator.impactOccurred(intensity: 0.7)
-        }
-        #endif
+        // Use the new toggle functionality
+        let isActive = ClassActivityManager.shared.toggleActivityForClass(
+            className: className,
+            periodNumber: upcoming.period.number,
+            roomNumber: roomNumber,
+            teacherName: teacherName,
+            startTime: upcoming.period.startTime,
+            endTime: upcoming.period.endTime
+        )
+        
+        // Update the active status
+        activeClassLiveActivities[activityId] = isActive
+        
+        // Give haptic feedback
+        let generator = UIImpactFeedbackGenerator(style: .medium)
+        generator.impactOccurred(intensity: isActive ? 0.7 : 1.0)
+    #endif
     }
 }
 

@@ -43,9 +43,9 @@ struct EnhancedClassCard: View {
     }
     
     private var formattedCountdown: String {
+        // Don't modify state during view rendering
         if timeRemaining <= 0 {
-            calculateTimeRemaining() // Try to recalculate when time is up
-            return "00:00" // Show zeros when time is up
+            return "00:00" // Just show zeros when time is up
         }
         
         let hours = Int(timeRemaining) / 3600
@@ -213,7 +213,7 @@ struct EnhancedClassCard: View {
             calculateTimeRemaining()
             // Use a simple timer that updates every second
             timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
-                calculateTimeRemaining()
+                self.calculateTimeRemaining()
             }
         }
         .onDisappear {
@@ -231,7 +231,14 @@ struct EnhancedClassCard: View {
         }
     }
     
+    // Make this function not update state if we're already at zero
     private func calculateTimeRemaining() {
+        // If we're already at zero, don't recalculate if already showing zeros
+        // This avoids the warning about modifying state during view updates
+        if timeRemaining <= 0 && isCurrentClass == false {
+            return
+        }
+        
         let calendar = Calendar.current
         let now = Date() // Current real time
         
