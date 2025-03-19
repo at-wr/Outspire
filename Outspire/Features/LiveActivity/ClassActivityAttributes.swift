@@ -1,6 +1,7 @@
 import Foundation
 import ActivityKit
 
+#if !targetEnvironment(macCatalyst)
 struct ClassActivityAttributes: ActivityAttributes {
     public struct ContentState: Codable, Hashable {
         // Dynamic content that can change during updates
@@ -23,3 +24,4 @@ struct ClassActivityAttributes: ActivityAttributes {
         case ending   // last 5 minutes
     }
 }
+#endif

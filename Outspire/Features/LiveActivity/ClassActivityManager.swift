@@ -2,6 +2,7 @@ import Foundation
 import ActivityKit
 import SwiftUI
 
+#if !targetEnvironment(macCatalyst)
 class ClassActivityManager {
     static let shared = ClassActivityManager()
     
@@ -300,3 +301,4 @@ class ClassActivityManager {
         activeClassActivities.removeAll()
     }
 }
+#endif

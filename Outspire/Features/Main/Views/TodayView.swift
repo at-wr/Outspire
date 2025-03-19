@@ -623,6 +623,7 @@ struct TodayView: View {
     
     // Function to start Live Activity for the current or next class
     private func startClassLiveActivityIfNeeded(forceCheck: Bool = false) {
+#if !targetEnvironment(macCatalyst)
         // Don't start Live Activity if holiday mode is active
         guard !isHolidayActive() else { return }
         
@@ -663,10 +664,12 @@ struct TodayView: View {
         
         // Mark this specific class period as having an active Live Activity
         activeClassLiveActivities[activityId] = true
+        #endif
     }
     
     // Add method to toggle Live Activity for current class
     private func toggleLiveActivityForCurrentClass() {
+#if !targetEnvironment(macCatalyst)
         guard let upcoming = upcomingClassInfo else { return }
         
         let activityId = "\(upcoming.period.number)_\(upcoming.classData)"
@@ -687,6 +690,7 @@ struct TodayView: View {
             let generator = UIImpactFeedbackGenerator(style: .medium)
             generator.impactOccurred(intensity: 0.7)
         }
+        #endif
     }
 }
 

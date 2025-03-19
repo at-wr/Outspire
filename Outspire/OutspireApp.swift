@@ -22,9 +22,11 @@ struct OutspireApp: App {
         }
         
         // Register the Live Activity widget
+#if !targetEnvironment(macCatalyst)
         if #available(iOS 16.1, *) {
             LiveActivityRegistration.registerLiveActivities()
         }
+#endif
     }
     
     var body: some Scene {
@@ -156,6 +158,7 @@ extension Notification.Name {
 }
 
 /// Helper class to register Live Activities
+#if !targetEnvironment(macCatalyst)
 @available(iOS 16.1, *)
 class LiveActivityRegistration {
     static func registerLiveActivities() {
@@ -168,3 +171,4 @@ class LiveActivityRegistration {
         )
     }
 }
+#endif

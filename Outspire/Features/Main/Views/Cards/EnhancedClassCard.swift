@@ -173,7 +173,7 @@ struct EnhancedClassCard: View {
                         }
                     }
                     .padding(.vertical, 10)
-                    
+#if !targetEnvironment(macCatalyst)
                     // Live Activity toggle button
                     if (isForToday || setAsToday) && toggleLiveActivity != nil {
                         Divider()
@@ -200,6 +200,7 @@ struct EnhancedClassCard: View {
                         .padding(.top, 4)
                         .padding(.bottom, 12)
                     }
+                    #endif
                 }
             }
         }

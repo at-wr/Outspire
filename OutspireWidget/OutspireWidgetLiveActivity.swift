@@ -9,6 +9,7 @@ import ActivityKit
 import WidgetKit
 import SwiftUI
 
+#if !targetEnvironment(macCatalyst)
 // ClassActivityAttributes remains unchanged
 struct ClassActivityAttributes: ActivityAttributes {
     public struct ContentState: Codable, Hashable {
@@ -71,14 +72,26 @@ struct OutspireWidgetLiveActivity: Widget {
                         Text("00:00") // Placeholder to stabilize layout
                             .hidden() // Hide the placeholder
                             .overlay(alignment: .leading) {
-                                Text(timerInterval: context.state.startTime...context.state.endTime, countsDown: true)
-                                    .font(.system(.headline, design: .rounded))
-                                    .fontWeight(.bold)
-                                    .monospacedDigit()
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(0.9)
-                                    .frame(width: 80, alignment: .trailing) // Fixed width to match max timer string
-                                    .foregroundStyle(statusColor(for: context.state.currentStatus))
+                                // Use different time interval based on status
+                                if context.state.currentStatus == .upcoming {
+                                    Text(timerInterval: Date.now...context.state.startTime, countsDown: true)
+                                        .font(.system(.headline, design: .rounded))
+                                        .fontWeight(.bold)
+                                        .monospacedDigit()
+                                        .lineLimit(1)
+                                        .minimumScaleFactor(0.9)
+                                        .frame(width: 80, alignment: .trailing) // Fixed width to match max timer string
+                                        .foregroundStyle(statusColor(for: context.state.currentStatus))
+                                } else {
+                                    Text(timerInterval: Date.now...context.state.endTime, countsDown: true)
+                                        .font(.system(.headline, design: .rounded))
+                                        .fontWeight(.bold)
+                                        .monospacedDigit()
+                                        .lineLimit(1)
+                                        .minimumScaleFactor(0.9)
+                                        .frame(width: 80, alignment: .trailing) // Fixed width to match max timer string
+                                        .foregroundStyle(statusColor(for: context.state.currentStatus))
+                                }
                             }
                     }
                     .padding(.trailing, 4)
@@ -132,14 +145,26 @@ struct OutspireWidgetLiveActivity: Widget {
                 Text("00:00") // Placeholder to stabilize layout
                     .hidden() // Hide the placeholder
                     .overlay(alignment: .leading) {
-                        Text(timerInterval: context.state.startTime...context.state.endTime, countsDown: true)
-                            .font(.system(.headline, design: .rounded))
-                            .fontWeight(.bold)
-                            .monospacedDigit()
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.9)
-                            .frame(width: 80, alignment: .trailing) // Fixed width to match max timer string
-                            .foregroundStyle(statusColor(for: context.state.currentStatus))
+                        // Use different time interval based on status
+                        if context.state.currentStatus == .upcoming {
+                            Text(timerInterval: Date.now...context.state.startTime, countsDown: true)
+                                .font(.system(.headline, design: .rounded))
+                                .fontWeight(.bold)
+                                .monospacedDigit()
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.9)
+                                .frame(width: 80, alignment: .trailing) // Fixed width to match max timer string
+                                .foregroundStyle(statusColor(for: context.state.currentStatus))
+                        } else {
+                            Text(timerInterval: Date.now...context.state.endTime, countsDown: true)
+                                .font(.system(.headline, design: .rounded))
+                                .fontWeight(.bold)
+                                .monospacedDigit()
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.9)
+                                .frame(width: 80, alignment: .trailing) // Fixed width to match max timer string
+                                .foregroundStyle(statusColor(for: context.state.currentStatus))
+                        }
                     }
             } minimal: {
                 Text("\(context.state.periodNumber)")
@@ -239,14 +264,26 @@ struct LockScreenView: View {
                 Text("00:00") // Placeholder to stabilize layout
                     .hidden() // Hide the placeholder
                     .overlay(alignment: .leading) {
-                        Text(timerInterval: context.state.startTime...context.state.endTime, countsDown: true)
-                            .font(.system(.headline, design: .rounded))
-                            .fontWeight(.bold)
-                            .monospacedDigit()
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.9)
-                            .frame(width: 80, alignment: .trailing) // Fixed width to match max timer string
-                            .foregroundStyle(statusColor(for: context.state.currentStatus))
+                        // Use different time interval based on status
+                        if context.state.currentStatus == .upcoming {
+                            Text(timerInterval: Date.now...context.state.startTime, countsDown: true)
+                                .font(.system(.headline, design: .rounded))
+                                .fontWeight(.bold)
+                                .monospacedDigit()
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.9)
+                                .frame(width: 80, alignment: .trailing) // Fixed width to match max timer string
+                                .foregroundStyle(statusColor(for: context.state.currentStatus))
+                        } else {
+                            Text(timerInterval: Date.now...context.state.endTime, countsDown: true)
+                                .font(.system(.headline, design: .rounded))
+                                .fontWeight(.bold)
+                                .monospacedDigit()
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.9)
+                                .frame(width: 80, alignment: .trailing) // Fixed width to match max timer string
+                                .foregroundStyle(statusColor(for: context.state.currentStatus))
+                        }
                     }
                 
                 if context.state.currentStatus != .upcoming {
@@ -324,3 +361,4 @@ extension Color {
     ClassActivityAttributes.ContentState.current
     ClassActivityAttributes.ContentState.next
 }
+#endif

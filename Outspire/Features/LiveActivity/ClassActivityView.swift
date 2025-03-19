@@ -2,6 +2,7 @@ import SwiftUI
 import ActivityKit
 import WidgetKit
 
+#if !targetEnvironment(macCatalyst)
 struct ClassActivityLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: ClassActivityAttributes.self) { context in
@@ -354,3 +355,4 @@ struct ClassBottomView: View {
         return endFormatter.string(from: context.state.endTime)
     }
 }
+#endif
