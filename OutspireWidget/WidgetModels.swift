@@ -67,6 +67,11 @@ struct ClassWidgetData: Identifiable {
         return "00:00"
     }
     
+    // Add a date range for timer-based progress
+    var progressRange: ClosedRange<Date> {
+        startTime...endTime
+    }
+    
     var timeRangeFormatted: String {
         let formatter = DateFormatter()
         formatter.dateFormat = "h:mm"
@@ -464,4 +469,4 @@ extension Provider {
         
         return Timeline(entries: [entry], policy: .after(nextUpdateDate))
     }
-} 
+}

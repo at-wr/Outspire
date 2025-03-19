@@ -330,8 +330,18 @@ struct OutspireWidgetEntryView : View {
                         
                         // Progress circle for current class (medium widget only)
                         if classData.isCurrentClass && widgetFamily != .systemSmall {
-                            CircularProgressView(progress: classData.progress)
+                            // For current class, use timer-based progress for smooth animation
+                            ZStack {
+                                ProgressView(
+                                    timerInterval: classData.progressRange,
+                                    countsDown: false,
+                                    label: { EmptyView() },
+                                    currentValueLabel: { EmptyView() }
+                                )
+                                .progressViewStyle(.circular)
                                 .frame(width: 24, height: 24)
+                                .tint(.orange)
+                            }
                         }
                     }
                     .padding(.horizontal, 12)

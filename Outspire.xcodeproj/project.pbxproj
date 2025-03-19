@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		6E2C3F2F2D8AC7EF005C01E6 /* ActivityKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6E2C3F2E2D8AC7EF005C01E6 /* ActivityKit.framework */; };
 		6E4BCC772D87E12B00C10AEA /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6E4BCC762D87E12B00C10AEA /* WidgetKit.framework */; };
 		6E4BCC792D87E12B00C10AEA /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6E4BCC782D87E12B00C10AEA /* SwiftUI.framework */; };
 		6E4BCC8A2D87E12C00C10AEA /* OutspireWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 6E4BCC752D87E12B00C10AEA /* OutspireWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -56,6 +57,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		6E2C3F2E2D8AC7EF005C01E6 /* ActivityKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ActivityKit.framework; path = System/iOSSupport/System/Library/Frameworks/ActivityKit.framework; sourceTree = SDKROOT; };
 		6E4BCC752D87E12B00C10AEA /* OutspireWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = OutspireWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		6E4BCC762D87E12B00C10AEA /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		6E4BCC782D87E12B00C10AEA /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
@@ -128,6 +130,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6E2C3F2F2D8AC7EF005C01E6 /* ActivityKit.framework in Frameworks */,
 				6ED03C082D846F2A00C81CF9 /* CoreLocation.framework in Frameworks */,
 				6ED03BFF2D84675400C81CF9 /* Toasts in Frameworks */,
 				6ED03C0A2D846F5100C81CF9 /* MapKit.framework in Frameworks */,
@@ -179,6 +182,7 @@
 		6ED03BFA2D84662600C81CF9 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				6E2C3F2E2D8AC7EF005C01E6 /* ActivityKit.framework */,
 				6ED03C092D846F5100C81CF9 /* MapKit.framework */,
 				6ED03C072D846F2A00C81CF9 /* CoreLocation.framework */,
 				6ED03C032D84684000C81CF9 /* UIKit.framework */,

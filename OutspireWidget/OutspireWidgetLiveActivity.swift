@@ -81,7 +81,7 @@ struct OutspireWidgetLiveActivity: Widget {
                                         .lineLimit(1)
                                         .minimumScaleFactor(0.9)
                                         .frame(width: 80, alignment: .trailing) // Fixed width to match max timer string
-                                        .foregroundStyle(statusColor(for: context.state.currentStatus))
+                                        .foregroundStyle(classColor(for: context))
                                 } else {
                                     Text(timerInterval: Date.now...context.state.endTime, countsDown: true)
                                         .font(.system(.headline, design: .rounded))
@@ -90,7 +90,7 @@ struct OutspireWidgetLiveActivity: Widget {
                                         .lineLimit(1)
                                         .minimumScaleFactor(0.9)
                                         .frame(width: 80, alignment: .trailing) // Fixed width to match max timer string
-                                        .foregroundStyle(statusColor(for: context.state.currentStatus))
+                                        .foregroundStyle(classColor(for: context))
                                 }
                             }
                     }
@@ -124,22 +124,41 @@ struct OutspireWidgetLiveActivity: Widget {
                         
                         // Progress indicator without percentage text
                         if context.state.currentStatus != .upcoming {
-                            ProgressView(value: context.state.progress)
-                                .progressViewStyle(.linear)
-                                .frame(width: 60)
-                                .tint(statusColor(for: context.state.currentStatus))
+                            // Replace static progress view with timer-based one
+                            ProgressView(
+                                timerInterval: context.state.startTime...context.state.endTime,
+                                countsDown: false,
+                                label: { EmptyView() },
+                                currentValueLabel: { EmptyView() }
+                            )
+                            .progressViewStyle(.linear)
+                            .frame(width: 60)
+                            .tint(classColor(for: context))
                         }
                     }
                 }
             } compactLeading: {
                 ZStack {
-                    Circle()
-                        .fill(Color.tint.opacity(0.2))
-                        .frame(width: 18, height: 18)
-                    
-                    Text("\(context.state.periodNumber)")
-                        .font(.system(size: 10, weight: .bold, design: .rounded))
-                        .foregroundStyle(.tint)
+                    // Use timer-based progress for smooth animation
+                    if context.state.currentStatus != .upcoming {
+                        ProgressView(
+                            timerInterval: context.state.startTime...context.state.endTime,
+                            countsDown: false,
+                            label: { EmptyView() },
+                            currentValueLabel: {
+                                Image(systemName: "star.fill")
+                                    //.font(.system(size: 8, weight: .bold))
+                                    .foregroundStyle(classColor(for: context))
+                            }
+                        )
+                        .progressViewStyle(.circular)
+                        .tint(classColor(for: context))
+                    } else {
+                        // For upcoming class, just show the star
+                        Image(systemName: "star.fill")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(.tint)
+                    }
                 }
             } compactTrailing: {
                 Text("00:00") // Placeholder to stabilize layout
@@ -154,7 +173,7 @@ struct OutspireWidgetLiveActivity: Widget {
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.9)
                                 .frame(width: 80, alignment: .trailing) // Fixed width to match max timer string
-                                .foregroundStyle(statusColor(for: context.state.currentStatus))
+                                .foregroundStyle(classColor(for: context))
                         } else {
                             Text(timerInterval: Date.now...context.state.endTime, countsDown: true)
                                 .font(.system(.headline, design: .rounded))
@@ -163,13 +182,33 @@ struct OutspireWidgetLiveActivity: Widget {
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.9)
                                 .frame(width: 80, alignment: .trailing) // Fixed width to match max timer string
-                                .foregroundStyle(statusColor(for: context.state.currentStatus))
+                                .foregroundStyle(classColor(for: context))
                         }
                     }
             } minimal: {
-                Text("\(context.state.periodNumber)")
-                    .font(.system(size: 12, weight: .bold, design: .rounded))
-                    .foregroundStyle(.tint)
+                // Replace text with progress view containing star
+                ZStack {
+                    // Use timer-based progress for smooth animation
+                    if context.state.currentStatus != .upcoming {
+                        ProgressView(
+                            timerInterval: context.state.startTime...context.state.endTime,
+                            countsDown: false,
+                            label: { EmptyView() },
+                            currentValueLabel: {
+                                Image(systemName: "star.fill")
+                                    //.font(.system(size: 8, weight: .bold))
+                                    .foregroundStyle(classColor(for: context))
+                            }
+                        )
+                        .progressViewStyle(.circular)
+                        .tint(statusColor(for: context.state.currentStatus))
+                    } else {
+                        // For upcoming class, just show the star
+                        Image(systemName: "star.fill")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(.tint)
+                    }
+                }
             }
             .widgetURL(URL(string: "outspire://today"))
             .keylineTint(statusColor(for: context.state.currentStatus))
@@ -199,6 +238,18 @@ struct OutspireWidgetLiveActivity: Widget {
         }
     }
     
+    // New method to get color based on class name, matching widget colors
+    private func classColor(for context: ActivityViewContext<ClassActivityAttributes>) -> Color {
+        let isSelfStudy = context.attributes.className.lowercased().contains("self-study")
+        
+        if isSelfStudy {
+            return .purple
+        } else {
+            return WidgetHelpers.getSubjectColor(from: context.attributes.className)
+        }
+    }
+    
+    // Modified to include status as fallback
     private func statusColor(for status: ClassActivityAttributes.ClassStatus) -> Color {
         switch status {
         case .upcoming: return .blue
@@ -208,7 +259,7 @@ struct OutspireWidgetLiveActivity: Widget {
     }
 }
 
-// Updated Lock Screen View
+// Lock Screen View
 struct LockScreenView: View {
     let context: ActivityViewContext<ClassActivityAttributes>
     
@@ -219,8 +270,8 @@ struct LockScreenView: View {
                 Text(context.state.currentStatus == .upcoming ? "Next Class" : "Current Class")
                     .font(.caption2)
                     .fontWeight(.medium)
-                    //.foregroundStyle(.tint)
-                    .foregroundStyle(statusColor(for: context.state.currentStatus))
+                    // Use classColor instead of statusColor
+                    .foregroundStyle(classColor(for: context))
                 
                 Text(context.attributes.className)
                     .font(.headline)
@@ -273,7 +324,7 @@ struct LockScreenView: View {
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.9)
                                 .frame(width: 80, alignment: .trailing) // Fixed width to match max timer string
-                                .foregroundStyle(statusColor(for: context.state.currentStatus))
+                                .foregroundStyle(classColor(for: context))
                         } else {
                             Text(timerInterval: Date.now...context.state.endTime, countsDown: true)
                                 .font(.system(.headline, design: .rounded))
@@ -282,15 +333,21 @@ struct LockScreenView: View {
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.9)
                                 .frame(width: 80, alignment: .trailing) // Fixed width to match max timer string
-                                .foregroundStyle(statusColor(for: context.state.currentStatus))
+                                .foregroundStyle(classColor(for: context))
                         }
                     }
                 
                 if context.state.currentStatus != .upcoming {
-                    ProgressView(value: context.state.progress)
-                        .progressViewStyle(.linear)
-                        .frame(width: 60)
-                        .tint(statusColor(for: context.state.currentStatus))
+                    // Replace static progress view with timer-based one and use classColor
+                    ProgressView(
+                        timerInterval: context.state.startTime...context.state.endTime,
+                        countsDown: false,
+                        label: { EmptyView() },
+                        currentValueLabel: { EmptyView() }
+                    )
+                    .progressViewStyle(.linear)
+                    .frame(width: 60)
+                    .tint(classColor(for: context))
                 }
             }
             .frame(width: 100)
@@ -300,7 +357,7 @@ struct LockScreenView: View {
         .activitySystemActionForegroundColor(.primary)
     }
     
-    // Helper functions remain unchanged
+    // Helper methods
     private func formatTimeRemaining(_ timeInterval: TimeInterval) -> String {
         let hours = Int(timeInterval) / 3600
         let minutes = (Int(timeInterval) % 3600) / 60
@@ -315,6 +372,18 @@ struct LockScreenView: View {
         }
     }
     
+    // Add class color helper matching the widget
+    private func classColor(for context: ActivityViewContext<ClassActivityAttributes>) -> Color {
+        let isSelfStudy = context.attributes.className.lowercased().contains("self-study")
+        
+        if isSelfStudy {
+            return .purple
+        } else {
+            return WidgetHelpers.getSubjectColor(from: context.attributes.className)
+        }
+    }
+    
+    // Keep statusColor as fallback
     private func statusColor(for status: ClassActivityAttributes.ClassStatus) -> Color {
         switch status {
         case .upcoming: return .blue
