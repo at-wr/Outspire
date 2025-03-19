@@ -7,6 +7,7 @@ struct OnboardingView: View {
     @State private var nextPage = 0
     @Environment(\.colorScheme) private var colorScheme
     @State private var hasAppeared = false
+    @Environment(\.dismiss) private var dismiss
     
     // Add states for tracking permission status
     @State private var locationPermissionGranted = false
@@ -14,6 +15,9 @@ struct OnboardingView: View {
     
     // Add reference to manager objects
     @StateObject private var permissionManager = PermissionManager()
+    
+    // Focus state for keyboard controls
+    @FocusState private var buttonFocused: OnboardingButtonFocus?
     
     private let pages: [OnboardingPage] = [
         OnboardingPage(
@@ -79,11 +83,23 @@ struct OnboardingView: View {
                             isPresented = false
                         }
                     }) {
+                        #if targetEnvironment(macCatalyst)
+                        Text("Close")
+                            .font(.system(size: 14, weight: .medium))
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(Color(.tertiarySystemFill))
+                            .cornerRadius(6)
+                            .foregroundStyle(.primary)
+                        #else
                         Image(systemName: "xmark.circle.fill")
                             .font(.title2)
                             .foregroundStyle(.secondary)
-                            .padding()
+                        #endif
                     }
+                    .keyboardShortcut(.escape, modifiers: [])
+                    .padding()
+                    .focused($buttonFocused, equals: .close)
                 }
                 
                 // Custom page viewer with explicit animation control
@@ -123,8 +139,16 @@ struct OnboardingView: View {
                                 Image(systemName: "chevron.left")
                                 Text("Previous")
                             }
+                            #if targetEnvironment(macCatalyst)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                            .background(Color(.quaternarySystemFill))
+                            .cornerRadius(8)
+                            #endif
                             .foregroundStyle(.secondary)
                         }
+                        .keyboardShortcut(.leftArrow, modifiers: [])
+                        .focused($buttonFocused, equals: .previous)
                     }
                     
                     Spacer()
@@ -138,9 +162,21 @@ struct OnboardingView: View {
                         }
                         .padding(.horizontal, 16)
                         .padding(.vertical, 10)
-                        .background(Capsule().fill(Color.accentColor))
+#if targetEnvironment(macCatalyst)
+                        .background(
+                            Capsule().fill(Color.accentColor.opacity(0.8))
+                        )
+#else
+                        .background(
+                            Capsule().fill(Color.accentColor)
+                        )
+#endif
                         .foregroundStyle(.white)
                     }
+                    .keyboardShortcut(.rightArrow, modifiers: [])
+                    .keyboardShortcut(.return, modifiers: [])
+                    .keyboardShortcut(.space, modifiers: [])
+                    .focused($buttonFocused, equals: .next)
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 30)
@@ -154,6 +190,11 @@ struct OnboardingView: View {
         .onAppear {
             hasAppeared = true
             checkPermissionStatus()
+            
+            // Set initial focus
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                buttonFocused = .next
+            }
         }
         .interactiveDismissDisabled(true)
         .onChange(of: isPresented) { _, newValue in
@@ -164,6 +205,29 @@ struct OnboardingView: View {
                     }
                 }
             }
+        }
+        .onKeyPress(.rightArrow) {
+            if currentPage < pages.count - 1 {
+                withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                    currentPage += 1
+                }
+                return .handled
+            }
+            return .ignored
+        }
+        .onKeyPress(.leftArrow) {
+            if currentPage > 0 {
+                withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                    currentPage -= 1
+                }
+                return .handled
+            }
+            return .ignored
+        }
+        .onKeyPress(.escape) {
+            markOnboardingComplete()
+            isPresented = false
+            return .handled
         }
     }
     
@@ -310,7 +374,7 @@ struct OnboardingView: View {
                             .frame(width: 140, height: 140)
                     )
                 
-                if isGranted {
+                if (isGranted) {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 30))
                         .foregroundStyle(.green)
@@ -382,6 +446,11 @@ enum OnboardingPageType {
     case information
     case locationPermission
     case notificationPermission
+}
+
+// Enum for focus management
+enum OnboardingButtonFocus {
+    case previous, next, close
 }
 
 #Preview {

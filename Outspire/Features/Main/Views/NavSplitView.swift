@@ -110,6 +110,7 @@ struct NavSplitView: View {
                     Text("Miscellaneous")
                 }
             }
+            .navigationSplitViewColumnWidth(min: 100, ideal: 200, max: 300)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: {
