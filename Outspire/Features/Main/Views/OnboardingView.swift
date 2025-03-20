@@ -22,21 +22,21 @@ struct OnboardingView: View {
     private let pages: [OnboardingPage] = [
         OnboardingPage(
             title: "Welcome to Outspire",
-            description: "Your all-in-one companion for your school life and CAS activities in WFLA.",
+            description: "This is your all-in-one companion for your school life in WFLA. \nHere's all you need!",
             imageName: "sparkles.rectangle.stack",
             imageColor: .blue,
             pageType: .information
         ),
         OnboardingPage(
-            title: "Track Your Schedule",
+            title: "Schedule & Widgets",
             description: "View your class schedule, check upcoming classes, and never miss a deadline.",
             imageName: "calendar",
             imageColor: .orange,
             pageType: .information
         ),
         OnboardingPage(
-            title: "Club Activities",
-            description: "Keep track of your club memberships, activities, and achievements.",
+            title: "Talking about CAS",
+            description: "Keep track of your club memberships, activities, informations, stats, etc.",
             imageName: "person.2.circle",
             imageColor: .green,
             pageType: .information
@@ -44,19 +44,12 @@ struct OnboardingView: View {
         OnboardingPage(
             title: "Academic Performance",
             description: "Monitor your grades and academic progress securely and privately.",
-            imageName: "chart.line.uptrend.xyaxis",
+            imageName: "lock.document",
             imageColor: .purple,
             pageType: .information
         ),
         OnboardingPage(
-            title: "Stay Informed",
-            description: "Access school arrangements, dining menus, and campus information at your fingertips.",
-            imageName: "info.circle",
-            imageColor: .red,
-            pageType: .information
-        ),
-        OnboardingPage(
-            title: "Location Services",
+            title: "Estimate Travel Time",
             description: "Enable location to calculate your travel time to school and receive timely reminders.",
             imageName: "location.circle.fill",
             imageColor: .blue,
@@ -314,14 +307,14 @@ struct OnboardingView: View {
                 for: page,
                 isGranted: locationPermissionGranted,
                 grantedText: "Thank you! This helps calculate your travel time to school.",
-                deniedText: "This helps us show your travel time to school and provide timely morning notifications."
+                deniedText: "Remember, we never store your privacy!\nThis helps us show your travel time to school and provide timely morning notifications."
             )
         case .notificationPermission:
             permissionPageView(
                 for: page,
                 isGranted: notificationPermissionGranted,
                 grantedText: "Great! You'll receive helpful morning travel notifications.",
-                deniedText: "Notifications help you arrive at school on time with morning travel alerts."
+                deniedText: "I'll never spam you!\nNotifications help you arrive at school on time with morning travel alerts."
             )
         }
     }

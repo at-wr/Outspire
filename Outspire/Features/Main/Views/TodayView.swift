@@ -822,16 +822,7 @@ struct MainContentView: View {
         if isAuthenticated {
             authenticatedContent
         } else {
-            // Replace with direct implementation since animatedCard is not in scope
-            SignInPromptCard()
-                .padding(.horizontal)
-                .offset(y: animateCards ? 0 : 30)
-                .opacity(animateCards ? 1 : 0)
-                .animation(
-                    .spring(response: 0.7, dampingFraction: 0.8)
-                    .delay(0.1),
-                    value: animateCards
-                )
+            notAuthenticatedContent
         }
     }
     
@@ -939,6 +930,20 @@ struct MainContentView: View {
                 value: animateCards
             )
         }
+    }
+    
+    @ViewBuilder
+    private var notAuthenticatedContent: some View {
+        // Instead of creating a new implementation, use the existing SignInPromptCard
+        SignInPromptCard()
+            .padding(.horizontal)
+            .offset(y: animateCards ? 0 : 30)
+            .opacity(animateCards ? 1 : 0)
+            .animation(
+                .spring(response: 0.7, dampingFraction: 0.8)
+                .delay(0.1),
+                value: animateCards
+            )
     }
     
     private func shouldShowTravelInfo() -> Bool {

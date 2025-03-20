@@ -335,40 +335,62 @@ struct DailyScheduleCard: View {
 
 // Sign in prompt card
 struct SignInPromptCard: View {
+    @EnvironmentObject var settingsManager: SettingsManager
+    
     var body: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 15) {
             Spacer()
+            
             Image(systemName: "party.popper.fill")
                 .font(.system(size: 60))
                 .foregroundStyle(.cyan.opacity(0.8))
                 .padding(.bottom, 10)
+            
             Text("Welcome to Outspire!")
                 .font(.title)
                 .fontWeight(.bold)
                 .fontDesign(.rounded)
                 .multilineTextAlignment(.center)
-            Text("Make your campus life easier, starting by...")
+            
+            Text("Make your campus life easier")
                 .font(.title3)
                 .foregroundStyle(.secondary)
-                .fontWeight(.bold)
+//                .fontWeight(.bold)
                 .fontDesign(.rounded)
                 .multilineTextAlignment(.center)
-            Text("Outspire → Settings → Sign In")
-                .font(.system(size: 16))
-                .foregroundStyle(.secondary)
-                .fontWeight(.semibold)
-                .fontDesign(.rounded)
-                
-            Text("Until then, you can view your personalized dashboard, class schedule, grades, club activities, etc. \nWell, let's see if can you find where to sign in first. 👀✨")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fontDesign(.rounded)
-                .multilineTextAlignment(.center)
+                .padding(.bottom, 10)
+            
+            // Sign-in button
+            Button(action: {
+                settingsManager.showSettingsSheet = true
+            }) {
+                HStack {
+                    Image(systemName: "person.fill.viewfinder")
+                    Text("Sign In with TSIMS")
+                }
+                .font(.headline)
+                .foregroundStyle(.white)
+                .padding(.vertical, 12)
                 .padding(.horizontal, 20)
-                .padding(.top, 0)
+                .background(Color.accentColor)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .shadow(color: Color.black.opacity(0.1), radius: 2, x: 0, y: 2)
+            }
+            .padding(.top, 10)
+            .buttonStyle(ScaleButtonStyle())
+            
             Spacer()
         }
-        .padding(.vertical, 80)
+        .padding()
+    }
+}
+
+// Add the button style that was in TodayView
+struct ScaleButtonStyle: ButtonStyle {
+    func makeBody(configuration: ButtonStyleConfiguration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.95 : 1)
+            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: configuration.isPressed)
     }
 }
 
