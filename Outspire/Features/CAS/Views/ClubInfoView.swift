@@ -190,6 +190,8 @@ struct ClubInfoView: View {
                 // Handle URL scheme navigation
                 if let clubId = urlSchemeHandler.navigateToClub {
                     print("ClubInfoView detected navigateToClub: \(clubId)")
+                    
+                    // Use our enhanced direct navigation method
                     viewModel.navigateToClubById(clubId)
                     
                     // Save the ID for potential restoration
@@ -210,7 +212,7 @@ struct ClubInfoView: View {
                     viewModel.pendingClubId = nil
                     viewModel.isFromURLNavigation = false
                     
-                    // Navigate to the specified club
+                    // Use our enhanced direct navigation method
                     viewModel.navigateToClubById(clubId)
                     
                     // Save the ID for potential restoration
@@ -635,14 +637,21 @@ struct ClubInfoView: View {
         // Store current selection before refresh
         let currentGroupId = viewModel.selectedGroup?.C_GroupsID
         
-        if let category = viewModel.selectedCategory {
-            viewModel.fetchGroups(for: category)
+        // If we have a specific club open, refresh it directly
+        if let groupId = currentGroupId {
+            // Use the direct method for more reliable refresh
+            viewModel.fetchGroupInfoById(groupId)
         } else {
-            viewModel.fetchCategories()
-        }
-        
-        if let group = viewModel.selectedGroup {
-            viewModel.fetchGroupInfo(for: group)
+            // Otherwise, refresh the current view state
+            if let category = viewModel.selectedCategory {
+                viewModel.fetchGroups(for: category)
+            } else {
+                viewModel.fetchCategories()
+            }
+            
+            if let group = viewModel.selectedGroup {
+                viewModel.fetchGroupInfo(for: group)
+            }
         }
         
         // Always preserve the group ID if available

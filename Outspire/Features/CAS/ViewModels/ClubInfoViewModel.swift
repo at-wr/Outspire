@@ -81,40 +81,36 @@ class ClubInfoViewModel: ObservableObject {
                 // Check for pending club ID from URL scheme first
                 if let pendingId = self.pendingClubId, 
                    let targetGroup = groups.first(where: { $0.C_GroupsID == pendingId }) {
-                    print("Found pending club with ID: \(pendingId)")
+                    print("Found pending club with ID: \(pendingId) in category \(category.C_Category)")
                     self.selectedGroup = targetGroup
                     self.fetchGroupInfo(for: targetGroup)
                     self.pendingClubId = nil
-                    self.isFromURLNavigation = true
                     
-                    // Schedule to reset the URL navigation flag after a delay
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                        self.isFromURLNavigation = false
-                    }
+                    // Keep isFromURLNavigation true while we're fetching group info
+                    // Will be reset in fetchGroupInfo completion
+                    
                     return
                 }
                 
                 // If we have a pending ID but didn't find it in current category,
-                // and we haven't searched all categories yet, try the next one
-                if let pendingId = self.pendingClubId,
-                   self.categories.count > 0 {
-                    // Try the next category
+                // try the next one systematically
+                if let pendingId = self.pendingClubId {
                     let currentCategoryIndex = self.categories.firstIndex(where: { $0.C_CategoryID == category.C_CategoryID }) ?? -1
                     if currentCategoryIndex < self.categories.count - 1 {
-                        // There's another category to try
+                        // Try the next category
                         let nextCategoryIndex = currentCategoryIndex + 1
-                        print("Club not found in current category, trying the next category")
+                        print("Club \(pendingId) not found in \(category.C_Category), trying \(self.categories[nextCategoryIndex].C_Category)")
                         DispatchQueue.main.async {
                             self.selectedCategory = self.categories[nextCategoryIndex]
                             self.fetchGroups(for: self.categories[nextCategoryIndex])
                         }
                         return
                     } else {
-                        // We've tried all categories and still haven't found the club
-                        print("Club with ID \(pendingId) not found in any category")
+                        // We've searched all categories and didn't find the club
+                        print("Club \(pendingId) not found in any category after complete search")
                         self.pendingClubId = nil
                         self.isFromURLNavigation = false
-                        self.errorMessage = "Club not found in any category"
+                        self.errorMessage = "Club not found. It may have been removed or you may not have access."
                     }
                 }
                 
@@ -178,6 +174,7 @@ class ClubInfoViewModel: ObservableObject {
             // Add a small delay to ensure UI transitions feel natural
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                 self.isLoading = false
+                self.isFromURLNavigation = false  // Reset navigation flag when fetch completes
                 
                 switch result {
                 case .success(let response):
@@ -360,46 +357,171 @@ class ClubInfoViewModel: ObservableObject {
     
     // Add a method to handle URL navigation requests
     func navigateToClubById(_ clubId: String) {
-        print("Attempting to navigate to club ID: \(clubId)")
+        print("Navigating to club ID: \(clubId)")
         
-        // Cancel any previous URL navigation that might be in progress
-        if pendingClubId != nil && pendingClubId != clubId {
-            print("Cancelling previous navigation to \(pendingClubId!), now navigating to \(clubId)")
-        }
-        
-        // Set URL navigation flag
-        isFromURLNavigation = true
-        
-        // Reset any existing club info to prevent UI confusion during navigation
+        // Reset any existing club info to prevent UI confusion
         if selectedGroup?.C_GroupsID != clubId {
             groupInfo = nil
             members = []
         }
         
-        // First, check if we already have the groups loaded
-        if let targetGroup = groups.first(where: { $0.C_GroupsID == clubId }) {
-            print("Found club with ID: \(clubId) in current groups")
-            self.selectedGroup = targetGroup
-            self.fetchGroupInfo(for: targetGroup)
+        // Set URL navigation flags
+        isFromURLNavigation = true
+        
+        // Direct API approach first - most robust method
+        fetchGroupInfoById(clubId)
+    }
+    
+    // Add a new method to directly fetch club info by ID
+    func fetchGroupInfoById(_ clubId: String) {
+        isLoading = true
+        errorMessage = nil
+        
+        let parameters = ["groupid": clubId]
+        
+        NetworkService.shared.request(
+            endpoint: "cas_add_group_info.php",
+            parameters: parameters,
+            sessionId: sessionService.sessionId
+        ) { [weak self] (result: Result<GroupInfoResponse, NetworkError>) in
+            guard let self = self else { return }
             
-            // Schedule to reset the URL navigation flag after a delay
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                self.isFromURLNavigation = false
-            }
-        } else {
-            // Store the ID to check after groups are loaded
-            print("Club with ID: \(clubId) not found in current groups, storing as pending")
-            self.pendingClubId = clubId
-            
-            // If categories are loaded, start from the first category and try each one
-            if !categories.isEmpty {
-                print("Starting category search from the beginning")
-                self.selectedCategory = categories[0]  // Start with the first category
-                self.fetchGroups(for: categories[0])
-            } else {
-                print("Fetching categories first")
-                self.fetchCategories()
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let response):
+                    if let fetchedGroup = response.groups.first {
+                        // We found the club directly! Set its info
+                        self.groupInfo = fetchedGroup
+                        self.members = response.gmember
+                        
+                        // Create a ClubGroup from the GroupInfo for selection
+                        let group = ClubGroup(
+                            C_GroupsID: fetchedGroup.C_GroupsID,
+                            C_GroupNo: fetchedGroup.C_GroupNo,
+                            C_NameC: fetchedGroup.C_NameC,
+                            C_NameE: fetchedGroup.C_NameE
+                        )
+                        
+                        // Find and select the correct category
+                        if !fetchedGroup.C_CategoryID.isEmpty,
+                           let category = self.categories.first(where: { $0.C_CategoryID == fetchedGroup.C_CategoryID }) {
+                            self.selectedCategory = category
+                            
+                            // Fetch all groups in this category to populate the dropdown
+                            // but don't wait for this to display club info
+                            self.fetchGroupsForCategory(category, preselectedGroupId: clubId)
+                        } else if self.categories.isEmpty {
+                            // Categories not loaded yet, fetch them
+                            self.fetchCategoriesWithPreselection(clubId: clubId, categoryId: fetchedGroup.C_CategoryID)
+                        }
+                        
+                        // Set the club as selected even before we have the full groups list
+                        self.selectedGroup = group
+                        
+                        // Check membership status
+                        self.checkUserMembership()
+                        
+                        // Clear pending navigation flags
+                        self.pendingClubId = nil
+                        self.isFromURLNavigation = false
+                        self.isLoading = false
+                    } else {
+                        // The API returned success but no club data
+                        self.isLoading = false
+                        self.errorMessage = "Club information not available"
+                        self.pendingClubId = nil
+                        self.isFromURLNavigation = false
+                    }
+                case .failure(let error):
+                    // API request failed
+                    self.isLoading = false
+                    self.errorMessage = "Failed to load club: \(error.localizedDescription)"
+                    
+                    // If we have categories, try the fallback search approach
+                    if !self.categories.isEmpty {
+                        print("Direct club fetch failed, trying category search as fallback")
+                        self.pendingClubId = clubId
+                        self.searchClubInCategories(clubId: clubId)
+                    } else {
+                        // Load categories first, then will try search
+                        self.pendingClubId = clubId
+                        self.fetchCategories()
+                    }
+                }
             }
         }
+    }
+    
+    // Helper method to fetch groups for a category with a preselected club
+    private func fetchGroupsForCategory(_ category: Category, preselectedGroupId: String) {
+        let parameters = ["categoryid": category.C_CategoryID]
+        
+        NetworkService.shared.request(
+            endpoint: "cas_init_groups_dropdown.php",
+            parameters: parameters,
+            sessionId: sessionService.sessionId
+        ) { [weak self] (result: Result<[ClubGroup], NetworkError>) in
+            guard let self = self else { return }
+            
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let groups):
+                    self.groups = groups
+                    
+                    // If we already have a group selected, ensure it's in the list
+                    if self.selectedGroup?.C_GroupsID == preselectedGroupId {
+                        // Find a more complete version of the group in the loaded groups
+                        if let fullGroup = groups.first(where: { $0.C_GroupsID == preselectedGroupId }) {
+                            self.selectedGroup = fullGroup
+                        }
+                    }
+                case .failure(let error):
+                    print("Failed to load groups for category: \(error.localizedDescription)")
+                    // Don't set error message here as we already have the club info displayed
+                }
+            }
+        }
+    }
+    
+    // Helper to fetch categories with a preselection
+    private func fetchCategoriesWithPreselection(clubId: String, categoryId: String?) {
+        NetworkService.shared.request(
+            endpoint: "cas_init_category_dropdown.php",
+            method: .get
+        ) { [weak self] (result: Result<[Category], NetworkError>) in
+            guard let self = self else { return }
+            
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let categories):
+                    self.categories = categories
+                    
+                    // Select the right category if we know it
+                    if let categoryId = categoryId,
+                       let category = categories.first(where: { $0.C_CategoryID == categoryId }) {
+                        self.selectedCategory = category
+                        self.fetchGroupsForCategory(category, preselectedGroupId: clubId)
+                    }
+                case .failure:
+                    // Don't update error - we already have the club info displayed
+                    print("Failed to load categories after direct club fetch")
+                }
+            }
+        }
+    }
+    
+    // Fallback method to search for a club across all categories
+    private func searchClubInCategories(clubId: String) {
+        guard !categories.isEmpty else {
+            // Can't search without categories
+            self.fetchCategories()
+            return
+        }
+        
+        print("Starting systematic search for club \(clubId) across all categories")
+        
+        // Start with the first category
+        self.selectedCategory = categories[0]
+        self.fetchGroups(for: categories[0])
     }
 }
