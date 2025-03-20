@@ -42,17 +42,6 @@ struct ClubInfoView: View {
                     }
                 }
                 
-                // Add share button
-                ToolbarItem(id: "shareButton", placement: .navigationBarTrailing) {
-                    if let groupInfo = viewModel.groupInfo {
-                        Button(action: {
-                            shareClub(groupInfo: groupInfo)
-                        }) {
-                            Image(systemName: "square.and.arrow.up")
-                        }
-                    }
-                }
-                
                 ToolbarItem(id: "clubAction", placement: .navigationBarTrailing) {
                     if sessionService.isAuthenticated, 
                        !viewModel.isLoading, 
@@ -150,6 +139,17 @@ struct ClubInfoView: View {
                             }
                         }
                         #endif
+                    }
+                }
+                
+                // Share button
+                ToolbarItem(id: "shareButton", placement: .navigationBarTrailing) {
+                    if let groupInfo = viewModel.groupInfo {
+                        Button(action: {
+                            shareClub(groupInfo: groupInfo)
+                        }) {
+                            Image(systemName: "square.and.arrow.up")
+                        }
                     }
                 }
                 
