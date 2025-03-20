@@ -430,7 +430,7 @@
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
 				CODE_SIGN_ENTITLEMENTS = OutspireWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 19;
+				CURRENT_PROJECT_VERSION = 21;
 				DEVELOPMENT_TEAM = T2KTTT65L2;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = OutspireWidget/Info.plist;
@@ -463,7 +463,7 @@
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
 				CODE_SIGN_ENTITLEMENTS = OutspireWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 19;
+				CURRENT_PROJECT_VERSION = 21;
 				DEVELOPMENT_TEAM = T2KTTT65L2;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = OutspireWidget/Info.plist;
@@ -614,7 +614,7 @@
 				CODE_SIGN_ENTITLEMENTS = Outspire/Outspire.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 19;
+				CURRENT_PROJECT_VERSION = 21;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Outspire/Preview Content\"";
 				DEVELOPMENT_TEAM = T2KTTT65L2;
@@ -628,6 +628,12 @@
 				INFOPLIST_FILE = Outspire/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Outspire;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
+				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Required to protect sensitive privacy, including academic grades, etc.";
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Required to estimate the time taken for school transportation.";
+				INFOPLIST_KEY_NSLocationAlwaysUsageDescription = "Required to estimate the time taken for school transportation.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Required to provide campus map and ETAs.";
+				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -665,7 +671,7 @@
 				CODE_SIGN_ENTITLEMENTS = Outspire/Outspire.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 19;
+				CURRENT_PROJECT_VERSION = 21;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Outspire/Preview Content\"";
 				DEVELOPMENT_TEAM = T2KTTT65L2;
@@ -679,6 +685,12 @@
 				INFOPLIST_FILE = Outspire/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Outspire;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
+				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Required to protect sensitive privacy, including academic grades, etc.";
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Required to estimate the time taken for school transportation.";
+				INFOPLIST_KEY_NSLocationAlwaysUsageDescription = "Required to estimate the time taken for school transportation.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Required to provide campus map and ETAs.";
+				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -713,7 +725,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 19;
+				CURRENT_PROJECT_VERSION = 21;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = T2KTTT65L2;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -738,7 +750,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 19;
+				CURRENT_PROJECT_VERSION = 21;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = T2KTTT65L2;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -762,7 +774,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 19;
+				CURRENT_PROJECT_VERSION = 21;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = T2KTTT65L2;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -786,7 +798,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 19;
+				CURRENT_PROJECT_VERSION = 21;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = T2KTTT65L2;
 				GENERATE_INFOPLIST_FILE = YES;

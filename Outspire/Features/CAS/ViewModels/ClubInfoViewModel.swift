@@ -14,6 +14,8 @@ class ClubInfoViewModel: ObservableObject {
     @Published var isJoiningClub: Bool = false
     @Published var isExitingClub: Bool = false
     @Published var isUserMember: Bool = false
+    @Published var pendingClubId: String? = nil
+    @Published var isFromURLNavigation: Bool = false
     
     private let sessionService = SessionService.shared
     
@@ -56,6 +58,12 @@ class ClubInfoViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
         
+        // Store the current selection before fetching new groups
+        let previousSelection = selectedGroup?.C_GroupsID
+        
+        // Track if we're in the middle of a URL navigation
+        let isNavigatingFromURL = pendingClubId != nil || isFromURLNavigation
+        
         let parameters = ["categoryid": category.C_CategoryID]
         
         NetworkService.shared.request(
@@ -70,28 +78,83 @@ class ClubInfoViewModel: ObservableObject {
             case .success(let groups):
                 self.groups = groups
                 
-                #if targetEnvironment(macCatalyst)
-                // On Mac Catalyst, immediately set selection to avoid "Unavailable" display
-                if self.selectedGroup == nil && !groups.isEmpty {
-                    // Use main queue to ensure proper UI update
-                    DispatchQueue.main.async {
-                        self.selectedGroup = groups[0]
-                        self.fetchGroupInfo(for: groups[0])
+                // Check for pending club ID from URL scheme first
+                if let pendingId = self.pendingClubId, 
+                   let targetGroup = groups.first(where: { $0.C_GroupsID == pendingId }) {
+                    print("Found pending club with ID: \(pendingId)")
+                    self.selectedGroup = targetGroup
+                    self.fetchGroupInfo(for: targetGroup)
+                    self.pendingClubId = nil
+                    self.isFromURLNavigation = true
+                    
+                    // Schedule to reset the URL navigation flag after a delay
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                        self.isFromURLNavigation = false
                     }
+                    return
                 }
-                #else
-                // When category changes, reset the selectedGroup and show the "Select" option
-                self.selectedGroup = nil
                 
-                // Auto-select first group if available
-                if !groups.isEmpty {
-                    // Use a small delay to ensure UI updates properly
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        self.selectedGroup = groups[0]
-                        self.fetchGroupInfo(for: groups[0])
+                // If we have a pending ID but didn't find it in current category,
+                // and we haven't searched all categories yet, try the next one
+                if let pendingId = self.pendingClubId,
+                   self.categories.count > 0 {
+                    // Try the next category
+                    let currentCategoryIndex = self.categories.firstIndex(where: { $0.C_CategoryID == category.C_CategoryID }) ?? -1
+                    if currentCategoryIndex < self.categories.count - 1 {
+                        // There's another category to try
+                        let nextCategoryIndex = currentCategoryIndex + 1
+                        print("Club not found in current category, trying the next category")
+                        DispatchQueue.main.async {
+                            self.selectedCategory = self.categories[nextCategoryIndex]
+                            self.fetchGroups(for: self.categories[nextCategoryIndex])
+                        }
+                        return
+                    } else {
+                        // We've tried all categories and still haven't found the club
+                        print("Club with ID \(pendingId) not found in any category")
+                        self.pendingClubId = nil
+                        self.isFromURLNavigation = false
+                        self.errorMessage = "Club not found in any category"
                     }
                 }
-                #endif
+                
+                // Try to preserve previous selection
+                if self.isFromURLNavigation {
+                    // Don't change selection if we're coming from URL navigation
+                    print("Keeping current selection due to URL navigation")
+                    return
+                } else if let previousId = previousSelection,
+                         let previousGroup = groups.first(where: { $0.C_GroupsID == previousId }) {
+                    self.selectedGroup = previousGroup
+                    self.fetchGroupInfo(for: previousGroup)
+                    return
+                }
+                
+                // Only apply auto-selection if we're not in the middle of a URL navigation
+                if !isNavigatingFromURL {
+                    #if targetEnvironment(macCatalyst)
+                    // On Mac Catalyst, immediately set selection to avoid "Unavailable" display
+                    if self.selectedGroup == nil && !groups.isEmpty {
+                        // Use main queue to ensure proper UI update
+                        DispatchQueue.main.async {
+                            self.selectedGroup = groups[0]
+                            self.fetchGroupInfo(for: groups[0])
+                        }
+                    }
+                    #else
+                    // When category changes, reset the selectedGroup and show the "Select" option
+                    self.selectedGroup = nil
+                    
+                    // Auto-select first group if available
+                    if !groups.isEmpty {
+                        // Use a small delay to ensure UI updates properly
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            self.selectedGroup = groups[0]
+                            self.fetchGroupInfo(for: groups[0])
+                        }
+                    }
+                    #endif
+                }
                 
             case .failure(let error):
                 self.errorMessage = "Unable to load groups: \(error.localizedDescription)"
@@ -287,6 +350,51 @@ class ClubInfoViewModel: ObservableObject {
         } catch {
             print("Error parsing HTML: \(error)")
             return nil
+        }
+    }
+    
+    // Add a method to handle URL navigation requests
+    func navigateToClubById(_ clubId: String) {
+        print("Attempting to navigate to club ID: \(clubId)")
+        
+        // Cancel any previous URL navigation that might be in progress
+        if pendingClubId != nil && pendingClubId != clubId {
+            print("Cancelling previous navigation to \(pendingClubId!), now navigating to \(clubId)")
+        }
+        
+        // Set URL navigation flag
+        isFromURLNavigation = true
+        
+        // Reset any existing club info to prevent UI confusion during navigation
+        if selectedGroup?.C_GroupsID != clubId {
+            groupInfo = nil
+            members = []
+        }
+        
+        // First, check if we already have the groups loaded
+        if let targetGroup = groups.first(where: { $0.C_GroupsID == clubId }) {
+            print("Found club with ID: \(clubId) in current groups")
+            self.selectedGroup = targetGroup
+            self.fetchGroupInfo(for: targetGroup)
+            
+            // Schedule to reset the URL navigation flag after a delay
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                self.isFromURLNavigation = false
+            }
+        } else {
+            // Store the ID to check after groups are loaded
+            print("Club with ID: \(clubId) not found in current groups, storing as pending")
+            self.pendingClubId = clubId
+            
+            // If categories are loaded, start from the first category and try each one
+            if !categories.isEmpty {
+                print("Starting category search from the beginning")
+                self.selectedCategory = categories[0]  // Start with the first category
+                self.fetchGroups(for: categories[0])
+            } else {
+                print("Fetching categories first")
+                self.fetchCategories()
+            }
         }
     }
 }

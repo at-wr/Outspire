@@ -23,6 +23,9 @@ struct OutspireApp: App {
     
     @UIApplicationDelegateAdaptor(OutspireAppDelegate.self) var appDelegate
     
+    // Add URL scheme handler
+    @StateObject private var urlSchemeHandler = URLSchemeHandler.shared
+    
     init() {
         // Initialize app settings
         if UserDefaults.standard.object(forKey: "useSSL") == nil {
@@ -45,12 +48,28 @@ struct OutspireApp: App {
                 .environmentObject(regionChecker)
                 .environmentObject(notificationManager)
                 .environmentObject(settingsManager) // Add settings manager
+                .environmentObject(urlSchemeHandler) // Add URL scheme handler
                 .installToast(position: .top)
                 .environmentObject(widgetDataManager)
                 .onAppear {
                     // Setup widget data sharing
                     setupWidgetDataSharing()
                 }
+                // Handle URLs when app is already running
+                .onOpenURL { url in
+                    handleIncomingURL(url)
+                }
+                // Error alert for URL handling failures
+                .alert(
+                    "Invalid URL",
+                    isPresented: $urlSchemeHandler.showErrorAlert,
+                    actions: {
+                        Button("OK", role: .cancel) {}
+                    },
+                    message: {
+                        Text(urlSchemeHandler.errorMessage)
+                    }
+                )
         }
         #if targetEnvironment(macCatalyst)
         .commands {
@@ -102,6 +121,27 @@ struct OutspireApp: App {
             }
         }
     }
+    
+    // Handle incoming URL schemes
+    private func handleIncomingURL(_ url: URL) {
+        // Signal that sheets should be closed
+        urlSchemeHandler.closeAllSheets = true
+        
+        // Only process URLs when the user is authenticated
+        // or if the URL is for a screen that doesn't require authentication
+        if sessionService.isAuthenticated || url.host == "today" {
+            _ = urlSchemeHandler.handleURL(url)
+        } else {
+            // Show login required message
+            urlSchemeHandler.errorMessage = "You need to be signed in to access this feature"
+            urlSchemeHandler.showErrorAlert = true
+        }
+        
+        // Reset closeAllSheets after a delay
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            self.urlSchemeHandler.closeAllSheets = false
+        }
+    }
 }
 
 class OutspireAppDelegate: NSObject, UIApplicationDelegate {
@@ -145,6 +185,11 @@ class OutspireAppDelegate: NSObject, UIApplicationDelegate {
             ClassActivityManager.shared.cleanup()
         }
 #endif
+    }
+    
+    // Handle URL scheme when app is launched from a URL
+    func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey : Any] = [:]) -> Bool {
+        return URLSchemeHandler.shared.handleURL(url)
     }
 }
 

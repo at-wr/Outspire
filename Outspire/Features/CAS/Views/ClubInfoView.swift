@@ -10,6 +10,7 @@ struct ClubInfoView: View {
     @State private var showingJoinOptions = false
     @State private var showingExitConfirmation = false
     @State private var preservedGroupId: String? = nil
+    @EnvironmentObject var urlSchemeHandler: URLSchemeHandler
     
     var body: some View {
         VStack {
@@ -70,7 +71,7 @@ struct ClubInfoView: View {
                             HStack {
                                 Image(systemName: viewModel.isUserMember ? "person.fill.checkmark" : "person.crop.circle.badge.plus")
                                     .symbolRenderingMode(.hierarchical)
-                                    .foregroundStyle(viewModel.isUserMember ? .green : .blue)
+                                    .foregroundStyle(viewModel.isUserMember ? .green : .cyan)
                                 if viewModel.isJoiningClub || viewModel.isExitingClub {
                                     ProgressView()
                                         .controlSize(.mini)
@@ -111,7 +112,7 @@ struct ClubInfoView: View {
                         } label: {
                             Image(systemName: viewModel.isUserMember ? "person.fill.checkmark" : "person.crop.circle.badge.plus")
                                 .symbolRenderingMode(.hierarchical)
-                                .foregroundStyle(viewModel.isUserMember ? .green : .blue)
+                                .foregroundStyle(viewModel.isUserMember ? .green : .cyan)
                                 .opacity(viewModel.isJoiningClub || viewModel.isExitingClub ? 0.5 : 1.0)
                                 .overlay {
                                     if viewModel.isJoiningClub || viewModel.isExitingClub {
@@ -138,6 +139,9 @@ struct ClubInfoView: View {
                             refreshButtonRotation += 360
                         }
                         
+                        // Store current selection
+                        let currentGroupId = viewModel.selectedGroup?.C_GroupsID
+                        
                         if viewModel.selectedCategory != nil {
                             viewModel.fetchGroups(for: viewModel.selectedCategory!)
                         } else {
@@ -147,15 +151,57 @@ struct ClubInfoView: View {
                         if viewModel.selectedGroup != nil {
                             viewModel.fetchGroupInfo(for: viewModel.selectedGroup!)
                         }
+                        
+                        // Preserve club ID for restoration
+                        if let id = currentGroupId {
+                            preservedGroupId = id
+                        }
                     }) {
                         Image(systemName: "arrow.clockwise")
                             .rotationEffect(.degrees(refreshButtonRotation))
+                            .animation(.spring(response: 0.6, dampingFraction: 0.5), value: refreshButtonRotation)
                     }
-                    .disabled(viewModel.isLoading)
                 }
             }
             .scrollDismissesKeyboard(.immediately)
-            .onAppear(perform: onAppearSetup)
+            .onAppear {
+                onAppearSetup()
+                
+                // Handle URL scheme navigation
+                if let clubId = urlSchemeHandler.navigateToClub {
+                    print("ClubInfoView detected navigateToClub: \(clubId)")
+                    viewModel.navigateToClubById(clubId)
+                    
+                    // Save the ID for potential restoration
+                    preservedGroupId = clubId
+                    
+                    // Reset the handler state with a slight delay
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                        urlSchemeHandler.navigateToClub = nil
+                    }
+                }
+            }
+            // Add this onChange handler to respond to URL navigation even when the view is already visible
+            .onChange(of: urlSchemeHandler.navigateToClub) { _, newClubId in
+                if let clubId = newClubId {
+                    print("ClubInfoView detected navigateToClub change: \(clubId)")
+                    
+                    // Reset state to force a fresh navigation
+                    viewModel.pendingClubId = nil
+                    viewModel.isFromURLNavigation = false
+                    
+                    // Navigate to the specified club
+                    viewModel.navigateToClubById(clubId)
+                    
+                    // Save the ID for potential restoration
+                    preservedGroupId = clubId
+                    
+                    // Reset the handler state with a slight delay
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                        urlSchemeHandler.navigateToClub = nil
+                    }
+                }
+            }
             .onChange(of: viewModel.isLoading) { oldValue, newValue in
                 handleLoadingChange(newValue)
             } // use this to fix the stupid iOS 17 deprecation warning
@@ -171,6 +217,13 @@ struct ClubInfoView: View {
                 if let id = preservedGroupId, 
                    let previousGroup = newGroups.first(where: { $0.C_GroupsID == id }) {
                     viewModel.selectedGroup = previousGroup
+                }
+            }
+            .onChange(of: urlSchemeHandler.closeAllSheets) { newValue in
+                if newValue {
+                    // Close any active sheets
+                    showingJoinOptions = false
+                    showingExitConfirmation = false
                 }
             }
             .confirmationDialog(
@@ -306,7 +359,7 @@ struct ClubInfoView: View {
             }
             .pickerStyle(MenuPickerStyle())
             //.pickerStyle(.segmented)
-            .onChange(of: viewModel.selectedCategory) {
+            .onChange(of: viewModel.selectedCategory) { oldValue, newValue in
                 if let category = viewModel.selectedCategory {
                     viewModel.fetchGroups(for: category)
                 }
@@ -466,14 +519,27 @@ struct ClubInfoView: View {
                     refreshButtonRotation += 360
                 }
                 
-                if viewModel.selectedCategory != nil {
-                    viewModel.fetchGroups(for: viewModel.selectedCategory!)
+                // Store current selection before refresh
+                let currentGroupId = viewModel.selectedGroup?.C_GroupsID
+                
+                if let category = viewModel.selectedCategory {
+                    viewModel.fetchGroups(for: category)
                 } else {
                     viewModel.fetchCategories()
                 }
                 
-                if viewModel.selectedGroup != nil {
-                    viewModel.fetchGroupInfo(for: viewModel.selectedGroup!)
+                if let group = viewModel.selectedGroup {
+                    viewModel.fetchGroupInfo(for: group)
+                }
+                
+                // Always preserve the group ID if available
+                if let id = currentGroupId {
+                    preservedGroupId = id
+                }
+                
+                // Reset refreshing state after a delay
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    viewModel.refreshing = false
                 }
             }) {
                 Image(systemName: "arrow.clockwise")
@@ -521,7 +587,7 @@ struct ClubInfoView: View {
     }
     
     private func handleLoadingChange(_ isLoading: Bool) {
-        if !isLoading && viewModel.groupInfo != nil {
+        if (!isLoading && viewModel.groupInfo != nil) {
             // Reset and retrigger staggered animations when loading completes
             animateList = false
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
@@ -549,7 +615,16 @@ struct ClubInfoView: View {
         
         if let group = viewModel.selectedGroup {
             viewModel.fetchGroupInfo(for: group)
-            preservedGroupId = group.C_GroupsID
+        }
+        
+        // Always preserve the group ID if available
+        if let id = currentGroupId {
+            preservedGroupId = id
+        }
+        
+        // If we have a pending club ID from URL, preserve that too
+        if let pendingId = viewModel.pendingClubId {
+            preservedGroupId = pendingId
         }
         
         // Reset refreshing state after a delay

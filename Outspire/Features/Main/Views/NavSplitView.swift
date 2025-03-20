@@ -49,6 +49,7 @@ struct TodayTip: Tip {
 struct NavSplitView: View {
     @EnvironmentObject var sessionService: SessionService
     @EnvironmentObject var settingsManager: SettingsManager // Add environment object
+    @EnvironmentObject var urlSchemeHandler: URLSchemeHandler // Add this line
     @State private var selectedLink: String? = "today"
     // Remove the local showSettingsSheet state and use the one from settingsManager
     @State private var refreshID = UUID()
@@ -147,6 +148,27 @@ struct NavSplitView: View {
                 selectedLink = "today"
             }
             refreshID = UUID()
+        }
+        // Add URL scheme handling changes
+        .onChange(of: urlSchemeHandler.navigateToToday) { newValue in
+            if newValue {
+                selectedLink = "today"
+            }
+        }
+        .onChange(of: urlSchemeHandler.navigateToClassTable) { newValue in
+            if newValue {
+                selectedLink = "classtable"
+            }
+        }
+        .onChange(of: urlSchemeHandler.navigateToClub) { clubId in
+            if clubId != nil {
+                selectedLink = "club-info"
+            }
+        }
+        .onChange(of: urlSchemeHandler.navigateToAddActivity) { clubId in
+            if clubId != nil {
+                selectedLink = "club-activity"
+            }
         }
         .id(refreshID)
         .task {

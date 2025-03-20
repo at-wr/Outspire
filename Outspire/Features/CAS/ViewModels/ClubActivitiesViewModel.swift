@@ -271,4 +271,20 @@ class ClubActivitiesViewModel: ObservableObject {
             }
         }
     }
+    
+    func setSelectedGroupById(_ groupId: String) {
+        guard !groupId.isEmpty else { return }
+        
+        // Find the matching group
+        if let matchingGroup = groups.first(where: { $0.C_GroupsID == groupId }) {
+            selectedGroupId = groupId
+            UserDefaults.standard.set(groupId, forKey: "selectedClubGroupId")
+            fetchActivityRecords(forceRefresh: true)
+        } else if groups.isEmpty {
+            // If groups are not loaded yet, store the ID for later
+            selectedGroupId = groupId
+            UserDefaults.standard.set(groupId, forKey: "selectedClubGroupId")
+            // Groups will be loaded when fetchGroups is called
+        }
+    }
 }

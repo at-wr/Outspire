@@ -10,6 +10,8 @@ struct TodayView: View {
     @ObservedObject private var locationManager = LocationManager.shared
     // Use the shared instance for RegionChecker
     @ObservedObject private var regionChecker = RegionChecker.shared
+    // Add URL scheme handler environment object
+    @EnvironmentObject var urlSchemeHandler: URLSchemeHandler
     
     @State private var currentTime = Date()
     @State private var timer: Timer?
@@ -57,6 +59,14 @@ struct TodayView: View {
         .onAppear {
             setupOnAppear()
             customizeNavigationBarAppearance()
+            
+            // Check for URL scheme navigation to today view
+            if urlSchemeHandler.navigateToToday {
+                // Reset the handler state after navigation is complete
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    urlSchemeHandler.navigateToToday = false
+                }
+            }
         }
         .onDisappear {
             saveSettings()

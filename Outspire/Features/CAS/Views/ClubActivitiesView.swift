@@ -7,6 +7,7 @@ struct ClubActivitiesView: View {
     @State private var showingAddRecordSheet = false
     @State private var animateList = false
     @State private var refreshButtonRotation = 0.0
+    @EnvironmentObject var urlSchemeHandler: URLSchemeHandler
     @Environment(\.presentToast) var presentToast
     
     var body: some View {
@@ -48,7 +49,20 @@ struct ClubActivitiesView: View {
                 actions: { deleteConfirmationActions },
                 message: { Text("Are you sure you want to delete this record?") }
             )
-            .onAppear(perform: handleOnAppear)
+            .onAppear(perform: {
+                handleOnAppear()
+                
+                // Handle URL scheme navigation to add an activity for a specific club
+                if let activityClubId = urlSchemeHandler.navigateToAddActivity {
+                    viewModel.setSelectedGroupById(activityClubId)
+                    showingAddRecordSheet = true
+                    
+                    // Reset handler state
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        urlSchemeHandler.navigateToAddActivity = nil
+                    }
+                }
+            })
             .onChange(of: viewModel.isLoadingActivities) { _ in
                 handleLoadingChange()
             }
@@ -61,6 +75,15 @@ struct ClubActivitiesView: View {
                         message: errorMessage
                     )
                     presentToast(toast)
+                }
+            }
+            .onChange(of: urlSchemeHandler.closeAllSheets) { newValue in
+                if newValue {
+                    // Close the add record sheet if it's open
+                    showingAddRecordSheet = false
+                    
+                    // Reset any other dialog states if needed
+                    viewModel.showingDeleteConfirmation = false
                 }
             }
     }

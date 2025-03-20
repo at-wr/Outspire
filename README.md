@@ -35,15 +35,27 @@ Your all-in-one WFLA campus companian. It's an iOS app for WFLA TSIMS, which is 
 	- [x] Lunch Menus
 - [ ] …
 
-### Planned
+## URL Scheme Support
 
-- Publish on TestFlight...
-- Distribute with App Store...
+Outspire supports URL schemes for deep linking into different parts of the app. You can use these to quickly access specific views or content.
 
-## Preview Screenshot
+### URL Format
+`outspire://<path>/<parameter>`
 
-![Screenshot of Outspire in Stage Manager](https://i.imgur.com/9HU9TSO.png)
-![Screenshot of adding Activity Record](https://i.imgur.com/29hYWLc.png)
+### Supported Paths
+
+- **Today View**: `outspire://today`
+- **Class Table**: `outspire://classtable`
+- **Club Information**: `outspire://club/<clubId>`
+- **Add Activity**: `outspire://addactivity/<clubId>`
+
+### Examples
+
+- Open the app to the Today view: `outspire://today`
+- Open a specific club's information: `outspire://club/89`
+- Create a new activity record for a specific club: `outspire://addactivity/89`
+
+Note: You must be signed in to access most of these features via URL schemes.
 
 ## Terms of Service
 

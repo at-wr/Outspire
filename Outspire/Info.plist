@@ -2,23 +2,34 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>ITSAppUsesNonExemptEncryption</key>
-	<false/>
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>
 			<key>CFBundleTypeName</key>
 			<string>MKDirectionsRequest</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
 			<key>LSItemContentTypes</key>
 			<array>
 				<string>com.apple.maps.directionsrequest</string>
 			</array>
-			<key>LSHandlerRank</key>
-			<string>Owner</string>
 		</dict>
 	</array>
-	<key>LSSupportsOpeningDocumentsInPlace</key>
-	<true/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>dev.wrye.Outspire</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>outspire</string>
+			</array>
+		</dict>
+	</array>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>MKDirectionsApplicationSupportedModes</key>
 	<array>
 		<string>MKDirectionsModeBus</string>
@@ -26,14 +37,6 @@
 		<string>MKDirectionsModePedestrian</string>
 		<string>MKDirectionsModeSubway</string>
 	</array>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Required to provide campus map and ETAs.</string>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Required to estimate the time taken for school transportation.</string>
-	<key>NSLocationAlwaysUsageDescription</key>
-	<string>Required to estimate the time taken for school transportation.</string>
-	<key>NSFaceIDUsageDescription</key>
-	<string>Required to protect sensitive privacy, including academic grades, etc.</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSExceptionDomains</key>
@@ -53,7 +56,5 @@
 		<string>fetch</string>
 		<string>remote-notification</string>
 	</array>
-	<key>NSSupportsLiveActivities</key>
-	<true/>
 </dict>
 </plist>
