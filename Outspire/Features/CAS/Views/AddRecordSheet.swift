@@ -62,7 +62,15 @@ struct AddRecordSheet: View {
                     })
                 }
                 
-                Section(header: Text("Reflection")) {
+                Section(header: 
+                    HStack {
+                        Text("Reflection")
+                        Spacer()
+                        Text("\(viewModel.descriptionWordCount)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                ) {
                     TextEditor(text: $viewModel.activityDescription)
                         .frame(minHeight: 100)
                         .overlay(alignment: .topLeading) {
