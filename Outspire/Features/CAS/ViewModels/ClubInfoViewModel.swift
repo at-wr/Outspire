@@ -242,8 +242,13 @@ class ClubInfoViewModel: ObservableObject {
             return
         }
         
-        isUserMember = members.contains { member in
+        let newMembershipStatus = members.contains { member in
             member.StudentID == currentUserId
+        }
+        
+        // Only update if there's a change to avoid triggering onChange unnecessarily
+        if isUserMember != newMembershipStatus {
+            isUserMember = newMembershipStatus
         }
     }
     

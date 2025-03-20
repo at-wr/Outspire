@@ -10,6 +10,7 @@ struct ClubInfoView: View {
     @State private var showingJoinOptions = false
     @State private var showingExitConfirmation = false
     @State private var preservedGroupId: String? = nil
+    @State private var initialMembershipCheckComplete = false
     @EnvironmentObject var urlSchemeHandler: URLSchemeHandler
     
     var body: some View {
@@ -41,6 +42,17 @@ struct ClubInfoView: View {
                     }
                 }
                 
+                // Add share button
+                ToolbarItem(id: "shareButton", placement: .navigationBarTrailing) {
+                    if let groupInfo = viewModel.groupInfo {
+                        Button(action: {
+                            shareClub(groupInfo: groupInfo)
+                        }) {
+                            Image(systemName: "square.and.arrow.up")
+                        }
+                    }
+                }
+                
                 ToolbarItem(id: "clubAction", placement: .navigationBarTrailing) {
                     if sessionService.isAuthenticated, 
                        !viewModel.isLoading, 
@@ -69,7 +81,7 @@ struct ClubInfoView: View {
                             }
                         } label: {
                             HStack {
-                                Image(systemName: viewModel.isUserMember ? "person.fill.checkmark" : "person.crop.circle.badge.plus")
+                                Image(systemName: viewModel.isUserMember ? "person.crop.circle.fill.badge.checkmark" : "person.crop.circle.badge.plus")
                                     .symbolRenderingMode(.hierarchical)
                                     .foregroundStyle(viewModel.isUserMember ? .green : .cyan)
                                 if viewModel.isJoiningClub || viewModel.isExitingClub {
@@ -81,10 +93,14 @@ struct ClubInfoView: View {
                         }
                         .disabled(viewModel.isJoiningClub || viewModel.isExitingClub)
                         .onChange(of: viewModel.isUserMember) { _, newValue in
-                            if newValue {
-                                presentSuccessToast(message: "Successfully joined club")
+                            if initialMembershipCheckComplete {
+                                if newValue {
+                                    presentSuccessToast(message: "Successfully joined club")
+                                } else {
+                                    presentSuccessToast(message: "Successfully exited club")
+                                }
                             } else {
-                                presentSuccessToast(message: "Successfully exited club")
+                                initialMembershipCheckComplete = true
                             }
                         }
                         .help(viewModel.isUserMember ? "Exit Club" : "Join Club")
@@ -110,7 +126,7 @@ struct ClubInfoView: View {
                                 }
                             }
                         } label: {
-                            Image(systemName: viewModel.isUserMember ? "person.fill.checkmark" : "person.crop.circle.badge.plus")
+                            Image(systemName: viewModel.isUserMember ? "person.crop.circle.fill.badge.checkmark" : "person.crop.circle.badge.plus")
                                 .symbolRenderingMode(.hierarchical)
                                 .foregroundStyle(viewModel.isUserMember ? .green : .cyan)
                                 .opacity(viewModel.isJoiningClub || viewModel.isExitingClub ? 0.5 : 1.0)
@@ -123,10 +139,14 @@ struct ClubInfoView: View {
                         }
                         .disabled(viewModel.isJoiningClub || viewModel.isExitingClub)
                         .onChange(of: viewModel.isUserMember) { _, newValue in
-                            if newValue {
-                                presentSuccessToast(message: "Successfully joined club")
+                            if initialMembershipCheckComplete {
+                                if newValue {
+                                    presentSuccessToast(message: "Successfully joined club")
+                                } else {
+                                    presentSuccessToast(message: "Successfully exited club")
+                                }
                             } else {
-                                presentSuccessToast(message: "Successfully exited club")
+                                initialMembershipCheckComplete = true
                             }
                         }
                         #endif
@@ -274,10 +294,14 @@ struct ClubInfoView: View {
                 }
                 .disabled(viewModel.isJoiningClub || viewModel.isExitingClub)
                 .onChange(of: viewModel.isUserMember) { _, newValue in
-                    if newValue {
-                        presentSuccessToast(message: "Successfully joined club")
+                    if initialMembershipCheckComplete {
+                        if newValue {
+                            presentSuccessToast(message: "Successfully joined club")
+                        } else {
+                            presentSuccessToast(message: "Successfully exited club")
+                        }
                     } else {
-                        presentSuccessToast(message: "Successfully exited club")
+                        initialMembershipCheckComplete = true
                     }
                 }
                 .help(viewModel.isUserMember ? "Exit Club" : "Join Club")
@@ -316,10 +340,14 @@ struct ClubInfoView: View {
                 }
                 .disabled(viewModel.isJoiningClub || viewModel.isExitingClub)
                 .onChange(of: viewModel.isUserMember) { _, newValue in
-                    if newValue {
-                        presentSuccessToast(message: "Successfully joined club")
+                    if initialMembershipCheckComplete {
+                        if newValue {
+                            presentSuccessToast(message: "Successfully joined club")
+                        } else {
+                            presentSuccessToast(message: "Successfully exited club")
+                        }
                     } else {
-                        presentSuccessToast(message: "Successfully exited club")
+                        initialMembershipCheckComplete = true
                     }
                 }
                 #endif
@@ -630,6 +658,29 @@ struct ClubInfoView: View {
         // Reset refreshing state after a delay
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             viewModel.refreshing = false
+        }
+    }
+    
+    // Add a new helper method to handle sharing
+    private func shareClub(groupInfo: GroupInfo) {
+        let urlString = "outspire://club/\(groupInfo.C_GroupsID)"
+        guard let url = URL(string: urlString) else { return }
+        
+        let activityViewController = UIActivityViewController(
+            activityItems: [url],
+            applicationActivities: nil
+        )
+        
+        // Present the share sheet
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let rootViewController = windowScene.windows.first?.rootViewController {
+            // On iPad, set the popover presentation controller's source
+            if UIDevice.current.userInterfaceIdiom == .pad {
+                activityViewController.popoverPresentationController?.sourceView = rootViewController.view
+                activityViewController.popoverPresentationController?.sourceRect = CGRect(x: UIScreen.main.bounds.width / 2, y: UIScreen.main.bounds.height / 2, width: 0, height: 0)
+                activityViewController.popoverPresentationController?.permittedArrowDirections = []
+            }
+            rootViewController.present(activityViewController, animated: true)
         }
     }
 }
