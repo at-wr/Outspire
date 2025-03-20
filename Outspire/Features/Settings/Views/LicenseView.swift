@@ -56,6 +56,8 @@ SOFTWARE.
         ScrollView {
             Text(ravenPoem)
                 .padding()
+                .font(.system(size: 14))
+                .fontDesign(.monospaced)
                 .backgroundStyle(Color(UIColor.secondarySystemFill))
         }
         .scrollIndicators(.hidden)
