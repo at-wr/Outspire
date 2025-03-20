@@ -29,6 +29,8 @@ struct TodayView: View {
     // Track if we've already started a Live Activity for the current class
     @State private var hasStartedLiveActivity = false
     @State private var activeClassLiveActivities: [String: Bool] = [:]
+    // Add this state variable to track returning from sheets
+    @State private var isReturningFromSheet = false
     
     // MARK: - Body
     var body: some View {
@@ -52,7 +54,14 @@ struct TodayView: View {
                 scheduleButton
             }
         }
-        .sheet(isPresented: $isSettingsSheetPresented) {
+        .sheet(isPresented: $isSettingsSheetPresented, onDismiss: {
+            // Mark that we're returning from a sheet to prevent animations
+            isReturningFromSheet = true
+            
+            // Immediately set animateCards to true without animation
+            // This is critical to prevent the animation from running again
+            animateCards = true
+        }) {
             scheduleSettingsSheet
                 .environmentObject(sessionService) // Explicitly pass the SessionService to fix Mac Catalyst crash
         }
@@ -359,8 +368,9 @@ struct TodayView: View {
             }
         }
         
-        // Only animate on app first launch with a slight delay to prevent jank
+        // Handle animations differently depending on context
         if AnimationManager.shared.isFirstLaunch {
+            // First launch - delay animation for a smooth experience
             animateCards = false
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                 withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
@@ -368,9 +378,17 @@ struct TodayView: View {
                     AnimationManager.shared.markAppLaunched()
                 }
             }
+        } else if isReturningFromSheet {
+            // When returning from a sheet, DON'T trigger any animations
+            // The animateCards value is already set to true in the onDismiss callback
+            // Just reset the flag for next time
+            isReturningFromSheet = false
         } else {
-            // Skip animation when switching between views
-            animateCards = true
+            // Normal appearance - animate the cards
+            animateCards = false
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                animateCards = true
+            }
         }
         
         NotificationCenter.default.addObserver(
@@ -498,7 +516,7 @@ struct TodayView: View {
     }
     
     private func handleAuthChange(_ isAuthenticated: Bool) {
-        if !isAuthenticated {
+        if (!isAuthenticated) {
             classtableViewModel.timetable = []
             
             // Reset all schedule settings when logged out
