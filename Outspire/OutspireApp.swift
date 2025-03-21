@@ -61,6 +61,8 @@ struct OutspireApp: App {
                 .onAppear {
                     // Setup widget data sharing
                     setupWidgetDataSharing()
+                    // Setup URL Scheme Handler
+                    URLSchemeHandler.shared.setAppReady()
                 }
                 // Handle URLs when app is already running
                 .onOpenURL { url in

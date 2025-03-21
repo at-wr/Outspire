@@ -18,7 +18,22 @@ class URLSchemeHandler: ObservableObject {
     @Published var showErrorAlert = false
     @Published var errorMessage = ""
     
+    // Flag to track if app is ready for navigation
+    private var isAppReady = false
+    private var pendingNavigation: (() -> Void)? = nil
+    
     private init() {}
+    
+    /// Set the app ready state and process any pending navigation
+    func setAppReady() {
+        isAppReady = true
+        if let pendingAction = pendingNavigation {
+            DispatchQueue.main.async {
+                pendingAction()
+                self.pendingNavigation = nil
+            }
+        }
+    }
     
     /// Handle universal links (applinks) from the web
     /// - Parameter url: The universal link URL to process
@@ -37,6 +52,7 @@ class URLSchemeHandler: ObservableObject {
         
         // Create equivalent scheme URL and handle with existing logic
         if let schemeURL = URL(string: "outspire://\(appPath)") {
+            print("Converted to scheme URL: \(schemeURL.absoluteString)")
             return handleURL(schemeURL)
         }
         
@@ -48,67 +64,105 @@ class URLSchemeHandler: ObservableObject {
     /// - Returns: True if the URL was successfully handled
     func handleURL(_ url: URL) -> Bool {
         print("Processing URL: \(url.absoluteString)")
+        
+        // First check for HTTPS URLs and redirect them to handleUniversalLink
+        if url.scheme == "https" {
+            return handleUniversalLink(url)
+        }
+        
         guard url.scheme == "outspire" else { return false }
         
-        // Signal that sheets should be closed when handling a URL
-        closeAllSheets = true
-        
-        // Reset any previous navigation states except the current URL we're processing
-        resetNavigationStatesExceptCurrent()
-        
-        // Get the path components after the host
-        let host = url.host ?? ""
-        let pathComponents = url.pathComponents.filter { $0 != "/" }
-        
-        // Reset closeAllSheets after a short delay
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            self.closeAllSheets = false
+        // Create a navigation action to execute immediately or queue
+        let navigationAction = { [weak self] in
+            guard let self = self else { return }
+            
+            // Signal that sheets should be closed when handling a URL
+            self.closeAllSheets = true
+            
+            // Reset any previous navigation states except the current URL we're processing
+            self.resetNavigationStatesExceptCurrent()
+            
+            // Get the path components after the host
+            let host = url.host ?? ""
+            let pathComponents = url.pathComponents.filter { $0 != "/" }
+            
+            print("Navigating to host: \(host), path components: \(pathComponents)")
+            
+            // Reset closeAllSheets after a short delay
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                self.closeAllSheets = false
+            }
+            
+            switch host {
+            case "today":
+                self.navigateToToday = true
+                
+            case "classtable":
+                self.navigateToClassTable = true
+                
+            case "club":
+                if pathComponents.count >= 1 {
+                    let clubId = pathComponents[0]
+                    print("URL Handler found club ID: \(clubId)")
+                    
+                    // If we're already navigating to the same club, don't reset
+                    if self.navigateToClub != clubId {
+                        // Remove any previous club ID first to ensure the change is detected
+                        self.navigateToClub = nil
+                        
+                        // Use a slight delay to ensure the nil change is processed first
+                        DispatchQueue.main.async {
+                            self.navigateToClub = clubId
+                        }
+                    }
+                } else {
+                    self.showError("Invalid club URL: missing club ID")
+                }
+                
+            case "addactivity":
+                if pathComponents.count >= 1 {
+                    let clubId = pathComponents[0]
+                    self.navigateToAddActivity = clubId
+                } else {
+                    self.showError("Invalid activity URL: missing club ID")
+                }
+                
+            default:
+                self.showError("Unsupported URL path: \(host)")
+                return
+            }
         }
         
-        switch host {
-        case "today":
-            navigateToToday = true
-            return true
-            
-        case "classtable":
-            navigateToClassTable = true
-            return true
-            
-        case "club":
-            if pathComponents.count >= 1 {
-                let clubId = pathComponents[0]
-                print("URL Handler found club ID: \(clubId)")
-                
-                // If we're already navigating to the same club, don't reset
-                if navigateToClub != clubId {
-                    // Remove any previous club ID first to ensure the change is detected
-                    navigateToClub = nil
-                    
-                    // Use a slight delay to ensure the nil change is processed first
-                    DispatchQueue.main.async {
-                        self.navigateToClub = clubId
-                    }
+        // Either execute the navigation now or queue it for later
+        if isAppReady {
+            navigationAction()
+        } else {
+            pendingNavigation = navigationAction
+            // Initialize app ready state for immediate navigation
+            // This ensures navigation works even if setAppReady() hasn't been called yet
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                self.isAppReady = true
+                if let pendingAction = self.pendingNavigation {
+                    pendingAction()
+                    self.pendingNavigation = nil
                 }
-                return true
-            } else {
-                showError("Invalid club URL: missing club ID")
-                return false
             }
-            
-        case "addactivity":
-            if pathComponents.count >= 1 {
-                let clubId = pathComponents[0]
-                navigateToAddActivity = clubId
-                return true
-            } else {
-                showError("Invalid activity URL: missing club ID")
-                return false
-            }
-            
-        default:
-            showError("Unsupported URL path: \(host)")
+        }
+        
+        return true
+    }
+    
+    /// Handle user activity from universal links
+    /// - Parameter userActivity: The user activity to process
+    /// - Returns: True if the activity was handled successfully
+    func handleUserActivity(_ userActivity: NSUserActivity) -> Bool {
+        guard userActivity.activityType == NSUserActivityTypeBrowsingWeb,
+              let url = userActivity.webpageURL else {
             return false
         }
+        
+        print("Handling user activity with URL: \(url.absoluteString)")
+        return handleUniversalLink(url)
     }
     
     /// Reset all navigation state triggers

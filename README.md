@@ -49,11 +49,20 @@ Outspire supports URL schemes for deep linking into different parts of the app. 
 - **Club Information**: `outspire://club/<clubId>`
 - **Add Activity**: `outspire://addactivity/<clubId>`
 
+### Universal Links
+
+Outspire also supports universal links, which let you open the app directly from Safari or other apps using web URLs:
+
+- **Today View**: `https://outspire.wrye.dev/app/today`
+- **Class Table**: `https://outspire.wrye.dev/app/classtable`
+- **Club Information**: `https://outspire.wrye.dev/app/club/<clubId>`
+- **Add Activity**: `https://outspire.wrye.dev/app/addactivity/<clubId>`
+
 ### Examples
 
-- Open the app to the Today view: `outspire://today`
-- Open a specific club's information: `outspire://club/89`
-- Create a new activity record for a specific club: `outspire://addactivity/89`
+- Open the app to the Today view: `outspire://today` or `https://outspire.wrye.dev/app/today`
+- Open a specific club's information: `outspire://club/89` or `https://outspire.wrye.dev/app/club/89`
+- Create a new activity record for a specific club: `outspire://addactivity/89` or `https://outspire.wrye.dev/app/addactivity/89`
 
 Note: You must be signed in to access most of these features via URL schemes.
 
