@@ -2,6 +2,7 @@ import SwiftUI
 import Toasts
 import UserNotifications
 import CoreLocation
+import UIKit
 
 // Create an environment object to manage settings state globally
 class SettingsManager: ObservableObject {
@@ -25,6 +26,12 @@ struct OutspireApp: App {
     
     // Add URL scheme handler
     @StateObject private var urlSchemeHandler = URLSchemeHandler.shared
+    
+    // Add scene phase detection
+    @Environment(\.scenePhase) private var scenePhase
+    
+    // Add NSUserActivity property to handle universal links
+    @State private var userActivity = NSUserActivity(activityType: NSUserActivityTypeBrowsingWeb)
     
     init() {
         // Initialize app settings
@@ -58,6 +65,12 @@ struct OutspireApp: App {
                 // Handle URLs when app is already running
                 .onOpenURL { url in
                     handleIncomingURL(url)
+                }
+                // Handle universal links with userActivity
+                .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { userActivity in
+                    if let url = userActivity.webpageURL {
+                        let _ = urlSchemeHandler.handleUniversalLink(url)
+                    }
                 }
                 // Error alert for URL handling failures
                 .alert(
@@ -140,6 +153,33 @@ struct OutspireApp: App {
         // Reset closeAllSheets after a delay
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             self.urlSchemeHandler.closeAllSheets = false
+        }
+    }
+    
+    // Update the method to share club to include universal links
+    private func shareClub(groupInfo: GroupInfo) {
+        // Create both URLs for better sharing compatibility
+        let urlSchemeString = "outspire://club/\(groupInfo.C_GroupsID)"
+        let universalLinkString = "https://outspire.wrye.dev/app/club/\(groupInfo.C_GroupsID)"
+        
+        // Use the universal link for sharing, as it works for non-app users too
+        guard let url = URL(string: universalLinkString) else { return }
+        
+        let activityViewController = UIActivityViewController(
+            activityItems: [url],
+            applicationActivities: nil
+        )
+        
+        // Present the share sheet
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let rootViewController = windowScene.windows.first?.rootViewController {
+            // On iPad, set the popover presentation controller's source
+            if UIDevice.current.userInterfaceIdiom == .pad {
+                activityViewController.popoverPresentationController?.sourceView = rootViewController.view
+                activityViewController.popoverPresentationController?.sourceRect = CGRect(x: UIScreen.main.bounds.width / 2, y: UIScreen.main.bounds.height / 2, width: 0, height: 0)
+                activityViewController.popoverPresentationController?.permittedArrowDirections = []
+            }
+            rootViewController.present(activityViewController, animated: true)
         }
     }
 }

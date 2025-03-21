@@ -333,17 +333,17 @@ struct WidgetHelpers {
     
     static func getSubjectColor(from subject: String) -> Color {
         let colors: [Color: [String]] = [
-            .blue.opacity(0.8): ["Math", "Mathematics", "Maths"],
-            .green.opacity(0.8): ["English", "Language", "Literature", "General Paper", "ESL"],
-            .orange.opacity(0.8): ["Physics", "Science"],
-            .purple.opacity(0.8): ["Chemistry", "Chem"],
-            .teal.opacity(0.8): ["Biology", "Bio"],
-            .mint.opacity(0.8): ["Further Math", "Maths Further"],
-            .yellow.opacity(0.8): ["体育", "PE", "Sports", "P.E"],
-            .brown.opacity(0.8): ["Economics", "Econ"],
-            .cyan.opacity(0.8): ["Arts", "Art", "TOK"],
-            .indigo.opacity(0.8): ["Chinese", "Mandarin", "语文"],
-            .gray.opacity(0.8): ["History", "历史", "Geography", "Geo", "政治"]
+            .blue: ["Math", "Mathematics", "Maths"],
+            .green: ["English", "Language", "Literature", "General Paper", "ESL"],
+            .orange: ["Physics", "Science"],
+            .purple: ["Chemistry", "Chem"],
+            .teal: ["Biology", "Bio"],
+            .mint: ["Further Math", "Maths Further"],
+            .yellow: ["体育", "PE", "Sports", "P.E"],
+            .pink: ["Economics", "Econ"],
+            .cyan: ["Arts", "Art", "TOK"],
+            .indigo: ["Chinese", "Mandarin", "语文"],
+            .gray: ["History", "历史", "Geography", "Geo", "政治"]
         ]
         
         let subjectLower = subject.lowercased()
@@ -387,15 +387,28 @@ extension Provider {
             return WidgetEntry.holiday(endDate: endDate, configuration: configuration)
         }
         
-        // Get current or next class
+        // Get current or next class with improved selection logic
         let (currentClass, upcomingClasses) = WidgetDataService.shared.getCurrentOrNextClass()
         
         if let currentClass = currentClass {
+            // Sort upcoming classes by relevance for better display
+            let prioritizedUpcoming = WidgetDataService.sortClassesByRelevance(upcomingClasses)
+            
             return WidgetEntry(
                 date: Date(),
                 state: .hasClasses,
                 classData: currentClass,
-                upcomingClasses: upcomingClasses,
+                upcomingClasses: prioritizedUpcoming,
+                configuration: configuration
+            )
+        } else if !upcomingClasses.isEmpty {
+            // Sort upcoming classes and use the first as the main class
+            let prioritizedUpcoming = WidgetDataService.sortClassesByRelevance(upcomingClasses)
+            return WidgetEntry(
+                date: Date(),
+                state: .hasClasses,
+                classData: prioritizedUpcoming.first,
+                upcomingClasses: Array(prioritizedUpcoming.dropFirst()),
                 configuration: configuration
             )
         } else {
@@ -468,5 +481,48 @@ extension Provider {
         }
         
         return Timeline(entries: [entry], policy: .after(nextUpdateDate))
+    }
+}
+
+// Expose the helper method for sorting classes by relevance
+extension WidgetDataService {
+    static func sortClassesByRelevance(_ classes: [ClassWidgetData]) -> [ClassWidgetData] {
+        let now = Date()
+        
+        // Sort classes by period number to ensure correct ordering
+        let sortedClasses = classes.sorted(by: { $0.periodNumber < $1.periodNumber })
+        
+        // Check if any class is currently active
+        if let currentClassIndex = sortedClasses.firstIndex(where: { 
+            $0.startTime <= now && $0.endTime > now 
+        }) {
+            // We're currently in a class period, prioritize this and subsequent classes
+            let currentAndUpcoming = Array(sortedClasses[currentClassIndex...])
+            // If we don't have enough classes to show, include earlier classes too
+            if currentAndUpcoming.count < 3, currentClassIndex > 0 {
+                let earlierClasses = Array(sortedClasses[0..<currentClassIndex])
+                return currentAndUpcoming + earlierClasses
+            }
+            return currentAndUpcoming
+        } 
+        // Check for upcoming classes
+        else if let nextClassIndex = sortedClasses.firstIndex(where: { 
+            $0.startTime > now 
+        }) {
+            // No current class, but we have upcoming classes today
+            let upcomingClasses = Array(sortedClasses[nextClassIndex...])
+            // If we don't have enough upcoming classes, include earlier classes as a reference
+            if upcomingClasses.count < 3, nextClassIndex > 0 {
+                let earlierClasses = Array(sortedClasses[0..<nextClassIndex])
+                return upcomingClasses + earlierClasses
+            }
+            return upcomingClasses
+        } 
+        // No current or upcoming classes today
+        else {
+            // End of day scenario - all classes have ended
+            // Just show all classes in period order
+            return sortedClasses
+        }
     }
 }

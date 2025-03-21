@@ -116,9 +116,12 @@ struct ClassTableProvider: AppIntentTimelineProvider {
         }
         
         // Get all classes for today
-        let (dayName, classes) = WidgetDataService.shared.getClassesForToday()
+        let (dayName, allClasses) = WidgetDataService.shared.getClassesForToday()
         
-        if !classes.isEmpty {
+        if !allClasses.isEmpty {
+            // Filter to show the most relevant classes based on current time
+            let classes = getRelevantClasses(from: allClasses)
+            
             return ClassTableWidgetEntry(
                 date: Date(),
                 state: .hasClasses,
@@ -134,6 +137,31 @@ struct ClassTableProvider: AppIntentTimelineProvider {
                 dayOfWeek: dayName,
                 configuration: configuration
             )
+        }
+    }
+
+    // Helper to get the most relevant classes based on current time
+    private func getRelevantClasses(from allClasses: [ClassWidgetData]) -> [ClassWidgetData] {
+        let now = Date()
+        
+        // Sort classes by period number to ensure correct ordering
+        let sortedClasses = allClasses.sorted(by: { $0.periodNumber < $1.periodNumber })
+        
+        // Find the current or next class
+        if let currentClassIndex = sortedClasses.firstIndex(where: { 
+            $0.startTime <= now && $0.endTime > now 
+        }) {
+            // We're currently in a class period, show this and subsequent classes
+            return Array(sortedClasses[currentClassIndex...])
+        } else if let nextClassIndex = sortedClasses.firstIndex(where: { 
+            $0.startTime > now 
+        }) {
+            // No current class, but we have upcoming classes today
+            return Array(sortedClasses[nextClassIndex...])
+        } else {
+            // No current or upcoming classes today, show all classes
+            // This handles the case of looking at tomorrow's schedule
+            return sortedClasses
         }
     }
 }
@@ -164,9 +192,8 @@ struct OutspireWidgetControlView: View {
                 .containerBackground(.clear, for: .widget)
         default:
             ZStack {
-                // Background
-                Color(UIColor.secondarySystemBackground)
-                    .ignoresSafeArea()
+                // Background - changed from secondarySystemBackground to systemBackground
+                Color(UIColor.systemBackground)
                 
                 // Content based on state
                 switch entry.state {
@@ -187,6 +214,7 @@ struct OutspireWidgetControlView: View {
                         classes: entry.classes,
                         widgetFamily: widgetFamily
                     )
+                    .padding(.vertical, 4) // Adding vertical padding to create more space from edges
                 }
             }
             .containerBackground(.fill.tertiary, for: .widget)
@@ -358,30 +386,25 @@ struct ClassTableContentView: View {
     private var maxClassesToShow: Int {
         switch widgetFamily {
         case .systemLarge:
-            return 8
+            return 8  // Reduced from 10 to avoid potential overflow
         case .systemMedium:
-            return 4
+            return 4  // Reduced from 5 for better layout
         default:
-            return 2
+            return 3
         }
     }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Header
+            // Header with reduced padding
             headerView
             
-            // Class list
+            // Class list view
             classListView
-            
-            // Remaining classes indicator
-            if classes.count > maxClassesToShow {
-                remainingClassesView
-            }
         }
     }
     
-    // Header view with day of week
+    // Header view with day of week - more compact
     private var headerView: some View {
         HStack {
             Text(WidgetHelpers.weekdayName(for: dayOfWeekIndex))
@@ -395,55 +418,49 @@ struct ClassTableContentView: View {
                 .foregroundStyle(.secondary)
         }
         .padding(.horizontal, widgetFamily == .systemLarge ? 16 : 12)
-        .padding(.top, widgetFamily == .systemLarge ? 12 : 10)
-        .padding(.bottom, 6)
+        .padding(.top, widgetFamily == .systemLarge ? 8 : 6)
+        .padding(.bottom, 3)  // Reduced padding
     }
     
-    // Class list view
+    // Class list view - more compact VStack
     private var classListView: some View {
         VStack(spacing: 0) {
             Divider()
                 .padding(.horizontal, widgetFamily == .systemLarge ? 16 : 12)
             
-            ScrollView {
+            // Show classes up to the maximum allowed for this widget size
+            let visibleClasses = Array(classes.prefix(maxClassesToShow))
+            
+            ForEach(Array(visibleClasses.enumerated()), id: \.element.id) { index, classData in
                 VStack(spacing: 0) {
-                    ForEach(Array(classes.prefix(maxClassesToShow).enumerated()), id: \.element.periodNumber) { index, classData in
-                        VStack(spacing: 0) {
-                            ClassRowView(
-                                classData: classData,
-                                widgetFamily: widgetFamily
-                            )
-                            
-                            if index < min(classes.count, maxClassesToShow) - 1 {
-                                Divider()
-                                    .padding(.horizontal, widgetFamily == .systemLarge ? 16 : 12)
-                            }
-                        }
+                    ClassRowView(
+                        classData: classData,
+                        widgetFamily: widgetFamily
+                    )
+                    
+                    if index < visibleClasses.count - 1 {
+                        Divider()
+                            .padding(.horizontal, widgetFamily == .systemLarge ? 16 : 12)
                     }
                 }
             }
-        }
-    }
-    
-    // Remaining classes indicator
-    private var remainingClassesView: some View {
-        HStack {
-            Spacer()
             
-            Text("+ \(classes.count - maxClassesToShow) more classes")
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-                .padding(.vertical, 4)
-                .padding(.horizontal, 8)
-                .background(
-                    Capsule()
-                        .fill(Color.gray.opacity(0.1))
-                )
+            // Show a "more classes" indicator if we couldn't show all classes
+            if classes.count > maxClassesToShow {
+                Divider()
+                    .padding(.horizontal, widgetFamily == .systemLarge ? 16 : 12)
+                
+                HStack {
+                    Text("+ \(classes.count - maxClassesToShow) more")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .padding(.vertical, 3)
+                }
+                .padding(.horizontal, widgetFamily == .systemLarge ? 16 : 12)
+            }
             
-            Spacer()
+            Spacer(minLength: 0)
         }
-        .padding(.top, 6)
-        .padding(.bottom, 8)
     }
 }
 
@@ -454,34 +471,46 @@ struct ClassRowView: View {
     let widgetFamily: WidgetFamily
     
     var body: some View {
-        HStack(alignment: .center, spacing: widgetFamily == .systemLarge ? 12 : 8) {
-            // Period indicator
+        HStack(alignment: .center, spacing: widgetFamily == .systemLarge ? 6 : 4) {
+            // Period indicator - more compact
             Text("\(classData.periodNumber)")
-                .font(widgetFamily == .systemLarge ? .subheadline : .caption)
+                .font(.caption2)
                 .fontWeight(.medium)
-                .frame(width: widgetFamily == .systemLarge ? 24 : 20, height: widgetFamily == .systemLarge ? 24 : 20)
+                .frame(width: widgetFamily == .systemLarge ? 18 : 16, height: widgetFamily == .systemLarge ? 18 : 16)
                 .background(
                     Circle()
                         .fill(classColor(for: classData).opacity(0.15))
                 )
                 .foregroundStyle(classColor(for: classData))
             
-            // Class details
-            VStack(alignment: .leading, spacing: 2) {
-                // Class name
+            // Class details with optimized spacing
+            VStack(alignment: .leading, spacing: 0) {
+                // Class name with better truncation
                 Text(classData.className)
-                    .font(widgetFamily == .systemLarge ? .subheadline : .callout)
+                    .font(widgetFamily == .systemLarge ? .caption : .caption2)
                     .fontWeight(.medium)
                     .lineLimit(1)
+                    .truncationMode(.tail)
+                    .minimumScaleFactor(0.9)
                 
-                // Teacher and room
-                if widgetFamily == .systemLarge {
-                    HStack(spacing: 8) {
+                // Only show teacher/room for large widget and optimize for space
+                if widgetFamily == .systemLarge, 
+                   (!classData.teacherName.isEmpty || !classData.roomNumber.isEmpty) {
+                    HStack(spacing: 2) {
                         if !classData.teacherName.isEmpty {
                             Text(classData.teacherName)
                                 .font(.caption2)
                                 .foregroundStyle(.secondary)
                                 .lineLimit(1)
+                                .truncationMode(.tail)
+                                .minimumScaleFactor(0.9)
+                        }
+                        
+                        if !classData.teacherName.isEmpty && !classData.roomNumber.isEmpty {
+                            Text("•")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                                .padding(.horizontal, 1)
                         }
                         
                         if !classData.roomNumber.isEmpty {
@@ -489,20 +518,30 @@ struct ClassRowView: View {
                                 .font(.caption2)
                                 .foregroundStyle(.secondary)
                                 .lineLimit(1)
+                                .truncationMode(.tail)
+                                .minimumScaleFactor(0.9)
                         }
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             
-            Spacer()
-            
-            // Time
-            Text(classData.timeRangeFormatted)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
+            // Self-study badge - more compact
+            if classData.isSelfStudy {
+                Text("Self-Study")
+                    .font(.caption2)
+                    .padding(.horizontal, 3)
+                    .padding(.vertical, 1)
+                    .background(
+                        Capsule()
+                            .fill(Color.purple.opacity(0.15))
+                    )
+                    .foregroundStyle(.purple)
+            }
         }
         .padding(.horizontal, widgetFamily == .systemLarge ? 16 : 12)
-        .padding(.vertical, widgetFamily == .systemLarge ? 8 : 6)
+        .padding(.vertical, widgetFamily == .systemLarge ? 3 : 2) // Further reduced padding
     }
     
     // Helper method for class color

@@ -65,7 +65,6 @@ struct OutspireWidgetEntryView : View {
             ZStack {
                 // Background
                 Color(UIColor.systemBackground)
-                    .ignoresSafeArea()
                 
                 // Content based on state
                 switch entry.state {
@@ -207,9 +206,9 @@ struct OutspireWidgetEntryView : View {
     
     private func classView(classData: ClassWidgetData) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Header
+            // Header - more compact with reduced padding
             HStack {
-                VStack(alignment: .leading, spacing: widgetFamily == .systemSmall ? 0 : 2) {
+                VStack(alignment: .leading, spacing: widgetFamily == .systemSmall ? 0 : 1) {
                     Text(classData.statusText)
                         .font(widgetFamily == .systemSmall ? .caption2 : .caption)
                         .fontWeight(.medium)
@@ -226,7 +225,8 @@ struct OutspireWidgetEntryView : View {
                 if widgetFamily != .systemSmall {
                     Text(classData.timeRangeFormatted)
                         .font(.caption2)
-                        .padding(4)
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 2)
                         .background(
                             RoundedRectangle(cornerRadius: 4)
                                 .fill(classColor(for: classData).opacity(0.1))
@@ -234,25 +234,28 @@ struct OutspireWidgetEntryView : View {
                 }
             }
             .padding(.horizontal, 12)
-            .padding(.top, widgetFamily == .systemSmall ? 8 : 10)
-            .padding(.bottom, widgetFamily == .systemSmall ? 4 : 6)
+            .padding(.top, widgetFamily == .systemSmall ? 6 : 8)
+            .padding(.bottom, widgetFamily == .systemSmall ? 3 : 4)
             
-            // Class details
-            VStack(alignment: .leading, spacing: widgetFamily == .systemSmall ? 2 : 4) {
+            // Class details - more compact layout
+            VStack(alignment: .leading, spacing: widgetFamily == .systemSmall ? 1 : 2) {
                 Text(classData.className)
                     .font(widgetFamily == .systemSmall ? .callout : .system(.headline, design: .rounded))
                     .fontWeight(.semibold)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.9)
                 
                 if widgetFamily != .systemSmall || !entry.configuration.showCountdown {
-                    HStack(spacing: 12) {
+                    HStack(spacing: 8) {
                         if !classData.teacherName.isEmpty {
                             Label {
                                 Text(classData.teacherName)
                                     .lineLimit(1)
+                                    .truncationMode(.tail)
                             } icon: {
                                 Image(systemName: "person.fill")
                                     .foregroundStyle(.secondary)
+                                    .imageScale(.small)
                             }
                             .font(.caption2)
                         }
@@ -261,9 +264,11 @@ struct OutspireWidgetEntryView : View {
                             Label {
                                 Text(classData.roomNumber)
                                     .lineLimit(1)
+                                    .truncationMode(.tail)
                             } icon: {
                                 Image(systemName: "mappin.circle.fill")
                                     .foregroundStyle(.secondary)
+                                    .imageScale(.small)
                             }
                             .font(.caption2)
                         }
@@ -277,38 +282,39 @@ struct OutspireWidgetEntryView : View {
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
                             .truncationMode(.tail)
+                            .minimumScaleFactor(0.85)
                     }
                 }
             }
             .padding(.horizontal, 12)
             
-            // Countdown section
+            // Compact countdown section
             if entry.configuration.showCountdown {
-                Spacer(minLength: widgetFamily == .systemSmall ? 1 : 6)
+                Spacer(minLength: widgetFamily == .systemSmall ? 1 : 3)
                 
-                VStack(spacing: widgetFamily == .systemSmall ? 1 : 2) {
+                VStack(spacing: 0) {
                     Divider()
                         .padding(.horizontal, 12)
                     
                     HStack(alignment: .center) {
                         // Timer icon - smaller for small widget
                         Image(systemName: classData.isCurrentClass ? "timer" : "hourglass")
-                            .font(.system(size: widgetFamily == .systemSmall ? 12 : 14, weight: .medium))
+                            .font(.system(size: widgetFamily == .systemSmall ? 11 : 13, weight: .medium))
                             .foregroundStyle(classColor(for: classData))
-                            .frame(width: widgetFamily == .systemSmall ? 18 : 22, height: widgetFamily == .systemSmall ? 18 : 22)
+                            .frame(width: widgetFamily == .systemSmall ? 16 : 20, height: widgetFamily == .systemSmall ? 16 : 20)
                             .background(
                                 Circle()
                                     .fill(classColor(for: classData).opacity(0.1))
                             )
                         
-                        // Timer label and countdown
+                        // Timer label and countdown - more compact
                         VStack(alignment: .leading, spacing: 0) {
                             Text(classData.isCurrentClass ? "Ends in" : "Starts in")
                                 .font(.caption2)
                                 .foregroundStyle(.secondary)
                             
                             if widgetFamily == .systemSmall {
-                                // Enhanced timer display for small widget - smaller font
+                                // More compact timer for small widget
                                 Text(classData.targetDate, style: .timer)
                                     .font(.system(.body, design: .rounded))
                                     .fontWeight(.bold)
@@ -317,7 +323,7 @@ struct OutspireWidgetEntryView : View {
                                     .minimumScaleFactor(0.8)
                                     .lineLimit(1)
                             } else {
-                                // Regular timer display for medium widget
+                                // Regular timer for medium widget
                                 Text(classData.targetDate, style: .timer)
                                     .font(.system(.subheadline, design: .rounded))
                                     .fontWeight(.bold)
@@ -328,9 +334,8 @@ struct OutspireWidgetEntryView : View {
                         
                         Spacer()
                         
-                        // Progress circle for current class (medium widget only)
+                        // Progress circle - only for current class and medium+ widgets
                         if classData.isCurrentClass && widgetFamily != .systemSmall {
-                            // For current class, use timer-based progress for smooth animation
                             ZStack {
                                 ProgressView(
                                     timerInterval: classData.progressRange,
@@ -339,30 +344,34 @@ struct OutspireWidgetEntryView : View {
                                     currentValueLabel: { EmptyView() }
                                 )
                                 .progressViewStyle(.circular)
-                                .frame(width: 24, height: 24)
+                                .frame(width: 22, height: 22)
                                 .tint(.orange)
                             }
                         }
                     }
                     .padding(.horizontal, 12)
-                    .padding(.vertical, widgetFamily == .systemSmall ? 4 : 8)
+                    .padding(.vertical, widgetFamily == .systemSmall ? 3 : 5)
                 }
             } else {
+                // When not showing countdown, add minimal spacing
                 Spacer(minLength: 0)
             }
             
-            // For large widget, show upcoming classes
+            // For large widget, show upcoming classes more compactly
             if widgetFamily == .systemLarge && !entry.upcomingClasses.isEmpty {
                 VStack(alignment: .leading, spacing: 0) {
                     Divider()
                         .padding(.horizontal, 12)
                     
-                    Text("Upcoming Classes")
-                        .font(.caption)
-                        .fontWeight(.medium)
-                        .padding(.horizontal, 12)
-                        .padding(.top, 8)
-                        .padding(.bottom, 4)
+                    HStack {
+                        Text("Upcoming Classes")
+                            .font(.caption)
+                            .fontWeight(.medium)
+                        Spacer()
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.top, 6)
+                    .padding(.bottom, 2)
                     
                     ForEach(entry.upcomingClasses.prefix(3), id: \.periodNumber) { upcomingClass in
                         upcomingClassRow(upcomingClass)
@@ -370,18 +379,18 @@ struct OutspireWidgetEntryView : View {
                 }
             }
         }
-        .frame(maxHeight: .infinity)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
     
     // Row for upcoming classes in large widget
     private func upcomingClassRow(_ classData: ClassWidgetData) -> some View {
-        HStack {
+        HStack(spacing: 4) {
             // Period indicator
             Text("P\(classData.periodNumber)")
                 .font(.caption2)
                 .fontWeight(.medium)
-                .padding(.horizontal, 6)
-                .padding(.vertical, 2)
+                .padding(.horizontal, 4)
+                .padding(.vertical, 1)
                 .background(
                     Capsule()
                         .fill(classColor(for: classData).opacity(0.1))
@@ -393,6 +402,7 @@ struct OutspireWidgetEntryView : View {
                 .font(.subheadline)
                 .fontWeight(.medium)
                 .lineLimit(1)
+                .minimumScaleFactor(0.9)
             
             Spacer()
             
@@ -402,7 +412,7 @@ struct OutspireWidgetEntryView : View {
                 .foregroundStyle(.secondary)
         }
         .padding(.horizontal, 12)
-        .padding(.vertical, 4)
+        .padding(.vertical, 3)
     }
     
     // MARK: - Helper Methods

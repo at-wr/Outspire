@@ -102,6 +102,9 @@ class ClassActivityManager {
         // Update the activity with new content state
         Task {
             if #available(iOS 16.2, *) {
+                // Set staleDate to after the class ends
+                let staleDate = endTime.addingTimeInterval(60) // 1 minute after class ends
+                
                 await activity.update(
                     .init(state: ClassActivityAttributes.ContentState(
                         startTime: startTime,
@@ -110,7 +113,7 @@ class ClassActivityManager {
                         periodNumber: activity.content.state.periodNumber,
                         progress: progress,
                         timeRemaining: timeRemaining
-                    ), staleDate: nil)
+                    ), staleDate: staleDate) // Add staleDate here
                 )
             } else {
                 await activity.update(
@@ -321,9 +324,11 @@ class ClassActivityManager {
             let activity: Activity<ClassActivityAttributes>
             
             if #available(iOS 16.2, *) {
+                // Set staleDate to right after the class ends
+                let staleDate = endTime.addingTimeInterval(60) // 1 minute after class ends
                 activity = try Activity.request(
                     attributes: attributes,
-                    content: .init(state: contentState, staleDate: nil),
+                    content: .init(state: contentState, staleDate: staleDate),
                     pushType: nil
                 )
             } else {
@@ -401,6 +406,9 @@ class ClassActivityManager {
         if shouldUpdate {
             Task {
                 if #available(iOS 16.2, *) {
+                    // Set staleDate to right after the class ends
+                    let staleDate = endTime.addingTimeInterval(60) // 1 minute after class ends
+                    
                     await activity.update(
                         .init(state: ClassActivityAttributes.ContentState(
                             startTime: startTime,
@@ -409,7 +417,7 @@ class ClassActivityManager {
                             periodNumber: activity.content.state.periodNumber,
                             progress: progress,
                             timeRemaining: timeRemaining
-                        ), staleDate: nil)
+                        ), staleDate: staleDate) // Add staleDate here
                     )
                 } else {
                     await activity.update(

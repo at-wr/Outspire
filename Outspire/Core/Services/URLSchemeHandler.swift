@@ -1,7 +1,7 @@
 import Foundation
 import SwiftUI
 
-/// Handles URL scheme navigation for deep linking in Outspire
+/// Handles URL scheme navigation and universal links for deep linking in Outspire
 class URLSchemeHandler: ObservableObject {
     static let shared = URLSchemeHandler()
     
@@ -19,6 +19,29 @@ class URLSchemeHandler: ObservableObject {
     @Published var errorMessage = ""
     
     private init() {}
+    
+    /// Handle universal links (applinks) from the web
+    /// - Parameter url: The universal link URL to process
+    /// - Returns: True if the URL was successfully handled
+    func handleUniversalLink(_ url: URL) -> Bool {
+        print("Processing Universal Link: \(url.absoluteString)")
+        
+        // Verify it's our domain
+        guard url.host == "outspire.wrye.dev" else { return false }
+        
+        // Extract the path after /app/
+        guard url.path.starts(with: "/app/") else { return false }
+        
+        // Convert universal link path to URL scheme format
+        let appPath = url.path.replacingOccurrences(of: "/app/", with: "")
+        
+        // Create equivalent scheme URL and handle with existing logic
+        if let schemeURL = URL(string: "outspire://\(appPath)") {
+            return handleURL(schemeURL)
+        }
+        
+        return false
+    }
     
     /// Process an incoming URL to determine navigation path
     /// - Parameter url: The URL to process
@@ -132,6 +155,24 @@ extension URLSchemeHandler {
         if pathParts.count > 1 {
             components.path = "/\(pathParts[1])"
         }
+        
+        if let queryItems = queryItems, !queryItems.isEmpty {
+            components.queryItems = queryItems
+        }
+        
+        return components.url
+    }
+    
+    /// Creates a valid universal link URL for sharing
+    /// - Parameters:
+    ///   - path: The path component (e.g., "today", "club/123")
+    ///   - queryItems: Optional query parameters
+    /// - Returns: A formatted URL or nil if invalid
+    static func createUniversalLink(path: String, queryItems: [URLQueryItem]? = nil) -> URL? {
+        var components = URLComponents()
+        components.scheme = "https"
+        components.host = "outspire.wrye.dev"
+        components.path = "/app/\(path)"
         
         if let queryItems = queryItems, !queryItems.isEmpty {
             components.queryItems = queryItems

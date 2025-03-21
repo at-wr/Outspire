@@ -170,7 +170,6 @@ struct CurrentNextClassWidgetEntryView : View {
             ZStack {
                 // Background
                 Color(UIColor.systemBackground)
-                    .ignoresSafeArea()
                 
                 // Content based on state
                 switch entry.state {
@@ -186,6 +185,7 @@ struct CurrentNextClassWidgetEntryView : View {
                     noClassesView
                 case .hasClasses:
                     currentNextClassView
+                        .padding(.vertical, 4) // Adding vertical padding to create more space from edges
                 }
             }
             .containerBackground(.fill.tertiary, for: .widget)
@@ -365,7 +365,7 @@ struct CurrentNextClassWidgetEntryView : View {
                 // This is now handled by the empty placeholders above
             }
         }
-        .padding(.top, 10)
+        .padding(.top, 14) // Increased top padding for small widget
     }
     
     // Regular view for medium widget
@@ -486,13 +486,13 @@ struct CurrentNextClassWidgetEntryView : View {
     
     // Compact class item view for small widget
     private func compactClassItemView(classData: ClassWidgetData, isCurrentClass: Bool) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: 1) { // Reduced spacing
             // Status and period in one line
             HStack {
                 Text(isCurrentClass ? "Current" : "Next")
                     .font(.caption2)
                     .fontWeight(.medium)
-                    .padding(.horizontal, 6)
+                    .padding(.horizontal, 4) // Reduced horizontal padding
                     .padding(.vertical, 1)
                     .background(
                         Capsule()
@@ -507,37 +507,41 @@ struct CurrentNextClassWidgetEntryView : View {
                     .foregroundStyle(.secondary)
             }
             .padding(.horizontal, 12)
-            .padding(.top, 6)
+            .padding(.top, 4) // Reduced top padding
             
-            // Class name
+            // Class name with better truncation
             Text(classData.className)
                 .font(.callout)
                 .fontWeight(.semibold)
                 .lineLimit(1)
+                .truncationMode(.tail)
+                .minimumScaleFactor(0.9)
                 .padding(.horizontal, 12)
-                .padding(.bottom, 2)
+                .padding(.bottom, 1) // Reduced bottom padding
             
-            // Teacher and room combined in one line
+            // Teacher and room combined in one line with better truncation
             if !classData.teacherName.isEmpty || !classData.roomNumber.isEmpty {
                 Text("\(classData.teacherName)\(!classData.teacherName.isEmpty && !classData.roomNumber.isEmpty ? " • " : "")\(classData.roomNumber)")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
+                    .truncationMode(.tail)
+                    .minimumScaleFactor(0.9)
                     .padding(.horizontal, 12)
-                    .padding(.bottom, 6)
+                    .padding(.bottom, 3) // Reduced bottom padding
             }
         }
     }
     
     // Regular class item view for medium widget
     private func classItemView(classData: ClassWidgetData, isCurrentClass: Bool, showDetails: Bool) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: 1) { // Reduced spacing
             // Status badge
             HStack {
                 Text(isCurrentClass ? "Current" : "Next")
                     .font(.caption2)
                     .fontWeight(.medium)
-                    .padding(.horizontal, 6)
+                    .padding(.horizontal, 5) // Reduced padding
                     .padding(.vertical, 1)
                     .background(
                         Capsule()
@@ -552,23 +556,27 @@ struct CurrentNextClassWidgetEntryView : View {
                     .foregroundStyle(.secondary)
             }
             .padding(.horizontal, 14)
-            .padding(.top, 8)
+            .padding(.top, 6) // Reduced top padding
             
-            // Class name
+            // Class name with improved truncation
             Text(classData.className)
                 .font(.system(.subheadline, design: .rounded))
                 .fontWeight(.semibold)
                 .lineLimit(1)
+                .truncationMode(.tail)
+                .minimumScaleFactor(0.9)
                 .padding(.horizontal, 14)
+                .padding(.top, 1) // Tiny top padding
             
-            // Details
+            // Details with improved spacing and truncation
             if showDetails {
-                HStack(spacing: 8) {
+                HStack(spacing: 4) { // Reduced spacing
                     // Teacher name with icon
                     if !classData.teacherName.isEmpty {
                         Label {
                             Text(classData.teacherName)
                                 .lineLimit(1)
+                                .truncationMode(.tail)
                         } icon: {
                             Image(systemName: "person.fill")
                                 .foregroundStyle(.secondary)
@@ -582,6 +590,7 @@ struct CurrentNextClassWidgetEntryView : View {
                         Label {
                             Text(classData.roomNumber)
                                 .lineLimit(1)
+                                .truncationMode(.tail)
                         } icon: {
                             Image(systemName: "mappin.circle.fill")
                                 .foregroundStyle(.secondary)
@@ -592,17 +601,20 @@ struct CurrentNextClassWidgetEntryView : View {
                     
                     Spacer(minLength: 2)
                     
-                    // Time range
+                    // Time range with better truncation
                     Text(classData.timeRangeFormatted)
                         .font(.caption2)
                         .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .minimumScaleFactor(0.8)
                 }
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 14)
-                .padding(.bottom, 6)
+                .padding(.bottom, 3) // Reduced bottom padding
             } else {
                 Spacer()
-                    .frame(height: 2)
+                    .frame(height: 1) // Minimal spacer
             }
         }
     }
@@ -786,4 +798,4 @@ extension CurrentNextClassWidgetConfigurationIntent {
         nextClass: nil,
         configuration: .defaultConfig
     )
-} 
+}

@@ -672,8 +672,9 @@ struct ClubInfoView: View {
     
     // Add a new helper method to handle sharing
     private func shareClub(groupInfo: GroupInfo) {
-        let urlString = "outspire://club/\(groupInfo.C_GroupsID)"
-        guard let url = URL(string: urlString) else { return }
+        // Create a universal link for better compatibility
+        let universalLinkString = "https://outspire.wrye.dev/app/club/\(groupInfo.C_GroupsID)"
+        guard let url = URL(string: universalLinkString) else { return }
         
         let activityViewController = UIActivityViewController(
             activityItems: [url],
