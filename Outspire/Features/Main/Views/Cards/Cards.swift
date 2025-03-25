@@ -92,7 +92,7 @@ struct NoClassCard: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 30)
-        .glassmorphicCard(isDimmed: isDimmed)
+        .paddedGlassmorphicCard(horizontalPadding: 0, verticalPadding: 0)
     }
 }
 
@@ -120,7 +120,7 @@ struct WeekendCard: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 30)
-        .glassmorphicCard()
+        .paddedGlassmorphicCard(horizontalPadding: 0, verticalPadding: 0)
     }
 }
 
@@ -165,7 +165,7 @@ struct HolidayModeCard: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 30)
-        .glassmorphicCard()
+        .paddedGlassmorphicCard(horizontalPadding: 0, verticalPadding: 0)
     }
 }
 
@@ -175,8 +175,23 @@ struct SchoolInfoCard: View {
     let arrivalTime: String
     let travelInfo: (travelTime: TimeInterval?, distance: CLLocationDistance?)?
     let isInChina: Bool
+    let isReturningFromSheet: Bool
     
     @State private var isTravelInfoVisible: Bool = false
+    
+    init(
+        assemblyTime: String,
+        arrivalTime: String,
+        travelInfo: (travelTime: TimeInterval?, distance: CLLocationDistance?)?,
+        isInChina: Bool,
+        isReturningFromSheet: Bool = false
+    ) {
+        self.assemblyTime = assemblyTime
+        self.arrivalTime = arrivalTime
+        self.travelInfo = travelInfo
+        self.isInChina = isInChina
+        self.isReturningFromSheet = isReturningFromSheet
+    }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -216,7 +231,7 @@ struct SchoolInfoCard: View {
             }
         }
         .padding(16)
-        .glassmorphicCard()
+        .paddedGlassmorphicCard(horizontalPadding: 0, verticalPadding: 0)
         .onAppear {
             // Delay showing travel info to ensure smooth card animation
             withAnimation(.easeIn.delay(0.3)) {
@@ -394,7 +409,7 @@ struct DailyScheduleCard: View {
             }
         }
         .padding(16)
-        .glassmorphicCard(isDimmed: isClassesOver)
+        .paddedGlassmorphicCard(isDimmed: isClassesOver, horizontalPadding: 0, verticalPadding: 0)
         .animation(.easeInOut(duration: 0.3), value: scheduledClassesForToday)
         .animation(.easeInOut(duration: 0.5), value: isClassesOver)
         .onAppear {

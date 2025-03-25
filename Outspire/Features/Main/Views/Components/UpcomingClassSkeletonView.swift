@@ -86,11 +86,7 @@ struct UpcomingClassSkeletonView: View {
             .padding(.vertical, 12)
         }
         .padding(.vertical, 8)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color(UIColor.systemBackground))
-                .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
-        )
+        .paddedGlassmorphicCard(horizontalPadding: 0, verticalPadding: 0)
         .opacity(isAnimating ? 0.6 : 1)
         .animation(
             Animation.easeInOut(duration: 1.2)

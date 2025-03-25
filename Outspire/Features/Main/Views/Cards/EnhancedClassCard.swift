@@ -209,47 +209,7 @@ struct EnhancedClassCard: View {
                 }
             }
         }
-        .background(
-            ZStack {
-                // Base blur layer
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(.ultraThinMaterial)
-                    .opacity(colorScheme == .dark ? 0.8 : 0.92)
-                
-                // Subtle gradient overlay for depth
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color.white.opacity(colorScheme == .dark ? 0.05 : 0.3),
-                                Color.white.opacity(colorScheme == .dark ? 0.02 : 0.1)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                
-                // Very subtle border - synced with GlassmorphicCard
-                RoundedRectangle(cornerRadius: 16)
-                    .strokeBorder(
-                        LinearGradient(
-                            colors: [
-                                Color.white.opacity(colorScheme == .dark ? 0.15 : 0.5),
-                                Color.white.opacity(colorScheme == .dark ? 0.05 : 0.2)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 0.5
-                    )
-            }
-            .shadow(
-                color: Color.black.opacity(colorScheme == .dark ? 0.12 : 0.08),
-                radius: 15,
-                x: 0,
-                y: 5
-            )
-        )
+        .glassmorphicCard() // Replace custom background implementation with shared component
         .onAppear {
             isTimeComplete = false
             isTransitioning = false
