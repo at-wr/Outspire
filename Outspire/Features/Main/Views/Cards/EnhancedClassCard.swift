@@ -17,6 +17,8 @@ struct EnhancedClassCard: View {
     @State private var isTransitioning = false
     @State private var isTimeComplete = false // New state to track if time is actually complete
     
+    @Environment(\.colorScheme) private var colorScheme
+    
     private var components: [String] {
         classData.replacingOccurrences(of: "<br>", with: "\n")
             .components(separatedBy: "\n")
@@ -208,9 +210,45 @@ struct EnhancedClassCard: View {
             }
         }
         .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color(UIColor.systemBackground))
-                .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
+            ZStack {
+                // Base blur layer
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(.ultraThinMaterial)
+                    .opacity(colorScheme == .dark ? 0.8 : 0.92)
+                
+                // Subtle gradient overlay for depth
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(colorScheme == .dark ? 0.05 : 0.3),
+                                Color.white.opacity(colorScheme == .dark ? 0.02 : 0.1)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                
+                // Very subtle border - synced with GlassmorphicCard
+                RoundedRectangle(cornerRadius: 16)
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(colorScheme == .dark ? 0.15 : 0.5),
+                                Color.white.opacity(colorScheme == .dark ? 0.05 : 0.2)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 0.5
+                    )
+            }
+            .shadow(
+                color: Color.black.opacity(colorScheme == .dark ? 0.12 : 0.08),
+                radius: 15,
+                x: 0,
+                y: 5
+            )
         )
         .onAppear {
             isTimeComplete = false

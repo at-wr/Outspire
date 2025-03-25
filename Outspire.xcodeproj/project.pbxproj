@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		6E2C3F2F2D8AC7EF005C01E6 /* ActivityKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6E2C3F2E2D8AC7EF005C01E6 /* ActivityKit.framework */; };
+		6E3C2DC52D92D7E300C2EEF3 /* ColorfulX in Frameworks */ = {isa = PBXBuildFile; productRef = 6E3C2DC42D92D7E300C2EEF3 /* ColorfulX */; };
 		6E4BCC772D87E12B00C10AEA /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6E4BCC762D87E12B00C10AEA /* WidgetKit.framework */; };
 		6E4BCC792D87E12B00C10AEA /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6E4BCC782D87E12B00C10AEA /* SwiftUI.framework */; };
 		6E4BCC8A2D87E12C00C10AEA /* OutspireWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 6E4BCC752D87E12B00C10AEA /* OutspireWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -130,6 +131,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6E3C2DC52D92D7E300C2EEF3 /* ColorfulX in Frameworks */,
 				6E2C3F2F2D8AC7EF005C01E6 /* ActivityKit.framework in Frameworks */,
 				6ED03C082D846F2A00C81CF9 /* CoreLocation.framework in Frameworks */,
 				6ED03BFF2D84675400C81CF9 /* Toasts in Frameworks */,
@@ -239,6 +241,7 @@
 			packageProductDependencies = (
 				6ED03BFE2D84675400C81CF9 /* Toasts */,
 				6ED03C012D8467B000C81CF9 /* SwiftSoup */,
+				6E3C2DC42D92D7E300C2EEF3 /* ColorfulX */,
 			);
 			productName = Outspire;
 			productReference = 6ED03A502D84647300C81CF9 /* Outspire.app */;
@@ -328,6 +331,7 @@
 			packageReferences = (
 				6ED03BFD2D84675400C81CF9 /* XCRemoteSwiftPackageReference "swiftui-toasts" */,
 				6ED03C002D8467B000C81CF9 /* XCRemoteSwiftPackageReference "SwiftSoup" */,
+				6E3C2DC32D92D7E300C2EEF3 /* XCRemoteSwiftPackageReference "ColorfulX" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 6ED03A512D84647300C81CF9 /* Products */;
@@ -869,6 +873,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		6E3C2DC32D92D7E300C2EEF3 /* XCRemoteSwiftPackageReference "ColorfulX" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Lakr233/ColorfulX.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.6.4;
+			};
+		};
 		6ED03BFD2D84675400C81CF9 /* XCRemoteSwiftPackageReference "swiftui-toasts" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/sunghyun-k/swiftui-toasts";
@@ -888,6 +900,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		6E3C2DC42D92D7E300C2EEF3 /* ColorfulX */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 6E3C2DC32D92D7E300C2EEF3 /* XCRemoteSwiftPackageReference "ColorfulX" */;
+			productName = ColorfulX;
+		};
 		6ED03BFE2D84675400C81CF9 /* Toasts */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 6ED03BFD2D84675400C81CF9 /* XCRemoteSwiftPackageReference "swiftui-toasts" */;

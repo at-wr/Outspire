@@ -1,6 +1,7 @@
 import SwiftUI
 import Foundation
 import CoreLocation
+import ColorfulX
 
 struct TodayView: View {
     // MARK: - Environment & State
@@ -32,12 +33,28 @@ struct TodayView: View {
     // Add this state variable to track returning from sheets
     @State private var isReturningFromSheet = false
     
+    // ColorfulX states
+    @State private var gradientColors: [Color] = ColorfulPreset.aurora.swiftUIColors
+    @State private var gradientSpeed: Double = 0.5 // Medium speed for animation
+    @State private var gradientNoise: Double = 20.0 // Moderate noise level
+    @State private var gradientTransitionSpeed: Double = 1.0 // Standard transition speed
+    
     // MARK: - Body
     var body: some View {
         ZStack {
-            // Use a consistent background color for the entire view
-            Color(UIColor.secondarySystemBackground)
-                .edgesIgnoringSafeArea(.all)
+            // Use ColorfulX as background
+            ColorfulView(
+                color: $gradientColors,
+                speed: $gradientSpeed,
+                noise: $gradientNoise,
+                transitionSpeed: $gradientTransitionSpeed
+            )
+            .ignoresSafeArea()
+            .opacity(0.3) // Reduce opacity to make content readable
+            
+            // Semi-transparent white background to ensure content readability
+            Color.white.opacity(colorScheme == .dark ? 0.2 : 0.7)
+                .ignoresSafeArea()
             
             ScrollView {
                 contentView
@@ -45,9 +62,8 @@ struct TodayView: View {
         }
         .navigationTitle("Today @ WFLA")
         .navigationBarTitleDisplayMode(.large)
-        //.toolbarBackground(.hidden, for: .navigationBar)
-        .toolbarBackground(Color(UIColor.secondarySystemBackground))
-        //.toolbarBackground(.visible, for: .navigationBar)
+        .toolbarBackground(.hidden, for: .navigationBar) // This works with our custom appearances
+        .scrollIndicators(.hidden)
         
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
@@ -61,6 +77,9 @@ struct TodayView: View {
             // Immediately set animateCards to true without animation
             // This is critical to prevent the animation from running again
             animateCards = true
+            
+            // Update gradient colors based on current state
+            updateGradientColors()
         }) {
             scheduleSettingsSheet
                 .environmentObject(sessionService) // Explicitly pass the SessionService to fix Mac Catalyst crash
@@ -68,6 +87,7 @@ struct TodayView: View {
         .onAppear {
             setupOnAppear()
             customizeNavigationBarAppearance()
+            updateGradientColors()
             
             // Check for URL scheme navigation to today view
             if urlSchemeHandler.navigateToToday {
@@ -91,11 +111,13 @@ struct TodayView: View {
         }
         .onChange(of: sessionService.isAuthenticated) { _, isAuthenticated in
             handleAuthChange(isAuthenticated)
+            updateGradientColors() // Update gradient when authentication changes
         }
         .onChange(of: selectedDayOverride) { newValue in
             // Save the selected day override to Configuration
             Configuration.selectedDayOverride = newValue
             forceUpdate.toggle() // Force UI update
+            updateGradientColors() // Update gradient when selected day changes
             // When day changes, force update of calculations
             if timer == nil {
                 // If timer isn't active, create it temporarily
@@ -110,6 +132,7 @@ struct TodayView: View {
         .onChange(of: isHolidayMode) { newValue in
             Configuration.isHolidayMode = newValue
             forceUpdate.toggle() // Force UI update
+            updateGradientColors() // Update gradient when holiday mode changes
         }
         .onChange(of: holidayHasEndDate) { newValue in
             Configuration.holidayHasEndDate = newValue
@@ -117,24 +140,91 @@ struct TodayView: View {
         .onChange(of: holidayEndDate) { newValue in
             Configuration.holidayEndDate = newValue
         }
+        .onChange(of: colorScheme) { _ in
+            // Update gradient when color scheme changes
+            updateGradientColors()
+        }
         .id("todayView-\(sessionService.isAuthenticated)-\(forceUpdate)")
+        .environment(\.colorScheme, colorScheme)
+    }
+    
+    @Environment(\.colorScheme) private var colorScheme
+    
+    // MARK: - Gradient Methods
+    
+    // Update gradient colors based on the current state of the app
+    private func updateGradientColors() {
+        if isHolidayActive() {
+            // Orange/gold colors for holiday mode
+            gradientColors = ColorfulPreset.sunset.swiftUIColors
+            gradientSpeed = 0.3 // Slower for a relaxed holiday feel
+        } else if isCurrentDateWeekend() {
+            // Sunset colors for weekend
+            gradientColors = ColorfulPreset.sunset.swiftUIColors
+            gradientSpeed = 0.4 // Medium-slow for weekends
+        } else if !sessionService.isAuthenticated {
+            // Gentle blue for not signed in
+            gradientColors = ColorfulPreset.ocean.swiftUIColors
+            gradientSpeed = 0.5 // Standard speed
+        } else if let upcoming = upcomingClassInfo, upcoming.isForToday {
+            // Dynamic gradient based on subject color
+            let components = upcoming.classData.replacingOccurrences(of: "<br>", with: "\n")
+                .components(separatedBy: "\n")
+                .filter { !$0.isEmpty }
+            
+            if components.count > 1 {
+                let subjectColor = ClasstableView.getSubjectColor(from: components[1])
+                let darkerVariant = subjectColor.adjustBrightness(by: -0.2)
+                let lighterVariant = subjectColor.adjustBrightness(by: 0.2)
+                
+                gradientColors = [
+                    Color.white,
+                    lighterVariant,
+                    subjectColor,
+                    darkerVariant
+                ]
+                
+                // Faster for active classes
+                gradientSpeed = upcoming.period.isCurrentlyActive() ? 0.7 : 0.5
+            } else {
+                // Default to aurora if we can't determine the subject
+                gradientColors = ColorfulPreset.aurora.swiftUIColors
+                gradientSpeed = 0.5
+            }
+        } else {
+            // Default gradient
+            gradientColors = ColorfulPreset.sunset.swiftUIColors
+            gradientSpeed = 0.5
+        }
+        
+        // Adjust for dark mode
+        if colorScheme == .dark {
+            gradientNoise = 30.0 // Higher noise in dark mode
+        } else {
+            gradientNoise = 20.0 // Standard noise in light mode
+        }
     }
     
     private func customizeNavigationBarAppearance() {
-        let appearance = UINavigationBarAppearance()
-        appearance.configureWithOpaqueBackground() // Important for background customization
+        // Configure transparent appearance for expanded state
+        let transparentAppearance = UINavigationBarAppearance()
+        transparentAppearance.configureWithTransparentBackground()
+        transparentAppearance.backgroundColor = .clear
+        transparentAppearance.shadowColor = .clear
         
-        // Set the background color to secondarySystemBackground
-        appearance.backgroundColor = UIColor.secondarySystemBackground
+        // Configure solid appearance for collapsed state
+        let solidAppearance = UINavigationBarAppearance()
+        solidAppearance.configureWithDefaultBackground()
+        solidAppearance.backgroundColor = UIColor.secondarySystemBackground
+        solidAppearance.shadowColor = .clear // Still remove shadow if desired
         
-        // Remove the bottom border (shadow)
-        appearance.shadowColor = .clear  // Or set to nil if available in your iOS version
+        // Apply transparent appearance when title is large/expanded
+        UINavigationBar.appearance().scrollEdgeAppearance = transparentAppearance
         
-        // Apply the appearance to both standard and compact navigation bars
-        UINavigationBar.appearance().standardAppearance = appearance
-        UINavigationBar.appearance().compactAppearance = appearance
-        UINavigationBar.appearance().scrollEdgeAppearance = appearance // For iOS 15+
-        UINavigationBar.appearance().compactScrollEdgeAppearance = appearance // For iOS 15+
+        // Apply solid appearance when scrolled/collapsed
+        UINavigationBar.appearance().standardAppearance = solidAppearance
+        UINavigationBar.appearance().compactAppearance = solidAppearance
+        UINavigationBar.appearance().compactScrollEdgeAppearance = solidAppearance
     }
     
     // Save all settings on disappear
@@ -865,10 +955,20 @@ struct MainContentView: View {
             ZStack {
                 if isHolidayActive {
                     HolidayModeCard(hasEndDate: holidayHasEndDate, endDate: holidayEndDate)
-                        .transition(.opacity)
+                        .transition(
+                            .asymmetric(
+                                insertion: .opacity.combined(with: .scale(scale: 0.95)).animation(.spring(response: 0.5, dampingFraction: 0.7)),
+                                removal: .opacity.animation(.easeOut(duration: 0.2))
+                            )
+                        )
                 } else if isLoading { 
                     UpcomingClassSkeletonView()
-                        .transition(.opacity)
+                        .transition(
+                            .asymmetric(
+                                insertion: .opacity.animation(.easeIn(duration: 0.3)),
+                                removal: .opacity.animation(.easeOut(duration: 0.2))
+                            )
+                        )
                 } else if let upcoming = upcomingClassInfo {
                     EnhancedClassCard(
                         day: TodayViewHelpers.weekdayName(for: upcoming.dayIndex + 1),
@@ -881,13 +981,36 @@ struct MainContentView: View {
                         hasActiveActivity: activeClassLiveActivities["\(upcoming.period.number)_\(upcoming.classData)"] == true,
                         toggleLiveActivity: toggleLiveActivity
                     )
-                    .transition(.opacity)
+                    .transition(
+                        .asymmetric(
+                            insertion: .opacity.combined(with: .scale(scale: 0.97)).animation(.spring(response: 0.5, dampingFraction: 0.7)),
+                            removal: .opacity.animation(.easeOut(duration: 0.25))
+                        )
+                    )
                 } else if isCurrentDateWeekend {
                     WeekendCard()
-                        .transition(.opacity)
+                        .transition(
+                            .asymmetric(
+                                insertion: .opacity.combined(with: .scale(scale: 0.97)).animation(.spring(response: 0.5, dampingFraction: 0.7)),
+                                removal: .opacity.animation(.easeOut(duration: 0.25))
+                            )
+                        )
+                } else if areClassesOverForToday() {
+                    NoClassCard(isDimmed: true)
+                        .transition(
+                            .asymmetric(
+                                insertion: .opacity.combined(with: .scale(scale: 0.97)).animation(.spring(response: 0.5, dampingFraction: 0.7)),
+                                removal: .opacity.animation(.easeOut(duration: 0.25))
+                            )
+                        )
                 } else {
                     NoClassCard()
-                        .transition(.opacity)
+                        .transition(
+                            .asymmetric(
+                                insertion: .opacity.combined(with: .scale(scale: 0.97)).animation(.spring(response: 0.5, dampingFraction: 0.7)),
+                                removal: .opacity.animation(.easeOut(duration: 0.25))
+                            )
+                        )
                 }
             }
             .padding(.horizontal)
@@ -975,4 +1098,49 @@ struct MainContentView: View {
         }
         return !locationManager.isNearSchool()
     }
+    
+    // Method to check if all classes for today are over
+    private func areClassesOverForToday() -> Bool {
+        // Only check this for weekdays
+        guard !isCurrentDateWeekend, !isHolidayActive, effectiveDayIndex >= 0, effectiveDayIndex <= 4 else {
+            return false
+        }
+        
+        let now = Date()
+        
+        // Get the last period of the day
+        if let lastClassPeriod = ClassPeriodsManager.shared.classPeriods.last?.number,
+           let timetable = classtableViewModel.timetable.isEmpty ? nil : classtableViewModel.timetable,
+           !timetable.isEmpty {
+            // Check if there's any class data for this day
+            if effectiveDayIndex + 1 < timetable[min(lastClassPeriod, timetable.count - 1)].count {
+                // Check if we have any scheduled classes
+                let classes = getScheduledClassesForDay(effectiveDayIndex)
+                if !classes.isEmpty, let lastPeriodNumber = classes.map({ $0.0 }).max(),
+                   let lastPeriod = ClassPeriodsManager.shared.classPeriods.first(where: { $0.number == lastPeriodNumber }) {
+                    // If current time is after the end time of the last class, all classes are over
+                    return now > lastPeriod.endTime
+                }
+            }
+        }
+        
+        return false
+    }
+    
+    // Helper to get scheduled classes for a day
+    private func getScheduledClassesForDay(_ dayIndex: Int) -> [(Int, String)] {
+        var classes: [(Int, String)] = []
+        guard !classtableViewModel.timetable.isEmpty, dayIndex >= 0, dayIndex < 5 else { return classes }
+        
+        for row in 1..<classtableViewModel.timetable.count {
+            if row < classtableViewModel.timetable.count && dayIndex + 1 < classtableViewModel.timetable[row].count {
+                let classData = classtableViewModel.timetable[row][dayIndex + 1]
+                if !classData.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    classes.append((row, classData))
+                }
+            }
+        }
+        return classes
+    }
 }
+

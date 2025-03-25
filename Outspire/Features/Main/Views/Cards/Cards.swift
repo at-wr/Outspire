@@ -1,8 +1,75 @@
 import SwiftUI
 import CoreLocation
 
+// Create a reusable card background modifier for consistent style
+struct GlassmorphicCard: ViewModifier {
+    var isDimmed: Bool = false
+    @Environment(\.colorScheme) private var colorScheme
+    
+    func body(content: Content) -> some View {
+        content
+            .background(
+                ZStack {
+                    // Base blur layer
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(.ultraThinMaterial)
+                        .opacity(colorScheme == .dark ? 0.8 : 0.92)
+                    
+                    // Subtle gradient overlay for depth
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    Color.white.opacity(colorScheme == .dark ? 0.05 : 0.3),
+                                    Color.white.opacity(colorScheme == .dark ? 0.02 : 0.1)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .opacity(isDimmed ? 0.5 : 1.0)
+                    
+                    // Very subtle border - matched to EnhancedClassCard
+                    RoundedRectangle(cornerRadius: 16)
+                        .strokeBorder(
+                            LinearGradient(
+                                colors: [
+                                    Color.white.opacity(colorScheme == .dark ? 0.15 : 0.5),
+                                    Color.white.opacity(colorScheme == .dark ? 0.05 : 0.2)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 0.5
+                        )
+                        .opacity(isDimmed ? 0.5 : 1.0)
+                }
+                .shadow(
+                    color: Color.black.opacity(colorScheme == .dark ? 0.12 : 0.08),
+                    radius: 15,
+                    x: 0,
+                    y: 5
+                )
+            )
+            .opacity(isDimmed ? 0.85 : 1.0)
+    }
+}
+
+// Extension to apply the modifier easily
+extension View {
+    func glassmorphicCard(isDimmed: Bool = false) -> some View {
+        self.modifier(GlassmorphicCard(isDimmed: isDimmed))
+    }
+}
+
 // No upcoming class card
 struct NoClassCard: View {
+    let isDimmed: Bool
+    
+    init(isDimmed: Bool = false) {
+        self.isDimmed = isDimmed
+    }
+    
     var body: some View {
         VStack(spacing: 24) {
             Image(systemName: "checkmark.circle.fill")
@@ -25,11 +92,7 @@ struct NoClassCard: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 30)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color(UIColor.systemBackground))
-                .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
-        )
+        .glassmorphicCard(isDimmed: isDimmed)
     }
 }
 
@@ -57,11 +120,7 @@ struct WeekendCard: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 30)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color(UIColor.systemBackground))
-                .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
-        )
+        .glassmorphicCard()
     }
 }
 
@@ -106,11 +165,7 @@ struct HolidayModeCard: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 30)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color(UIColor.systemBackground))
-                .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
-        )
+        .glassmorphicCard()
     }
 }
 
@@ -161,11 +216,7 @@ struct SchoolInfoCard: View {
             }
         }
         .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color(UIColor.systemBackground))
-                .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
-        )
+        .glassmorphicCard()
         .onAppear {
             // Delay showing travel info to ensure smooth card animation
             withAnimation(.easeIn.delay(0.3)) {
@@ -181,6 +232,7 @@ struct DailyScheduleCard: View {
     let dayIndex: Int
     let maxClassesToShow: Int = 3
     @State private var isExpandedSchedule = false
+    @State private var isClassesOver: Bool = false
     
     // Convert dayIndex (0-4) to weekday (2-6, Monday-Friday)
     private var dayWeekday: Int { dayIndex + 2 }
@@ -237,6 +289,24 @@ struct DailyScheduleCard: View {
                 data: isSelfStudy ? "Class-Free\n\nSelf-Study" : classData,
                 isSelfStudy: isSelfStudy
             )
+        }
+    }
+    
+    // Add method to check if all classes for today are over
+    private func checkIfClassesOver() {
+        let now = Date()
+        // Check if it's a weekday
+        if dayIndex >= 0 && dayIndex <= 4 {
+            // Get all classes for today
+            let classes = scheduledClassesForToday
+            if !classes.isEmpty {
+                // Find the last class period
+                if let lastClassPeriod = classes.map({ $0.period }).max(),
+                   let lastPeriod = ClassPeriodsManager.shared.classPeriods.first(where: { $0.number == lastClassPeriod }) {
+                    // Check if current time is past the end time of the last class
+                    isClassesOver = now > lastPeriod.endTime
+                }
+            }
         }
     }
     
@@ -324,12 +394,15 @@ struct DailyScheduleCard: View {
             }
         }
         .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color(UIColor.systemBackground))
-                .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
-        )
+        .glassmorphicCard(isDimmed: isClassesOver)
         .animation(.easeInOut(duration: 0.3), value: scheduledClassesForToday)
+        .animation(.easeInOut(duration: 0.5), value: isClassesOver)
+        .onAppear {
+            checkIfClassesOver()
+        }
+        .onChange(of: dayIndex) { _ in
+            checkIfClassesOver()
+        }
     }
 }
 
@@ -435,11 +508,7 @@ struct SelfStudyPeriodCard: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 30)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color(UIColor.systemBackground))
-                .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
-        )
+        .glassmorphicCard()
     }
 }
 
@@ -491,10 +560,6 @@ struct LunchBreakCard: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 30)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color(UIColor.systemBackground))
-                .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
-        )
+        .glassmorphicCard()
     }
 }
