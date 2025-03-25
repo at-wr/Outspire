@@ -101,6 +101,12 @@ struct LunchMenuView: View {
                 }
             }) {
                 detailSheetContent
+                    .presentationDetents([.large, .medium])
+                    .presentationDragIndicator(.visible)
+                    .if(UIDevice.current.userInterfaceIdiom == .pad) { view in
+                        view.presentationDetents([.large])
+                            .presentationContentInteraction(.scrolls)
+                    }
             }
             .onChange(of: viewModel.pdfURL) { _, newURL in
                 withAnimation(.easeInOut(duration: 0.2)) {
@@ -223,9 +229,7 @@ struct LunchMenuView: View {
     private var detailSheetContent: some View {
         Group {
             if let pdfURL = viewModel.pdfURL {
-                QuickLookPreview(url: pdfURL)
-                    .edgesIgnoringSafeArea(.all)
-                    .ignoresSafeArea()
+                UnifiedPDFPreview(url: pdfURL, title: viewModel.selectedDetail?.title ?? "Menu Document")
             } else if viewModel.isLoadingDetail {
                 VStack(spacing: 16) {
                     ProgressView()
@@ -579,6 +583,3 @@ struct LunchMenuSkeletonView: View {
         }
     }
 }
-
-// I'm reusing the LoadingIndicator and RefreshButton from other views
-// so I'm not duplicating them here

@@ -78,7 +78,12 @@ struct SchoolArrangementView: View {
             )
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    LoadingIndicator(isLoading: viewModel.isLoading)
+                    if viewModel.isLoadingDetail {
+                        ProgressView()
+                            .controlSize(.small)
+                    } else {
+                        LoadingIndicator(isLoading: viewModel.isLoading)
+                    }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     RefreshButton(isLoading: viewModel.isLoading, rotation: $refreshButtonRotation, action: {
@@ -101,12 +106,13 @@ struct SchoolArrangementView: View {
                     }
                 }
             }) {
-                DetailSheetContentView(
-                    pdfURL: viewModel.pdfURL,
-                    isLoadingDetail: viewModel.isLoadingDetail,
-                    showDetailSheet: $showDetailSheet,
-                    errorMessage: $viewModel.errorMessage
-                )
+                detailSheetContent
+                    .presentationDetents([.large, .medium])
+                    .presentationDragIndicator(.visible)
+                    .if(UIDevice.current.userInterfaceIdiom == .pad) { view in
+                        view.presentationDetents([.large])
+                            .presentationContentInteraction(.scrolls)
+                    }
             }
             .onChange(of: viewModel.pdfURL) { _, newURL in
                 withAnimation(.easeInOut(duration: 0.2)) {
@@ -214,6 +220,67 @@ struct SchoolArrangementView: View {
         // Clear the error message after showing toast
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             viewModel.errorMessage = nil
+        }
+    }
+    
+    // Add the detail sheet content
+    private var detailSheetContent: some View {
+        Group {
+            if let pdfURL = viewModel.pdfURL {
+                UnifiedPDFPreview(url: pdfURL, title: viewModel.selectedDetail?.title ?? "Document")
+            } else if viewModel.isLoadingDetail {
+                VStack(spacing: 16) {
+                    ProgressView()
+                        .controlSize(.large)
+                    Text("Preparing document...")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .padding(.top)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                VStack(spacing: 20) {
+                    Image(systemName: "exclamationmark.triangle")
+                        .font(.system(size: 40))
+                        .foregroundStyle(.secondary)
+                    
+                    Text("Content Unavailable")
+                        .font(.headline)
+                    
+                    Text("Unable to load the document content")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal)
+                    
+                    Button("Dismiss") {
+                        showDetailSheet = false
+                    }
+                    .padding(.top, 10)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .onAppear {
+                    // Auto-dismiss if no data loaded after a timeout
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                        if viewModel.pdfURL == nil && !viewModel.isLoadingDetail {
+                            showDetailSheet = false
+                            viewModel.errorMessage = "Failed to load content"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Helper extension for conditional modifiers
+extension View {
+    @ViewBuilder
+    func `if`<Content: View>(_ condition: Bool, transform: (Self) -> Content) -> some View {
+        if condition {
+            transform(self)
+        } else {
+            self
         }
     }
 }

@@ -121,6 +121,7 @@ class SchoolArrangementViewModel: ObservableObject {
         isLoadingDetail = true
         errorMessage = nil
         selectedDetail = nil
+        pdfURL = nil  // Reset PDF URL
         
         // Sanitize URL - handle cases where the URL might contain spaces or invalid characters
         let urlString = "\(baseURL)\(item.url)"
@@ -703,9 +704,13 @@ class SchoolArrangementViewModel: ObservableObject {
             print("DEBUG: PDF saved to: \(fileURL.path)")
             
             DispatchQueue.main.async {
-                self.isLoadingDetail = false
                 self.selectedDetail = detail
-                self.pdfURL = fileURL
+                
+                // Short delay to ensure UI loading indicator is visible
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    self.pdfURL = fileURL
+                    self.isLoadingDetail = false
+                }
             }
         } catch {
             print("DEBUG: Failed to save PDF: \(error)")
