@@ -1,5 +1,6 @@
 import SwiftUI
 import TipKit
+import ColorfulX
 
 // Define the tip for the main navigation
 struct NavigationTip: Tip {
@@ -48,16 +49,17 @@ struct TodayTip: Tip {
 
 struct NavSplitView: View {
     @EnvironmentObject var sessionService: SessionService
-    @EnvironmentObject var settingsManager: SettingsManager // Add environment object
-    @EnvironmentObject var urlSchemeHandler: URLSchemeHandler // Add this line
+    @EnvironmentObject var settingsManager: SettingsManager
+    @EnvironmentObject var urlSchemeHandler: URLSchemeHandler
+    @EnvironmentObject var gradientManager: GradientManager // Add gradient manager
     @State private var selectedLink: String? = "today"
-    // Remove the local showSettingsSheet state and use the one from settingsManager
     @State private var refreshID = UUID()
     @State private var showOnboardingSheet = false
     @State private var hasCheckedOnboarding = false
     @AppStorage("lastVersionRun") private var lastVersionRun: String?
     @State private var shouldShowTip = false
     @State private var onboardingCompleted = false
+    @Environment(\.colorScheme) private var colorScheme // Add colorScheme
     
     // Initialize the tips
     @State private var navigationTip = NavigationTip()
@@ -66,79 +68,98 @@ struct NavSplitView: View {
     
     var body: some View {
         NavigationSplitView {
-            List(selection: $selectedLink) {
-                NavigationLink(value: "today") {
-                    Label("Today", systemImage: "text.rectangle.page")
-                        .tipKit(todayTip, shouldShowTip: shouldShowTip)
-                }
+            ZStack {
+                // Add ColorfulX as background
+                ColorfulView(
+                    color: $gradientManager.gradientColors,
+                    speed: $gradientManager.gradientSpeed,
+                    noise: $gradientManager.gradientNoise,
+                    transitionSpeed: $gradientManager.gradientTransitionSpeed
+                )
+                .ignoresSafeArea()
+                .opacity(colorScheme == .dark ? 0.15 : 0.3) // Reduce opacity more in dark mode
                 
-                NavigationLink(value: "classtable") {
-                    Label("Classtable", systemImage: "clock.badge.questionmark")
-                }
+                // Semi-transparent background for better contrast
+                Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
+                    .ignoresSafeArea()
                 
-                if !Configuration.hideAcademicScore {
-                    NavigationLink(value: "score") {
-                        Label("Academic Grades", systemImage: "pencil.and.list.clipboard")
+                // Existing list content with better background
+                List(selection: $selectedLink) {
+                    NavigationLink(value: "today") {
+                        Label("Today", systemImage: "text.rectangle.page")
+                            .tipKit(todayTip, shouldShowTip: shouldShowTip)
                     }
-                }
-                
-                Section {
-                    NavigationLink(value: "club-info") {
-                        Label("Hall of Clubs", systemImage: "person.2.circle")
+                    
+                    NavigationLink(value: "classtable") {
+                        Label("Classtable", systemImage: "clock.badge.questionmark")
                     }
-                    NavigationLink(value: "club-activity") {
-                        Label("Activity Records", systemImage: "checklist")
+                    
+                    if !Configuration.hideAcademicScore {
+                        NavigationLink(value: "score") {
+                            Label("Academic Grades", systemImage: "pencil.and.list.clipboard")
+                        }
                     }
-                } header: {
-                    Text("Activities")
-                }
-                
-                Section {
-                    NavigationLink(value: "map") {
-                        Label("Campus Map", systemImage: "map")
+                    
+                    Section {
+                        NavigationLink(value: "club-info") {
+                            Label("Hall of Clubs", systemImage: "person.2.circle")
+                        }
+                        NavigationLink(value: "club-activity") {
+                            Label("Activity Records", systemImage: "checklist")
+                        }
+                    } header: {
+                        Text("Activities")
                     }
-                    NavigationLink(value: "school-arrangement") {
-                        Label("School Arrangements", systemImage: "calendar.badge.clock")
-                    }
-                    NavigationLink(value: "lunch-menu") {
-                        Label("Dining Menus", systemImage: "fork.knife")
-                    }
+                    
+                    Section {
+                        NavigationLink(value: "map") {
+                            Label("Campus Map", systemImage: "map")
+                        }
+                        NavigationLink(value: "school-arrangement") {
+                            Label("School Arrangements", systemImage: "calendar.badge.clock")
+                        }
+                        NavigationLink(value: "lunch-menu") {
+                            Label("Dining Menus", systemImage: "fork.knife")
+                        }
 #if DEBUG
-                    NavigationLink(value: "help") {
-                        Label("Help", systemImage: "questionmark.circle.dashed")
-                    }
+                        NavigationLink(value: "help") {
+                            Label("Help", systemImage: "questionmark.circle.dashed")
+                        }
 #endif
-                } header: {
-                    Text("Miscellaneous")
+                    } header: {
+                        Text("Miscellaneous")
+                    }
                 }
-            }
+                .scrollContentBackground(.hidden) // Hide the default List background
+                .background(Color.clear) // Make the background transparent
 #if targetEnvironment(macCatalyst)
-            .navigationSplitViewColumnWidth(min: 100, ideal: 200, max: 300)
+                .navigationSplitViewColumnWidth(min: 100, ideal: 200, max: 300)
 #endif
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: {
-                        settingsManager.showSettingsSheet.toggle()
-                    }) {
-                        Image(systemName: "gear")
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button(action: {
+                            settingsManager.showSettingsSheet.toggle()
+                        }) {
+                            Image(systemName: "gear")
+                        }
+                        .tipKit(settingsTip, shouldShowTip: shouldShowTip)
                     }
-                    .tipKit(settingsTip, shouldShowTip: shouldShowTip)
                 }
-            }
-            .navigationTitle("Outspire")
-            .toolbarBackground(Color(UIColor.secondarySystemBackground))
-            .contentMargins(.vertical, 10)
-            .sheet(isPresented: $settingsManager.showSettingsSheet) {
-                SettingsView(showSettingsSheet: $settingsManager.showSettingsSheet)
-                    .onDisappear {
-                        refreshID = UUID()
-                    }
-            }
-            .sheet(isPresented: $showOnboardingSheet) {
-                OnboardingView(isPresented: $showOnboardingSheet)
-                    .onDisappear {
-                        checkOnboardingStatus()
-                    }
+                .navigationTitle("Outspire")
+                .toolbarBackground(Color(UIColor.secondarySystemBackground))
+                .contentMargins(.vertical, 10)
+                .sheet(isPresented: $settingsManager.showSettingsSheet) {
+                    SettingsView(showSettingsSheet: $settingsManager.showSettingsSheet)
+                        .onDisappear {
+                            refreshID = UUID()
+                        }
+                }
+                .sheet(isPresented: $showOnboardingSheet) {
+                    OnboardingView(isPresented: $showOnboardingSheet)
+                        .onDisappear {
+                            checkOnboardingStatus()
+                        }
+                }
             }
         } detail: {
             detailView
@@ -173,6 +194,14 @@ struct NavSplitView: View {
         .id(refreshID)
         .task {
             await configureTipsAndCheckOnboarding()
+        }
+        .onChange(of: selectedLink) { _, newLink in
+            // Update gradient when the selected view changes
+            updateGradientForSelectedLink(newLink)
+        }
+        .onAppear {
+            // Initialize gradient based on current view
+            updateGradientForSelectedLink(selectedLink)
         }
     }
     
@@ -263,6 +292,21 @@ struct NavSplitView: View {
         await navigationTip.invalidate(reason: .tipClosed)
         await settingsTip.invalidate(reason: .tipClosed)
         await todayTip.invalidate(reason: .tipClosed)
+    }
+    
+    // Add method to update gradient based on selected link
+    private func updateGradientForSelectedLink(_ link: String?) {
+        // Default to basic gradient for non-today views
+        if link != "today" {
+            let isWeekend = TodayViewHelpers.isCurrentDateWeekend()
+            gradientManager.updateGradientForContext(
+                isAuthenticated: sessionService.isAuthenticated,
+                isHolidayMode: Configuration.isHolidayMode,
+                isWeekend: isWeekend,
+                colorScheme: colorScheme
+            )
+        }
+        // TodayView will handle its own gradient updates
     }
 }
 

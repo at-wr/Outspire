@@ -19,6 +19,9 @@ struct OutspireApp: App {
     // Add settings manager
     @StateObject private var settingsManager = SettingsManager()
     
+    // Add gradient manager
+    @StateObject private var gradientManager = GradientManager()
+    
     // Add observer for widget data updates
     @StateObject private var widgetDataManager = WidgetDataManager()
     
@@ -56,6 +59,7 @@ struct OutspireApp: App {
                 .environmentObject(notificationManager)
                 .environmentObject(settingsManager) // Add settings manager
                 .environmentObject(urlSchemeHandler) // Add URL scheme handler
+                .environmentObject(gradientManager) // Add gradient manager to environment
                 .installToast(position: .top)
                 .environmentObject(widgetDataManager)
                 .onAppear {

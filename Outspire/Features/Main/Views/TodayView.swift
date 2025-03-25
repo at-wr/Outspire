@@ -13,6 +13,7 @@ struct TodayView: View {
     @ObservedObject private var regionChecker = RegionChecker.shared
     // Add URL scheme handler environment object
     @EnvironmentObject var urlSchemeHandler: URLSchemeHandler
+    @EnvironmentObject var gradientManager: GradientManager // Add gradient manager
     
     @State private var currentTime = Date()
     @State private var timer: Timer?
@@ -33,21 +34,17 @@ struct TodayView: View {
     // Add this state variable to track returning from sheets
     @State private var isReturningFromSheet = false
     
-    // ColorfulX states
-    @State private var gradientColors: [Color] = ColorfulPreset.aurora.swiftUIColors
-    @State private var gradientSpeed: Double = 0.5 // Medium speed for animation
-    @State private var gradientNoise: Double = 20.0 // Moderate noise level
-    @State private var gradientTransitionSpeed: Double = 1.0 // Standard transition speed
+    @Environment(\.colorScheme) private var colorScheme
     
     // MARK: - Body
     var body: some View {
         ZStack {
-            // Use ColorfulX as background
+            // Use the shared ColorfulX view
             ColorfulView(
-                color: $gradientColors,
-                speed: $gradientSpeed,
-                noise: $gradientNoise,
-                transitionSpeed: $gradientTransitionSpeed
+                color: $gradientManager.gradientColors,
+                speed: $gradientManager.gradientSpeed,
+                noise: $gradientManager.gradientNoise,
+                transitionSpeed: $gradientManager.gradientTransitionSpeed
             )
             .ignoresSafeArea()
             .opacity(0.3) // Reduce opacity to make content readable
@@ -87,7 +84,7 @@ struct TodayView: View {
         .onAppear {
             setupOnAppear()
             customizeNavigationBarAppearance()
-            updateGradientColors()
+            updateGradientColors() // Still call this to update shared gradient
             
             // Check for URL scheme navigation to today view
             if urlSchemeHandler.navigateToToday {
@@ -148,61 +145,21 @@ struct TodayView: View {
         .environment(\.colorScheme, colorScheme)
     }
     
-    @Environment(\.colorScheme) private var colorScheme
-    
     // MARK: - Gradient Methods
     
     // Update gradient colors based on the current state of the app
     private func updateGradientColors() {
-        if isHolidayActive() {
-            // Orange/gold colors for holiday mode
-            gradientColors = ColorfulPreset.sunset.swiftUIColors
-            gradientSpeed = 0.3 // Slower for a relaxed holiday feel
-        } else if isCurrentDateWeekend() {
-            // Sunset colors for weekend
-            gradientColors = ColorfulPreset.sunset.swiftUIColors
-            gradientSpeed = 0.4 // Medium-slow for weekends
-        } else if !sessionService.isAuthenticated {
-            // Gentle blue for not signed in
-            gradientColors = ColorfulPreset.ocean.swiftUIColors
-            gradientSpeed = 0.5 // Standard speed
-        } else if let upcoming = upcomingClassInfo, upcoming.isForToday {
-            // Dynamic gradient based on subject color
-            let components = upcoming.classData.replacingOccurrences(of: "<br>", with: "\n")
-                .components(separatedBy: "\n")
-                .filter { !$0.isEmpty }
-            
-            if components.count > 1 {
-                let subjectColor = ClasstableView.getSubjectColor(from: components[1])
-                let darkerVariant = subjectColor.adjustBrightness(by: -0.2)
-                let lighterVariant = subjectColor.adjustBrightness(by: 0.2)
-                
-                gradientColors = [
-                    Color.white,
-                    lighterVariant,
-                    subjectColor,
-                    darkerVariant
-                ]
-                
-                // Faster for active classes
-                gradientSpeed = upcoming.period.isCurrentlyActive() ? 0.7 : 0.5
-            } else {
-                // Default to aurora if we can't determine the subject
-                gradientColors = ColorfulPreset.aurora.swiftUIColors
-                gradientSpeed = 0.5
-            }
-        } else {
-            // Default gradient
-            gradientColors = ColorfulPreset.sunset.swiftUIColors
-            gradientSpeed = 0.5
-        }
-        
-        // Adjust for dark mode
-        if colorScheme == .dark {
-            gradientNoise = 30.0 // Higher noise in dark mode
-        } else {
-            gradientNoise = 20.0 // Standard noise in light mode
-        }
+        // Use the helper method from GradientManager
+        gradientManager.updateGradientForContext(
+            isAuthenticated: sessionService.isAuthenticated,
+            isHolidayMode: isHolidayActive(),
+            isWeekend: isCurrentDateWeekend(), 
+            upcomingClass: upcomingClassInfo.map { upcoming in 
+                (classData: upcoming.classData, 
+                 isActive: upcoming.period.isCurrentlyActive())
+            },
+            colorScheme: colorScheme
+        )
     }
     
     private func customizeNavigationBarAppearance() {
