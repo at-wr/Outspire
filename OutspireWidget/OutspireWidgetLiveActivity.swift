@@ -5,11 +5,12 @@
 //  Created by Alan Ye on 3/17/25.
 //
 
-import ActivityKit
 import WidgetKit
 import SwiftUI
 
 #if !targetEnvironment(macCatalyst)
+import ActivityKit
+
 // ClassActivityAttributes remains unchanged
 struct ClassActivityAttributes: ActivityAttributes {
     public struct ContentState: Codable, Hashable {

@@ -70,6 +70,7 @@ struct NavSplitView: View {
         NavigationSplitView {
             ZStack {
                 // Add ColorfulX as background
+#if !targetEnvironment(macCatalyst)
                 ColorfulView(
                     color: $gradientManager.gradientColors,
                     speed: $gradientManager.gradientSpeed,
@@ -82,6 +83,7 @@ struct NavSplitView: View {
                 // Semi-transparent background for better contrast
                 Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
                     .ignoresSafeArea()
+#endif
                 
                 // Existing list content with better background
                 List(selection: $selectedLink) {
@@ -132,9 +134,7 @@ struct NavSplitView: View {
                 }
                 .scrollContentBackground(.hidden) // Hide the default List background
                 .background(Color.clear) // Make the background transparent
-#if targetEnvironment(macCatalyst)
-                .navigationSplitViewColumnWidth(min: 100, ideal: 200, max: 300)
-#endif
+                .modifier(NavigationColumnWidthModifier()) // Apply column width correctly
                 .toolbar {
                     ToolbarItem(placement: .navigationBarTrailing) {
                         Button(action: {
@@ -307,6 +307,42 @@ struct NavSplitView: View {
             )
         }
         // TodayView will handle its own gradient updates
+    }
+}
+
+// MARK: - Navigation Column Width Modifier
+struct NavigationColumnWidthModifier: ViewModifier {
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    
+    func body(content: Content) -> some View {
+        #if targetEnvironment(macCatalyst)
+        // Use NavigationSplitViewVisibility instead of width for more consistent behavior
+        content
+            .navigationSplitViewColumnWidth(min: 180, ideal: 220, max: 300)
+            .onAppear {
+                // Apply AppKit-specific customizations for Mac Catalyst
+                if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
+                    windowScene.titlebar?.titleVisibility = .visible
+                    windowScene.titlebar?.toolbar?.isVisible = true
+                    
+                    // Override Mac Catalyst settings for better appearance
+                    let sidebarAppearance = UINavigationBar.appearance(whenContainedInInstancesOf: [UISplitViewController.self])
+                    sidebarAppearance.scrollEdgeAppearance = UINavigationBarAppearance()
+                    sidebarAppearance.compactAppearance = UINavigationBarAppearance()
+                    sidebarAppearance.standardAppearance = UINavigationBarAppearance()
+                    
+                    // Set sidebar background to clear
+                    UITableView.appearance().backgroundColor = .clear
+                }
+            }
+        #else
+        // On iOS/iPadOS, use regular settings
+        content
+            .if(horizontalSizeClass == .regular) { view in
+                // Only on iPad, set default width
+                view.navigationSplitViewColumnWidth(250)
+            }
+        #endif
     }
 }
 

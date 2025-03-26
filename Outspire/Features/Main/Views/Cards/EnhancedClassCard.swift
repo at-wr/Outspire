@@ -45,6 +45,37 @@ struct EnhancedClassCard: View {
         }
     }
     
+    // Improved version of statusTextColor with better contrast
+    private var statusTextColor: Color {
+        if colorScheme == .dark {
+            // For dark mode, use a more subtle but still readable color
+            return Color.white.opacity(0.9)
+        } else {
+            // For light mode, use the theme color with slight adjustment
+            return statusColor.adjustBrightness(by: -0.1)
+        }
+    }
+    
+    // Better background color for status items in dark mode
+    private var statusBackgroundColor: Color {
+        if colorScheme == .dark {
+            // Subtle dark background that doesn't compete with text
+            return Color.black.opacity(0.3)
+        } else {
+            return statusColor.opacity(0.15)
+        }
+    }
+    
+    // Add a stronger outline color for text
+    private var textOutlineColor: Color {
+        colorScheme == .dark ? Color.black.opacity(0.5) : Color.white.opacity(0.5)
+    }
+    
+    // Define a new color for secondary text that has better contrast
+    private var secondaryTextColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.7) : Color.black.opacity(0.65)
+    }
+    
     private var formattedCountdown: String {
         if isTimeComplete {
             return "00:00" // Only show zeros when we've confirmed time is complete
@@ -73,27 +104,31 @@ struct EnhancedClassCard: View {
                     if isForToday {
                         Text(isCurrentClass ? "Current Class" : "Upcoming Class")
                             .font(.headline)
-                            .foregroundStyle(statusColor)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(statusTextColor)
                     } else {
                         Text("Scheduled Class")
                             .font(.headline)
-                            .foregroundStyle(statusColor)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(statusTextColor)
                     }
                     
                     Text("\(day) • Period \(period.number)")
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(secondaryTextColor)
                 }
                 
                 Spacer()
                 
                 Text(period.timeRangeFormatted)
                     .font(.subheadline)
+                    .fontWeight(.medium)
                     .padding(8)
                     .background(
                         RoundedRectangle(cornerRadius: 8)
-                            .fill(statusColor.opacity(0.1))
+                            .fill(statusBackgroundColor)
                     )
+                    .foregroundStyle(statusTextColor)
             }
             .padding([.horizontal, .top], 16)
             
@@ -110,7 +145,7 @@ struct EnhancedClassCard: View {
                                 .lineLimit(1)
                         } icon: {
                             Image(systemName: "person.fill")
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(secondaryTextColor)
                         }
                         .font(.subheadline)
                         
@@ -120,12 +155,12 @@ struct EnhancedClassCard: View {
                                     .lineLimit(1)
                             } icon: {
                                 Image(systemName: "mappin.circle.fill")
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(secondaryTextColor)
                             }
                             .font(.subheadline)
                         }
                     }
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(secondaryTextColor)
                 }
             }
             .padding(.horizontal, 16)
@@ -140,27 +175,30 @@ struct EnhancedClassCard: View {
                     
                     HStack(alignment: .center, spacing: 0) {
                         HStack(spacing: 12) {
-                            Image(systemName: isCurrentClass ? "timer" : "hourglass")
-                                .font(.system(size: 18, weight: .medium))
-                                .foregroundStyle(statusColor)
-                                .frame(width: 36, height: 36)
-                                .background(
-                                    Circle()
-                                        .fill(statusColor.opacity(0.1))
-                                )
+                            // Timer icon with improved visibility
+                            ZStack {
+                                Circle()
+                                    .fill(statusBackgroundColor)
+                                    .frame(width: 36, height: 36)
+                                
+                                Image(systemName: isCurrentClass ? "timer" : "hourglass")
+                                    .font(.system(size: 18, weight: .medium))
+                                    .foregroundStyle(statusTextColor)
+                            }
                             
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(isCurrentClass ? "Class ends in" : "Class starts in")
                                     .font(.caption)
-                                    .foregroundStyle(.secondary)
+                                    .fontWeight(.medium)
+                                    .foregroundStyle(secondaryTextColor)
                                 
                                 Text(formattedCountdown)
                                     .font(.system(.title3, design: .rounded))
-                                    .fontWeight(.semibold)
-                                    .foregroundStyle(statusColor)
+                                    .fontWeight(.bold)
+                                    .foregroundStyle(statusTextColor)
                                     .monospacedDigit()
-                                    .fixedSize(horizontal: true, vertical: false) // Prevent horizontal resizing
-                                    .frame(minWidth: 80, alignment: .leading) // Ensures consistent minimum width
+                                    .fixedSize(horizontal: true, vertical: false)
+                                    .frame(minWidth: 80, alignment: .leading)
                                     .contentTransition(.numericText())
                                     .transaction { t in
                                         t.animation = .default
@@ -179,7 +217,7 @@ struct EnhancedClassCard: View {
                     }
                     .padding(.vertical, 10)
 #if !targetEnvironment(macCatalyst)
-                    // Live Activity toggle button
+                    // Live Activity toggle button with better contrast
                     if (isForToday || setAsToday) && toggleLiveActivity != nil {
                         Divider()
                             .padding(.horizontal, 16)
@@ -192,15 +230,24 @@ struct EnhancedClassCard: View {
                             HStack {
                                 Image(systemName: hasActiveActivity ? "pause.circle" : "play.circle")
                                     .font(.caption)
+                                    .imageScale(.medium)
+                                
                                 Text(hasActiveActivity ? "Stop Live Activity" : "Start Live Activity")
-                                    .font(.caption)
+                                    .font(.callout)
+                                    .fontWeight(.medium)
                             }
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 3)
-                            .foregroundStyle(statusColor)
+                            .padding(.vertical, 6)
+                            .foregroundStyle(colorScheme == .dark ? .white : statusTextColor)
+                            .background(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(colorScheme == .dark ? 
+                                          Color.black.opacity(0.3) : 
+                                          statusBackgroundColor.opacity(0.7))
+                            )
                             .contentShape(Rectangle())
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(BorderlessButtonStyle())
                         .padding(.horizontal, 16)
                         .padding(.top, 4)
                         .padding(.bottom, 12)
@@ -280,7 +327,7 @@ struct EnhancedClassCard: View {
                     if let nextPeriod = findNextPeriodToday(after: period, on: effectiveDate!) {
                         let nextStartTime = createAdjustedTime(from: nextPeriod.startTime, onDate: effectiveDate!)
                         // Use isTransitioning state to prevent flickering during transition
-                        if !isTransitioning {
+                        if (!isTransitioning) {
                             isTransitioning = true
                             
                             // Slight delay before transitioning to next period
@@ -336,7 +383,7 @@ struct EnhancedClassCard: View {
                     // Find the next class period
                     if let nextPeriod = findNextPeriodToday(after: period, on: now) {
                         // Use isTransitioning state to prevent flickering during transition
-                        if !isTransitioning {
+                        if (!isTransitioning) {
                             isTransitioning = true
                             
                             // Slight delay before transitioning to next period
@@ -453,13 +500,24 @@ struct EnhancedClassCard: View {
 // Circular progress view component
 private struct EnhancedCircularProgressView: View {
     let progress: Double
+    @Environment(\.colorScheme) private var colorScheme
+    
+    // Better progress color for dark mode
+    private var progressColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.8) : Color.orange
+    }
+    
+    // Better background color for the progress ring
+    private var progressBackgroundColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.2) : Color.gray.opacity(0.25)
+    }
     
     var body: some View {
         ZStack {
             // Background circle
             Circle()
                 .stroke(
-                    Color.gray.opacity(0.2),
+                    progressBackgroundColor,
                     lineWidth: 4
                 )
             
@@ -467,20 +525,20 @@ private struct EnhancedCircularProgressView: View {
             Circle()
                 .trim(from: 0, to: CGFloat(progress))
                 .stroke(
-                    Color.orange,
+                    progressColor,
                     style: StrokeStyle(
                         lineWidth: 4,
                         lineCap: .round
                     )
                 )
-                .rotationEffect(.degrees(-90)) // Start from the top
+                .rotationEffect(.degrees(-90))
                 .animation(.linear(duration: 0.1), value: progress)
             
-            // Percentage text
+            // Percentage text with better contrast
             Text("\(Int(progress * 100))%")
                 .font(.system(.caption2, design: .rounded))
                 .fontWeight(.bold)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(colorScheme == .dark ? .white.opacity(0.8) : .secondary)
         }
     }
 }

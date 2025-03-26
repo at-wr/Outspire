@@ -1,7 +1,8 @@
 import Foundation
-import ActivityKit
 
 #if !targetEnvironment(macCatalyst)
+import ActivityKit
+
 struct ClassActivityAttributes: ActivityAttributes {
     public struct ContentState: Codable, Hashable {
         // Dynamic content that can change during updates

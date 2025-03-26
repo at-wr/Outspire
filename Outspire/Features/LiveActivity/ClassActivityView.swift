@@ -1,8 +1,9 @@
-import SwiftUI
-import ActivityKit
+import SwiftUI  
 import WidgetKit
 
 #if !targetEnvironment(macCatalyst)
+import ActivityKit
+
 struct ClassActivityLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: ClassActivityAttributes.self) { context in

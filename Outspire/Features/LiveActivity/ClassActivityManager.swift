@@ -1,8 +1,9 @@
 import Foundation
-import ActivityKit
 import SwiftUI
 
 #if !targetEnvironment(macCatalyst)
+import ActivityKit
+
 class ClassActivityManager {
     static let shared = ClassActivityManager()
     

@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		6E2C3F2F2D8AC7EF005C01E6 /* ActivityKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6E2C3F2E2D8AC7EF005C01E6 /* ActivityKit.framework */; };
+		6E2C3F2F2D8AC7EF005C01E6 /* ActivityKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6E2C3F2E2D8AC7EF005C01E6 /* ActivityKit.framework */; platformFilter = ios; settings = {ATTRIBUTES = (Weak, ); }; };
 		6E3C2DC52D92D7E300C2EEF3 /* ColorfulX in Frameworks */ = {isa = PBXBuildFile; productRef = 6E3C2DC42D92D7E300C2EEF3 /* ColorfulX */; };
 		6E4BCC772D87E12B00C10AEA /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6E4BCC762D87E12B00C10AEA /* WidgetKit.framework */; };
 		6E4BCC792D87E12B00C10AEA /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6E4BCC782D87E12B00C10AEA /* SwiftUI.framework */; };
@@ -434,7 +434,7 @@
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
 				CODE_SIGN_ENTITLEMENTS = OutspireWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 33;
+				CURRENT_PROJECT_VERSION = 40;
 				DEVELOPMENT_TEAM = T2KTTT65L2;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = OutspireWidget/Info.plist;
@@ -467,7 +467,7 @@
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
 				CODE_SIGN_ENTITLEMENTS = OutspireWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 33;
+				CURRENT_PROJECT_VERSION = 40;
 				DEVELOPMENT_TEAM = T2KTTT65L2;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = OutspireWidget/Info.plist;
@@ -618,7 +618,7 @@
 				CODE_SIGN_ENTITLEMENTS = Outspire/Outspire.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 33;
+				CURRENT_PROJECT_VERSION = 40;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Outspire/Preview Content\"";
 				DEVELOPMENT_TEAM = T2KTTT65L2;
@@ -675,7 +675,7 @@
 				CODE_SIGN_ENTITLEMENTS = Outspire/Outspire.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 33;
+				CURRENT_PROJECT_VERSION = 40;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Outspire/Preview Content\"";
 				DEVELOPMENT_TEAM = T2KTTT65L2;
@@ -729,7 +729,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 33;
+				CURRENT_PROJECT_VERSION = 40;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = T2KTTT65L2;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -754,7 +754,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 33;
+				CURRENT_PROJECT_VERSION = 40;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = T2KTTT65L2;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -778,7 +778,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 33;
+				CURRENT_PROJECT_VERSION = 40;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = T2KTTT65L2;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -802,7 +802,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 33;
+				CURRENT_PROJECT_VERSION = 40;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = T2KTTT65L2;
 				GENERATE_INFOPLIST_FILE = YES;

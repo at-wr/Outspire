@@ -1,7 +1,8 @@
 import Foundation
-import ActivityKit
 
 #if !targetEnvironment(macCatalyst)
+import ActivityKit
+
 extension ClassActivityManager {
     
     // Convenience method to handle class transitions
