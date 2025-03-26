@@ -302,33 +302,31 @@ struct NavSplitView: View {
             return
         }
         
-        // Use consistent view-specific gradients
-        switch link {
-        case "today":
-            // Today view handles its own gradient based on context
+        // For Today view, we need to check the actual context
+        if link == "today" {
+            // Today view handles context-specific gradients in its own view
             let isWeekend = TodayViewHelpers.isCurrentDateWeekend()
-            (gradientManager as GradientManager).updateGradientForContext(
-                isAuthenticated: sessionService.isAuthenticated,
-                isHolidayMode: Configuration.isHolidayMode,
-                isWeekend: isWeekend,
-                colorScheme: colorScheme
-            )
-        case "classtable":
-            gradientManager.updateGradientForView(.classtable, colorScheme: colorScheme)
-        case "score":
-            gradientManager.updateGradientForView(.score, colorScheme: colorScheme)
-        case "club-info":
-            gradientManager.updateGradientForView(.clubInfo, colorScheme: colorScheme)
-        case "club-activity":
-            gradientManager.updateGradientForView(.clubActivities, colorScheme: colorScheme)
-        case "school-arrangement":
-            gradientManager.updateGradientForView(.schoolArrangements, colorScheme: colorScheme)
-        case "lunch-menu":
-            gradientManager.updateGradientForView(.lunchMenu, colorScheme: colorScheme)
-        case "map":
-            gradientManager.updateGradientForView(.map, colorScheme: colorScheme)
-        default:
-            gradientManager.updateGradientForView(.today, colorScheme: colorScheme)
+            let isHoliday = Configuration.isHolidayMode
+            
+            if !sessionService.isAuthenticated {
+                gradientManager.updateGradientForContext(context: .notSignedIn, colorScheme: colorScheme)
+            } else if isHoliday {
+                gradientManager.updateGradientForContext(context: .holiday, colorScheme: colorScheme)
+            } else if isWeekend {
+                gradientManager.updateGradientForContext(context: .weekend, colorScheme: colorScheme)
+            } else {
+                // Let the Today view handle this in its own onAppear
+                gradientManager.updateGradientForContext(context: .normal, colorScheme: colorScheme)
+            }
+        } else {
+            // For other views, check if we have an active context
+            if gradientManager.currentContext.isSpecialContext {
+                // Keep the current context colors but update animation settings
+                gradientManager.updateGradientForView(ViewType(fromLink: link) ?? .today, colorScheme: colorScheme)
+            } else {
+                // No special context, use regular view settings
+                gradientManager.updateGradientForView(ViewType(fromLink: link) ?? .today, colorScheme: colorScheme)
+            }
         }
     }
 }

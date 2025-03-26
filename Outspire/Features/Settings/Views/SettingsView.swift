@@ -10,11 +10,13 @@ struct SettingsView: View {
     enum SettingsMenu: String, Hashable, CaseIterable {
         case account
         case general
+        case gradients
 #if DEBUG
         case export
 #endif
         case about
         case license
+
     }
     
     var body: some View {
@@ -116,6 +118,8 @@ struct SettingsView: View {
             AccountWithNavigation()
         case .general:
             SettingsGeneralView()
+        case .gradients:
+            GradientSettingsView()
 #if DEBUG
         case .export:
             ExportView()
@@ -124,6 +128,7 @@ struct SettingsView: View {
             AboutView()
         case .license:
             LicenseView()
+
         }
     }
 }

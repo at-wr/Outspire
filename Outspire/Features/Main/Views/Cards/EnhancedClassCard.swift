@@ -1,4 +1,5 @@
 import SwiftUI
+import ColorfulX
 
 struct EnhancedClassCard: View {
     let day: String
@@ -16,8 +17,13 @@ struct EnhancedClassCard: View {
     @State private var timer: Timer?
     @State private var isTransitioning = false
     @State private var isTimeComplete = false // New state to track if time is actually complete
+    @State private var isNextClass = false // New state to track if this is the next class
+    @State private var circlePercent: Double = 0.0  // Add the missing circlePercent property
     
     @Environment(\.colorScheme) private var colorScheme
+    @EnvironmentObject var gradientManager: GradientManager
+    
+    var showCountdown: Bool = true
     
     private var components: [String] {
         classData.replacingOccurrences(of: "<br>", with: "\n")
@@ -258,13 +264,9 @@ struct EnhancedClassCard: View {
         }
         .glassmorphicCard() // Replace custom background implementation with shared component
         .onAppear {
-            isTimeComplete = false
-            isTransitioning = false
-            calculateTimeRemaining()
-            // Use a timer that updates every second but prevents UI jitter
-            timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [self] _ in
-                self.calculateTimeRemaining()
-            }
+            setupTimer()
+            updateClassStatus()
+            checkAndUpdateGradient()
         }
         .onDisappear {
             timer?.invalidate()
@@ -452,6 +454,9 @@ struct EnhancedClassCard: View {
             }
             isTimeComplete = false
         }
+        
+        // Check and update gradient if needed
+        checkAndUpdateGradient()
     }
     
     // Helper method to create a time on a specific date
@@ -494,6 +499,131 @@ struct EnhancedClassCard: View {
             .filter { $0.number > currentPeriod.number }
             .sorted { $0.number < $1.number }
             .first
+    }
+    
+    // Helper function to update the gradient when this card is displayed
+    private func updateGradientForCard() {
+        // Only update if this is the active upcoming class
+        if isCurrentClass || isNextClass {
+            let context: GradientContext
+            
+            if isCurrentClass {
+                context = isSelfStudy ? .inSelfStudy : .inClass(subject: classData)
+            } else {
+                context = isSelfStudy ? .upcomingSelfStudy : .upcomingClass(subject: classData)
+            }
+            
+            gradientManager.updateGradientForContext(
+                context: context,
+                colorScheme: colorScheme
+            )
+        }
+    }
+    
+    // Add a function to check if we need to update the gradient
+    private func checkAndUpdateGradient() {
+        if isCurrentClass || (showCountdown && timeRemaining > 0 && timeRemaining < 3600) {
+            // Consider this card as the "next class" if we're showing a countdown
+            // and the time remaining is less than an hour
+            isNextClass = !isCurrentClass && showCountdown && timeRemaining > 0 && timeRemaining < 3600
+            updateGradientForCard()
+        }
+    }
+    
+    // MARK: - Private Methods
+    
+    // Sets up the timer for countdown updates
+    private func setupTimer() {
+        // Cancel any existing timer first
+        timer?.invalidate()
+        
+        // Create a new timer that fires every second
+        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
+            // Remove 'weak self' since EnhancedClassCard is a struct
+            self.updateTimeRemaining()
+        }
+        
+        // Make sure timer runs even during scrolling
+        if let timer = timer {
+            RunLoop.current.add(timer, forMode: .common)
+        }
+        
+        // Initial update
+        updateTimeRemaining()
+    }
+    
+    // Updates the class status
+    private func updateClassStatus() {
+        // Get current date and class times
+        let now = Date()
+        let effectiveDate = getEffectiveDate()
+        
+        if let effectiveDate = effectiveDate {
+            let calendar = Calendar.current
+            
+            // Create components for effective now
+            var effectiveNowComponents = calendar.dateComponents([.year, .month, .day], from: effectiveDate)
+            let nowTimeComponents = calendar.dateComponents([.hour, .minute, .second], from: now)
+            effectiveNowComponents.hour = nowTimeComponents.hour
+            effectiveNowComponents.minute = nowTimeComponents.minute
+            effectiveNowComponents.second = nowTimeComponents.second
+            
+            guard let effectiveNow = calendar.date(from: effectiveNowComponents) else { return }
+            
+            // Create adjusted period times
+            let adjustedStartTime = createAdjustedTime(from: period.startTime, onDate: effectiveDate)
+            let adjustedEndTime = createAdjustedTime(from: period.endTime, onDate: effectiveDate)
+            
+            // Set current class status
+            isCurrentClass = effectiveNow >= adjustedStartTime && effectiveNow <= adjustedEndTime
+            
+            // Set next class status if not current class
+            if !isCurrentClass {
+                isNextClass = effectiveNow < adjustedStartTime && 
+                              adjustedStartTime.timeIntervalSince(effectiveNow) < 3600 // Within the next hour
+            } else {
+                isNextClass = false
+            }
+            
+            // Update time remaining based on status
+            if isCurrentClass {
+                timeRemaining = adjustedEndTime.timeIntervalSince(effectiveNow)
+            } else if effectiveNow < adjustedStartTime {
+                timeRemaining = adjustedStartTime.timeIntervalSince(effectiveNow)
+            } else {
+                timeRemaining = 0
+                isTimeComplete = true
+            }
+            
+            // Update circle percent
+            updateCirclePercent()
+        }
+    }
+    
+    // Get the effective date for calculations
+    private func getEffectiveDate() -> Date? {
+        if setAsToday && effectiveDate != nil {
+            return effectiveDate
+        } else {
+            return Date()
+        }
+    }
+    
+    // Updates the time remaining for the countdown
+    private func updateTimeRemaining() {
+        // Calculate the time remaining
+        calculateTimeRemaining()
+    }
+    
+    // Updates the circle percent for the progress view
+    private func updateCirclePercent() {
+        // Calculate the current progress
+        let progress = calculateProgress()
+        
+        // Update the circle percent based on progress
+        withAnimation(.linear(duration: 0.5)) {
+            circlePercent = progress
+        }
     }
 }
 

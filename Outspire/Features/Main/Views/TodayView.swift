@@ -149,17 +149,51 @@ struct TodayView: View {
     
     // Update gradient colors based on the current state of the app
     private func updateGradientColors() {
-        // Use the helper method from GradientManager with the centralized system
-        gradientManager.updateGradientForContext(
-            isAuthenticated: sessionService.isAuthenticated,
-            isHolidayMode: isHolidayActive(),
-            isWeekend: isCurrentDateWeekend(), 
-            upcomingClass: upcomingClassInfo.map { upcoming in 
-                (classData: upcoming.classData, 
-                 isActive: upcoming.period.isCurrentlyActive())
-            },
-            colorScheme: colorScheme
-        )
+        if !sessionService.isAuthenticated {
+            gradientManager.updateGradientForContext(context: .notSignedIn, colorScheme: colorScheme)
+            return
+        }
+        
+        if isHolidayActive() {
+            gradientManager.updateGradientForContext(context: .holiday, colorScheme: colorScheme)
+            return
+        }
+        
+        if isCurrentDateWeekend() {
+            gradientManager.updateGradientForContext(context: .weekend, colorScheme: colorScheme)
+            return
+        }
+        
+        // Determine if we have an upcoming class
+        if let upcomingInfo = upcomingClassInfo {
+            let isSelfStudy = upcomingInfo.classData.contains("Self-Study")
+            let isActive = upcomingInfo.period.isCurrentlyActive()
+            
+            if isActive {
+                // Currently in a class period
+                if isSelfStudy {
+                    gradientManager.updateGradientForContext(context: .inSelfStudy, colorScheme: colorScheme)
+                } else {
+                    gradientManager.updateGradientForContext(
+                        context: .inClass(subject: upcomingInfo.classData),
+                        colorScheme: colorScheme
+                    )
+                }
+            } else {
+                // Upcoming class period
+                if isSelfStudy {
+                    gradientManager.updateGradientForContext(context: .upcomingSelfStudy, colorScheme: colorScheme)
+                } else {
+                    gradientManager.updateGradientForContext(
+                        context: .upcomingClass(subject: upcomingInfo.classData),
+                        colorScheme: colorScheme
+                    )
+                }
+            }
+        } else {
+            // No upcoming class
+            gradientManager.updateGradientForContext(context: .afterSchool, colorScheme: colorScheme)
+        }
     }
     
     private func customizeNavigationBarAppearance() {

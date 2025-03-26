@@ -11,6 +11,8 @@ struct MenuItemView: View {
         case .export:
             Label("Export App Package", systemImage: "shippingbox")
 #endif
+        case .gradients:
+            Label("Gradients", systemImage: "paintpalette")
         case .license:
             Label("Open Source Licenses", systemImage: "doc.text")
         case .about:

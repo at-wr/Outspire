@@ -76,7 +76,7 @@ struct Configuration {
     
     static var baseURL: String {
         // return useSSL ? "https://easy-tsims.vercel.app" : "http://101.230.1.173:6300"
-        return useSSL ? "https://my.wrye.dev:47948" : "http://101.230.1.173:6300"
+        return useSSL ? "https://tsimsproxy.wrye.dev" : "http://101.230.1.173:6300"
     }
     
     static var headers: [String: String] = [
