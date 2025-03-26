@@ -294,19 +294,42 @@ struct NavSplitView: View {
         await todayTip.invalidate(reason: .tipClosed)
     }
     
-    // Add method to update gradient based on selected link
+    // Update the method to update gradient based on selected link
     private func updateGradientForSelectedLink(_ link: String?) {
-        // Default to basic gradient for non-today views
-        if link != "today" {
+        guard let link = link else {
+            // Default to today view gradient
+            gradientManager.updateGradientForView(.today, colorScheme: colorScheme)
+            return
+        }
+        
+        // Use consistent view-specific gradients
+        switch link {
+        case "today":
+            // Today view handles its own gradient based on context
             let isWeekend = TodayViewHelpers.isCurrentDateWeekend()
-            gradientManager.updateGradientForContext(
+            (gradientManager as GradientManager).updateGradientForContext(
                 isAuthenticated: sessionService.isAuthenticated,
                 isHolidayMode: Configuration.isHolidayMode,
                 isWeekend: isWeekend,
                 colorScheme: colorScheme
             )
+        case "classtable":
+            gradientManager.updateGradientForView(.classtable, colorScheme: colorScheme)
+        case "score":
+            gradientManager.updateGradientForView(.score, colorScheme: colorScheme)
+        case "club-info":
+            gradientManager.updateGradientForView(.clubInfo, colorScheme: colorScheme)
+        case "club-activity":
+            gradientManager.updateGradientForView(.clubActivities, colorScheme: colorScheme)
+        case "school-arrangement":
+            gradientManager.updateGradientForView(.schoolArrangements, colorScheme: colorScheme)
+        case "lunch-menu":
+            gradientManager.updateGradientForView(.lunchMenu, colorScheme: colorScheme)
+        case "map":
+            gradientManager.updateGradientForView(.map, colorScheme: colorScheme)
+        default:
+            gradientManager.updateGradientForView(.today, colorScheme: colorScheme)
         }
-        // TodayView will handle its own gradient updates
     }
 }
 

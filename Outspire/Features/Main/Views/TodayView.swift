@@ -47,7 +47,7 @@ struct TodayView: View {
                 transitionSpeed: $gradientManager.gradientTransitionSpeed
             )
             .ignoresSafeArea()
-            .opacity(0.3) // Reduce opacity to make content readable
+            .opacity(0.2) // Reduce opacity to make content readable
             
             // Semi-transparent white background to ensure content readability
             Color.white.opacity(colorScheme == .dark ? 0.2 : 0.7)
@@ -149,7 +149,7 @@ struct TodayView: View {
     
     // Update gradient colors based on the current state of the app
     private func updateGradientColors() {
-        // Use the helper method from GradientManager
+        // Use the helper method from GradientManager with the centralized system
         gradientManager.updateGradientForContext(
             isAuthenticated: sessionService.isAuthenticated,
             isHolidayMode: isHolidayActive(),

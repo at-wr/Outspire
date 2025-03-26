@@ -1,4 +1,5 @@
 import SwiftUI
+import ColorfulX
 import LocalAuthentication
 
 struct ScoreView: View {
@@ -7,31 +8,49 @@ struct ScoreView: View {
     @State private var animateIn = false
     @State private var refreshButtonRotation = 0.0
     @EnvironmentObject private var sessionService: SessionService
+    @Environment(\.colorScheme) private var colorScheme
+    @EnvironmentObject var gradientManager: GradientManager // Add gradient manager
     
     var body: some View {
         ZStack {
-            Color(UIColor.secondarySystemBackground)
-                .edgesIgnoringSafeArea(.all)
+            // Add ColorfulX as background
+            ColorfulView(
+                color: $gradientManager.gradientColors,
+                speed: $gradientManager.gradientSpeed,
+                noise: $gradientManager.gradientNoise,
+                transitionSpeed: $gradientManager.gradientTransitionSpeed
+            )
+            .ignoresSafeArea()
+            .opacity(colorScheme == .dark ? 0.15 : 0.3) // Reduce opacity more in dark mode
             
-            VStack(spacing: 0) {
-                if !sessionService.isAuthenticated {
-                    notLoggedInView
-                } else if viewModel.isUnlocked {
-                    mainContent
-                } else {
-                    authenticationView
-                }
+            // Semi-transparent background for better contrast
+            Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
+                .ignoresSafeArea()
+            
+            // Main content
+            if !sessionService.isAuthenticated {
+                ContentUnavailableView(
+                    "Authentication Required",
+                    systemImage: "person.crop.circle.badge.exclamationmark",
+                    description: Text("Please sign in to view your academic grades.")
+                )
+                .padding()
+            } else if viewModel.isUnlocked {
+                mainContent
+            } else {
+                authenticationView
             }
-            .navigationTitle("Academic Grades")
-            .toolbar {
-                toolbarItems
-            }
+        }
+        .navigationTitle("Academic Grades")
+        .toolbar {
+            toolbarItems
         }
         .onAppear {
             // Only attempt to fetch data if user is logged in
             if sessionService.isAuthenticated && viewModel.isUnlocked && viewModel.terms.isEmpty {
                 viewModel.fetchTerms()
             }
+            updateGradientForScoreView()
         }
     }
     
@@ -234,6 +253,11 @@ struct ScoreView: View {
                 .disabled(!sessionService.isAuthenticated || viewModel.isLoading || viewModel.isLoadingTerms)
             }
         }
+    }
+    
+    // Add method to update gradient for score view
+    private func updateGradientForScoreView() {
+        gradientManager.updateGradientForView(.score, colorScheme: colorScheme)
     }
 }
 

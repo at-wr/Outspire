@@ -1,4 +1,5 @@
 import SwiftUI
+import ColorfulX
 import Toasts
 import QuickLook
 
@@ -9,6 +10,8 @@ struct LunchMenuView: View {
     @State private var refreshButtonRotation = 0.0
     @State private var showDetailSheet = false
     @State private var hasFirstAppeared = false
+    @Environment(\.colorScheme) private var colorScheme
+    @EnvironmentObject var gradientManager: GradientManager // Add gradient manager
     
     // Track content status
     private var isEmptyState: Bool {
@@ -44,9 +47,24 @@ struct LunchMenuView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                // Background
-                Color(UIColor.systemGroupedBackground)
+                // Add ColorfulX as background
+                ColorfulView(
+                    color: $gradientManager.gradientColors,
+                    speed: $gradientManager.gradientSpeed,
+                    noise: $gradientManager.gradientNoise,
+                    transitionSpeed: $gradientManager.gradientTransitionSpeed
+                )
+                .ignoresSafeArea()
+                .opacity(colorScheme == .dark ? 0.15 : 0.3) // Reduce opacity more in dark mode
+                
+                // Semi-transparent background for better contrast
+                Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
                     .ignoresSafeArea()
+                
+                // Original background - keep for additional system background coloring
+//                Color(UIColor.systemGroupedBackground)
+//                    .opacity(0.6)
+//                    .ignoresSafeArea()
                 
                 // Content layers
                 Group {
@@ -129,6 +147,7 @@ struct LunchMenuView: View {
                     hasFirstAppeared = true
                     viewModel.triggerInitialAnimation(isSmallScreen: isSmallDevice)
                 }
+                updateGradientForLunchMenu()
             }
             // Assign a stable ID to prevent SwiftUI from rebuilding the view hierarchy
             .id("LunchMenuViewStableID")
@@ -296,6 +315,11 @@ struct LunchMenuView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             viewModel.errorMessage = nil
         }
+    }
+    
+    // Add method to update gradient for lunch menu
+    private func updateGradientForLunchMenu() {
+        gradientManager.updateGradientForView(.lunchMenu, colorScheme: colorScheme)
     }
 }
 

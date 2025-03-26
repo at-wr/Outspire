@@ -1,4 +1,5 @@
 import SwiftUI
+import ColorfulX
 import Toasts
 
 struct ClubActivitiesView: View {
@@ -9,83 +10,102 @@ struct ClubActivitiesView: View {
     @State private var refreshButtonRotation = 0.0
     @EnvironmentObject var urlSchemeHandler: URLSchemeHandler
     @Environment(\.presentToast) var presentToast
+    @EnvironmentObject var gradientManager: GradientManager // Add gradient manager
+    @Environment(\.colorScheme) private var colorScheme // Add color scheme
     
     var body: some View {
         // Remove the nested NavigationView
-        contentView
-            .navigationTitle("Activity Records")
-            .toolbarBackground(Color(UIColor.systemBackground))
-            .contentMargins(.vertical, 10.0)
-            .toolbar {
-                ToolbarItem(id: "loadingIndicator", placement: .navigationBarTrailing) {
-                    if viewModel.isLoadingActivities || viewModel.isLoadingGroups {
-                        ProgressView()
-                            .controlSize(.small)
-                    }
-                }
-                
-                ToolbarItem(id: "refreshButton", placement: .navigationBarTrailing) {
-                    Button(action: handleRefreshAction) {
-                        Image(systemName: "arrow.clockwise")
-                            .rotationEffect(.degrees(refreshButtonRotation))
-                    }
-                    .disabled(viewModel.isLoadingActivities || viewModel.isLoadingGroups)
-                }
-                
-                ToolbarItem(id: "addButton", placement: .navigationBarTrailing) {
-                    Button(action: { showingAddRecordSheet.toggle() }) {
-                        Image(systemName: "square.and.pencil")
-                    }
-                    .disabled(viewModel.isLoadingGroups || viewModel.isLoadingActivities || sessionService.userInfo == nil)
-                }
-            }
-            .sheet(isPresented: $showingAddRecordSheet) { 
-                addRecordSheet
-                    .environmentObject(sessionService) // Explicitly pass environment object
-            }
-            .confirmationDialog(
-                "Delete Record",
-                isPresented: $viewModel.showingDeleteConfirmation,
-                actions: { deleteConfirmationActions },
-                message: { Text("Are you sure you want to delete this record?") }
+        ZStack {
+            // Add ColorfulX as background with higher opacity
+            ColorfulView(
+                color: $gradientManager.gradientColors,
+                speed: $gradientManager.gradientSpeed,
+                noise: $gradientManager.gradientNoise,
+                transitionSpeed: $gradientManager.gradientTransitionSpeed
             )
-            .onAppear(perform: {
-                handleOnAppear()
+            .ignoresSafeArea()
+            .opacity(colorScheme == .dark ? 0.1 : 0.3) // Increase opacity for better visibility
+            
+            // Semi-transparent background with reduced opacity for better contrast with gradient
+            Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
+                .ignoresSafeArea()
+            
+            contentView
+        }
+        .navigationTitle("Activity Records")
+        //.toolbarBackground(Color(UIColor.systemBackground))
+        .contentMargins(.vertical, 10.0)
+        .toolbar {
+            ToolbarItem(id: "loadingIndicator", placement: .navigationBarTrailing) {
+                if viewModel.isLoadingActivities || viewModel.isLoadingGroups {
+                    ProgressView()
+                        .controlSize(.small)
+                }
+            }
+            
+            ToolbarItem(id: "refreshButton", placement: .navigationBarTrailing) {
+                Button(action: handleRefreshAction) {
+                    Image(systemName: "arrow.clockwise")
+                        .rotationEffect(.degrees(refreshButtonRotation))
+                }
+                .disabled(viewModel.isLoadingActivities || viewModel.isLoadingGroups)
+            }
+            
+            ToolbarItem(id: "addButton", placement: .navigationBarTrailing) {
+                Button(action: { showingAddRecordSheet.toggle() }) {
+                    Image(systemName: "square.and.pencil")
+                }
+                .disabled(viewModel.isLoadingGroups || viewModel.isLoadingActivities || sessionService.userInfo == nil)
+            }
+        }
+        .sheet(isPresented: $showingAddRecordSheet) { 
+            addRecordSheet
+                .environmentObject(sessionService) // Explicitly pass environment object
+        }
+        .confirmationDialog(
+            "Delete Record",
+            isPresented: $viewModel.showingDeleteConfirmation,
+            actions: { deleteConfirmationActions },
+            message: { Text("Are you sure you want to delete this record?") }
+        )
+        .onAppear(perform: {
+            handleOnAppear()
+            updateGradientForClubActivities()
+            
+            // Handle URL scheme navigation to add an activity for a specific club
+            if let activityClubId = urlSchemeHandler.navigateToAddActivity {
+                viewModel.setSelectedGroupById(activityClubId)
+                showingAddRecordSheet = true
                 
-                // Handle URL scheme navigation to add an activity for a specific club
-                if let activityClubId = urlSchemeHandler.navigateToAddActivity {
-                    viewModel.setSelectedGroupById(activityClubId)
-                    showingAddRecordSheet = true
-                    
-                    // Reset handler state
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        urlSchemeHandler.navigateToAddActivity = nil
-                    }
-                }
-            })
-            .onChange(of: viewModel.isLoadingActivities) { _ in
-                handleLoadingChange()
-            }
-            .onChange(of: viewModel.errorMessage) { errorMessage in
-                if let errorMessage = errorMessage {
-                    let icon = errorMessage.contains("copied") ? 
-                    "checkmark.circle.fill" : "exclamationmark.circle.fill"
-                    let toast = ToastValue(
-                        icon: Image(systemName: icon).foregroundStyle(.red),
-                        message: errorMessage
-                    )
-                    presentToast(toast)
+                // Reset handler state
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    urlSchemeHandler.navigateToAddActivity = nil
                 }
             }
-            .onChange(of: urlSchemeHandler.closeAllSheets) { newValue in
-                if newValue {
-                    // Close the add record sheet if it's open
-                    showingAddRecordSheet = false
-                    
-                    // Reset any other dialog states if needed
-                    viewModel.showingDeleteConfirmation = false
-                }
+        })
+        .onChange(of: viewModel.isLoadingActivities) { _ in
+            handleLoadingChange()
+        }
+        .onChange(of: viewModel.errorMessage) { errorMessage in
+            if let errorMessage = errorMessage {
+                let icon = errorMessage.contains("copied") ? 
+                "checkmark.circle.fill" : "exclamationmark.circle.fill"
+                let toast = ToastValue(
+                    icon: Image(systemName: icon).foregroundStyle(.red),
+                    message: errorMessage
+                )
+                presentToast(toast)
             }
+        }
+        .onChange(of: urlSchemeHandler.closeAllSheets) { newValue in
+            if newValue {
+                // Close the add record sheet if it's open
+                showingAddRecordSheet = false
+                
+                // Reset any other dialog states if needed
+                viewModel.showingDeleteConfirmation = false
+            }
+        }
     }
     
     private var contentView: some View {
@@ -97,9 +117,8 @@ struct ClubActivitiesView: View {
                 showingAddRecordSheet: $showingAddRecordSheet,
                 animateList: animateList
             )
-            // 删除 ToastSection，改为使用 presentToast
         }
-        .scrollContentBackground(.visible)
+        .scrollContentBackground(.hidden)
         .animation(.spring(response: 0.4), value: viewModel.isLoadingActivities)
         .animation(.spring(response: 0.4), value: viewModel.activities.isEmpty)
         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: viewModel.errorMessage)
@@ -192,6 +211,11 @@ struct ClubActivitiesView: View {
         } else {
             await viewModel.fetchActivityRecordsAsync(forceRefresh: true)
         }
+    }
+    
+    // Add method to update gradient for activities
+    private func updateGradientForClubActivities() {
+        gradientManager.updateGradientForView(.clubActivities, colorScheme: colorScheme)
     }
 }
 

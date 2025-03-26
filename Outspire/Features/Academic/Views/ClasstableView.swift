@@ -1,4 +1,5 @@
 import SwiftUI
+import ColorfulX
 
 struct ClasstableView: View {
     @StateObject private var viewModel = ClasstableViewModel()
@@ -9,6 +10,7 @@ struct ClasstableView: View {
     @State private var timer: Timer?
     @State private var orientation = UIDevice.current.orientation // Track device orientation
     @EnvironmentObject private var sessionService: SessionService
+    @EnvironmentObject private var gradientManager: GradientManager // Add gradient manager
     
     // Dictionary to map subject keywords to consistent colors
     private let subjectColors: [Color: [String]] = [
@@ -104,119 +106,137 @@ struct ClasstableView: View {
     }
     
     var body: some View {
-        VStack(spacing: 0) {
-            if !sessionService.isAuthenticated {
-                notLoggedInView
-            } else {
-                GeometryReader { geometry in
-                    ScrollView {
-                        VStack(spacing: 0) {
-                            // Days of week header - sticky (unchanged)
-                            if !viewModel.timetable.isEmpty && viewModel.timetable[0].count > 1 {
-                                daysHeader
-                                    .background(Color(UIColor.secondarySystemBackground))
-                                    .shadow(color: Color.black.opacity(0.05), radius: 3, x: 0, y: 2)
-                                    .zIndex(1)
-                                    .overlay(Divider().opacity(0.5), alignment: .bottom)
-                                    .padding(.top, 3)
-                                    .padding(.bottom, 12)
-                            }
-                            
-                            // Main content depending on loading states (unchanged)
-                            if viewModel.years.isEmpty {
-                                if viewModel.isLoadingYears {
-                                    TimeTableSkeletonView().padding()
-                                } else {
-                                    ContentUnavailableView("No Available Classtable", systemImage: "calendar.badge.exclamationmark")
+        ZStack {
+            // Add ColorfulX as background with higher opacity
+            ColorfulView(
+                color: $gradientManager.gradientColors,
+                speed: $gradientManager.gradientSpeed,
+                noise: $gradientManager.gradientNoise,
+                transitionSpeed: $gradientManager.gradientTransitionSpeed
+            )
+            .ignoresSafeArea()
+            .opacity(colorScheme == .dark ? 0.07 : 0.3)
+            
+            // Semi-transparent background with reduced opacity for better contrast with gradient
+            Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
+                .ignoresSafeArea()
+                
+            VStack(spacing: 0) {
+                if !sessionService.isAuthenticated {
+                    notLoggedInView
+                } else {
+                    GeometryReader { geometry in
+                        ScrollView {
+                            VStack(spacing: 0) {
+                                // Break up complex expressions to improve type checking
+                                let hasNonEmptyTimetable = !viewModel.timetable.isEmpty && viewModel.timetable[0].count > 1
+                                
+                                // Days of week header - sticky (unchanged)
+                                if hasNonEmptyTimetable {
+                                    daysHeader
+                                        .background(Color(UIColor.tertiarySystemBackground).opacity(0.3))
+                                        .shadow(color: Color.black.opacity(0.05), radius: 3, x: 0, y: 2)
+                                        .zIndex(1)
+                                        .overlay(Divider().opacity(0.5), alignment: .bottom)
+                                        .padding(.top, 3)
+                                        .padding(.bottom, 12)
                                 }
-                            } else if viewModel.isLoadingTimetable {
-                                TimeTableSkeletonView().padding()
-                            } else if viewModel.timetable.isEmpty {
-                                ContentUnavailableView("No Timetable Data", systemImage: "calendar.badge.exclamationmark", description: Text("No timetable available for the selected year."))
-                            } else {
-                                VStack(spacing: 0) {
-                                    ForEach(1..<viewModel.timetable.count, id: \.self) { row in
-                                        periodRow(row: row)
-                                            .padding(.vertical, 4)
-                                            .opacity(animateIn ? 1 : 0)
-                                            .offset(y: animateIn ? 0 : 20)
-                                            .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(Double(row) * 0.05), value: animateIn)
-                                        
-                                        if row == 4 {
-                                            lunchBreakView.padding(.vertical, 12)
+                                
+                                // Main content depending on loading states (unchanged)
+                                if viewModel.years.isEmpty {
+                                    if viewModel.isLoadingYears {
+                                        TimeTableSkeletonView().padding()
+                                    } else {
+                                        ContentUnavailableView("No Available Classtable", systemImage: "calendar.badge.exclamationmark")
+                                    }
+                                } else if viewModel.isLoadingTimetable {
+                                    TimeTableSkeletonView().padding()
+                                } else if viewModel.timetable.isEmpty {
+                                    ContentUnavailableView("No Timetable Data", systemImage: "calendar.badge.exclamationmark", description: Text("No timetable available for the selected year."))
+                                } else {
+                                    VStack(spacing: 0) {
+                                        ForEach(1..<viewModel.timetable.count, id: \.self) { row in
+                                            periodRow(row: row)
+                                                .padding(.vertical, 4)
+                                                .opacity(animateIn ? 1 : 0)
+                                                .offset(y: animateIn ? 0 : 20)
+                                                .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(Double(row) * 0.05), value: animateIn)
+                                            
+                                            if row == 4 {
+                                                lunchBreakView.padding(.vertical, 12)
+                                            }
                                         }
                                     }
+                                    .padding(.bottom, 24)
+                                    .id(viewModel.selectedYearId)
                                 }
-                                .padding(.bottom, 24)
-                                .id(viewModel.selectedYearId)
-                            }
-                            
-                            if let errorMessage = viewModel.errorMessage {
-                                Text(errorMessage)
-                                    .foregroundColor(.red)
-                                    .padding()
-                                    .background(Color(UIColor.systemBackground).opacity(0.8))
-                                    .cornerRadius(8)
-                                    .padding()
-                                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                                
+                                if let errorMessage = viewModel.errorMessage {
+                                    Text(errorMessage)
+                                        .foregroundColor(.red)
+                                        .padding()
+                                        .background(Color(UIColor.systemBackground).opacity(0.8))
+                                        .cornerRadius(8)
+                                        .padding()
+                                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                                }
                             }
                         }
-                    }
-                    .background(Color(UIColor.secondarySystemBackground))
-                    .navigationTitle("Classtable")
-                    .navigationBarTitleDisplayMode(.large)
-                    .toolbar {
-                        ToolbarItem(placement: .topBarTrailing) {
-                            if (!viewModel.years.isEmpty) {
-                                Menu {
-                                    ForEach(viewModel.years) { year in
-                                        Button(year.W_Year) {
-                                            viewModel.selectedYearId = year.W_YearID
-                                            viewModel.fetchTimetable()
-                                            withAnimation(.easeOut(duration: 0.3)) {
-                                                animateIn = false
-                                            }
-                                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                                                withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
-                                                    animateIn = true
+//                        .background(Color(UIColor.secondarySystemBackground))
+                        .navigationTitle("Classtable")
+                        .navigationBarTitleDisplayMode(.large)
+                        .toolbar {
+                            ToolbarItem(placement: .topBarTrailing) {
+                                // Fixed syntax error: Adding proper block labels
+                                if !viewModel.years.isEmpty {
+                                    Menu {
+                                        ForEach(viewModel.years) { year in
+                                            Button(year.W_Year) {
+                                                viewModel.selectedYearId = year.W_YearID
+                                                viewModel.fetchTimetable()
+                                                withAnimation(.easeOut(duration: 0.3)) {
+                                                    animateIn = false
+                                                }
+                                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                                                    withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
+                                                        animateIn = true
+                                                    }
                                                 }
                                             }
                                         }
-                                    }
-                                } label: {
-                                    HStack(spacing: 4) {
-                                        if let selectedYear = viewModel.years.first(where: { $0.W_YearID == viewModel.selectedYearId }) {
-                                            Text(selectedYear.W_Year)
-                                                .foregroundColor(.primary)
-                                        } else {
-                                            Text("Select Year")
-                                                .foregroundColor(.primary)
+                                    } label: {
+                                        HStack(spacing: 4) {
+                                            if let selectedYear = viewModel.years.first(where: { $0.W_YearID == viewModel.selectedYearId }) {
+                                                Text(selectedYear.W_Year)
+                                                    .foregroundColor(.primary)
+                                            } else {
+                                                Text("Select Year")
+                                                    .foregroundColor(.primary)
+                                            }
+                                            Image(systemName: "chevron.down")
+                                                .font(.caption2)
+                                                .foregroundColor(.secondary)
                                         }
-                                        Image(systemName: "chevron.down")
-                                            .font(.caption2)
-                                            .foregroundColor(.secondary)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 6)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 8)
+                                                .fill(Color(UIColor.tertiarySystemBackground).opacity(0.6))
+                                                .shadow(color: .black.opacity(0.05), radius: 2, x: 0, y: 1)
+                                        )
                                     }
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 6)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .fill(Color(UIColor.tertiarySystemBackground))
-                                            .shadow(color: .black.opacity(0.05), radius: 2, x: 0, y: 1)
-                                    )
+                                } else if viewModel.isLoadingYears {
+                                    ProgressView()
+                                        .controlSize(.small)
                                 }
-                                .disabled(viewModel.isLoadingYears)
-                                .opacity(viewModel.isLoadingYears ? 0.6 : 1.0)
-                            } else if viewModel.isLoadingYears {
-                                ProgressView()
-                                    .controlSize(.small)
                             }
                         }
+                        // Apply rotation for iPhone in portrait mode
+                        .rotationEffect(isIphoneInPortrait() ? .degrees(-90) : .degrees(0))
+                        .frame(width: isIphoneInPortrait() ? geometry.size.height : geometry.size.width,
+                               height: isIphoneInPortrait() ? geometry.size.width : geometry.size.height)
+                        .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
                     }
-                    // Apply rotation for iPhone in portrait mode
-                    .rotationEffect(isIphoneInPortrait() ? .degrees(-90) : .degrees(0))
-                    .frame(width: isIphoneInPortrait() ? geometry.size.height : geometry.size.width,
-                           height: isIphoneInPortrait() ? geometry.size.width : geometry.size.height)
-                    .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
                 }
             }
         }
@@ -227,12 +247,14 @@ struct ClasstableView: View {
                     animateIn = true
                 }
             }
+            // Fixed syntax: adding semicolon between statements
             timer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { _ in
                 currentTime = Date()
             }
             NotificationCenter.default.addObserver(forName: UIDevice.orientationDidChangeNotification, object: nil, queue: .main) { _ in
                 orientation = UIDevice.current.orientation
             }
+            updateGradientForClasstable()
         }
         .onDisappear {
             timer?.invalidate()
@@ -253,6 +275,11 @@ struct ClasstableView: View {
         let isIphone = UIDevice.current.userInterfaceIdiom == .phone
         let isPortrait = orientation.isPortrait || orientation == .unknown // .unknown assumes portrait as default
         return isIphone && isPortrait
+    }
+    
+    // Add method to update gradient for classtable
+    private func updateGradientForClasstable() {
+        gradientManager.updateGradientForView(.classtable, colorScheme: colorScheme)
     }
     
     // Days of week header (unchanged)
@@ -387,11 +414,7 @@ struct ClassCell: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(12)
-            .background(
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(Color(UIColor.tertiarySystemBackground))
-                    .shadow(color: .black.opacity(0.05), radius: 1, x: 0, y: 1)
-            )
+            .glassmorphicCard(cornerRadius: 8) // Replace custom background with glassmorphic style
             .contentShape(Rectangle())
         } else {
             Color.clear
@@ -435,6 +458,7 @@ struct TimeTableSkeletonView: View {
                             .fill(Color.gray.opacity(0.1))
                             .frame(height: 70)
                             .frame(maxWidth: .infinity)
+                            .glassmorphicCard(cornerRadius: 8) // Apply glassmorphic style to skeleton cells
                     }
                 }
                 .padding(.vertical, 4)

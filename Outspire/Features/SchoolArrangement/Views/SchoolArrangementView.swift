@@ -1,10 +1,13 @@
 import SwiftUI
+import ColorfulX
 import Toasts
 import QuickLook
 
 struct SchoolArrangementView: View {
     @StateObject private var viewModel = SchoolArrangementViewModel()
     @Environment(\.presentToast) var presentToast
+    @Environment(\.colorScheme) private var colorScheme
+    @EnvironmentObject var gradientManager: GradientManager // Add gradient manager
     @State private var searchText = ""
     @State private var refreshButtonRotation = 0.0
     @State private var showDetailSheet = false
@@ -45,8 +48,18 @@ struct SchoolArrangementView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                // Background
-                Color(UIColor.systemGroupedBackground)
+                // Add ColorfulX as background
+                ColorfulView(
+                    color: $gradientManager.gradientColors,
+                    speed: $gradientManager.gradientSpeed,
+                    noise: $gradientManager.gradientNoise,
+                    transitionSpeed: $gradientManager.gradientTransitionSpeed
+                )
+                .ignoresSafeArea()
+                .opacity(colorScheme == .dark ? 0.15 : 0.3) // Reduce opacity more in dark mode
+                
+                // Semi-transparent background for better contrast
+                Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
                     .ignoresSafeArea()
                 
                 // Content layers
@@ -135,6 +148,7 @@ struct SchoolArrangementView: View {
                     hasFirstAppeared = true
                     viewModel.triggerInitialAnimation(isSmallScreen: isSmallDevice)
                 }
+                updateGradientForSchoolArrangements()
             }
             // Assign a stable ID to prevent SwiftUI from rebuilding the view hierarchy
             .id("SchoolArrangementViewStableID")
@@ -270,6 +284,11 @@ struct SchoolArrangementView: View {
                 }
             }
         }
+    }
+    
+    // Add method to update gradient for school arrangements
+    private func updateGradientForSchoolArrangements() {
+        gradientManager.updateGradientForView(.schoolArrangements, colorScheme: colorScheme)
     }
 }
 

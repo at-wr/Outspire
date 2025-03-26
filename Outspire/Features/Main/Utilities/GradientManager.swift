@@ -28,59 +28,8 @@ class GradientManager: ObservableObject {
         }
     }
     
-    // Helper method to create a gradient based on context
-    func updateGradientForContext(
-        isAuthenticated: Bool,
-        isHolidayMode: Bool,
-        isWeekend: Bool,
-        upcomingClass: (classData: String, isActive: Bool)? = nil,
-        colorScheme: ColorScheme
-    ) {
-        var colors: [Color]
-        var speed: Double
-        let noise: Double = colorScheme == .dark ? 15.0 : 20.0  // Reduce noise in dark mode for subtler effect
-        
-        if isHolidayMode {
-            // Holiday mode gradient
-            colors = ColorfulPreset.sunset.swiftUIColors
-            speed = 0.3
-        } else if isWeekend {
-            // Weekend gradient
-            colors = ColorfulPreset.sunset.swiftUIColors
-            speed = 0.4
-        } else if !isAuthenticated {
-            // Not signed in gradient
-            colors = ColorfulPreset.ocean.swiftUIColors
-            speed = 0.5
-        } else if let (classData, isActive) = upcomingClass {
-            // Class-specific gradient
-            let components = classData.replacingOccurrences(of: "<br>", with: "\n")
-                .components(separatedBy: "\n")
-                .filter { !$0.isEmpty }
-            
-            if components.count > 1 {
-                let subjectColor = ClasstableView.getSubjectColor(from: components[1])
-                let darkerVariant = subjectColor.adjustBrightness(by: -0.2)
-                let lighterVariant = subjectColor.adjustBrightness(by: 0.2)
-                
-                colors = [
-                    Color.white,
-                    lighterVariant,
-                    subjectColor,
-                    darkerVariant
-                ]
-                
-                speed = isActive ? 0.7 : 0.5
-            } else {
-                colors = ColorfulPreset.aurora.swiftUIColors
-                speed = 0.5
-            }
-        } else {
-            // Default gradient
-            colors = ColorfulPreset.sunset.swiftUIColors
-            speed = 0.5
-        }
-        
-        updateGradient(colors: colors, speed: speed, noise: noise)
-    }
+    // Remove the duplicate updateGradientForContext method from here
+    // as it's now moved to AppGradients.swift extension
+    
+    // Helper methods can stay
 }
