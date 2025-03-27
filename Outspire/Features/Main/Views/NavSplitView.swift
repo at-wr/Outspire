@@ -32,18 +32,32 @@ struct SettingsTip: Tip {
     }
 }
 
-// Define a tip for the Today view
 struct TodayTip: Tip {
     var title: Text {
         Text("Your Daily Overview")
     }
-
+    
     var message: Text? {
         Text("Check here daily for your schedule, announcements, and important updates.")
     }
-
+    
     var image: Image? {
         Image(systemName: "calendar")
+    }
+}
+
+// Define a tip to instruct the user to sign in
+struct SignInTip: Tip {
+    var title: Text {
+        Text("Sign in to Outspire")
+    }
+    
+    var message: Text? {
+        Text("Tap here to sign in and access full features.")
+    }
+    
+    var image: Image? {
+        Image(systemName: "person.crop.circle.badge.checkmark")
     }
 }
 
@@ -57,7 +71,7 @@ struct NavSplitView: View {
     @State private var showOnboardingSheet = false
     @State private var hasCheckedOnboarding = false
     @AppStorage("lastVersionRun") private var lastVersionRun: String?
-    @State private var shouldShowTip = false
+    @State private var currentActiveTip: String? = nil
     @State private var onboardingCompleted = false
     @Environment(\.colorScheme) private var colorScheme // Add colorScheme
 
@@ -65,6 +79,7 @@ struct NavSplitView: View {
     @State private var navigationTip = NavigationTip()
     @State private var settingsTip = SettingsTip()
     @State private var todayTip = TodayTip()
+    @State private var signInTip = SignInTip()
 
     var body: some View {
         NavigationSplitView {
@@ -87,7 +102,7 @@ Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
                 List(selection: $selectedLink) {
                     NavigationLink(value: "today") {
                         Label("Today", systemImage: "text.rectangle.page")
-                            .tipKit(todayTip, shouldShowTip: shouldShowTip)
+                            .tipKit(todayTip, shouldShowTip: currentActiveTip == "today")
                     }
 
                     NavigationLink(value: "classtable") {
@@ -140,7 +155,7 @@ Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
                         }) {
                             Image(systemName: "gear")
                         }
-                        .tipKit(settingsTip, shouldShowTip: shouldShowTip)
+                        .tipKit(settingsTip, shouldShowTip: currentActiveTip == "settings")
                     }
                 }
                 .navigationTitle("Outspire")
@@ -270,19 +285,48 @@ Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
 
     private func checkOnboardingStatus() {
         if UserDefaults.standard.bool(forKey: "hasCompletedOnboarding") {
-            print("Onboarding has been completed, preparing to show tips")
+            print("Onboarding has been completed, preparing to show tips sequentially")
             onboardingCompleted = true
-
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                Task {
-                    await invalidateTips()
-                    print("Tips have been invalidated, now enabling tips")
-                    shouldShowTip = true
+            
+            if UIDevice.current.userInterfaceIdiom == .phone {
+                if !sessionService.isAuthenticated {
+                    // For iPhone not logged in: show Today tip, then Sign In tip, then Settings tip
+                    DispatchQueue.main.async {
+                        self.currentActiveTip = "today"
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
+                        self.currentActiveTip = "signin"
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 8.0) {
+                        self.currentActiveTip = "settings"
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 12.0) {
+                        self.currentActiveTip = nil
+                    }
+                } else {
+                    // For iPhone logged in: show Today tip then Settings tip
+                    DispatchQueue.main.async {
+                        self.currentActiveTip = "today"
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
+                        self.currentActiveTip = "settings"
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 8.0) {
+                        self.currentActiveTip = nil
+                    }
+                }
+            } else {
+                // For non-iPhone devices, show only the Settings tip briefly
+                DispatchQueue.main.async {
+                    self.currentActiveTip = "settings"
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
+                    self.currentActiveTip = nil
                 }
             }
         } else {
             print("Onboarding not completed yet")
-            shouldShowTip = false
+            self.currentActiveTip = nil
         }
     }
 

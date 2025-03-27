@@ -2,6 +2,20 @@ import SwiftUI
 import Foundation
 import CoreLocation
 import ColorfulX
+import TipKit
+
+// Define a tip for the schedule button on TodayView
+struct ScheduleTip: Tip {
+    var title: Text {
+        Text("Your Schedule Settings")
+    }
+    var message: Text? {
+        Text("Tap here to adjust today's schedule settings.")
+    }
+    var image: Image? {
+        Image(systemName: "calendar.badge.clock")
+    }
+}
 
 struct TodayView: View {
     // MARK: - Environment & State
@@ -28,6 +42,8 @@ struct TodayView: View {
     @State private var allowAnimation = true
     @State private var forceUpdate: Bool = false  // Added to force UI updates
     @State private var showLocationUpdateSheet = false
+    @State private var showScheduleTip: Bool = false
+    @State private var skipTip: Bool = false
     // Track if we've already started a Live Activity for the current class
     @State private var hasStartedLiveActivity = false
     @State private var activeClassLiveActivities: [String: Bool] = [:]
@@ -68,8 +84,9 @@ struct TodayView: View {
             }
         }
         .sheet(isPresented: $isSettingsSheetPresented, onDismiss: {
-            // Mark that we're returning from a sheet to prevent animations
+            // Mark that we're returning from a sheet and skip tip on next onAppear
             isReturningFromSheet = true
+            skipTip = true
 
             // Immediately set animateCards to true without animation
             // This is critical to prevent the animation from running again
@@ -86,6 +103,17 @@ struct TodayView: View {
             customizeNavigationBarAppearance()
             updateGradientColors() // Still call this to update shared gradient
 
+            if sessionService.isAuthenticated && !skipTip {
+                // Delay tip appearance for 1 second
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    showScheduleTip = true
+                    // Auto-hide the tip after 3 seconds
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                        showScheduleTip = false
+                    }
+                }
+            }
+            // Do not automatically reset skipTip here; once the settings sheet is dismissed, the tip should remain suppressed.
             // Check for URL scheme navigation to today view
             if urlSchemeHandler.navigateToToday {
                 // Reset the handler state after navigation is complete
@@ -109,6 +137,9 @@ struct TodayView: View {
         .onChange(of: sessionService.isAuthenticated) { _, isAuthenticated in
             handleAuthChange(isAuthenticated)
             updateGradientColors() // Update gradient when authentication changes
+            if isAuthenticated {
+                skipTip = true
+            }
         }
         .onChange(of: selectedDayOverride) { newValue in
             // Save the selected day override to Configuration
@@ -253,6 +284,7 @@ struct TodayView: View {
         }
         .disabled(!sessionService.isAuthenticated)
         .opacity(sessionService.isAuthenticated ? 1.0 : 0.5)
+        .tipKit(ScheduleTip(), shouldShowTip: showScheduleTip)
     }
 
     private var scheduleSettingsSheet: some View {
