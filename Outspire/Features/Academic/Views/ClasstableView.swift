@@ -414,7 +414,9 @@ struct ClassCell: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(12)
-            .glassmorphicCard(cornerRadius: 8) // Replace custom background with glassmorphic style
+            // .glassmorphicCard(cornerRadius: 8) // Removed glassmorphic style
+            .background(Color(UIColor.secondarySystemBackground).opacity(colorScheme == .dark ? 0.5 : 0.8)) // Add a simple background
+            .cornerRadius(8) // Keep the corner radius
             .contentShape(Rectangle())
         } else {
             Color.clear
@@ -458,7 +460,7 @@ struct TimeTableSkeletonView: View {
                             .fill(Color.gray.opacity(0.1))
                             .frame(height: 70)
                             .frame(maxWidth: .infinity)
-                            .glassmorphicCard(cornerRadius: 8) // Apply glassmorphic style to skeleton cells
+                            // .glassmorphicCard(cornerRadius: 8) // Removed glassmorphic style
                     }
                 }
                 .padding(.vertical, 4)
