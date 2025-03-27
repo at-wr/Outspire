@@ -216,7 +216,7 @@ struct EnhancedClassCard: View {
                         Spacer()
                         
                         if isCurrentClass && (isForToday || setAsToday) {
-                            EnhancedCircularProgressView(progress: calculateProgress())
+                            EnhancedCircularProgressView(progress: circlePercent)
                                 .frame(width: 36, height: 36)
                                 .padding(.trailing, 16)
                         }
@@ -266,8 +266,9 @@ struct EnhancedClassCard: View {
         .onAppear {
             setupTimer()
             updateClassStatus()
-            checkAndUpdateGradient()
-        }
+    checkAndUpdateGradient()
+    updateCirclePercent()
+}
         .onDisappear {
             timer?.invalidate()
             timer = nil

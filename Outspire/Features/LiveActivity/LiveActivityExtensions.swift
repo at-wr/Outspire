@@ -74,34 +74,5 @@ extension ClassActivityManager {
         let activityId = "\(periodNumber)_\(className)"
         return activeClassActivities[activityId] != nil
     }
-    
-    // Convenience method to toggle activity for a class
-    func toggleActivityForClass(
-        className: String,
-        periodNumber: Int,
-        roomNumber: String,
-        teacherName: String,
-        startTime: Date,
-        endTime: Date
-    ) -> Bool {
-        let activityId = "\(periodNumber)_\(className)"
-        
-        if activeClassActivities[activityId] != nil {
-            // Activity exists - end it
-            endActivity(for: activityId)
-            return false
-        } else {
-            // No activity - start a new one
-            startClassActivity(
-                className: className,
-                periodNumber: periodNumber,
-                roomNumber: roomNumber,
-                teacherName: teacherName,
-                startTime: startTime,
-                endTime: endTime
-            )
-            return true
-        }
-    }
 }
 #endif

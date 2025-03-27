@@ -70,20 +70,18 @@ struct NavSplitView: View {
         NavigationSplitView {
             ZStack {
                 // Add ColorfulX as background
-#if !targetEnvironment(macCatalyst)
-                ColorfulView(
-                    color: $gradientManager.gradientColors,
-                    speed: $gradientManager.gradientSpeed,
-                    noise: $gradientManager.gradientNoise,
-                    transitionSpeed: $gradientManager.gradientTransitionSpeed
-                )
-                .ignoresSafeArea()
-                .opacity(colorScheme == .dark ? 0.15 : 0.3) // Reduce opacity more in dark mode
-                
-                // Semi-transparent background for better contrast
-                Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
-                    .ignoresSafeArea()
-#endif
+ColorfulView(
+    color: $gradientManager.gradientColors,
+    speed: $gradientManager.gradientSpeed,
+    noise: $gradientManager.gradientNoise,
+    transitionSpeed: $gradientManager.gradientTransitionSpeed
+)
+.ignoresSafeArea()
+.opacity(colorScheme == .dark ? 0.15 : 0.3) // Reduce opacity more in dark mode
+
+// Semi-transparent background for better contrast
+Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
+    .ignoresSafeArea()
                 
                 // Existing list content with better background
                 List(selection: $selectedLink) {
@@ -339,7 +337,7 @@ struct NavigationColumnWidthModifier: ViewModifier {
         #if targetEnvironment(macCatalyst)
         // Use NavigationSplitViewVisibility instead of width for more consistent behavior
         content
-            .navigationSplitViewColumnWidth(min: 180, ideal: 220, max: 300)
+            .navigationSplitViewColumnWidth(min: 180, ideal: 180, max: 300)
             .onAppear {
                 // Apply AppKit-specific customizations for Mac Catalyst
                 if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {

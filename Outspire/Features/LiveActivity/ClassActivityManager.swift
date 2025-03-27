@@ -529,5 +529,43 @@ class ClassActivityManager {
         }
         activeClassActivities.removeAll()
     }
+    
+    // Method to toggle Live Activity for a specific class
+    func toggleActivityForClass(
+        className: String,
+        periodNumber: Int,
+        roomNumber: String,
+        teacherName: String,
+        startTime: Date,
+        endTime: Date
+    ) -> Bool {
+        let activityId = "\(periodNumber)_\(className)"
+        
+        if let existingActivity = activeClassActivities[activityId] {
+            // Activity exists, end it
+            Task {
+                if #available(iOS 16.2, *) {
+                    await existingActivity.end(nil, dismissalPolicy: .immediate)
+                } else {
+                    await existingActivity.end(dismissalPolicy: .immediate)
+                }
+                activeClassActivities.removeValue(forKey: activityId)
+                cancelExistingTimers(for: activityId) // Clean up timers
+                print("Manually ended Live Activity with ID: \(existingActivity.id)")
+            }
+            return false // Activity is now inactive
+        } else {
+            // Activity doesn't exist, start it
+            startOrUpdateClassActivity(
+                className: className,
+                periodNumber: periodNumber,
+                roomNumber: roomNumber,
+                teacherName: teacherName,
+                startTime: startTime,
+                endTime: endTime
+            )
+            return true // Activity is now active (or attempting to start)
+        }
+    }
 }
 #endif

@@ -141,6 +141,12 @@ struct TodayView: View {
             // Update gradient when color scheme changes
             updateGradientColors()
         }
+        // Add observer for upcomingClassInfo changes
+        .onChange(of: upcomingClassInfo?.period.id) { _, _ in
+            // When the relevant class period changes, update the Live Activity
+            // Use forceCheck to ensure it runs even if the manager thinks an activity exists
+            startClassLiveActivityIfNeeded(forceCheck: true)
+        }
         .id("todayView-\(sessionService.isAuthenticated)-\(forceUpdate)")
         .environment(\.colorScheme, colorScheme)
     }
@@ -1134,4 +1140,3 @@ struct MainContentView: View {
         return classes
     }
 }
-

@@ -32,7 +32,7 @@ class GradientManager: ObservableObject {
     @Published var gradientColors: [Color] = ColorfulPreset.aurora.swiftUIColors
     @Published var gradientSpeed: Double = 0.5
     @Published var gradientNoise: Double = 20.0
-    @Published var gradientTransitionSpeed: Double = 1.0
+    @Published var gradientTransitionSpeed: Double = 1.5
     
     // Whether to use global settings for all views
     @Published var useGlobalSettings: Bool = true
@@ -44,8 +44,9 @@ class GradientManager: ObservableObject {
     private var globalSettings: ViewGradientSettings?
     
     // Track current context for consistent colors across app
-    @Published var currentContext: GradientContext = .normal
-    
+@Published var currentContext: GradientContext = .normal
+@Published var overrideGradientEnabled: Bool = false
+
     init() {
         loadSavedSettings()
     }
