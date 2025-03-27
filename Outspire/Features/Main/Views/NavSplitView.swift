@@ -36,11 +36,11 @@ struct TodayTip: Tip {
     var title: Text {
         Text("Your Daily Overview")
     }
-    
+
     var message: Text? {
         Text("Check here daily for your schedule, announcements, and important updates.")
     }
-    
+
     var image: Image? {
         Image(systemName: "calendar")
     }
@@ -51,11 +51,11 @@ struct SignInTip: Tip {
     var title: Text {
         Text("Sign in to Outspire")
     }
-    
+
     var message: Text? {
         Text("Tap here to sign in and access full features.")
     }
-    
+
     var image: Image? {
         Image(systemName: "person.crop.circle.badge.checkmark")
     }
@@ -71,7 +71,7 @@ struct NavSplitView: View {
     @State private var showOnboardingSheet = false
     @State private var hasCheckedOnboarding = false
     @AppStorage("lastVersionRun") private var lastVersionRun: String?
-    @State private var currentActiveTip: String? = nil
+    @State private var currentActiveTip: String?
     @State private var onboardingCompleted = false
     @Environment(\.colorScheme) private var colorScheme // Add colorScheme
 
@@ -287,7 +287,7 @@ Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
         if UserDefaults.standard.bool(forKey: "hasCompletedOnboarding") {
             print("Onboarding has been completed, preparing to show tips sequentially")
             onboardingCompleted = true
-            
+
             if UIDevice.current.userInterfaceIdiom == .phone {
                 if !sessionService.isAuthenticated {
                     // For iPhone not logged in: show Today tip, then Sign In tip, then Settings tip

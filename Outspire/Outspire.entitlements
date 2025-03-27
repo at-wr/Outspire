@@ -4,7 +4,13 @@
 <dict>
 	<key>aps-environment</key>
 	<string>development</string>
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:outspire.wrye.dev</string>
+	</array>
 	<key>com.apple.developer.maps</key>
+	<true/>
+	<key>com.apple.developer.weatherkit</key>
 	<true/>
 	<key>com.apple.security.app-sandbox</key>
 	<true/>
@@ -20,9 +26,5 @@
 	<true/>
 	<key>com.apple.security.personal-information.location</key>
 	<true/>
-	<key>com.apple.developer.associated-domains</key>
-	<array>
-		<string>applinks:outspire.wrye.dev</string>
-	</array>
 </dict>
 </plist>

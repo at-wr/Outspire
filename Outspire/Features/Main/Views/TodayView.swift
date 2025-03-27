@@ -1,6 +1,7 @@
 import SwiftUI
 import Foundation
 import CoreLocation
+import WeatherKit
 import ColorfulX
 import TipKit
 
@@ -44,6 +45,8 @@ struct TodayView: View {
     @State private var showLocationUpdateSheet = false
     @State private var showScheduleTip: Bool = false
     @State private var skipTip: Bool = false
+
+@StateObject private var weatherManager = WeatherManager.shared
     // Track if we've already started a Live Activity for the current class
     @State private var hasStartedLiveActivity = false
     @State private var activeClassLiveActivities: [String: Bool] = [:]
@@ -102,6 +105,20 @@ struct TodayView: View {
             setupOnAppear()
             customizeNavigationBarAppearance()
             updateGradientColors() // Still call this to update shared gradient
+
+            if let location = locationManager.userLocation {
+                Task {
+                    await weatherManager.fetchWeather(for: location)
+                }
+            }
+            // Additional fetch to update weather if the initial fetch hasn't updated (avoids showing the placeholder)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                if weatherManager.currentTemperature == "--", let location = locationManager.userLocation {
+                    Task {
+                        await weatherManager.fetchWeather(for: location)
+                    }
+                }
+            }
 
             if sessionService.isAuthenticated && !skipTip {
                 // Delay tip appearance for 1 second
@@ -177,6 +194,13 @@ struct TodayView: View {
             // When the relevant class period changes, update the Live Activity
             // Use forceCheck to ensure it runs even if the manager thinks an activity exists
             startClassLiveActivityIfNeeded(forceCheck: true)
+        }
+        .onChange(of: locationManager.userLocation) { newLocation in
+            if let location = newLocation {
+                Task {
+                    await weatherManager.fetchWeather(for: location)
+                }
+            }
         }
         .id("todayView-\(sessionService.isAuthenticated)-\(forceUpdate)")
         .environment(\.colorScheme, colorScheme)
@@ -310,7 +334,9 @@ struct TodayView: View {
             holidayHasEndDate: holidayHasEndDate,
             holidayEndDateString: holidayEndDateString,
             isHolidayMode: isHolidayMode,
-            animateCards: animateCards
+            animateCards: animateCards,
+            weatherSymbol: weatherManager.conditionSymbol,
+            weatherTemperature: weatherManager.currentTemperature
         )
     }
 
@@ -472,18 +498,16 @@ struct TodayView: View {
 
         // Timer to update current time - optimized to reduce unnecessary refreshes
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [self] _ in
-            // Store previous time for comparison
-            let previousMinute = Calendar.current.component(.minute, from: self.currentTime)
-
-            // Update current time
             self.currentTime = Date()
-
-            // Only trigger updates when meaningful time changes occur
-            let newMinute = Calendar.current.component(.minute, from: self.currentTime)
-
-            // Force refresh when minute changes or special case for class changes
-            if previousMinute != newMinute || self.checkForClassTransition() {
+            let second = Calendar.current.component(.second, from: self.currentTime)
+            // Refresh weather every 30 seconds or when a class transition is detected
+            if second % 30 == 0 || self.checkForClassTransition() {
                 self.forceUpdate.toggle()
+                if let location = locationManager.userLocation {
+                    Task {
+                        await weatherManager.fetchWeather(for: location)
+                    }
+                }
             }
         }
 
@@ -854,6 +878,45 @@ struct TodayView: View {
     }
 }
 
+
+fileprivate func weatherColor(for symbol: String) -> Color {
+    switch symbol {
+    case "sun.max", "sun.max.fill":
+        return .yellow
+    case "cloud.sun", "cloud.sun.fill":
+        return .orange
+    case "cloud", "cloud.fill":
+        return .gray
+    case "cloud.fog", "cloud.fog.fill":
+        return .gray
+    case "sun.haze":
+        return .orange
+    case "smoke":
+        return .gray
+    case "cloud.drizzle":
+        return .blue
+    case "cloud.rain":
+        return .blue
+    case "cloud.bolt.rain":
+        return .yellow
+    case "wind":
+        return .blue
+    case "cloud.hail":
+        return .blue
+    case "snow":
+        return .white
+    case "cloud.sleet":
+        return .blue
+    case "hurricane":
+        return .red
+    case "tropicalstorm":
+        return .orange
+    default:
+        return .primary
+    }
+}
+
+//
 // MARK: - Supporting Views
 struct HeaderView: View {
     let greeting: String
@@ -865,23 +928,37 @@ struct HeaderView: View {
     let holidayEndDateString: String
     let isHolidayMode: Bool
     let animateCards: Bool
+    let weatherSymbol: String
+    let weatherTemperature: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 5) {
-            if let nickname = nickname {
-                Text("\(greeting), \(nickname)")
-                    .font(.title2)
-                    .fontWeight(.bold)
-            } else {
-                Text("\(greeting)")
-                    .font(.title2)
-                    .fontWeight(.bold)
+        HStack {
+            VStack(alignment: .leading, spacing: 5) {
+                if let nickname = nickname {
+                    Text("\(greeting), \(nickname)")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                } else {
+                    Text("\(greeting)")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                }
+                Text(formattedDate)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                additionalHeaderText
+                    .padding(.top, 2)
             }
-            Text(formattedDate)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-            additionalHeaderText
-                .padding(.top, 2)
+            Spacer()
+                VStack(spacing: 4) {
+                    Image(systemName: weatherSymbol)
+                        .font(.title2)
+                        .foregroundStyle(weatherColor(for: weatherSymbol))
+                    Text(weatherTemperature)
+                        .font(.caption)
+                }
+                .padding(6)
+                .clipShape(Circle())
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal)
