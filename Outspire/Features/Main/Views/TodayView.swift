@@ -878,45 +878,6 @@ struct TodayView: View {
     }
 }
 
-
-fileprivate func weatherColor(for symbol: String) -> Color {
-    switch symbol {
-    case "sun.max", "sun.max.fill":
-        return .yellow
-    case "cloud.sun", "cloud.sun.fill":
-        return .orange
-    case "cloud", "cloud.fill":
-        return .gray
-    case "cloud.fog", "cloud.fog.fill":
-        return .gray
-    case "sun.haze":
-        return .orange
-    case "smoke":
-        return .gray
-    case "cloud.drizzle":
-        return .blue
-    case "cloud.rain":
-        return .blue
-    case "cloud.bolt.rain":
-        return .yellow
-    case "wind":
-        return .blue
-    case "cloud.hail":
-        return .blue
-    case "snow":
-        return .white
-    case "cloud.sleet":
-        return .blue
-    case "hurricane":
-        return .red
-    case "tropicalstorm":
-        return .orange
-    default:
-        return .primary
-    }
-}
-
-//
 // MARK: - Supporting Views
 struct HeaderView: View {
     let greeting: String
@@ -953,12 +914,11 @@ struct HeaderView: View {
                 VStack(spacing: 4) {
                     Image(systemName: weatherSymbol)
                         .font(.title2)
-                        .foregroundStyle(weatherColor(for: weatherSymbol))
+                        .symbolRenderingMode(.multicolor)
                     Text(weatherTemperature)
                         .font(.caption)
                 }
                 .padding(6)
-                .clipShape(Circle())
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal)

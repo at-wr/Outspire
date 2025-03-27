@@ -21,25 +21,25 @@ class WeatherManager: ObservableObject {
             // https://developer.apple.com/documentation/weatherkit/weathercondition
             switch condition {
             case .clear:
-                self.conditionSymbol = "sun.max"
+                self.conditionSymbol = "sun.max.fill"
             case .mostlyClear:
-                self.conditionSymbol = "sun.max"
+                self.conditionSymbol = "sun.max.fill"
             case .partlyCloudy:
-                self.conditionSymbol = "cloud.sun"
+                self.conditionSymbol = "cloud.sun.fill"
             case .cloudy, .mostlyCloudy:
-                self.conditionSymbol = "cloud"
+                self.conditionSymbol = "cloud.fill"
             case .foggy:
-                self.conditionSymbol = "cloud.fog"
+                self.conditionSymbol = "cloud.fog.fill"
             case .haze:
-                self.conditionSymbol = "sun.haze"
+                self.conditionSymbol = "sun.haze.fill"
             case .smoky:
-                self.conditionSymbol = "smoke"
+                self.conditionSymbol = "smoke.fill"
             case .drizzle:
-                self.conditionSymbol = "cloud.drizzle"
+                self.conditionSymbol = "cloud.drizzle.fill"
             case .rain, .sunShowers, .heavyRain:
-                self.conditionSymbol = "cloud.rain"
+                self.conditionSymbol = "cloud.rain.fill"
             case .isolatedThunderstorms, .scatteredThunderstorms, .thunderstorms, .strongStorms:
-                self.conditionSymbol = "cloud.bolt.rain"
+                self.conditionSymbol = "cloud.bolt.rain.fillw"
             case .blowingDust:
                 self.conditionSymbol = "wind"
             case .breezy, .windy:
@@ -47,19 +47,19 @@ class WeatherManager: ObservableObject {
             case .hail:
                 self.conditionSymbol = "cloud.hail"
             case .hot:
-                self.conditionSymbol = "sun.max"
+                self.conditionSymbol = "sun.max.fill"
             case .flurries, .sleet, .snow, .sunFlurries, .wintryMix, .heavySnow, .blizzard, .blowingSnow:
-                self.conditionSymbol = "snow"
+                self.conditionSymbol = "cloud.snow"
             case .freezingDrizzle:
-                self.conditionSymbol = "snow"
+                self.conditionSymbol = "wind.snow"
             case .freezingRain:
-                self.conditionSymbol = "cloud.sleet"
+                self.conditionSymbol = "cloud.sleet.fill"
             case .hurricane:
                 self.conditionSymbol = "hurricane"
             case .tropicalStorm:
                 self.conditionSymbol = "tropicalstorm"
             default:
-                self.conditionSymbol = "cloud.sun"
+                self.conditionSymbol = "cloud.sun.fill"
             }
         } catch {
             print("WeatherManager fetchWeather error: \(error)")
