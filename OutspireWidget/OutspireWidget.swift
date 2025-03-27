@@ -20,7 +20,7 @@ struct Provider: AppIntentTimelineProvider {
             let now = Date()
             let startTime = calendar.date(bySettingHour: 10, minute: 45, second: 0, of: now)!
             let endTime = calendar.date(bySettingHour: 11, minute: 25, second: 0, of: now)!
-            
+
             let sampleClass = ClassWidgetData(
                 className: "Mathematics",
                 teacherName: "Mr. Smith",
@@ -31,7 +31,7 @@ struct Provider: AppIntentTimelineProvider {
                 isCurrentClass: true,
                 isSelfStudy: false
             )
-            
+
             return WidgetEntry(
                 date: now,
                 state: .hasClasses,
@@ -40,15 +40,15 @@ struct Provider: AppIntentTimelineProvider {
                 configuration: configuration
             )
         }
-        
+
         // Otherwise, return real data
         return await getTimelineEntry(for: configuration)
     }
-    
+
     // Timeline implementation is now in the extension in WidgetModels.swift
 }
 
-struct OutspireWidgetEntryView : View {
+struct OutspireWidgetEntryView: View {
     @Environment(\.widgetFamily) var widgetFamily
     var entry: Provider.Entry
 
@@ -65,7 +65,7 @@ struct OutspireWidgetEntryView : View {
             ZStack {
                 // Background
                 Color(UIColor.systemBackground)
-                
+
                 // Content based on state
                 switch entry.state {
                 case .notSignedIn:
@@ -89,19 +89,19 @@ struct OutspireWidgetEntryView : View {
             .containerBackground(.fill.tertiary, for: .widget)
         }
     }
-    
+
     // MARK: - State Views
-    
+
     private var notSignedInView: some View {
         VStack(spacing: 8) {
             Image(systemName: "person.crop.circle.badge.exclamationmark")
                 .font(.system(size: 28))
                 .foregroundStyle(.secondary)
-            
+
             Text("Not Signed In")
                 .font(.headline)
                 .multilineTextAlignment(.center)
-            
+
             Text("Sign in to Outspire to view your classes")
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -109,7 +109,7 @@ struct OutspireWidgetEntryView : View {
                 .padding(.horizontal)
         }
     }
-    
+
     private var loadingView: some View {
         VStack(spacing: 10) {
                 // Skeleton for class name
@@ -118,14 +118,14 @@ struct OutspireWidgetEntryView : View {
                     .frame(height: 20)
                     .cornerRadius(4)
                     .padding(.horizontal, 12)
-                
+
                 // Skeleton for teacher name
                 Rectangle()
                     .fill(Color.gray.opacity(0.3))
                     .frame(height: 15)
                     .cornerRadius(4)
                     .padding(.horizontal, 12)
-                
+
                 // Skeleton for room number
                 Rectangle()
                     .fill(Color.gray.opacity(0.3))
@@ -134,34 +134,34 @@ struct OutspireWidgetEntryView : View {
                     .padding(.horizontal, 12)
             }
     }
-    
+
     private var weekendView: some View {
         VStack(spacing: 8) {
             Image(systemName: "sun.max.fill")
                 .font(.system(size: 28))
                 .foregroundStyle(.yellow)
-            
+
             Text("It's the Weekend!")
                 .font(.headline)
                 .multilineTextAlignment(.center)
-            
+
             Text("Enjoy your time off")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
         }
     }
-    
+
     private func holidayView(endDate: Date?) -> some View {
         VStack(spacing: 8) {
             Image(systemName: "sun.max.fill")
                 .font(.system(size: 28))
                 .foregroundStyle(.orange)
-            
+
             Text("Holiday Mode")
                 .font(.headline)
                 .multilineTextAlignment(.center)
-            
+
             if let endDate = endDate {
                 // Create the formatted date string outside the view hierarchy
                 let formattedDate: String = {
@@ -170,7 +170,7 @@ struct OutspireWidgetEntryView : View {
                     formatter.timeStyle = .none
                     return formatter.string(from: endDate)
                 }()
-                
+
                 Text("Until \(formattedDate)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -183,17 +183,17 @@ struct OutspireWidgetEntryView : View {
             }
         }
     }
-    
+
     private var noClassesView: some View {
         VStack(spacing: 8) {
             Image(systemName: "checkmark.circle.fill")
                 .font(.system(size: 28))
                 .foregroundStyle(.green)
-            
+
             Text("No Classes")
                 .font(.headline)
                 .multilineTextAlignment(.center)
-            
+
             Text("No more classes scheduled for today")
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -201,9 +201,9 @@ struct OutspireWidgetEntryView : View {
                 .padding(.horizontal)
         }
     }
-    
+
     // MARK: - Class View
-    
+
     private func classView(classData: ClassWidgetData) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             // Header - more compact with reduced padding
@@ -213,14 +213,14 @@ struct OutspireWidgetEntryView : View {
                         .font(widgetFamily == .systemSmall ? .caption2 : .caption)
                         .fontWeight(.medium)
                         .foregroundStyle(classColor(for: classData))
-                    
+
                     Text("Period \(classData.periodNumber)")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
-                
+
                 Spacer()
-                
+
                 // Only show time range badge in medium and larger widgets
                 if widgetFamily != .systemSmall {
                     Text(classData.timeRangeFormatted)
@@ -236,7 +236,7 @@ struct OutspireWidgetEntryView : View {
             .padding(.horizontal, 12)
             .padding(.top, widgetFamily == .systemSmall ? 6 : 8)
             .padding(.bottom, widgetFamily == .systemSmall ? 3 : 4)
-            
+
             // Class details - more compact layout
             VStack(alignment: .leading, spacing: widgetFamily == .systemSmall ? 1 : 2) {
                 Text(classData.className)
@@ -244,7 +244,7 @@ struct OutspireWidgetEntryView : View {
                     .fontWeight(.semibold)
                     .lineLimit(1)
                     .minimumScaleFactor(0.9)
-                
+
                 if widgetFamily != .systemSmall || !entry.configuration.showCountdown {
                     HStack(spacing: 8) {
                         if !classData.teacherName.isEmpty {
@@ -259,7 +259,7 @@ struct OutspireWidgetEntryView : View {
                             }
                             .font(.caption2)
                         }
-                        
+
                         if !classData.roomNumber.isEmpty {
                             Label {
                                 Text(classData.roomNumber)
@@ -287,15 +287,15 @@ struct OutspireWidgetEntryView : View {
                 }
             }
             .padding(.horizontal, 12)
-            
+
             // Compact countdown section
             if entry.configuration.showCountdown {
                 Spacer(minLength: widgetFamily == .systemSmall ? 1 : 3)
-                
+
                 VStack(spacing: 0) {
                     Divider()
                         .padding(.horizontal, 12)
-                    
+
                     HStack(alignment: .center) {
                         // Timer icon - smaller for small widget
                         Image(systemName: classData.isCurrentClass ? "timer" : "hourglass")
@@ -306,13 +306,13 @@ struct OutspireWidgetEntryView : View {
                                 Circle()
                                     .fill(classColor(for: classData).opacity(0.1))
                             )
-                        
+
                         // Timer label and countdown - more compact
                         VStack(alignment: .leading, spacing: 0) {
                             Text(classData.isCurrentClass ? "Ends in" : "Starts in")
                                 .font(.caption2)
                                 .foregroundStyle(.secondary)
-                            
+
                             if widgetFamily == .systemSmall {
                                 // More compact timer for small widget
                                 Text(classData.targetDate, style: .timer)
@@ -331,9 +331,9 @@ struct OutspireWidgetEntryView : View {
                                     .monospacedDigit()
                             }
                         }
-                        
+
                         Spacer()
-                        
+
                         // Progress circle - only for current class and medium+ widgets
                         if classData.isCurrentClass && widgetFamily != .systemSmall {
                             ZStack {
@@ -356,13 +356,13 @@ struct OutspireWidgetEntryView : View {
                 // When not showing countdown, add minimal spacing
                 Spacer(minLength: 0)
             }
-            
+
             // For large widget, show upcoming classes more compactly
             if widgetFamily == .systemLarge && !entry.upcomingClasses.isEmpty {
                 VStack(alignment: .leading, spacing: 0) {
                     Divider()
                         .padding(.horizontal, 12)
-                    
+
                     HStack {
                         Text("Upcoming Classes")
                             .font(.caption)
@@ -372,7 +372,7 @@ struct OutspireWidgetEntryView : View {
                     .padding(.horizontal, 12)
                     .padding(.top, 6)
                     .padding(.bottom, 2)
-                    
+
                     ForEach(entry.upcomingClasses.prefix(3), id: \.periodNumber) { upcomingClass in
                         upcomingClassRow(upcomingClass)
                     }
@@ -381,7 +381,7 @@ struct OutspireWidgetEntryView : View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
-    
+
     // Row for upcoming classes in large widget
     private func upcomingClassRow(_ classData: ClassWidgetData) -> some View {
         HStack(spacing: 4) {
@@ -396,16 +396,16 @@ struct OutspireWidgetEntryView : View {
                         .fill(classColor(for: classData).opacity(0.1))
                 )
                 .foregroundStyle(classColor(for: classData))
-            
+
             // Class name
             Text(classData.className)
                 .font(.subheadline)
                 .fontWeight(.medium)
                 .lineLimit(1)
                 .minimumScaleFactor(0.9)
-            
+
             Spacer()
-            
+
             // Time
             Text(classData.timeRangeFormatted)
                 .font(.caption2)
@@ -414,9 +414,9 @@ struct OutspireWidgetEntryView : View {
         .padding(.horizontal, 12)
         .padding(.vertical, 3)
     }
-    
+
     // MARK: - Helper Methods
-    
+
     private func classColor(for classData: ClassWidgetData) -> Color {
         if classData.isSelfStudy {
             return .purple
@@ -425,9 +425,9 @@ struct OutspireWidgetEntryView : View {
             return WidgetHelpers.getSubjectColor(from: classData.className)
         }
     }
-    
+
     // MARK: - Accessory Views
-    
+
     // Accessory inline view - shows minimal info with countdown
     private func accessoryInlineView(entry: Provider.Entry) -> some View {
         Group {
@@ -446,7 +446,7 @@ struct OutspireWidgetEntryView : View {
             }
         }
     }
-    
+
     // Accessory rectangular view - shows countdown
     private func accessoryRectangularView(entry: Provider.Entry) -> some View {
         Group {
@@ -456,13 +456,13 @@ struct OutspireWidgetEntryView : View {
                     Text(classData.className)
                         .font(.headline)
                         .lineLimit(1)
-                    
+
                     // Countdown with label
                     HStack {
                         Text(classData.isCurrentClass ? "Ends in:" : "Starts in:")
                             .font(.caption)
                             .foregroundStyle(.secondary)
-                        
+
                         Text(classData.targetDate, style: .timer)
                             .font(.system(.body, design: .rounded))
                             .fontWeight(.bold)
@@ -487,7 +487,7 @@ struct OutspireWidgetEntryView : View {
 
 struct CircularProgressView: View {
     let progress: Double
-    
+
     var body: some View {
         ZStack {
             // Background track
@@ -496,7 +496,7 @@ struct CircularProgressView: View {
                     Color.gray.opacity(0.2),
                     lineWidth: 2.5
                 )
-            
+
             // Progress indicator
             Circle()
                 .trim(from: 0, to: progress)
@@ -537,7 +537,7 @@ extension ClassWidgetConfigurationIntent {
         intent.showCountdown = true
         return intent
     }
-    
+
     fileprivate static var withoutCountdown: ClassWidgetConfigurationIntent {
         let intent = ClassWidgetConfigurationIntent()
         intent.showCountdown = false
@@ -553,7 +553,7 @@ extension ClassWidgetConfigurationIntent {
     let now = Date()
     let startTime = calendar.date(bySettingHour: 10, minute: 45, second: 0, of: now)!
     let endTime = calendar.date(bySettingHour: 11, minute: 25, second: 0, of: now)!
-    
+
     let sampleClass = ClassWidgetData(
         className: "Mathematics",
         teacherName: "Mr. Smith",
@@ -564,7 +564,7 @@ extension ClassWidgetConfigurationIntent {
         isCurrentClass: true,
         isSelfStudy: false
     )
-    
+
     WidgetEntry(
         date: now,
         state: .hasClasses,
@@ -582,7 +582,7 @@ extension ClassWidgetConfigurationIntent {
     let now = Date()
     let startTime = calendar.date(bySettingHour: 10, minute: 45, second: 0, of: now)!
     let endTime = calendar.date(bySettingHour: 11, minute: 25, second: 0, of: now)!
-    
+
     let sampleClass = ClassWidgetData(
         className: "Mathematics",
         teacherName: "Mr. Smith",
@@ -593,7 +593,7 @@ extension ClassWidgetConfigurationIntent {
         isCurrentClass: true,
         isSelfStudy: false
     )
-    
+
     WidgetEntry(
         date: now,
         state: .hasClasses,

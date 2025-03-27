@@ -12,7 +12,7 @@ enum NetworkError: Error {
     case requestFailed(Error)
     case serverError(Int)
     case unauthorized
-    
+
     var localizedDescription: String {
         switch self {
         case .invalidURL:
@@ -38,20 +38,20 @@ enum NetworkError: Error {
 /// and decoding JSON responses.
 class NetworkService {
     static let shared = NetworkService()
-    
+
     private init() {}
-    
+
     // Form URL encoding allowed characters - stricter than .urlQueryAllowed
     private static let formURLEncodedAllowedCharacters: CharacterSet = {
         // Start with the URL query allowed characters
         var allowed = CharacterSet.urlQueryAllowed
-        
+
         // Remove characters that need special encoding in form submissions
         allowed.remove(charactersIn: "!*'();:@&=+$,/?%#[]")
-        
+
         return allowed
     }()
-    
+
     /// Performs a network request with optional parameters and session ID
     /// - Parameters:
     ///   - endpoint: The API endpoint path
@@ -70,44 +70,44 @@ class NetworkService {
             completion(.failure(.invalidURL))
             return
         }
-        
+
         var request = URLRequest(url: url)
         request.httpMethod = method.rawValue
-        
+
         var headers = ["Content-Type": "application/x-www-form-urlencoded"]
         if let sessionId = sessionId {
             headers["Cookie"] = "PHPSESSID=\(sessionId)"
         }
         request.allHTTPHeaderFields = headers
-        
+
         if let parameters = parameters {
             // URL-encode parameter values with stricter encoding for form submissions
             let paramString = parameters.map { key, value -> String in
                 let encodedValue = value.addingPercentEncoding(withAllowedCharacters: Self.formURLEncodedAllowedCharacters) ?? value
                 return "\(key)=\(encodedValue)"
             }.joined(separator: "&")
-            
+
             request.httpBody = paramString.data(using: .utf8)
         }
-        
+
         URLSession.shared.dataTask(with: request) { data, response, error in
             DispatchQueue.main.async {
                 if let error = error {
                     completion(.failure(.requestFailed(error)))
                     return
                 }
-                
+
                 guard let data = data else {
                     completion(.failure(.noData))
                     return
                 }
-                
-                if let httpResponse = response as? HTTPURLResponse, 
+
+                if let httpResponse = response as? HTTPURLResponse,
                     httpResponse.statusCode >= 400 {
                     completion(.failure(.serverError(httpResponse.statusCode)))
                     return
                 }
-                
+
                 do {
                     let decodedResponse = try JSONDecoder().decode(T.self, from: data)
                     completion(.success(decodedResponse))

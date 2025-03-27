@@ -11,16 +11,15 @@ struct AccountView: View {
     @FocusState private var focusedField: FormField?
     @State private var lastToastId = UUID() // Track last displayed toast to prevent duplicates
     @State private var captchaImage: Image? // Store the loaded captcha image
-    
-    
+
     init(viewModel: AccountViewModel? = nil) {
         _viewModel = ObservedObject(wrappedValue: viewModel ?? AccountViewModel())
     }
-    
+
     enum FormField {
         case username, password, captcha
     }
-    
+
     var body: some View {
         Group {
             if viewModel.isAuthenticated {
@@ -50,7 +49,7 @@ struct AccountView: View {
         }
         .id(viewModel.isAuthenticated)
     }
-    
+
     private var loginView: some View {
         NavigationView {
             Form {
@@ -66,7 +65,7 @@ struct AccountView: View {
                     .listRowBackground(Color.clear)
                     .listRowInsets(EdgeInsets())
                 }
-                
+
                 Section {
                     TextField("Username of TSIMS", text: $viewModel.username)
                         .textContentType(.username)
@@ -75,21 +74,21 @@ struct AccountView: View {
                         .focused($focusedField, equals: .username)
                         .submitLabel(.next)
                         .onSubmit { focusedField = .password }
-                    
+
                     SecureField("Password", text: $viewModel.password)
                         .textContentType(.password)
                         .autocapitalization(.none)
                         .autocorrectionDisabled()
                         .focused($focusedField, equals: .password)
                         // .submitLabel(.next).submitLabel(.done)
-                        //.onSubmit { focusedField = .captcha }
+                        // .onSubmit { focusedField = .captcha }
                         // handle captcha all by app
                         .submitLabel(.done)
                         .onSubmit {
                             focusedField = nil
                             login()
                         }
-                    
+
                     HStack {
                         TextField("CAPTCHA", text: $viewModel.captcha)
                             .autocapitalization(.none)
@@ -101,13 +100,13 @@ struct AccountView: View {
                                 focusedField = nil
                                 login()
                             }
-                        
+
                         if focusedField == .captcha {
                             captchaImageView
                                 .frame(width: 67.5, height: 30)
                         }
                     }
-                    
+
                     /*
                     if viewModel.isRecognizingCaptcha {
                         HStack(spacing: 6) {
@@ -120,8 +119,8 @@ struct AccountView: View {
                     }
                      */
                 }
-                //.padding(.bottom, 30)
-                
+                // .padding(.bottom, 30)
+
                 Section {
                     VStack(spacing: 2) {
                         Image(systemName: "lock.circle.dotted")
@@ -131,7 +130,7 @@ struct AccountView: View {
                         let connectionStatus = Configuration.useSSL ?
                         "Your connection with Relay Server is end-to-end encrypted." :
                         "Your connection can be easily discovered by other users. Relay Encryption is strongly recommended if you're using a public network."
-                        
+
                         Text(baseText + connectionStatus)
                             .font(.caption)
                             .foregroundStyle(.secondary)
@@ -141,7 +140,7 @@ struct AccountView: View {
                     .listRowBackground(Color.clear)
                     .padding(.top, 2)
                 }
-                
+
                 Section {
                     Button(action: login) {
                         HStack {
@@ -167,8 +166,7 @@ struct AccountView: View {
                     .listRowBackground(Color.clear)
                     .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 8, trailing: 0))
                 }
-                
-                
+
             }
             /*
              .toolbar {
@@ -185,7 +183,7 @@ struct AccountView: View {
             .onChange(of: viewModel.isAuthenticated) { _, newValue in
                 if newValue {
                     withAnimation { isTransitioning = true }
-                    
+
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                         withAnimation { isTransitioning = false }
                         NotificationCenter.default.post(name: Notification.Name.authenticationStatusChanged, object: nil)
@@ -194,7 +192,7 @@ struct AccountView: View {
             }
         }
     }
-    
+
     private var loggedInView: some View {
         Form {
             Section("Account Information") {
@@ -204,7 +202,7 @@ struct AccountView: View {
                     LabeledContent("Student No", value: userInfo.studentNo)
                 }
             }
-            
+
             Section {
                 Button("Sign Out", role: .destructive) {
                     showLogoutConfirmation = true
@@ -219,14 +217,14 @@ struct AccountView: View {
             Button("Cancel", role: .cancel) { }
         }
     }
-    
+
     private var captchaImageView: some View {
         ZStack {
             // Background placeholder that maintains consistent size
             Rectangle()
                 .fill(Color.clear)
                 .frame(width: 67.5, height: 30)
-            
+
             Group {
                 if viewModel.isCaptchaLoading {
                     ProgressView()
@@ -254,34 +252,34 @@ struct AccountView: View {
         .animation(.none, value: viewModel.isCaptchaLoading)
         .animation(.none, value: captchaImage)
     }
-    
+
     private func refreshCaptcha() {
         withAnimation { refreshButtonRotation += 360 }
         viewModel.fetchCaptchaImage()
         playImpactFeedback(.light)
     }
-    
+
     private func login() {
         focusedField = nil
         viewModel.login()
         playImpactFeedback(.medium)
     }
-    
+
     private func handleMessage(_ message: String?, isError: Bool) {
         guard let message = message else { return }
-        
+
         // Create icon for the toast
         let icon = isError ?
         Image(systemName: "exclamationmark.triangle").foregroundColor(.red) :
         Image(systemName: "checkmark.circle").foregroundColor(.green)
-        
+
         // Create toast value
         let toast = ToastValue(icon: icon, message: message)
-        
+
         // Present toast with small delay to ensure it appears after UI updates
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             self.presentToast(toast)
-            
+
             // Play feedback after toast appears
             if isError {
                 self.playHapticFeedback(.error)
@@ -289,7 +287,7 @@ struct AccountView: View {
                 self.playHapticFeedback(.success)
             }
         }
-        
+
         // Clear messages
         if isError {
             viewModel.errorMessage = nil
@@ -297,12 +295,12 @@ struct AccountView: View {
             viewModel.successMessage = nil
         }
     }
-    
+
     private func playHapticFeedback(_ type: UINotificationFeedbackGenerator.FeedbackType) {
         let generator = UINotificationFeedbackGenerator()
         generator.notificationOccurred(type)
     }
-    
+
     private func playImpactFeedback(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
         let generator = UIImpactFeedbackGenerator(style: style)
         generator.impactOccurred()

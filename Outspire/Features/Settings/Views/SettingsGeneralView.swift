@@ -10,7 +10,7 @@ struct SettingsGeneralView: View {
     @State private var showClearCacheConfirmation = false
     @State private var showCacheCleared = false
     @Environment(\.colorScheme) private var colorScheme
-    
+
     var body: some View {
         List {
             Section {
@@ -27,7 +27,7 @@ struct SettingsGeneralView: View {
                     .font(.footnote)
                     .foregroundColor(.secondary)
             }
-            
+
             Section {
                 Toggle(isOn: $showMondayClass) {
                     Label("Future Class on Weekend", systemImage: "calendar")
@@ -35,7 +35,7 @@ struct SettingsGeneralView: View {
                 .onChange(of: showMondayClass) { _, newValue in
                     Configuration.showMondayClass = newValue
                 }
-                
+
                 Toggle(isOn: $showSecondsInLongCountdown) {
                     Label("Always Show Seconds", systemImage: "timer")
                 }
@@ -49,7 +49,7 @@ struct SettingsGeneralView: View {
                     .font(.footnote)
                     .foregroundColor(.secondary)
             }
-            
+
             Section {
                 Toggle(isOn: $hideAcademicScore) {
                     Label("Hide Academic Grades", systemImage: "eye.slash")
@@ -69,7 +69,7 @@ struct SettingsGeneralView: View {
                     .font(.footnote)
                     .foregroundColor(.secondary)
             }
-            
+
             Section {
                 Button(action: {
                     showClearCacheConfirmation = true
@@ -87,7 +87,7 @@ struct SettingsGeneralView: View {
                     .font(.footnote)
                     .foregroundColor(.secondary)
             }
-            
+
             Section {
                 Button(action: {
                     UserDefaults.standard.set(false, forKey: "hasCompletedOnboarding")
@@ -116,12 +116,12 @@ struct SettingsGeneralView: View {
             Button("Clear", role: .destructive) {
                 CacheManager.clearAllCache()
                 showCacheCleared = true
-                
+
                 // Auto-dismiss success message after delay
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                     showCacheCleared = false
                 }
-                
+
                 if showCacheCleared {
                     let toast = ToastValue(
                         icon: Image(systemName: "externaldrive.badge.checkmark").foregroundStyle(.secondary),

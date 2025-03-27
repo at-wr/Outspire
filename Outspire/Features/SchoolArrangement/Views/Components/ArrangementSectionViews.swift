@@ -10,9 +10,9 @@ struct MonthSection: View {
     let isSmallScreen: Bool
     let transitionDuration: Double
     let staggerDelay: Double
-    
+
     @State private var headerHovered = false
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             // Month header
@@ -25,9 +25,9 @@ struct MonthSection: View {
                     Text(group.title)
                         .font(.headline)
                         .foregroundStyle(.gray)
-                    
+
                     Spacer()
-                    
+
                     Image(systemName: group.isExpanded ? "chevron.up" : "chevron.down")
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -46,7 +46,7 @@ struct MonthSection: View {
             .buttonStyle(BorderlessButtonStyle())
             .contentTransition(.opacity)
             .id("header-\(group.id)")
-            
+
             // Items for this month
             if group.isExpanded {
                 VStack(spacing: 12) {
@@ -96,10 +96,10 @@ struct ArrangementItemView: View {
     let shouldAnimate: Bool
     let staggerDelay: Double
     let itemIndex: Int
-    
+
     @State private var buttonHovered = false
     @State private var isPressed = false
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             // Header with title and date
@@ -109,7 +109,7 @@ struct ArrangementItemView: View {
                     // Small haptic feedback for toggle action
                     let generator = UIImpactFeedbackGenerator(style: .light)
                     generator.impactOccurred(intensity: 0.5)
-                    
+
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                         withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
                             isPressed = false
@@ -124,14 +124,14 @@ struct ArrangementItemView: View {
                             .font(.headline)
                             .lineLimit(2)
                             .foregroundColor(.primary)
-                        
+
                         Text(item.publishDate)
                             .font(.caption)
                             .foregroundStyle(.gray)
                     }
-                    
+
                     Spacer()
-                    
+
                     Image(systemName: item.isExpanded ? "chevron.up" : "chevron.down")
                         .foregroundStyle(.secondary)
                         .frame(width: 32, height: 32)
@@ -147,12 +147,12 @@ struct ArrangementItemView: View {
                 }
             }
             .buttonStyle(BorderlessButtonStyle())
-            
+
             // Week numbers
             if !item.weekNumbers.isEmpty {
                 weekNumbersView
             }
-            
+
             // View details button when expanded
             if item.isExpanded {
                 ViewDetailButton(
@@ -178,7 +178,7 @@ struct ArrangementItemView: View {
             value: shouldAnimate
         )
     }
-    
+
     private var weekNumbersView: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
@@ -201,11 +201,11 @@ struct ArrangementItemView: View {
 struct ViewDetailButton: View {
     let action: () -> Void
     let isLoading: Bool
-    
+
     @State private var isPressed = false
     @State private var hovered = false
     @State private var opacity: Double = 0
-    
+
     var body: some View {
         Button(action: {
             let generator = UIImpactFeedbackGenerator(style: .light)
@@ -213,7 +213,7 @@ struct ViewDetailButton: View {
             withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                 isPressed = true
             }
-            
+
             // Reset press state after a brief delay
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {

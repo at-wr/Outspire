@@ -12,10 +12,8 @@ extension Bundle {
 let appVersion = Bundle.main.releaseVersionNumber
 let appBuild = Bundle.main.buildVersionNumber
 
-
-
 struct AboutView: View {
-    
+
     var body: some View {
         List {
             Section {
@@ -26,7 +24,7 @@ struct AboutView: View {
                         Text("\(version) (Build \(build))")
                             .foregroundStyle(.secondary)
                     }
-                    
+
                 }
                 HStack {
                     Label("Developer", systemImage: "person")
@@ -40,9 +38,9 @@ struct AboutView: View {
                     Text("Open-sourced under MIT")
                         .foregroundStyle(.secondary)
                 }
-                
+
             }
-            
+
             Section {
                 HStack {
                     Text("TSIMS for WFLA Int'l")
@@ -51,11 +49,11 @@ struct AboutView: View {
                 HStack {
                     Text("WFLMS.cn")
                         .foregroundStyle(.primary)
-                }                
+                }
             } header: {
                 Text("Data Sources")
             }
-            
+
             Section {
                 Link(destination: URL(string: "mailto:alanye@fastmail.com")!) {
                     Label("Feedbacks & Requests", systemImage: "tray.and.arrow.down")
@@ -72,4 +70,3 @@ struct AboutView: View {
         .contentMargins(.vertical, 10.0)
     }
 }
-

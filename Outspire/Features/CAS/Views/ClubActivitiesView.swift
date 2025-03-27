@@ -12,7 +12,7 @@ struct ClubActivitiesView: View {
     @Environment(\.presentToast) var presentToast
     @EnvironmentObject var gradientManager: GradientManager // Add gradient manager
     @Environment(\.colorScheme) private var colorScheme // Add color scheme
-    
+
     var body: some View {
         // Remove the nested NavigationView
         ZStack {
@@ -25,15 +25,15 @@ struct ClubActivitiesView: View {
             )
             .ignoresSafeArea()
             .opacity(colorScheme == .dark ? 0.1 : 0.3) // Increase opacity for better visibility
-            
+
             // Semi-transparent background with reduced opacity for better contrast with gradient
             Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
                 .ignoresSafeArea()
-            
+
             contentView
         }
         .navigationTitle("Activity Records")
-        //.toolbarBackground(Color(UIColor.systemBackground))
+        // .toolbarBackground(Color(UIColor.systemBackground))
         .contentMargins(.vertical, 10.0)
         .toolbar {
             ToolbarItem(id: "loadingIndicator", placement: .navigationBarTrailing) {
@@ -42,7 +42,7 @@ struct ClubActivitiesView: View {
                         .controlSize(.small)
                 }
             }
-            
+
             ToolbarItem(id: "refreshButton", placement: .navigationBarTrailing) {
                 Button(action: handleRefreshAction) {
                     Image(systemName: "arrow.clockwise")
@@ -50,7 +50,7 @@ struct ClubActivitiesView: View {
                 }
                 .disabled(viewModel.isLoadingActivities || viewModel.isLoadingGroups)
             }
-            
+
             ToolbarItem(id: "addButton", placement: .navigationBarTrailing) {
                 Button(action: { showingAddRecordSheet.toggle() }) {
                     Image(systemName: "square.and.pencil")
@@ -58,7 +58,7 @@ struct ClubActivitiesView: View {
                 .disabled(viewModel.isLoadingGroups || viewModel.isLoadingActivities || sessionService.userInfo == nil)
             }
         }
-        .sheet(isPresented: $showingAddRecordSheet) { 
+        .sheet(isPresented: $showingAddRecordSheet) {
             addRecordSheet
                 .environmentObject(sessionService) // Explicitly pass environment object
         }
@@ -71,12 +71,12 @@ struct ClubActivitiesView: View {
         .onAppear(perform: {
             handleOnAppear()
             updateGradientForClubActivities()
-            
+
             // Handle URL scheme navigation to add an activity for a specific club
             if let activityClubId = urlSchemeHandler.navigateToAddActivity {
                 viewModel.setSelectedGroupById(activityClubId)
                 showingAddRecordSheet = true
-                
+
                 // Reset handler state
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     urlSchemeHandler.navigateToAddActivity = nil
@@ -88,7 +88,7 @@ struct ClubActivitiesView: View {
         }
         .onChange(of: viewModel.errorMessage) { errorMessage in
             if let errorMessage = errorMessage {
-                let icon = errorMessage.contains("copied") ? 
+                let icon = errorMessage.contains("copied") ?
                 "checkmark.circle.fill" : "exclamationmark.circle.fill"
                 let toast = ToastValue(
                     icon: Image(systemName: icon).foregroundStyle(.red),
@@ -101,13 +101,13 @@ struct ClubActivitiesView: View {
             if newValue {
                 // Close the add record sheet if it's open
                 showingAddRecordSheet = false
-                
+
                 // Reset any other dialog states if needed
                 viewModel.showingDeleteConfirmation = false
             }
         }
     }
-    
+
     private var contentView: some View {
         Form {
             GroupSelectorSection(viewModel: viewModel)
@@ -124,7 +124,7 @@ struct ClubActivitiesView: View {
         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: viewModel.errorMessage)
         .refreshable(action: handleRefresh) // Fixed refreshable syntax
     }
-    
+
     @ViewBuilder
     private var addRecordSheet: some View {
         if let userId = sessionService.userInfo?.studentid {
@@ -146,40 +146,40 @@ struct ClubActivitiesView: View {
             .padding()
         }
     }
-    
+
     private var deleteConfirmationActions: some View {
         Group {
             Button("Delete", role: .destructive) {
                 if let record = viewModel.recordToDelete {
                     viewModel.deleteRecord(record: record)
-                    
+
                     let toast = ToastValue(
                         icon: Image(systemName: "trash.fill").foregroundStyle(.red),
                         message: "Record Deleted"
                     )
                     presentToast(toast)
-                    
+
                     viewModel.recordToDelete = nil
                 }
             }
             Button("Cancel", role: .cancel) {}
         }
     }
-    
+
     private func handleOnAppear() {
         if viewModel.groups.isEmpty {
             viewModel.fetchGroups()
         } else if !viewModel.isCacheValid() {
             viewModel.fetchActivityRecords(forceRefresh: true)
         }
-        
+
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
                 animateList = true
             }
         }
     }
-    
+
     private func handleLoadingChange() {
         if !viewModel.isLoadingActivities {
             animateList = false
@@ -190,20 +190,20 @@ struct ClubActivitiesView: View {
             }
         }
     }
-    
+
     private func handleRefreshAction() {
         withAnimation {
             refreshButtonRotation += 360
         }
         if viewModel.isLoadingActivities { return }
-        
+
         if viewModel.groups.isEmpty {
             viewModel.fetchGroups(forceRefresh: true)
         } else {
             viewModel.fetchActivityRecords(forceRefresh: true)
         }
     }
-    
+
     @Sendable private func handleRefresh() async {  // Added @Sendable to fix data race warning
         HapticManager.shared.playFeedback(.medium)
         if viewModel.groups.isEmpty {
@@ -212,7 +212,7 @@ struct ClubActivitiesView: View {
             await viewModel.fetchActivityRecordsAsync(forceRefresh: true)
         }
     }
-    
+
     // Add method to update gradient for activities
     private func updateGradientForClubActivities() {
         gradientManager.updateGradientForView(.clubActivities, colorScheme: colorScheme)
@@ -221,7 +221,7 @@ struct ClubActivitiesView: View {
 
 struct GroupSelectorSection: View {
     @ObservedObject var viewModel: ClubActivitiesViewModel
-    
+
     var body: some View {
         Section {
             if !viewModel.groups.isEmpty {
@@ -250,7 +250,7 @@ struct ActivitiesSection: View {
     let animateList: Bool
     @State private var hasCompletedInitialLoad = false
     @Environment(\.presentToast) var presentToast
-    
+
     var body: some View {
         Section {
             if viewModel.groups.isEmpty && !viewModel.isLoadingGroups {
@@ -258,9 +258,9 @@ struct ActivitiesSection: View {
                     if sessionService.userInfo != nil {
                         ErrorView(
                             errorMessage: "No clubs available. Try joining some to continue?",
-                            retryAction: { 
+                            retryAction: {
                                 viewModel.fetchGroups(forceRefresh: true)
-                                
+
                                 let toast = ToastValue(
                                     icon: Image(systemName: "arrow.clockwise"),
                                     message: "Refreshing clubs..."
@@ -303,7 +303,7 @@ struct ActivitiesSection: View {
 struct CALoadingIndicator: View {
     let isLoadingActivities: Bool
     let isLoadingGroups: Bool
-    
+
     var body: some View {
         if isLoadingActivities || isLoadingGroups {
             ProgressView()
@@ -321,7 +321,7 @@ struct CARefreshButton: View {
     let groupsEmpty: Bool
     @Binding var rotation: Double
     let action: () -> Void
-    
+
     var body: some View {
         Button(action: action) {
             Image(systemName: "arrow.clockwise")
@@ -337,7 +337,7 @@ struct AddButton: View {
     let isLoadingActivities: Bool
     let userInfo: UserInfo?
     let action: () -> Void
-    
+
     var body: some View {
         Button(action: action) {
             Image(systemName: "square.and.pencil")
@@ -348,7 +348,7 @@ struct AddButton: View {
 
 struct ClubEmptyStateView: View {
     let action: () -> Void
-    
+
     var body: some View {
         VStack(spacing: 16) {
             Image(systemName: "tray")
@@ -381,7 +381,7 @@ struct ClubEmptyStateView: View {
 struct ActivitiesList: View {
     @ObservedObject var viewModel: ClubActivitiesViewModel
     let animateList: Bool
-    
+
     var body: some View {
         ForEach(Array(viewModel.activities.enumerated()), id: \.element.id) { index, activity in
             ActivityCardView(activity: activity, viewModel: viewModel)
@@ -404,7 +404,7 @@ struct ActivityCardView: View {
     let activity: ActivityRecord
     @ObservedObject var viewModel: ClubActivitiesViewModel
     @Environment(\.presentToast) var presentToast
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             VStack(alignment: .leading, spacing: 6) {
@@ -448,7 +448,7 @@ struct ActivityCardView: View {
                 Label("Delete", systemImage: "trash")
             }
             Menu {
-                Button(action: { 
+                Button(action: {
                     viewModel.copyTitle(activity)
                     let toast = ToastValue(
                         icon: Image(systemName: "doc.on.clipboard"),
@@ -458,7 +458,7 @@ struct ActivityCardView: View {
                 }) {
                     Label("Copy Title", systemImage: "textformat")
                 }
-                Button(action: { 
+                Button(action: {
                     viewModel.copyReflection(activity)
                     let toast = ToastValue(
                         icon: Image(systemName: "doc.on.clipboard"),
@@ -468,7 +468,7 @@ struct ActivityCardView: View {
                 }) {
                     Label("Copy Reflection", systemImage: "doc.text")
                 }
-                Button(action: { 
+                Button(action: {
                     viewModel.copyAll(activity)
                     let toast = ToastValue(
                         icon: Image(systemName: "doc.on.clipboard"),
@@ -484,28 +484,28 @@ struct ActivityCardView: View {
         }
         // Removed swipeActions as requested
     }
-    
+
     private var totalDuration: Double {
         (Double(activity.C_DurationC) ?? 0) +
         (Double(activity.C_DurationA) ?? 0) +
         (Double(activity.C_DurationS) ?? 0)
     }
-    
+
     private func formatDate(_ dateString: String) -> String {
         let inputFormatter = DateFormatter()
         inputFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
-        
+
         if inputFormatter.date(from: dateString) == nil {
             inputFormatter.dateFormat = "yyyy-MM-dd"
         }
-        
+
         if let date = inputFormatter.date(from: dateString) {
             let outputFormatter = DateFormatter()
             outputFormatter.dateStyle = .medium
             outputFormatter.timeStyle = .none
             return outputFormatter.string(from: date)
         }
-        
+
         return dateString.contains(" ") ? String(dateString.split(separator: " ")[0]) : dateString
     }
 }
@@ -514,7 +514,7 @@ struct ReflectionView: View {
     let text: String
     @State private var isExpanded = false
     @State private var buttonScale = 1.0
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Reflection")
@@ -559,7 +559,7 @@ struct ReflectionView: View {
 
 class HapticManager {
     static let shared = HapticManager()
-    
+
     func playFeedback(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
         let generator = UIImpactFeedbackGenerator(style: style)
         generator.prepare()

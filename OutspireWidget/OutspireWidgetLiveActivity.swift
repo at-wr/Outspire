@@ -21,17 +21,17 @@ struct ClassActivityAttributes: ActivityAttributes {
         var progress: Double
         var timeRemaining: TimeInterval
     }
-    
+
     var className: String
     var roomNumber: String
     var teacherName: String
-    
+
     enum ClassStatus: String, Codable {
         case upcoming
         case ongoing
         case ending
     }
-    
+
     static var preview: ClassActivityAttributes {
         ClassActivityAttributes(
             className: "Mathematics",
@@ -46,7 +46,7 @@ struct OutspireWidgetLiveActivity: Widget {
         ActivityConfiguration(for: ClassActivityAttributes.self) { context in
             // Lock screen/banner UI
             LockScreenView(context: context)
-            
+
         } dynamicIsland: { context in
             DynamicIsland {
                 // Expanded UI
@@ -55,7 +55,7 @@ struct OutspireWidgetLiveActivity: Widget {
                         Text("# \(context.state.periodNumber)")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
-                        
+
                         Text(context.attributes.className)
                             .font(.headline)
                             .fontWeight(.semibold)
@@ -63,13 +63,13 @@ struct OutspireWidgetLiveActivity: Widget {
                     }
                     .padding(.leading, 4)
                 }
-                
+
                 DynamicIslandExpandedRegion(.trailing) {
                     VStack(alignment: .trailing, spacing: 2) {
                         Text(context.state.currentStatus == .upcoming ? "Starts in" : "Ends in")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
-                        
+
                         Text("00:00") // Placeholder to stabilize layout
                             .hidden() // Hide the placeholder
                             .overlay(alignment: .leading) {
@@ -97,7 +97,7 @@ struct OutspireWidgetLiveActivity: Widget {
                     }
                     .padding(.trailing, 4)
                 }
-                
+
                 DynamicIslandExpandedRegion(.bottom) {
                     HStack {
                         if !context.attributes.roomNumber.isEmpty {
@@ -109,8 +109,7 @@ struct OutspireWidgetLiveActivity: Widget {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                         }
-                        
-                        
+
                         if !context.attributes.teacherName.isEmpty {
                             Label {
                                 Text(context.attributes.teacherName)
@@ -120,9 +119,9 @@ struct OutspireWidgetLiveActivity: Widget {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                         }
-                        
+
                         Spacer()
-                        
+
                         // Progress indicator without percentage text
                         if context.state.currentStatus != .upcoming {
                             // Replace static progress view with timer-based one
@@ -148,7 +147,7 @@ struct OutspireWidgetLiveActivity: Widget {
                             label: { EmptyView() },
                             currentValueLabel: {
                                 Image(systemName: "star.fill")
-                                    //.font(.system(size: 8, weight: .bold))
+                                    // .font(.system(size: 8, weight: .bold))
                                     .foregroundStyle(classColor(for: context))
                             }
                         )
@@ -197,7 +196,7 @@ struct OutspireWidgetLiveActivity: Widget {
                             label: { EmptyView() },
                             currentValueLabel: {
                                 Image(systemName: "star.fill")
-                                    //.font(.system(size: 8, weight: .bold))
+                                    // .font(.system(size: 8, weight: .bold))
                                     .foregroundStyle(classColor(for: context))
                             }
                         )
@@ -215,13 +214,13 @@ struct OutspireWidgetLiveActivity: Widget {
             .keylineTint(statusColor(for: context.state.currentStatus))
         }
     }
-    
+
     // Helper functions remain unchanged
     private func formatTimeRemaining(_ timeInterval: TimeInterval, compact: Bool = false) -> String {
         let hours = Int(timeInterval) / 3600
         let minutes = (Int(timeInterval) % 3600) / 60
         let seconds = Int(timeInterval) % 60
-        
+
         if compact {
             if hours > 0 {
                 return "\(hours):\(String(format: "%02d", minutes))"
@@ -238,18 +237,18 @@ struct OutspireWidgetLiveActivity: Widget {
             }
         }
     }
-    
+
     // New method to get color based on class name, matching widget colors
     private func classColor(for context: ActivityViewContext<ClassActivityAttributes>) -> Color {
         let isSelfStudy = context.attributes.className.lowercased().contains("self-study")
-        
+
         if isSelfStudy {
             return .purple
         } else {
             return WidgetHelpers.getSubjectColor(from: context.attributes.className)
         }
     }
-    
+
     // Modified to include status as fallback
     private func statusColor(for status: ClassActivityAttributes.ClassStatus) -> Color {
         switch status {
@@ -263,7 +262,7 @@ struct OutspireWidgetLiveActivity: Widget {
 // Lock Screen View
 struct LockScreenView: View {
     let context: ActivityViewContext<ClassActivityAttributes>
-    
+
     var body: some View {
         HStack(spacing: 12) {
             // Left side with class info
@@ -273,12 +272,12 @@ struct LockScreenView: View {
                     .fontWeight(.medium)
                     // Use classColor instead of statusColor
                     .foregroundStyle(classColor(for: context))
-                
+
                 Text(context.attributes.className)
                     .font(.headline)
                     .fontWeight(.semibold)
                     .lineLimit(1)
-                
+
                 HStack(spacing: 16) {
                     if !context.attributes.roomNumber.isEmpty {
                         Label {
@@ -300,19 +299,19 @@ struct LockScreenView: View {
                     }
                 }
             }
-            
+
             Spacer()
-            
+
             // Right side with period and timer
             VStack(alignment: .trailing, spacing: 2) {
                 Text("#\(context.state.periodNumber)")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
-                
+
                 Text(context.state.currentStatus == .upcoming ? "Starts in" : "Ends in")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
-                
+
                 Text("00:00") // Placeholder to stabilize layout
                     .hidden() // Hide the placeholder
                     .overlay(alignment: .leading) {
@@ -337,7 +336,7 @@ struct LockScreenView: View {
                                 .foregroundStyle(classColor(for: context))
                         }
                     }
-                
+
                 if context.state.currentStatus != .upcoming {
                     // Replace static progress view with timer-based one and use classColor
                     ProgressView(
@@ -357,13 +356,13 @@ struct LockScreenView: View {
         .activityBackgroundTint(Color(.secondarySystemBackground))
         .activitySystemActionForegroundColor(.primary)
     }
-    
+
     // Helper methods
     private func formatTimeRemaining(_ timeInterval: TimeInterval) -> String {
         let hours = Int(timeInterval) / 3600
         let minutes = (Int(timeInterval) % 3600) / 60
         let seconds = Int(timeInterval) % 60
-        
+
         if hours > 0 {
             return "\(hours)h \(minutes)m"
         } else if minutes > 0 {
@@ -372,18 +371,18 @@ struct LockScreenView: View {
             return "\(seconds)s"
         }
     }
-    
+
     // Add class color helper matching the widget
     private func classColor(for context: ActivityViewContext<ClassActivityAttributes>) -> Color {
         let isSelfStudy = context.attributes.className.lowercased().contains("self-study")
-        
+
         if isSelfStudy {
             return .purple
         } else {
             return WidgetHelpers.getSubjectColor(from: context.attributes.className)
         }
     }
-    
+
     // Keep statusColor as fallback
     private func statusColor(for status: ClassActivityAttributes.ClassStatus) -> Color {
         switch status {
@@ -406,7 +405,7 @@ extension ClassActivityAttributes.ContentState {
             timeRemaining: 15 * 60
         )
     }
-     
+
     static var next: ClassActivityAttributes.ContentState {
         ClassActivityAttributes.ContentState(
             startTime: Date().addingTimeInterval(15 * 60),

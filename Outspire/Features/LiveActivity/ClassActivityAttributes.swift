@@ -13,12 +13,12 @@ struct ClassActivityAttributes: ActivityAttributes {
         var progress: Double // Add progress for UI visualization
         var timeRemaining: TimeInterval // Add time remaining for simpler display
     }
-    
+
     // Static content that doesn't change during the activity lifecycle
     var className: String
     var roomNumber: String
     var teacherName: String
-    
+
     enum ClassStatus: String, Codable {
         case upcoming
         case ongoing

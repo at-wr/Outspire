@@ -7,7 +7,7 @@ struct ViewGradientSettings: Codable {
     var speed: Double
     var noise: Double
     var transitionSpeed: Double
-    
+
     init(colors: [Color], speed: Double, noise: Double, transitionSpeed: Double) {
         // Convert SwiftUI Colors to hex strings for storage
         self.colors = colors.map { color in
@@ -18,7 +18,7 @@ struct ViewGradientSettings: Codable {
         self.noise = noise
         self.transitionSpeed = transitionSpeed
     }
-    
+
     // Get actual SwiftUI colors
     var swiftUIColors: [Color] {
         colors.compactMap { hexString in
@@ -33,16 +33,16 @@ class GradientManager: ObservableObject {
     @Published var gradientSpeed: Double = 0.5
     @Published var gradientNoise: Double = 20.0
     @Published var gradientTransitionSpeed: Double = 1.5
-    
+
     // Whether to use global settings for all views
     @Published var useGlobalSettings: Bool = true
-    
+
     // Dictionary to store settings for each view type
     private var viewSettings: [ViewType: ViewGradientSettings] = [:]
-    
+
     // Global settings that apply when useGlobalSettings is true
     private var globalSettings: ViewGradientSettings?
-    
+
     // Track current context for consistent colors across app
 @Published var currentContext: GradientContext = .normal
 @Published var overrideGradientEnabled: Bool = false
@@ -50,7 +50,7 @@ class GradientManager: ObservableObject {
     init() {
         loadSavedSettings()
     }
-    
+
     // Method to update the current displayed gradient settings
     func updateGradient(
         colors: [Color]? = nil,
@@ -70,11 +70,11 @@ class GradientManager: ObservableObject {
         if let transitionSpeed = transitionSpeed {
             gradientTransitionSpeed = transitionSpeed
         }
-        
+
         // Save the updated settings
         saveCurrentSettings()
     }
-    
+
     // Update global gradient settings (affects all views when useGlobalSettings is true)
     func updateGlobalGradient(
         colors: [Color]? = nil,
@@ -84,7 +84,7 @@ class GradientManager: ObservableObject {
     ) {
         // Update the active gradient
         updateGradient(colors: colors, speed: speed, noise: noise, transitionSpeed: transitionSpeed)
-        
+
         // Create or update global settings
         if globalSettings == nil {
             globalSettings = ViewGradientSettings(
@@ -110,16 +110,16 @@ class GradientManager: ObservableObject {
                 )
             }
         }
-        
+
         // Save global settings
         saveViewSettings()
-        
+
         // Apply to all views if using global settings
         if useGlobalSettings {
             applyGlobalSettings()
         }
     }
-    
+
     // Update settings for a specific view
     func updateViewGradient(
         viewType: ViewType,
@@ -156,7 +156,7 @@ class GradientManager: ObservableObject {
                 transitionSpeed: transitionSpeed ?? 1.0
             )
         }
-        
+
         // Update the current displayed gradient if we're viewing this view type
         updateGradient(
             colors: colors,
@@ -164,20 +164,20 @@ class GradientManager: ObservableObject {
             noise: noise,
             transitionSpeed: transitionSpeed
         )
-        
+
         // Save settings
         saveViewSettings()
     }
-    
+
     // Apply global settings to all views
     func applyGlobalSettings() {
         guard let globalSettings = globalSettings else { return }
-        
+
         // Update all view settings with global settings
         for viewType in ViewType.allCases {
             viewSettings[viewType] = globalSettings
         }
-        
+
         // Update the active gradient
         updateGradient(
             colors: globalSettings.swiftUIColors,
@@ -185,26 +185,26 @@ class GradientManager: ObservableObject {
             noise: globalSettings.noise,
             transitionSpeed: globalSettings.transitionSpeed
         )
-        
+
         // Save settings
         saveViewSettings()
     }
-    
+
     // Get settings for a specific view type
     func getSettingsForView(_ viewType: ViewType) -> (colors: [Color], speed: Double, noise: Double, transitionSpeed: Double) {
         if useGlobalSettings, let globalSettings = globalSettings {
             return (globalSettings.swiftUIColors, globalSettings.speed, globalSettings.noise, globalSettings.transitionSpeed)
         }
-        
+
         if let settings = viewSettings[viewType] {
             return (settings.swiftUIColors, settings.speed, settings.noise, settings.transitionSpeed)
         }
-        
+
         // Default settings if none exist
         let defaultColors = getDefaultColorsForViewType(viewType)
         return (defaultColors, 0.5, 20.0, 1.0)
     }
-    
+
     // Reset settings for a specific view
     func resetViewSettings(viewType: ViewType) {
         let defaultColors = getDefaultColorsForViewType(viewType)
@@ -214,7 +214,7 @@ class GradientManager: ObservableObject {
             noise: 20.0,
             transitionSpeed: 1.0
         )
-        
+
         // Update the active gradient if we're on this view
         updateGradient(
             colors: defaultColors,
@@ -222,16 +222,16 @@ class GradientManager: ObservableObject {
             noise: 20.0,
             transitionSpeed: 1.0
         )
-        
+
         // Save settings
         saveViewSettings()
     }
-    
+
     // Reset all settings
     func resetAllSettings() {
         // Clear all view-specific settings
         viewSettings.removeAll()
-        
+
         // Reset global settings
         globalSettings = ViewGradientSettings(
             colors: ColorfulPreset.aurora.swiftUIColors,
@@ -239,10 +239,10 @@ class GradientManager: ObservableObject {
             noise: 20.0,
             transitionSpeed: 1.0
         )
-        
+
         // Set back to using global settings
         useGlobalSettings = true
-        
+
         // Update the active gradient
         updateGradient(
             colors: ColorfulPreset.aurora.swiftUIColors,
@@ -250,14 +250,14 @@ class GradientManager: ObservableObject {
             noise: 20.0,
             transitionSpeed: 1.0
         )
-        
+
         // Clear saved settings
         UserDefaults.standard.removeObject(forKey: "viewGradientSettings")
         UserDefaults.standard.removeObject(forKey: "globalGradientSettings")
         UserDefaults.standard.removeObject(forKey: "useGlobalGradientSettings")
         UserDefaults.standard.removeObject(forKey: "hasCustomizedGradients")
     }
-    
+
     // Get default colors for a view type
     private func getDefaultColorsForViewType(_ viewType: ViewType) -> [Color] {
         switch viewType {
@@ -274,12 +274,12 @@ class GradientManager: ObservableObject {
         case .holiday: return AppGradients.holiday
         }
     }
-    
+
     // Load saved gradient settings from UserDefaults
     private func loadSavedSettings() {
         // Load whether to use global settings
         useGlobalSettings = UserDefaults.standard.bool(forKey: "useGlobalGradientSettings")
-        
+
         // Load global settings
         if let globalData = UserDefaults.standard.data(forKey: "globalGradientSettings"),
            let decodedSettings = try? JSONDecoder().decode(ViewGradientSettings.self, from: globalData) {
@@ -293,7 +293,7 @@ class GradientManager: ObservableObject {
                 transitionSpeed: 1.0
             )
         }
-        
+
         // Load view-specific settings
         if let viewData = UserDefaults.standard.data(forKey: "viewGradientSettings"),
            let viewDictionary = try? JSONDecoder().decode([String: ViewGradientSettings].self, from: viewData) {
@@ -304,7 +304,7 @@ class GradientManager: ObservableObject {
                 }
             }
         }
-        
+
         // Set initial displayed gradient
         if useGlobalSettings, let globalSettings = globalSettings {
             gradientColors = globalSettings.swiftUIColors
@@ -320,16 +320,16 @@ class GradientManager: ObservableObject {
             gradientTransitionSpeed = todaySettings.transitionSpeed
         }
     }
-    
+
     // Save current settings to UserDefaults
     private func saveCurrentSettings() {
         // Save useGlobalSettings flag
         UserDefaults.standard.set(useGlobalSettings, forKey: "useGlobalGradientSettings")
-        
+
         // Flag that settings have been customized
         UserDefaults.standard.set(true, forKey: "hasCustomizedGradients")
     }
-    
+
     // Save view-specific settings
     private func saveViewSettings() {
         // Save global settings
@@ -337,39 +337,39 @@ class GradientManager: ObservableObject {
            let encodedGlobal = try? JSONEncoder().encode(globalSettings) {
             UserDefaults.standard.set(encodedGlobal, forKey: "globalGradientSettings")
         }
-        
+
         // Save view-specific settings
         // Convert ViewType keys to strings for JSON encoding
         var stringDictionary: [String: ViewGradientSettings] = [:]
         for (key, value) in viewSettings {
             stringDictionary[key.rawValue] = value
         }
-        
+
         if let encodedViews = try? JSONEncoder().encode(stringDictionary) {
             UserDefaults.standard.set(encodedViews, forKey: "viewGradientSettings")
         }
-        
+
         // Save useGlobalSettings flag
         UserDefaults.standard.set(useGlobalSettings, forKey: "useGlobalGradientSettings")
-        
+
         // Flag that settings have been customized
         UserDefaults.standard.set(true, forKey: "hasCustomizedGradients")
     }
-    
+
     // Updated context-based gradient application
     func updateGradientForContext(context: GradientContext, colorScheme: ColorScheme) {
         // Store current context for consistency
         self.currentContext = context
-        
+
         // Get base animation settings
         let baseSettings = getBaseSettings()
-        
+
         // Apply the context-specific colors with base settings
         let contextColors = getColorsForContext(context)
-        
+
         // Adjust speed for active contexts (like being in class)
         let contextSpeed = context.isActive ? 0.7 : baseSettings.speed
-        
+
         updateGradient(
             colors: contextColors,
             speed: contextSpeed,
@@ -377,38 +377,38 @@ class GradientManager: ObservableObject {
             transitionSpeed: baseSettings.transitionSpeed
         )
     }
-    
+
     // Helper to get colors appropriate for the current context
     private func getColorsForContext(_ context: GradientContext) -> [Color] {
         switch context {
         case .normal:
             return AppGradients.defaultGradient
-            
+
         case .notSignedIn:
             return AppGradients.notSignedIn
-            
+
         case .weekend:
             return AppGradients.weekend
-            
+
         case .holiday:
             return AppGradients.holiday
-            
+
         case .afterSchool:
             return AppGradients.afterSchool
-            
+
         case .inClass(let subject):
             // If we have a subject, create a subject-specific gradient
             if !subject.isEmpty {
                 let components = subject.replacingOccurrences(of: "<br>", with: "\n")
                     .components(separatedBy: "\n")
                     .filter { !$0.isEmpty }
-                
+
                 if components.count > 1 {
                     let subjectColor = ClasstableView.getSubjectColor(from: components[1])
                     // Use explicit path to the extension method
                     let darkerVariant = Color.adjustBrightness(subjectColor, by: -0.2)
                     let lighterVariant = Color.adjustBrightness(subjectColor, by: 0.2)
-                    
+
                     return [
                         Color.white,
                         lighterVariant,
@@ -418,21 +418,21 @@ class GradientManager: ObservableObject {
                 }
             }
             return AppGradients.inClass
-            
+
         case .upcomingClass(let subject):
             // If we have a subject, create a subject-specific gradient
             if !subject.isEmpty {
                 let components = subject.replacingOccurrences(of: "<br>", with: "\n")
                     .components(separatedBy: "\n")
                     .filter { !$0.isEmpty }
-                
+
                 if components.count > 1 {
                     // Use a lighter version of the subject color
                     let subjectColor = ClasstableView.getSubjectColor(from: components[1])
                     // Use explicit path to the extension method
                     let lighterVariant1 = Color.adjustBrightness(subjectColor, by: 0.2)
                     let lighterVariant2 = Color.adjustBrightness(subjectColor, by: 0.3)
-                    
+
                     return [
                         Color.white,
                         lighterVariant2,
@@ -442,15 +442,15 @@ class GradientManager: ObservableObject {
                 }
             }
             return AppGradients.upcomingClass
-            
+
         case .inSelfStudy:
             return AppGradients.selfStudy
-            
+
         case .upcomingSelfStudy:
             return AppGradients.upcomingSelfStudy
         }
     }
-    
+
     // Get current base settings regardless of context
     func getBaseSettings() -> (colors: [Color], speed: Double, noise: Double, transitionSpeed: Double) {
         if useGlobalSettings, let globalSettings = globalSettings {
@@ -467,7 +467,7 @@ extension GradientManager {
     func updateGradientForView(_ viewType: ViewType, colorScheme: ColorScheme) {
         // Simply update with default settings since we're removing view-specific gradients
         let settings = getBaseSettings()
-        
+
         // Apply default settings
         updateGradient(
             colors: settings.colors,
@@ -476,7 +476,7 @@ extension GradientManager {
             transitionSpeed: settings.transitionSpeed
         )
     }
-    
+
     // Updated context-based gradient application
     func updateGradientForContext(
         isAuthenticated: Bool,
@@ -487,7 +487,7 @@ extension GradientManager {
     ) {
         // Determine which view type to use based on context
         let viewType: ViewType
-        
+
         if isHolidayMode {
             viewType = .holiday
         } else if isWeekend {
@@ -497,28 +497,28 @@ extension GradientManager {
         } else {
             viewType = .today
         }
-        
+
         // Get settings for this view type
         let settings = getSettingsForView(viewType)
-        
+
         // If we have class data, modify the gradient based on class subject
         if let (classData, isActive) = upcomingClass {
             let components = classData.replacingOccurrences(of: "<br>", with: "\n")
                 .components(separatedBy: "\n")
                 .filter { !$0.isEmpty }
-            
+
             if components.count > 1 {
                 let subjectColor = ClasstableView.getSubjectColor(from: components[1])
                 let darkerVariant = subjectColor.adjustBrightness(by: -0.2)
                 let lighterVariant = subjectColor.adjustBrightness(by: 0.2)
-                
+
                 let colors = [
                     Color.white,
                     lighterVariant,
                     subjectColor,
                     darkerVariant
                 ]
-                
+
                 updateGradient(
                     colors: colors,
                     speed: isActive ? 0.7 : settings.speed,
@@ -546,7 +546,6 @@ extension GradientManager {
     }
 }
 
-
 // Enum to track various gradient contexts for consistency
 enum GradientContext: Equatable {
     case normal
@@ -558,18 +557,18 @@ enum GradientContext: Equatable {
     case upcomingClass(subject: String)
     case inSelfStudy
     case upcomingSelfStudy
-    
+
     // Check if this is a special context that should override regular view settings
     var isSpecialContext: Bool {
         switch self {
         case .normal:
             return false
-        case .notSignedIn, .weekend, .holiday, .afterSchool, 
+        case .notSignedIn, .weekend, .holiday, .afterSchool,
              .inClass, .upcomingClass, .inSelfStudy, .upcomingSelfStudy:
             return true
         }
     }
-    
+
     // Check if this is an active context (like being in class)
     var isActive: Bool {
         switch self {
@@ -579,7 +578,7 @@ enum GradientContext: Equatable {
             return false
         }
     }
-    
+
     // ...existing code for Equatable conformance...
 }
 
@@ -588,28 +587,28 @@ extension UIColor {
     convenience init?(hex: String) {
         var hexSanitized = hex.trimmingCharacters(in: .whitespacesAndNewlines)
         hexSanitized = hexSanitized.replacingOccurrences(of: "#", with: "")
-        
+
         var rgb: UInt64 = 0
-        
+
         guard Scanner(string: hexSanitized).scanHexInt64(&rgb) else { return nil }
-        
+
         let r = CGFloat((rgb & 0xFF0000) >> 16) / 255.0
         let g = CGFloat((rgb & 0x00FF00) >> 8) / 255.0
         let b = CGFloat(rgb & 0x0000FF) / 255.0
-        
+
         self.init(red: r, green: g, blue: b, alpha: 1.0)
     }
-    
+
     func toHexString() -> String {
         var r: CGFloat = 0
         var g: CGFloat = 0
         var b: CGFloat = 0
         var a: CGFloat = 0
-        
+
         getRed(&r, green: &g, blue: &b, alpha: &a)
-        
+
         let rgb = Int(r * 255) << 16 | Int(g * 255) << 8 | Int(b * 255) << 0
-        
+
         return String(format: "#%06x", rgb)
     }
 }

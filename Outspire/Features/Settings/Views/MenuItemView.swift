@@ -2,7 +2,7 @@ import SwiftUI
 
 struct MenuItemView: View {
     let item: SettingsView.SettingsMenu
-    
+
     var body: some View {
         switch item {
         case .general:

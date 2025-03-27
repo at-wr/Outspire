@@ -12,16 +12,16 @@ struct SchoolArrangementView: View {
     @State private var refreshButtonRotation = 0.0
     @State private var showDetailSheet = false
     @State private var hasFirstAppeared = false
-    
+
     // Track content status
     private var isEmptyState: Bool {
         return filteredGroups.isEmpty && !viewModel.isLoading
     }
-    
+
     // Device adaptive settings
     private let isSmallDevice = UIDevice.isSmallScreen
     private let animationDelay = UIDevice.isSmallScreen ? 0.0 : 0.1
-    
+
     private var filteredGroups: [ArrangementGroup] {
         if searchText.isEmpty {
             return viewModel.arrangementGroups
@@ -31,7 +31,7 @@ struct SchoolArrangementView: View {
                     item.title.localizedCaseInsensitiveContains(searchText) ||
                     item.weekNumbers.contains(where: { String($0).contains(searchText) })
                 }
-                
+
                 if filteredItems.isEmpty {
                     return nil
                 } else {
@@ -40,11 +40,11 @@ struct SchoolArrangementView: View {
             }
         }
     }
-    
+
     // Animation constants for consistent timing
     private let transitionDuration = 0.35
     private let staggerDelay = 0.05
-    
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -57,11 +57,11 @@ struct SchoolArrangementView: View {
                 )
                 .ignoresSafeArea()
                 .opacity(colorScheme == .dark ? 0.15 : 0.3) // Reduce opacity more in dark mode
-                
+
                 // Semi-transparent background for better contrast
                 Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
                     .ignoresSafeArea()
-                
+
                 // Content layers
                 Group {
                     if viewModel.isLoading && viewModel.arrangements.isEmpty {
@@ -103,11 +103,11 @@ struct SchoolArrangementView: View {
                         withAnimation {
                             refreshButtonRotation += 360
                         }
-                        
+
                         // Add subtle haptic feedback
                         let generator = UIImpactFeedbackGenerator(style: .light)
                         generator.impactOccurred()
-                        
+
                         viewModel.refreshData()
                     })
                 }
@@ -154,14 +154,14 @@ struct SchoolArrangementView: View {
             .id("SchoolArrangementViewStableID")
         }
     }
-    
+
     // MARK: - View Components
-    
+
     private var loadingView: some View {
         SchoolArrangementSkeletonView()
             .id("LoadingSkeletonStableID")
     }
-    
+
     private var contentListView: some View {
         ScrollView {
             LazyVStack(spacing: 18) {
@@ -180,7 +180,7 @@ struct SchoolArrangementView: View {
                     )
                     .id(group.id)
                 }
-                
+
                 if viewModel.currentPage < viewModel.totalPages && !viewModel.isLoading {
                     loadMoreIndicator
                 }
@@ -192,7 +192,7 @@ struct SchoolArrangementView: View {
             await performRefresh()
         }
     }
-    
+
     private var loadMoreIndicator: some View {
         ProgressView("Loading more...")
             .padding()
@@ -202,7 +202,7 @@ struct SchoolArrangementView: View {
             .opacity(0.8)
             .transition(.opacity.combined(with: .move(edge: .bottom)))
     }
-    
+
     private var emptyStateView: some View {
         EmptyStateView(
             searchText: searchText,
@@ -212,31 +212,31 @@ struct SchoolArrangementView: View {
         )
         .id("EmptyStateStableID")
     }
-    
+
     // MARK: - Helper Methods
-    
+
     private func performRefresh() async {
         viewModel.refreshData()
         try? await Task.sleep(nanoseconds: 500_000_000)
     }
-    
+
     private func showToast(_ message: String) {
         let toast = ToastValue(
             icon: Image(systemName: "exclamationmark.triangle").foregroundStyle(.red),
             message: message
         )
         presentToast(toast)
-        
+
         // Add subtle haptic feedback for errors
         let generator = UINotificationFeedbackGenerator()
         generator.notificationOccurred(.error)
-        
+
         // Clear the error message after showing toast
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             viewModel.errorMessage = nil
         }
     }
-    
+
     // Add the detail sheet content
     private var detailSheetContent: some View {
         Group {
@@ -257,16 +257,16 @@ struct SchoolArrangementView: View {
                     Image(systemName: "exclamationmark.triangle")
                         .font(.system(size: 40))
                         .foregroundStyle(.secondary)
-                    
+
                     Text("Content Unavailable")
                         .font(.headline)
-                    
+
                     Text("Unable to load the document content")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
-                    
+
                     Button("Dismiss") {
                         showDetailSheet = false
                     }
@@ -285,7 +285,7 @@ struct SchoolArrangementView: View {
             }
         }
     }
-    
+
     // Add method to update gradient for school arrangements
     private func updateGradientForSchoolArrangements() {
         gradientManager.updateGradientForView(.schoolArrangements, colorScheme: colorScheme)

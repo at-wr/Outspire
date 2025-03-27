@@ -3,19 +3,19 @@ import SwiftUI
 /// A collection of modifiers and components for creating consistent glassmorphic UI elements
 /// that follow Apple's Human Interface Guidelines for depth, materials, and visual hierarchy.
 public enum GlassmorphicStyle {
-    
+
     /// Standard card style with subtle border and background
     public struct Card: ViewModifier {
         let isDimmed: Bool
         let cornerRadius: CGFloat
-        
+
         @Environment(\.colorScheme) private var colorScheme
-        
+
         public init(isDimmed: Bool = false, cornerRadius: CGFloat = 16) {
             self.isDimmed = isDimmed
             self.cornerRadius = cornerRadius
         }
-        
+
         public func body(content: Content) -> some View {
             content
                 .background(
@@ -24,7 +24,7 @@ public enum GlassmorphicStyle {
                         RoundedRectangle(cornerRadius: cornerRadius)
                             .fill(.ultraThinMaterial)
                             .opacity(colorScheme == .dark ? 0.8 : 0.92)
-                        
+
                         // Subtle gradient overlay for depth
                         RoundedRectangle(cornerRadius: cornerRadius)
                             .fill(
@@ -38,7 +38,7 @@ public enum GlassmorphicStyle {
                                 )
                             )
                             .opacity(isDimmed ? 0.5 : 1.0)
-                        
+
                         // Subtle border for definition
                         RoundedRectangle(cornerRadius: cornerRadius)
                             .strokeBorder(
@@ -64,14 +64,14 @@ public enum GlassmorphicStyle {
                 .opacity(isDimmed ? 0.85 : 1.0)
         }
     }
-    
+
     /// A modifier for creating a card with standard padding
     public struct PaddedCard: ViewModifier {
         let isDimmed: Bool
         let cornerRadius: CGFloat
         let horizontalPadding: CGFloat
         let verticalPadding: CGFloat
-        
+
         public init(
             isDimmed: Bool = false,
             cornerRadius: CGFloat = 16,
@@ -83,7 +83,7 @@ public enum GlassmorphicStyle {
             self.horizontalPadding = horizontalPadding
             self.verticalPadding = verticalPadding
         }
-        
+
         public func body(content: Content) -> some View {
             content
                 .padding(.horizontal, horizontalPadding)
@@ -98,7 +98,7 @@ public enum GlassmorphicStyle {
 public extension View {
     /// Apply a glassmorphic card style to a view.
     func glassmorphicCard(
-        isDimmed: Bool = false, 
+        isDimmed: Bool = false,
         cornerRadius: CGFloat = 16
     ) -> some View {
         self.modifier(GlassmorphicStyle.Card(
@@ -106,7 +106,7 @@ public extension View {
             cornerRadius: cornerRadius
         ))
     }
-    
+
     /// Apply a glassmorphic card style with standard padding.
     func paddedGlassmorphicCard(
         isDimmed: Bool = false,

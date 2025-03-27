@@ -2,7 +2,7 @@ import SwiftUI
 
 struct LoadingIndicator: View {
     let isLoading: Bool
-    
+
     var body: some View {
         if isLoading {
             ProgressView()
@@ -16,7 +16,7 @@ struct RefreshButton: View {
     let isLoading: Bool
     @Binding var rotation: Double
     let action: () -> Void
-    
+
     var body: some View {
         Button(action: action) {
             Image(systemName: "arrow.clockwise")

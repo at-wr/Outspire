@@ -36,7 +36,7 @@ struct ClassTableWidgetConfigurationIntent: WidgetConfigurationIntent {
     // Configuration for maximum classes to show
     @Parameter(title: "Max Classes to Show", default: 3)
     var maxClassesToShow: Int
-    
+
     // Configuration for showing class details
     @Parameter(title: "Show Class Details", default: true)
     var showClassDetails: Bool

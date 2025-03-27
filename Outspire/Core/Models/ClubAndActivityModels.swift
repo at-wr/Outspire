@@ -8,13 +8,13 @@ import Foundation
 struct Category: Decodable, Identifiable, Hashable {
     let C_CategoryID: String
     let C_Category: String
-    
+
     var id: String { C_CategoryID }
-    
+
     static func == (lhs: Category, rhs: Category) -> Bool {
         return lhs.C_CategoryID == rhs.C_CategoryID
     }
-    
+
     func hash(into hasher: inout Hasher) {
         hasher.combine(C_CategoryID)
     }
@@ -45,7 +45,7 @@ struct Member: Decodable, Identifiable {
     let S_Email: String?
     let LeaderYes: String
     let C_Secede: String?
-    
+
     var id: String { StudentID }
 }
 
@@ -62,13 +62,13 @@ struct ClubGroup: Codable, Identifiable, Hashable {
     let C_GroupNo: String
     let C_NameC: String
     let C_NameE: String
-    
+
     var id: String { C_GroupsID }
-    
+
     static func == (lhs: ClubGroup, rhs: ClubGroup) -> Bool {
         return lhs.C_GroupsID == rhs.C_GroupsID
     }
-    
+
     func hash(into hasher: inout Hasher) {
         hasher.combine(C_GroupsID)
     }

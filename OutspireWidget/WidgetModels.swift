@@ -30,12 +30,12 @@ struct ClassWidgetData: Identifiable {
     let endTime: Date
     let isCurrentClass: Bool
     let isSelfStudy: Bool
-    
+
     // Target date for countdown - this will be used with Text's dynamic date capabilities
     var targetDate: Date {
         return isCurrentClass ? endTime : startTime
     }
-    
+
     // Computed properties
     var timeRemaining: TimeInterval {
         // Always calculate based on current time to ensure up-to-date values
@@ -45,13 +45,13 @@ struct ClassWidgetData: Identifiable {
             return max(0, startTime.timeIntervalSince(Date()))
         }
     }
-    
+
     var formattedTimeRemaining: String {
         let formatter = DateComponentsFormatter()
         formatter.allowedUnits = [.hour, .minute, .second]
         formatter.unitsStyle = .positional
         formatter.zeroFormattingBehavior = .pad
-        
+
         if let formatted = formatter.string(from: timeRemaining) {
             // If it has hours, keep the full format
             if formatted.contains(":") && formatted.split(separator: ":").count == 3 {
@@ -66,30 +66,30 @@ struct ClassWidgetData: Identifiable {
         }
         return "00:00"
     }
-    
+
     // Add a date range for timer-based progress
     var progressRange: ClosedRange<Date> {
         startTime...endTime
     }
-    
+
     var timeRangeFormatted: String {
         let formatter = DateFormatter()
         formatter.dateFormat = "h:mm"
-        
+
         let startString = formatter.string(from: startTime)
         let endString = formatter.string(from: endTime)
-        
+
         formatter.dateFormat = "a"
         let startAmPm = formatter.string(from: startTime)
         let endAmPm = formatter.string(from: endTime)
-        
+
         if startAmPm == endAmPm {
             return "\(startString)-\(endString) \(endAmPm)"
         } else {
             return "\(startString) \(startAmPm)-\(endString) \(endAmPm)"
         }
     }
-    
+
     var statusText: String {
         if isCurrentClass {
             return "Current Class"
@@ -97,7 +97,7 @@ struct ClassWidgetData: Identifiable {
             return "Upcoming Class"
         }
     }
-    
+
     var progress: Double {
         if isCurrentClass {
             let totalDuration = endTime.timeIntervalSince(startTime)
@@ -106,15 +106,15 @@ struct ClassWidgetData: Identifiable {
         }
         return 0
     }
-    
+
     // Helper to parse class data from string format
     static func fromClassData(classData: String, period: ClassPeriod, isCurrentClass: Bool) -> ClassWidgetData {
         let components = classData.replacingOccurrences(of: "<br>", with: "\n")
             .components(separatedBy: "\n")
             .filter { !$0.isEmpty }
-        
+
         let isSelfStudy = classData.contains("Self-Study") || components.count <= 1
-        
+
         return ClassWidgetData(
             className: components.count > 1 ? components[1] : (isSelfStudy ? "Self-Study" : "Class"),
             teacherName: components.count > 0 ? components[0] : "",
@@ -135,21 +135,21 @@ struct WidgetEntry: TimelineEntry {
     let classData: ClassWidgetData?
     let upcomingClasses: [ClassWidgetData]
     let configuration: ClassWidgetConfigurationIntent
-    
+
     // Computed property to get up-to-date class data
     var currentClassData: ClassWidgetData? {
         guard let classData = classData else { return nil }
-        
+
         // If the class has ended or started since this entry was created,
         // we should update the isCurrentClass flag
         let now = Date()
         let isCurrentNow = now >= classData.startTime && now < classData.endTime
-        
+
         // If the current status matches what we have, return the original
         if isCurrentNow == classData.isCurrentClass {
             return classData
         }
-        
+
         // Otherwise create a new instance with updated status
         return ClassWidgetData(
             className: classData.className,
@@ -162,7 +162,7 @@ struct WidgetEntry: TimelineEntry {
             isSelfStudy: classData.isSelfStudy
         )
     }
-    
+
     // Default initializer for placeholder and error states
     static func placeholder(configuration: ClassWidgetConfigurationIntent) -> WidgetEntry {
         return WidgetEntry(
@@ -173,7 +173,7 @@ struct WidgetEntry: TimelineEntry {
             configuration: configuration
         )
     }
-    
+
     static func notSignedIn(configuration: ClassWidgetConfigurationIntent) -> WidgetEntry {
         WidgetEntry(
             date: Date(),
@@ -183,7 +183,7 @@ struct WidgetEntry: TimelineEntry {
             configuration: configuration
         )
     }
-    
+
     static func weekend(configuration: ClassWidgetConfigurationIntent) -> WidgetEntry {
         WidgetEntry(
             date: Date(),
@@ -193,7 +193,7 @@ struct WidgetEntry: TimelineEntry {
             configuration: configuration
         )
     }
-    
+
     static func holiday(endDate: Date?, configuration: ClassWidgetConfigurationIntent) -> WidgetEntry {
         WidgetEntry(
             date: Date(),
@@ -212,7 +212,7 @@ struct ClassTableWidgetEntry: TimelineEntry {
     let classes: [ClassWidgetData]
     let dayOfWeek: String
     let configuration: ClassTableWidgetConfigurationIntent
-    
+
     // Default initializer for placeholder and error states
     static func placeholder(configuration: ClassTableWidgetConfigurationIntent) -> ClassTableWidgetEntry {
         return ClassTableWidgetEntry(
@@ -223,7 +223,7 @@ struct ClassTableWidgetEntry: TimelineEntry {
             configuration: configuration
         )
     }
-    
+
     // Helper for not signed in state
     static func notSignedIn(configuration: ClassTableWidgetConfigurationIntent) -> ClassTableWidgetEntry {
         return ClassTableWidgetEntry(
@@ -234,7 +234,7 @@ struct ClassTableWidgetEntry: TimelineEntry {
             configuration: configuration
         )
     }
-    
+
     // Helper for weekend state
     static func weekend(configuration: ClassTableWidgetConfigurationIntent) -> ClassTableWidgetEntry {
         return ClassTableWidgetEntry(
@@ -245,7 +245,7 @@ struct ClassTableWidgetEntry: TimelineEntry {
             configuration: configuration
         )
     }
-    
+
     // Helper for holiday state
     static func holiday(endDate: Date?, configuration: ClassTableWidgetConfigurationIntent) -> ClassTableWidgetEntry {
         return ClassTableWidgetEntry(
@@ -265,7 +265,7 @@ struct CurrentNextClassWidgetEntry: TimelineEntry {
     let currentClass: ClassWidgetData?
     let nextClass: ClassWidgetData?
     let configuration: CurrentNextClassWidgetConfigurationIntent
-    
+
     // Default initializer for placeholder and error states
     static func placeholder(configuration: CurrentNextClassWidgetConfigurationIntent) -> CurrentNextClassWidgetEntry {
         return CurrentNextClassWidgetEntry(
@@ -276,7 +276,7 @@ struct CurrentNextClassWidgetEntry: TimelineEntry {
             configuration: configuration
         )
     }
-    
+
     // Helper for not signed in state
     static func notSignedIn(configuration: CurrentNextClassWidgetConfigurationIntent) -> CurrentNextClassWidgetEntry {
         return CurrentNextClassWidgetEntry(
@@ -287,7 +287,7 @@ struct CurrentNextClassWidgetEntry: TimelineEntry {
             configuration: configuration
         )
     }
-    
+
     // Helper for weekend state
     static func weekend(configuration: CurrentNextClassWidgetConfigurationIntent) -> CurrentNextClassWidgetEntry {
         return CurrentNextClassWidgetEntry(
@@ -298,7 +298,7 @@ struct CurrentNextClassWidgetEntry: TimelineEntry {
             configuration: configuration
         )
     }
-    
+
     // Helper for holiday state
     static func holiday(endDate: Date?, configuration: CurrentNextClassWidgetConfigurationIntent) -> CurrentNextClassWidgetEntry {
         return CurrentNextClassWidgetEntry(
@@ -318,19 +318,19 @@ struct WidgetHelpers {
         guard index >= 1 && index <= 5 else { return "" }
         return days[index - 1]
     }
-    
+
     static func isCurrentDateWeekend() -> Bool {
         let calendar = Calendar.current
         let weekday = calendar.component(.weekday, from: Date())
         return weekday == 1 || weekday == 7
     }
-    
+
     static func formatDateString(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "EEEE, MMMM d"
         return formatter.string(from: date)
     }
-    
+
     static func getSubjectColor(from subject: String) -> Color {
         let colors: [Color: [String]] = [
             .blue: ["Math", "Mathematics", "Maths"],
@@ -345,21 +345,21 @@ struct WidgetHelpers {
             .indigo: ["Chinese", "Mandarin", "语文"],
             .gray: ["History", "历史", "Geography", "Geo", "政治"]
         ]
-        
+
         let subjectLower = subject.lowercased()
-        
+
         // First, try to match the exact or longer phrases to avoid "Math" matching before "Maths Further"
         // Sort keywords by length (longest first) to prioritize more specific matches
         let allKeywords = colors.flatMap { color, keywords in
             keywords.map { (color, $0) }
         }.sorted { $0.1.count > $1.1.count }
-        
+
         for (color, keyword) in allKeywords {
             if subjectLower.contains(keyword.lowercased()) {
                 return color
             }
         }
-        
+
         // Default color based on subject hash for consistency
         let hash = abs(subject.hashValue)
         let hue = Double(hash % 12) / 12.0
@@ -375,25 +375,25 @@ extension Provider {
         if !WidgetDataService.shared.isUserSignedIn() {
             return WidgetEntry.notSignedIn(configuration: configuration)
         }
-        
+
         // Check if it's weekend
         if WidgetHelpers.isCurrentDateWeekend() {
             return WidgetEntry.weekend(configuration: configuration)
         }
-        
+
         // Check if holiday mode is enabled
         if WidgetDataService.shared.isHolidayModeEnabled() {
             let endDate = WidgetDataService.shared.getHolidayEndDate()
             return WidgetEntry.holiday(endDate: endDate, configuration: configuration)
         }
-        
+
         // Get current or next class with improved selection logic
         let (currentClass, upcomingClasses) = WidgetDataService.shared.getCurrentOrNextClass()
-        
+
         if let currentClass = currentClass {
             // Sort upcoming classes by relevance for better display
             let prioritizedUpcoming = WidgetDataService.sortClassesByRelevance(upcomingClasses)
-            
+
             return WidgetEntry(
                 date: Date(),
                 state: .hasClasses,
@@ -421,25 +421,25 @@ extension Provider {
             )
         }
     }
-    
+
     func timeline(for configuration: ClassWidgetConfigurationIntent, in context: Context) async -> Timeline<WidgetEntry> {
         // Get the current entry
         let entry = await getTimelineEntry(for: configuration)
-        
+
         // Calculate next update time based on the widget state
         var nextUpdateDate: Date = Date().addingTimeInterval(15 * 60) // Default: 15 minutes
-        
+
         switch entry.state {
         case .hasClasses:
             if let classData = entry.classData {
                 let now = Date()
-                
+
                 // For countdown, we'll rely on Text's dynamic date capabilities
                 // but still need to update at class transitions
                 if classData.isCurrentClass {
                     // If current class, update when it ends
                     nextUpdateDate = classData.endTime
-                    
+
                     // If class ends soon (within 5 minutes), update more frequently
                     let timeToEnd = classData.endTime.timeIntervalSince(now)
                     if timeToEnd <= 300 && timeToEnd > 60 {
@@ -455,7 +455,7 @@ extension Provider {
                 } else {
                     // If upcoming class, update when it starts
                     nextUpdateDate = classData.startTime
-                    
+
                     // If class starts soon (within 5 minutes), update more frequently
                     let timeToStart = classData.startTime.timeIntervalSince(now)
                     if timeToStart <= 300 && timeToStart > 60 {
@@ -470,16 +470,16 @@ extension Provider {
                     }
                 }
             }
-            
+
         case .loading:
             // If loading, try again in 30 seconds
             nextUpdateDate = Date().addingTimeInterval(30)
-            
+
         case .notSignedIn, .weekend, .holiday, .noClasses:
             // For static states, update less frequently
             nextUpdateDate = Calendar.current.date(byAdding: .hour, value: 1, to: Date())!
         }
-        
+
         return Timeline(entries: [entry], policy: .after(nextUpdateDate))
     }
 }
@@ -488,13 +488,13 @@ extension Provider {
 extension WidgetDataService {
     static func sortClassesByRelevance(_ classes: [ClassWidgetData]) -> [ClassWidgetData] {
         let now = Date()
-        
+
         // Sort classes by period number to ensure correct ordering
         let sortedClasses = classes.sorted(by: { $0.periodNumber < $1.periodNumber })
-        
+
         // Check if any class is currently active
-        if let currentClassIndex = sortedClasses.firstIndex(where: { 
-            $0.startTime <= now && $0.endTime > now 
+        if let currentClassIndex = sortedClasses.firstIndex(where: {
+            $0.startTime <= now && $0.endTime > now
         }) {
             // We're currently in a class period, prioritize this and subsequent classes
             let currentAndUpcoming = Array(sortedClasses[currentClassIndex...])
@@ -504,10 +504,10 @@ extension WidgetDataService {
                 return currentAndUpcoming + earlierClasses
             }
             return currentAndUpcoming
-        } 
+        }
         // Check for upcoming classes
-        else if let nextClassIndex = sortedClasses.firstIndex(where: { 
-            $0.startTime > now 
+        else if let nextClassIndex = sortedClasses.firstIndex(where: {
+            $0.startTime > now
         }) {
             // No current class, but we have upcoming classes today
             let upcomingClasses = Array(sortedClasses[nextClassIndex...])
@@ -517,7 +517,7 @@ extension WidgetDataService {
                 return upcomingClasses + earlierClasses
             }
             return upcomingClasses
-        } 
+        }
         // No current or upcoming classes today
         else {
             // End of day scenario - all classes have ended

@@ -5,27 +5,27 @@ struct EnhancedPDFViewer: View {
     let url: URL
     let title: String
     let publishDate: String
-    
+
     @Environment(\.dismiss) private var dismiss
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-    
+
     @State private var scale: CGFloat = 1.0
     @State private var lastScale: CGFloat = 1.0
     @State private var offset: CGSize = .zero
     @State private var lastOffset: CGSize = .zero
     @State private var isShowingControls = true
     @State private var animateIn = false
-    
+
     // Detect if device is iPad
     private var isIpad: Bool {
         UIDevice.current.userInterfaceIdiom == .pad
     }
-    
+
     var body: some View {
         NavigationStack {
             ZStack {
                 Color(UIColor.systemBackground).edgesIgnoringSafeArea(.all)
-                
+
                 // PDF Content
                 PDFKitView(url: url)
                     .edgesIgnoringSafeArea(.all)
@@ -38,7 +38,7 @@ struct EnhancedPDFViewer: View {
                             .onChanged { value in
                                 let delta = value / lastScale
                                 lastScale = value
-                                
+
                                 // Limit zoom scale between 1 and 4
                                 scale = min(max(1.0, scale * delta), 4.0)
                             }
@@ -80,7 +80,7 @@ struct EnhancedPDFViewer: View {
                             isShowingControls.toggle()
                         }
                     }
-                
+
                 // Floating controls
                 VStack {
                     if isShowingControls {
@@ -100,9 +100,9 @@ struct EnhancedPDFViewer: View {
                                     .background(Circle().fill(Color.black.opacity(0.6)))
                             }
                             .shadow(color: .black.opacity(0.2), radius: 3, x: 0, y: 2)
-                            
+
                             Spacer()
-                            
+
                             if !isIpad {
                                 Button(action: {
                                     dismiss()
@@ -119,9 +119,9 @@ struct EnhancedPDFViewer: View {
                         .padding([.horizontal, .top])
                         .transition(.move(edge: .top).combined(with: .opacity))
                     }
-                    
+
                     Spacer()
-                    
+
                     if isShowingControls {
                         // Bottom controls
                         HStack {
@@ -165,13 +165,13 @@ struct EnhancedPDFViewer: View {
         }
         .preferredColorScheme(.light) // Ensures consistent PDF viewing experience
     }
-    
+
     private func presentShareSheet(url: URL) {
         let activityVC = UIActivityViewController(
             activityItems: [url],
             applicationActivities: nil
         )
-        
+
         // Present the activity view controller
         if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
            let rootVC = windowScene.windows.first?.rootViewController {
@@ -189,7 +189,7 @@ struct EnhancedPDFViewer: View {
 // PDF view wrapper using PDFKit
 struct PDFKitView: UIViewRepresentable {
     let url: URL
-    
+
     func makeUIView(context: Context) -> PDFView {
         let pdfView = PDFView()
         pdfView.displayMode = .singlePage
@@ -198,13 +198,13 @@ struct PDFKitView: UIViewRepresentable {
         pdfView.document = PDFDocument(url: url)
         pdfView.minScaleFactor = pdfView.scaleFactorForSizeToFit
         pdfView.maxScaleFactor = 4.0 * pdfView.scaleFactorForSizeToFit
-        
+
         // Set background color to match system background
         pdfView.backgroundColor = .systemBackground
-        
+
         return pdfView
     }
-    
+
     func updateUIView(_ uiView: PDFView, context: Context) {
         // No update needed
     }

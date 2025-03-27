@@ -10,39 +10,39 @@ class SessionService: ObservableObject {
             NotificationCenter.default.post(name: Notification.Name.authStateDidChange, object: nil)
         }
     }
-    
+
     private let userDefaults = UserDefaults.standard
     static let shared = SessionService()
-    
+
     private init() {
         self.sessionId = userDefaults.string(forKey: "sessionId")
-        
+
         if let storedUserInfo = userDefaults.data(forKey: "userInfo"),
            let user = try? JSONDecoder().decode(UserInfo.self, from: storedUserInfo) {
             self.userInfo = user
             self.isAuthenticated = sessionId != nil
         }
     }
-    
+
     func clearSession() {
         sessionId = nil
         userDefaults.removeObject(forKey: "sessionId")
         // Don't clear user info to keep the UI consistent
     }
-    
+
     // Update the loginUser method    
     func loginUser(username: String, password: String, captcha: String, completion: @escaping (Bool, String?, Bool) -> Void) {
         guard let sessionId = self.sessionId, !sessionId.isEmpty else {
             completion(false, "Please refresh the captcha.", true) // Mark as captcha error to trigger retry
             return
         }
-        
+
         let parameters = [
             "username": username,
             "password": password,
             "code": captcha
         ]
-        
+
         NetworkService.shared.request(
             endpoint: "login.php",
             parameters: parameters,
@@ -55,10 +55,10 @@ class SessionService: ObservableObject {
                     completion(false, "Invalid captcha code. Retrying...", true) // Mark as captcha error
                     return
                 }
-                
+
                 // Check login status
                 if response.status == "ok" {
-                    self?.fetchUserInfo { success, error in
+                    self?.fetchUserInfo { success, _ in
                         if success {
                             self?.isAuthenticated = true
                             completion(true, nil, false)
@@ -69,13 +69,13 @@ class SessionService: ObservableObject {
                 } else {
                     completion(false, "Login failed: \(response.status)", false)
                 }
-                
+
             case .failure(let error):
                 completion(false, "Login failed: \(error.localizedDescription)", false)
             }
         }
     }
-    
+
     func fetchUserInfo(completion: @escaping (Bool, String?) -> Void) {
         NetworkService.shared.request(
             endpoint: "init_info.php",
@@ -93,22 +93,22 @@ class SessionService: ObservableObject {
             }
         }
     }
-    
+
     func logoutUser() {
         // Need to call objectWillChange before changing published properties
         objectWillChange.send()
-        
+
         // Clear all authentication state
         sessionId = nil
         userInfo = nil
         isAuthenticated = false
-        
+
         // Clear schedule settings
         Configuration.selectedDayOverride = nil
         Configuration.setAsToday = false
         Configuration.isHolidayMode = false
         Configuration.holidayHasEndDate = false
-        
+
         // Clear user defaults
         userDefaults.removeObject(forKey: "sessionId")
         userDefaults.removeObject(forKey: "userInfo")
@@ -116,30 +116,30 @@ class SessionService: ObservableObject {
         userDefaults.removeObject(forKey: "setAsToday")
         userDefaults.removeObject(forKey: "isHolidayMode")
         userDefaults.removeObject(forKey: "holidayHasEndDate")
-        
+
         // Cancel all notifications when user logs out
         NotificationManager.shared.cancelAllNotifications()
-        
+
         // Clear all cookies to ensure clean slate
         if let cookies = HTTPCookieStorage.shared.cookies {
             for cookie in cookies {
                 HTTPCookieStorage.shared.deleteCookie(cookie)
             }
         }
-        
+
         // Post notification that authentication has changed
         NotificationCenter.default.post(
-            name: Notification.Name.authenticationStatusChanged, 
+            name: Notification.Name.authenticationStatusChanged,
             object: nil,
             userInfo: ["action": "logout"]
         )
     }
-    
+
     // Public method to update session ID
     func updateSessionId(_ sessionId: String) {
         storeSessionId(sessionId)
     }
-    
+
     private func storeSessionId(_ sessionId: String) {
         self.sessionId = sessionId
         userDefaults.set(sessionId, forKey: "sessionId")

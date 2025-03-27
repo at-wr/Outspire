@@ -10,13 +10,13 @@ struct ActivitySkeletonView: View {
                         .fill(Color.gray.opacity(0.2))
                         .frame(height: 20)
                         .frame(width: 200)
-                    
+
                     // Date
                     RoundedRectangle(cornerRadius: 4)
                         .fill(Color.gray.opacity(0.2))
                         .frame(height: 14)
                         .frame(width: 120)
-                    
+
                     // CAS Badges
                     HStack {
                         ForEach(0..<3, id: \.self) { _ in
@@ -25,7 +25,7 @@ struct ActivitySkeletonView: View {
                                 .frame(width: 60, height: 24)
                         }
                     }
-                    
+
                     // Reflection
                     VStack(alignment: .leading, spacing: 6) {
                         ForEach(0..<3, id: \.self) { _ in
@@ -54,7 +54,7 @@ extension View {
 
 struct ShimmerEffect: ViewModifier {
     @State private var phase: CGFloat = 0
-    
+
     func body(content: Content) -> some View {
         content
             .overlay(

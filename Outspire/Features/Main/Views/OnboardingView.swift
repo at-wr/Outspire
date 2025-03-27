@@ -8,17 +8,17 @@ struct OnboardingView: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var hasAppeared = false
     @Environment(\.dismiss) private var dismiss
-    
+
     // Add states for tracking permission status
     @State private var locationPermissionGranted = false
     @State private var notificationPermissionGranted = false
-    
+
     // Add reference to manager objects
     @StateObject private var permissionManager = PermissionManager()
-    
+
     // Focus state for keyboard controls
     @FocusState private var buttonFocused: OnboardingButtonFocus?
-    
+
     private let pages: [OnboardingPage] = [
         OnboardingPage(
             title: "Welcome to Outspire",
@@ -63,7 +63,7 @@ struct OnboardingView: View {
             pageType: .notificationPermission
         )
     ]
-    
+
     var body: some View {
         GeometryReader { geometry in
             VStack {
@@ -94,7 +94,7 @@ struct OnboardingView: View {
                     .padding()
                     .focused($buttonFocused, equals: .close)
                 }
-                
+
                 // Custom page viewer with explicit animation control
                 ZStack {
                     ForEach(0..<pages.count, id: \.self) { index in
@@ -109,7 +109,7 @@ struct OnboardingView: View {
                     }
                 }
                 .frame(maxHeight: .infinity)
-                
+
                 // Page indicators
                 HStack(spacing: 8) {
                     ForEach(0..<pages.count, id: \.self) { index in
@@ -119,7 +119,7 @@ struct OnboardingView: View {
                     }
                 }
                 .padding(.vertical, 20)
-                
+
                 // Navigation buttons
                 HStack(spacing: 20) {
                     if currentPage > 0 {
@@ -143,9 +143,9 @@ struct OnboardingView: View {
                         .keyboardShortcut(.leftArrow, modifiers: [])
                         .focused($buttonFocused, equals: .previous)
                     }
-                    
+
                     Spacer()
-                    
+
                     Button(action: {
                         handleNextAction()
                     }) {
@@ -183,7 +183,7 @@ struct OnboardingView: View {
         .onAppear {
             hasAppeared = true
             checkPermissionStatus()
-            
+
             // Set initial focus
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 buttonFocused = .next
@@ -223,7 +223,7 @@ struct OnboardingView: View {
             return .handled
         }
     }
-    
+
     // Handle checking current permission status
     private func checkPermissionStatus() {
         // Check location permission
@@ -232,7 +232,7 @@ struct OnboardingView: View {
                 locationPermissionGranted = (status == .authorizedWhenInUse || status == .authorizedAlways)
             }
         }
-        
+
         // Check notification permission
         permissionManager.checkNotificationPermission { status in
             DispatchQueue.main.async {
@@ -240,18 +240,18 @@ struct OnboardingView: View {
             }
         }
     }
-    
+
     // Handle next button action based on current page type
     private func handleNextAction() {
         let currentPageInfo = pages[currentPage]
-        
+
         switch currentPageInfo.pageType {
         case .information:
             // For regular information pages, just go to next page
             withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
                 currentPage += 1
             }
-            
+
         case .locationPermission:
             // For location permission page
             if locationPermissionGranted {
@@ -270,7 +270,7 @@ struct OnboardingView: View {
                     }
                 }
             }
-            
+
         case .notificationPermission:
             // For notification permission page
             if notificationPermissionGranted {
@@ -282,12 +282,12 @@ struct OnboardingView: View {
                 permissionManager.requestNotificationPermission { granted in
                     DispatchQueue.main.async {
                         notificationPermissionGranted = granted
-                        
+
                         // Schedule notifications if permission granted
                         if granted {
                             NotificationManager.shared.scheduleMorningETANotification()
                         }
-                        
+
                         // Complete onboarding regardless of choice
                         markOnboardingComplete()
                         isPresented = false
@@ -296,7 +296,7 @@ struct OnboardingView: View {
             }
         }
     }
-    
+
     @ViewBuilder
     func pageView(for page: OnboardingPage) -> some View {
         switch page.pageType {
@@ -318,7 +318,7 @@ struct OnboardingView: View {
             )
         }
     }
-    
+
     @ViewBuilder
     func standardPageView(for page: OnboardingPage) -> some View {
         VStack(spacing: 30) {
@@ -332,14 +332,14 @@ struct OnboardingView: View {
                         .frame(width: 140, height: 140)
                 )
                 .scaleEffect(currentPage == pages.firstIndex(where: { $0.title == page.title }) ? 1.0 : 0.8)
-            
+
             Text(page.title)
                 .font(.largeTitle)
                 .fontDesign(.rounded)
                 .bold()
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
-            
+
             Text(page.description)
                 .font(.title3)
                 .fontDesign(.rounded)
@@ -351,7 +351,7 @@ struct OnboardingView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding()
     }
-    
+
     @ViewBuilder
     func permissionPageView(for page: OnboardingPage, isGranted: Bool, grantedText: String, deniedText: String) -> some View {
         VStack(spacing: 30) {
@@ -366,8 +366,8 @@ struct OnboardingView: View {
                             .fill(page.imageColor.opacity(0.1))
                             .frame(width: 140, height: 140)
                     )
-                
-                if (isGranted) {
+
+                if isGranted {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 30))
                         .foregroundStyle(.green)
@@ -381,14 +381,14 @@ struct OnboardingView: View {
                 }
             }
             .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isGranted)
-            
+
             Text(page.title)
                 .font(.largeTitle)
                 .fontDesign(.rounded)
                 .bold()
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
-            
+
             Text(page.description)
                 .font(.title3)
                 .fontDesign(.rounded)
@@ -396,7 +396,7 @@ struct OnboardingView: View {
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 32)
                 .frame(maxWidth: 500)
-            
+
             // Status text
             Text(isGranted ? grantedText : deniedText)
                 .font(.body)
@@ -410,7 +410,7 @@ struct OnboardingView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding()
     }
-    
+
     private func markOnboardingComplete() {
         UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
     }
@@ -423,7 +423,7 @@ struct OnboardingPage {
     let imageName: String
     let imageColor: Color
     let pageType: OnboardingPageType
-    
+
     // Default to information type for backward compatibility
     init(title: String, description: String, imageName: String, imageColor: Color, pageType: OnboardingPageType = .information) {
         self.title = title

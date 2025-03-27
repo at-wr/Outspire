@@ -5,7 +5,7 @@ struct InfoRow: View {
     let title: String
     let value: String
     let color: Color
-    
+
     var body: some View {
         HStack(alignment: .center, spacing: 10) {
             Image(systemName: icon)

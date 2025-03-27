@@ -4,42 +4,42 @@ import CoreLocation
 class RegionChecker: ObservableObject {
     // Add a shared singleton instance
     static let shared = RegionChecker()
-    
-    @Published var regionCode: String? = nil
+
+    @Published var regionCode: String?
     @Published var isTaipeiInChina: Bool = false
     @Published var isCheckingRegion = false
     @Published var isCheckComplete: Bool = false
-    
+
     // Make init private to enforce singleton pattern
     private init() {
         // Run the Taiwan check on initialization
         checkTaipeiRepresentation()
     }
-    
+
     func checkRegion() {
         guard !isCheckingRegion else { return }
         isCheckingRegion = true
-        
+
         // Primary method to check region - uses the Taiwan test
         checkTaipeiRepresentation()
-        
+
         // Also perform URL check as a fallback or additional data point
         fetchRegionCode()
     }
-    
+
     func isChinaRegion() -> Bool {
         // Use the Taiwan check as the primary determinant
         return isTaipeiInChina
     }
-    
+
     func fetchRegionCode() {
         // This is kept as a secondary/optional check
-        guard let url = URL(string: "https://gspe1-ssl.ls.apple.com/pep/gcc") else { 
+        guard let url = URL(string: "https://gspe1-ssl.ls.apple.com/pep/gcc") else {
             isCheckingRegion = false
-            return 
+            return
         }
-        
-        URLSession.shared.dataTask(with: url) { [weak self] data, response, error in
+
+        URLSession.shared.dataTask(with: url) { [weak self] data, _, error in
             if let data = data, let code = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) {
                 DispatchQueue.main.async {
                     self?.regionCode = code
@@ -53,17 +53,17 @@ class RegionChecker: ObservableObject {
             }
         }.resume()
     }
-    
+
     private func checkTaipeiRepresentation() {
         // Taipei coordinates
         let taipeiLocation = CLLocationCoordinate2D(latitude: 25.032969, longitude: 121.565418)
-        
+
         let geocoder = CLGeocoder()
         let location = CLLocation(latitude: taipeiLocation.latitude, longitude: taipeiLocation.longitude)
-        
+
         geocoder.reverseGeocodeLocation(location) { [weak self] (placemarks, error) in
             guard let self = self else { return }
-            
+
             if let placemark = placemarks?.first {
                 // Check how MapKit represents Taipei's country
                 if let country = placemark.country, let countryCode = placemark.isoCountryCode {

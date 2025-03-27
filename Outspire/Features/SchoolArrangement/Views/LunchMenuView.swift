@@ -12,16 +12,16 @@ struct LunchMenuView: View {
     @State private var hasFirstAppeared = false
     @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject var gradientManager: GradientManager // Add gradient manager
-    
+
     // Track content status
     private var isEmptyState: Bool {
         return filteredGroups.isEmpty && !viewModel.isLoading
     }
-    
+
     // Device adaptive settings
     private let isSmallDevice = UIDevice.isSmallScreen
     private let animationDelay = UIDevice.isSmallScreen ? 0.0 : 0.1
-    
+
     private var filteredGroups: [LunchMenuGroup] {
         if searchText.isEmpty {
             return viewModel.menuGroups
@@ -30,7 +30,7 @@ struct LunchMenuView: View {
                 let filteredItems = group.items.filter { item in
                     item.title.localizedCaseInsensitiveContains(searchText)
                 }
-                
+
                 if filteredItems.isEmpty {
                     return nil
                 } else {
@@ -39,11 +39,11 @@ struct LunchMenuView: View {
             }
         }
     }
-    
+
     // Animation constants
     private let transitionDuration = 0.35
     private let staggerDelay = 0.05
-    
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -56,16 +56,16 @@ struct LunchMenuView: View {
                 )
                 .ignoresSafeArea()
                 .opacity(colorScheme == .dark ? 0.15 : 0.3) // Reduce opacity more in dark mode
-                
+
                 // Semi-transparent background for better contrast
                 Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
                     .ignoresSafeArea()
-                
+
                 // Original background - keep for additional system background coloring
 //                Color(UIColor.systemGroupedBackground)
 //                    .opacity(0.6)
 //                    .ignoresSafeArea()
-                
+
                 // Content layers
                 Group {
                     if viewModel.isLoading && viewModel.menuItems.isEmpty {
@@ -102,11 +102,11 @@ struct LunchMenuView: View {
                         withAnimation {
                             refreshButtonRotation += 360
                         }
-                        
+
                         // Add subtle haptic feedback
                         let generator = UIImpactFeedbackGenerator(style: .light)
                         generator.impactOccurred()
-                        
+
                         viewModel.refreshData()
                     })
                 }
@@ -153,14 +153,14 @@ struct LunchMenuView: View {
             .id("LunchMenuViewStableID")
         }
     }
-    
+
     // MARK: - View Components
-    
+
     private var loadingView: some View {
         LunchMenuSkeletonView()
             .id("LunchMenuSkeletonStableID")
     }
-    
+
     private var contentListView: some View {
         ScrollView {
             LazyVStack(spacing: 18) {
@@ -179,7 +179,7 @@ struct LunchMenuView: View {
                     )
                     .id(group.id)
                 }
-                
+
                 if viewModel.currentPage < viewModel.totalPages && !viewModel.isLoading {
                     loadMoreIndicator
                 }
@@ -191,7 +191,7 @@ struct LunchMenuView: View {
             await performRefresh()
         }
     }
-    
+
     private var loadMoreIndicator: some View {
         ProgressView("Loading more...")
             .padding()
@@ -201,31 +201,31 @@ struct LunchMenuView: View {
             .opacity(0.8)
             .transition(.opacity.combined(with: .move(edge: .bottom)))
     }
-    
+
     private var emptyStateView: some View {
         VStack(spacing: 20) {
             let animationEnabled = !isSmallDevice || AnimationManager.shared.hasAnimated(viewId: "LunchMenuView")
-            
+
             Image(systemName: "fork.knife")
                 .font(.system(size: 60))
                 .foregroundStyle(.secondary)
                 .opacity(viewModel.shouldAnimate ? 1 : 0)
                 .scaleEffect(viewModel.shouldAnimate ? 1 : 0.8)
                 .animation(animationEnabled ? .spring(response: 0.6).delay(0.1) : nil, value: viewModel.shouldAnimate)
-            
+
             Text("No Lunch Menus Found")
                 .font(.title3)
                 .fontWeight(.medium)
                 .opacity(viewModel.shouldAnimate ? 1 : 0)
                 .offset(y: viewModel.shouldAnimate ? 0 : 10)
                 .animation(animationEnabled ? .easeOut.delay(0.2) : nil, value: viewModel.shouldAnimate)
-            
+
             Text(searchText.isEmpty ? "Pull to refresh or tap the refresh button" : "Try changing your search terms")
                 .foregroundStyle(.secondary)
                 .opacity(viewModel.shouldAnimate ? 1 : 0)
                 .offset(y: viewModel.shouldAnimate ? 0 : 10)
                 .animation(animationEnabled ? .easeOut.delay(0.3) : nil, value: viewModel.shouldAnimate)
-            
+
             Button(action: { viewModel.refreshData() }) {
                 Text("Refresh")
                     .padding(.horizontal, 24)
@@ -244,7 +244,7 @@ struct LunchMenuView: View {
         .padding()
         .id("EmptyMenuStateStableID")
     }
-    
+
     private var detailSheetContent: some View {
         Group {
             if let pdfURL = viewModel.pdfURL {
@@ -264,16 +264,16 @@ struct LunchMenuView: View {
                     Image(systemName: "exclamationmark.triangle")
                         .font(.system(size: 40))
                         .foregroundStyle(.secondary)
-                    
+
                     Text("Content Unavailable")
                         .font(.headline)
-                    
+
                     Text("Unable to load the menu content")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
-                    
+
                     Button("Dismiss") {
                         showDetailSheet = false
                     }
@@ -292,31 +292,31 @@ struct LunchMenuView: View {
             }
         }
     }
-    
+
     // MARK: - Helper Methods
-    
+
     private func performRefresh() async {
         viewModel.refreshData()
         try? await Task.sleep(nanoseconds: 500_000_000)
     }
-    
+
     private func showToast(_ message: String) {
         let toast = ToastValue(
             icon: Image(systemName: "exclamationmark.triangle").foregroundStyle(.red),
             message: message
         )
         presentToast(toast)
-        
+
         // Add haptic feedback for errors
         let generator = UINotificationFeedbackGenerator()
         generator.notificationOccurred(.error)
-        
+
         // Clear the error message after showing toast
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             viewModel.errorMessage = nil
         }
     }
-    
+
     // Add method to update gradient for lunch menu
     private func updateGradientForLunchMenu() {
         gradientManager.updateGradientForView(.lunchMenu, colorScheme: colorScheme)
@@ -335,9 +335,9 @@ struct LunchMenuSection: View {
     let isSmallScreen: Bool
     let transitionDuration: Double
     let staggerDelay: Double
-    
+
     @State private var headerHovered = false
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             // Year header
@@ -350,9 +350,9 @@ struct LunchMenuSection: View {
                     Text(group.title)
                         .font(.headline)
                         .foregroundStyle(.gray)
-                    
+
                     Spacer()
-                    
+
                     Image(systemName: group.isExpanded ? "chevron.up" : "chevron.down")
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -371,7 +371,7 @@ struct LunchMenuSection: View {
             .buttonStyle(BorderlessButtonStyle())
             .contentTransition(.opacity)
             .id("header-\(group.id)")
-            
+
             // Items for this group
             if group.isExpanded {
                 VStack(spacing: 12) {
@@ -421,10 +421,10 @@ struct LunchMenuItemView: View {
     let shouldAnimate: Bool
     let staggerDelay: Double
     let itemIndex: Int
-    
+
     @State private var buttonHovered = false
     @State private var isPressed = false
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             // Header with title and date
@@ -434,7 +434,7 @@ struct LunchMenuItemView: View {
                     // Small haptic feedback for toggle action
                     let generator = UIImpactFeedbackGenerator(style: .light)
                     generator.impactOccurred(intensity: 0.5)
-                    
+
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                         withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
                             isPressed = false
@@ -449,14 +449,14 @@ struct LunchMenuItemView: View {
                             .font(.headline)
                             .lineLimit(2)
                             .foregroundColor(.primary)
-                        
+
                         Text(item.publishDate)
                             .font(.caption)
                             .foregroundStyle(.gray)
                     }
-                    
+
                     Spacer()
-                    
+
                     Image(systemName: item.isExpanded ? "chevron.up" : "chevron.down")
                         .foregroundStyle(.secondary)
                         .frame(width: 32, height: 32)
@@ -472,7 +472,7 @@ struct LunchMenuItemView: View {
                 }
             }
             .buttonStyle(BorderlessButtonStyle())
-            
+
             // View details button when expanded
             if item.isExpanded {
                 MenuDetailButton(
@@ -503,11 +503,11 @@ struct LunchMenuItemView: View {
 struct MenuDetailButton: View {
     let action: () -> Void
     let isLoading: Bool
-    
+
     @State private var isPressed = false
     @State private var hovered = false
     @State private var opacity: Double = 0
-    
+
     var body: some View {
         Button(action: {
             let generator = UIImpactFeedbackGenerator(style: .light)
@@ -515,7 +515,7 @@ struct MenuDetailButton: View {
             withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                 isPressed = true
             }
-            
+
             // Reset press state after a brief delay
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
@@ -561,7 +561,7 @@ struct MenuDetailButton: View {
 struct LunchMenuSkeletonView: View {
     // Animation states
     @State private var animateItems = false
-    
+
     var body: some View {
         VStack(spacing: 16) {
             ForEach(0..<3, id: \.self) { index in
@@ -572,9 +572,9 @@ struct LunchMenuSkeletonView: View {
                             .fill(Color.gray.opacity(0.2))
                             .frame(height: 22)
                             .frame(width: 220)
-                        
+
                         Spacer()
-                        
+
                         // Date skeleton
                         RoundedRectangle(cornerRadius: 4)
                             .fill(Color.gray.opacity(0.2))

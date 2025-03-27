@@ -10,7 +10,7 @@ struct ClubInfoView: View {
     @State private var refreshButtonRotation = 0.0
     @State private var showingJoinOptions = false
     @State private var showingExitConfirmation = false
-    @State private var preservedGroupId: String? = nil
+    @State private var preservedGroupId: String?
     @State private var initialMembershipCheckComplete = false
     @EnvironmentObject var urlSchemeHandler: URLSchemeHandler
     @EnvironmentObject var gradientManager: GradientManager // Add gradient manager
@@ -26,20 +26,20 @@ struct ClubInfoView: View {
                 transitionSpeed: $gradientManager.gradientTransitionSpeed
             )
             .ignoresSafeArea()
-            .opacity(colorScheme == .dark ? 0.1 : 0.3) 
-            
+            .opacity(colorScheme == .dark ? 0.1 : 0.3)
+
             // Semi-transparent background with reduced opacity for better contrast with gradient
             Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
                 .ignoresSafeArea()
-            
+
             VStack {
                 Form {
                     selectionSection
-                    
+
                     emptyStateSection
-                    
+
                     errorMessageView
-                    
+
                     if viewModel.isLoading && (viewModel.groupInfo == nil || !viewModel.refreshing) {
                         loadingSection
                     } else if let groupInfo = viewModel.groupInfo {
@@ -51,7 +51,7 @@ struct ClubInfoView: View {
                 .textSelection(.enabled)
                 .scrollContentBackground(.hidden)
                 .navigationBarTitle("Clubs")
-                //.toolbarBackground(Color(UIColor.systemBackground))
+                // .toolbarBackground(Color(UIColor.systemBackground))
                 .toolbar {
                     // Replace individual toolbar content with inline implementation
                     ToolbarItem(id: "progressView", placement: .navigationBarTrailing) {
@@ -60,10 +60,10 @@ struct ClubInfoView: View {
                                 .controlSize(.small)
                         }
                     }
-                    
+
                     ToolbarItem(id: "clubAction", placement: .navigationBarTrailing) {
-                        if sessionService.isAuthenticated, 
-                           !viewModel.isLoading, 
+                        if sessionService.isAuthenticated,
+                           !viewModel.isLoading,
                            viewModel.selectedGroup != nil {
                             #if targetEnvironment(macCatalyst)
                             // Use a menu approach for Mac Catalyst
@@ -80,7 +80,7 @@ struct ClubInfoView: View {
                                     }) {
                                         Label("Join Club", systemImage: "person.badge.plus")
                                     }
-                                    
+
                                     Button(action: {
                                         viewModel.joinClub(asProject: true)
                                     }) {
@@ -126,7 +126,7 @@ struct ClubInfoView: View {
                                     }) {
                                         Label("Join Club", systemImage: "person.badge.plus")
                                     }
-                                    
+
                                     Button(action: {
                                         viewModel.joinClub(asProject: true)
                                     }) {
@@ -160,7 +160,7 @@ struct ClubInfoView: View {
                             #endif
                         }
                     }
-                    
+
                     // Share button
                     ToolbarItem(id: "shareButton", placement: .navigationBarTrailing) {
                         if let groupInfo = viewModel.groupInfo {
@@ -171,26 +171,26 @@ struct ClubInfoView: View {
                             }
                         }
                     }
-                    
+
                     ToolbarItem(id: "refreshButton", placement: .navigationBarTrailing) {
                         Button(action: {
                             withAnimation {
                                 refreshButtonRotation += 360
                             }
-                            
+
                             // Store current selection
                             let currentGroupId = viewModel.selectedGroup?.C_GroupsID
-                            
+
                             if viewModel.selectedCategory != nil {
                                 viewModel.fetchGroups(for: viewModel.selectedCategory!)
                             } else {
                                 viewModel.fetchCategories()
                             }
-                            
+
                             if viewModel.selectedGroup != nil {
                                 viewModel.fetchGroupInfo(for: viewModel.selectedGroup!)
                             }
-                            
+
                             // Preserve club ID for restoration
                             if let id = currentGroupId {
                                 preservedGroupId = id
@@ -205,17 +205,17 @@ struct ClubInfoView: View {
                 .scrollDismissesKeyboard(.immediately)
                 .onAppear {
                     onAppearSetup()
-                    
+
                     // Handle URL scheme navigation
                     if let clubId = urlSchemeHandler.navigateToClub {
                         print("ClubInfoView detected navigateToClub: \(clubId)")
-                        
+
                         // Use our enhanced direct navigation method
                         viewModel.navigateToClubById(clubId)
-                        
+
                         // Save the ID for potential restoration
                         preservedGroupId = clubId
-                        
+
                         // Reset the handler state with a slight delay
                         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                             urlSchemeHandler.navigateToClub = nil
@@ -227,24 +227,24 @@ struct ClubInfoView: View {
                 .onChange(of: urlSchemeHandler.navigateToClub) { _, newClubId in
                     if let clubId = newClubId {
                         print("ClubInfoView detected navigateToClub change: \(clubId)")
-                        
+
                         // Reset state to force a fresh navigation
                         viewModel.pendingClubId = nil
                         viewModel.isFromURLNavigation = false
-                        
+
                         // Use our enhanced direct navigation method
                         viewModel.navigateToClubById(clubId)
-                        
+
                         // Save the ID for potential restoration
                         preservedGroupId = clubId
-                        
+
                         // Reset the handler state with a slight delay
                         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                             urlSchemeHandler.navigateToClub = nil
                         }
                     }
                 }
-                .onChange(of: viewModel.isLoading) { oldValue, newValue in
+                .onChange(of: viewModel.isLoading) { _, newValue in
                     handleLoadingChange(newValue)
                 } // use this to fix the stupid iOS 17 deprecation warning
                 .animation(.spring(response: 0.4), value: viewModel.isLoading)
@@ -256,7 +256,7 @@ struct ClubInfoView: View {
                 }
                 .onChange(of: viewModel.groups) { _, newGroups in
                     // Try to restore the previously selected group when groups list changes
-                    if let id = preservedGroupId, 
+                    if let id = preservedGroupId,
                        let previousGroup = newGroups.first(where: { $0.C_GroupsID == id }) {
                         viewModel.selectedGroup = previousGroup
                     }
@@ -287,13 +287,13 @@ struct ClubInfoView: View {
             handleRefresh()
         }
     }
-    
+
     // MARK: - Toolbar Items
-    
+
     private var clubActionButton: some ToolbarContent {
         ToolbarItem(placement: .navigationBarTrailing) {
-            if sessionService.isAuthenticated, 
-               !viewModel.isLoading, 
+            if sessionService.isAuthenticated,
+               !viewModel.isLoading,
                viewModel.selectedGroup != nil {
                 #if targetEnvironment(macCatalyst)
                 // Use a more compatible approach for Mac Catalyst
@@ -342,7 +342,7 @@ struct ClubInfoView: View {
                         }) {
                             Label("Join Club", systemImage: "person.badge.plus")
                         }
-                        
+
                         Button(action: {
                             viewModel.joinClub(asProject: true)
                         }) {
@@ -377,7 +377,7 @@ struct ClubInfoView: View {
             }
         }
     }
-    
+
     private func presentSuccessToast(message: String) {
         let toast = ToastValue(
             icon: Image(systemName: "checkmark.circle").foregroundStyle(.green),
@@ -385,9 +385,9 @@ struct ClubInfoView: View {
         )
         presentToast(toast)
     }
-    
+
     // MARK: - View Components
-    
+
     private var selectionSection: some View {
         Section {
             Picker("Category", selection: $viewModel.selectedCategory) {
@@ -409,13 +409,13 @@ struct ClubInfoView: View {
                 #endif
             }
             .pickerStyle(MenuPickerStyle())
-            //.pickerStyle(.segmented)
-            .onChange(of: viewModel.selectedCategory) { oldValue, newValue in
+            // .pickerStyle(.segmented)
+            .onChange(of: viewModel.selectedCategory) { _, _ in
                 if let category = viewModel.selectedCategory {
                     viewModel.fetchGroups(for: category)
                 }
             }
-            
+
             Picker("Club", selection: $viewModel.selectedGroup) {
                 #if targetEnvironment(macCatalyst)
                 if viewModel.groups.isEmpty {
@@ -441,7 +441,7 @@ struct ClubInfoView: View {
             }
         }
     }
-    
+
     private var emptyStateSection: some View {
         Group {
             if viewModel.categories.isEmpty && !viewModel.isLoading {
@@ -451,7 +451,7 @@ struct ClubInfoView: View {
             }
         }
     }
-    
+
     private var emptyCategoriesView: some View {
         Section {
             VStack(spacing: 12) {
@@ -459,10 +459,10 @@ struct ClubInfoView: View {
                     .font(.largeTitle)
                     .foregroundStyle(.tertiary)
                     .padding(.bottom, 8)
-                
+
                 Text("Club Information")
                     .font(.headline)
-                
+
                 Text("Select a category to view available clubs")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
@@ -472,7 +472,7 @@ struct ClubInfoView: View {
             .padding()
         }
     }
-    
+
     private var emptyGroupsView: some View {
         Section {
             VStack(spacing: 12) {
@@ -480,10 +480,10 @@ struct ClubInfoView: View {
                     .font(.largeTitle)
                     .foregroundStyle(.tertiary)
                     .padding(.bottom, 8)
-                
+
                 Text("No clubs available")
                     .font(.headline)
-                
+
                 Text("There are no clubs in this category")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
@@ -492,7 +492,7 @@ struct ClubInfoView: View {
             .padding()
         }
     }
-    
+
     private var errorMessageView: some View {
         Group {
             if let errorMessage = viewModel.errorMessage {
@@ -503,7 +503,7 @@ struct ClubInfoView: View {
             }
         }
     }
-    
+
     private var loadingSection: some View {
         Section {
             ClubSkeletonView()
@@ -513,12 +513,12 @@ struct ClubInfoView: View {
         .transition(.opacity)
         .animation(.easeInOut(duration: 0.5), value: viewModel.isLoading)
     }
-    
+
     private func clubInfoSection(groupInfo: GroupInfo) -> some View {
         Section(header: Text("About \(groupInfo.C_NameE)")) {
             ClubDetailView(
-                groupInfo: groupInfo, 
-                extractText: viewModel.extractText, 
+                groupInfo: groupInfo,
+                extractText: viewModel.extractText,
                 animateList: animateList
             )
         }
@@ -526,7 +526,7 @@ struct ClubInfoView: View {
         .contentTransition(.opacity)
         .transition(.move(edge: .bottom).combined(with: .opacity))
     }
-    
+
     private var memberSection: some View {
         Section(header: memberSectionHeader) {
             MembersListView(
@@ -541,7 +541,7 @@ struct ClubInfoView: View {
         .contentTransition(.opacity)
         .transition(.move(edge: .bottom).combined(with: .opacity))
     }
-    
+
     private var memberSectionHeader: some View {
         HStack {
             Text("Members")
@@ -552,7 +552,7 @@ struct ClubInfoView: View {
             }
         }
     }
-    
+
     private var toolbarProgressView: some ToolbarContent {
         ToolbarItem(placement: .navigationBarTrailing) {
             if viewModel.isLoading {
@@ -562,32 +562,32 @@ struct ClubInfoView: View {
             }
         }
     }
-    
+
     private var refreshButton: some ToolbarContent {
         ToolbarItem(placement: .navigationBarTrailing) {
             Button(action: {
                 withAnimation {
                     refreshButtonRotation += 360
                 }
-                
+
                 // Store current selection before refresh
                 let currentGroupId = viewModel.selectedGroup?.C_GroupsID
-                
+
                 if let category = viewModel.selectedCategory {
                     viewModel.fetchGroups(for: category)
                 } else {
                     viewModel.fetchCategories()
                 }
-                
+
                 if let group = viewModel.selectedGroup {
                     viewModel.fetchGroupInfo(for: group)
                 }
-                
+
                 // Always preserve the group ID if available
                 if let id = currentGroupId {
                     preservedGroupId = id
                 }
-                
+
                 // Reset refreshing state after a delay
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                     viewModel.refreshing = false
@@ -599,19 +599,19 @@ struct ClubInfoView: View {
             }
         }
     }
-    
+
     // MARK: - Helper Methods
-    
+
     private func onAppearSetup() {
         viewModel.fetchCategories()
-        
+
         // Trigger animations after a short delay
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
                 animateList = true
             }
         }
-        
+
         #if targetEnvironment(macCatalyst)
         // Force a refresh on Mac Catalyst to avoid the "Unavailable" issue
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
@@ -621,7 +621,7 @@ struct ClubInfoView: View {
         }
         #endif
     }
-    
+
     private func handleGroupSelection() {
         if let group = viewModel.selectedGroup {
             viewModel.fetchGroupInfo(for: group)
@@ -636,9 +636,9 @@ struct ClubInfoView: View {
             }
         }
     }
-    
+
     private func handleLoadingChange(_ isLoading: Bool) {
-        if (!isLoading && viewModel.groupInfo != nil) {
+        if !isLoading && viewModel.groupInfo != nil {
             // Reset and retrigger staggered animations when loading completes
             animateList = false
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
@@ -648,16 +648,16 @@ struct ClubInfoView: View {
             }
         }
     }
-    
+
     private func handleRefresh() {
         // Pull to refresh with haptic feedback
         HapticManager.shared.playFeedback(.medium)
-        
+
         viewModel.refreshing = true
-        
+
         // Store current selection before refresh
         let currentGroupId = viewModel.selectedGroup?.C_GroupsID
-        
+
         // If we have a specific club open, refresh it directly
         if let groupId = currentGroupId {
             // Use the direct method for more reliable refresh
@@ -669,39 +669,39 @@ struct ClubInfoView: View {
             } else {
                 viewModel.fetchCategories()
             }
-            
+
             if let group = viewModel.selectedGroup {
                 viewModel.fetchGroupInfo(for: group)
             }
         }
-        
+
         // Always preserve the group ID if available
         if let id = currentGroupId {
             preservedGroupId = id
         }
-        
+
         // If we have a pending club ID from URL, preserve that too
         if let pendingId = viewModel.pendingClubId {
             preservedGroupId = pendingId
         }
-        
+
         // Reset refreshing state after a delay
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             viewModel.refreshing = false
         }
     }
-    
+
     // Add a new helper method to handle sharing
     private func shareClub(groupInfo: GroupInfo) {
         // Create a universal link for better compatibility
         let universalLinkString = "https://outspire.wrye.dev/app/club/\(groupInfo.C_GroupsID)"
         guard let url = URL(string: universalLinkString) else { return }
-        
+
         let activityViewController = UIActivityViewController(
             activityItems: [url],
             applicationActivities: nil
         )
-        
+
         // Present the share sheet
         if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
            let rootViewController = windowScene.windows.first?.rootViewController {
@@ -714,7 +714,7 @@ struct ClubInfoView: View {
             rootViewController.present(activityViewController, animated: true)
         }
     }
-    
+
     // Add method to update gradient for club info
     private func updateGradientForClubInfo() {
         gradientManager.updateGradientForView(.clubInfo, colorScheme: colorScheme)
@@ -727,54 +727,54 @@ struct ClubDetailView: View {
     let groupInfo: GroupInfo
     let extractText: (String) -> String?
     let animateList: Bool
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             LabeledContent("Title", value: groupInfo.C_NameC)
                 .offset(y: animateList ? 0 : 20)
                 .opacity(animateList ? 1 : 0)
                 .animation(.spring(response: 0.4, dampingFraction: 0.7).delay(0.1), value: animateList)
-            
+
             Divider()
-            
+
             LabeledContent("No", value: "\(groupInfo.C_GroupNo) (\(groupInfo.C_GroupsID))")
                 .offset(y: animateList ? 0 : 20)
                 .opacity(animateList ? 1 : 0)
                 .animation(.spring(response: 0.4, dampingFraction: 0.7).delay(0.2), value: animateList)
-            
+
             if groupInfo.C_FoundTime != "0000-00-00 00:00:00" {
                 Divider()
-                
+
                 LabeledContent("Founded", value: groupInfo.C_FoundTime)
                     .offset(y: animateList ? 0 : 20)
                     .opacity(animateList ? 1 : 0)
                     .animation(.spring(response: 0.4, dampingFraction: 0.7).delay(0.3), value: animateList)
             }
-            
+
             descriptionView
         }
         .padding(.vertical, 8)
     }
-    
+
     private var descriptionView: some View {
         Group {
-            if let descriptionC = extractText(groupInfo.C_DescriptionC), 
+            if let descriptionC = extractText(groupInfo.C_DescriptionC),
                 !descriptionC.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 Divider()
-                
+
                 Text("\(descriptionC)")
                     .padding(.vertical, 5)
                     .offset(y: animateList ? 0 : 20)
                     .opacity(animateList ? 1 : 0)
                     .animation(.spring(response: 0.4, dampingFraction: 0.7).delay(0.4), value: animateList)
             }
-            
-            if let descriptionE = extractText(groupInfo.C_DescriptionE), 
+
+            if let descriptionE = extractText(groupInfo.C_DescriptionE),
                 !descriptionE.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 if extractText(groupInfo.C_DescriptionC) != nil {
                     Divider()
                 }
-                
+
                 Text("\(descriptionE)")
                     .padding(.vertical, 5)
                     .offset(y: animateList ? 0 : 20)
@@ -792,7 +792,7 @@ struct MembersListView: View {
     let selectedGroup: ClubGroup?
     let animateList: Bool
     let fetchGroupInfo: (ClubGroup) -> Void
-    
+
     var body: some View {
         Group {
             if isLoading {
@@ -804,7 +804,7 @@ struct MembersListView: View {
             }
         }
     }
-    
+
     private var memberLoadingView: some View {
         ForEach(0..<4, id: \.self) { _ in
             HStack {
@@ -812,9 +812,9 @@ struct MembersListView: View {
                     .fill(Color.gray.opacity(0.2))
                     .frame(height: 18)
                     .frame(width: 120)
-                
+
                 Spacer()
-                
+
                 RoundedRectangle(cornerRadius: 4)
                     .fill(Color.gray.opacity(0.2))
                     .frame(height: 18)
@@ -825,7 +825,7 @@ struct MembersListView: View {
         .redacted(reason: .placeholder)
         .shimmering()
     }
-    
+
     private var emptyMembersView: some View {
         if sessionService.isAuthenticated {
             Text("No members available, possibily dissolved.")
@@ -839,7 +839,7 @@ struct MembersListView: View {
                 .padding(.vertical, 8)
         }
     }
-    
+
     private var membersList: some View {
         ForEach(Array(members.enumerated()), id: \.element.id) { index, member in
             // Break down the complex member row into smaller components
@@ -859,16 +859,16 @@ struct MemberRow: View {
     let isCurrentUser: Bool
     let animateList: Bool
     let index: Int
-    
+
     var body: some View {
         HStack(spacing: 10) {
             MemberInfo(
                 member: member,
                 isCurrentUser: isCurrentUser
             )
-            
+
             Spacer()
-            
+
             // Leadership star badge
             if member.LeaderYes == "2" || member.LeaderYes == "1" {
                 Image(systemName: "star.fill")
@@ -892,7 +892,7 @@ struct MemberRow: View {
 struct MemberInfo: View {
     let member: Member
     let isCurrentUser: Bool
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: 4) {
@@ -901,20 +901,20 @@ struct MemberInfo: View {
                     .font(.body)
                     .fontWeight(member.LeaderYes == "2" || member.LeaderYes == "1" ? .medium : .regular)
                     .foregroundStyle(isCurrentUser ? .blue : .primary)
-                
+
                 // Nickname if available
                 if let nickname = member.S_Nickname, !nickname.isEmpty {
                     Text("(\(nickname))")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
-                
+
                 // "You" badge for current user
                 if isCurrentUser {
                     UserBadge()
                 }
             }
-            
+
             // Leadership badge
             if member.LeaderYes == "2" || member.LeaderYes == "1" {
                 LeadershipBadge(isPresident: member.LeaderYes == "2")
@@ -940,7 +940,7 @@ struct UserBadge: View {
 
 struct LeadershipBadge: View {
     let isPresident: Bool
-    
+
     var body: some View {
         Text(isPresident ? "President" : "Vice President")
             .font(.caption)
@@ -963,23 +963,23 @@ struct ClubSkeletonView: View {
                 Text("Club Information")
                     .font(.headline)
                     .foregroundStyle(.clear)
-                
+
                 ForEach(0..<3, id: \.self) { _ in
                     HStack {
                         RoundedRectangle(cornerRadius: 4)
                             .fill(Color.gray.opacity(0.2))
                             .frame(height: 16)
                             .frame(width: 80)
-                        
+
                         Spacer()
-                        
+
                         RoundedRectangle(cornerRadius: 4)
                             .fill(Color.gray.opacity(0.2))
                             .frame(height: 16)
                             .frame(width: 140)
                     }
                 }
-                
+
                 // Description skeleton
                 VStack(alignment: .leading, spacing: 6) {
                     ForEach(0..<3, id: \.self) { _ in
@@ -992,22 +992,22 @@ struct ClubSkeletonView: View {
                 .padding(.top, 10)
             }
             .padding([.vertical], 8)
-            
+
             // Member list skeleton
             VStack(alignment: .leading, spacing: 12) {
                 Text("Members")
                     .font(.headline)
                     .foregroundStyle(.clear)
-                
+
                 ForEach(0..<5, id: \.self) { _ in
                     HStack {
                         RoundedRectangle(cornerRadius: 4)
                             .fill(Color.gray.opacity(0.2))
                             .frame(height: 16)
                             .frame(width: 120)
-                        
+
                         Spacer()
-                        
+
                         RoundedRectangle(cornerRadius: 4)
                             .fill(Color.gray.opacity(0.2))
                             .frame(height: 16)

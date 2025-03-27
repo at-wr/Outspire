@@ -13,7 +13,7 @@ enum ViewType: String, CaseIterable, Codable {
     case notSignedIn
     case weekend
     case holiday
-    
+
     var displayName: String {
         switch self {
         case .today: return "Today View"
@@ -29,7 +29,7 @@ enum ViewType: String, CaseIterable, Codable {
         case .holiday: return "Holiday Mode"
         }
     }
-    
+
     // Helper to create a ViewType from navigation link
     static func fromLink(_ link: String) -> ViewType? {
         switch link {

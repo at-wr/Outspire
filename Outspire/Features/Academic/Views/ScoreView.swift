@@ -10,7 +10,7 @@ struct ScoreView: View {
     @EnvironmentObject private var sessionService: SessionService
     @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject var gradientManager: GradientManager // Add gradient manager
-    
+
     var body: some View {
         ZStack {
             // Add ColorfulX as background
@@ -22,11 +22,11 @@ struct ScoreView: View {
             )
             .ignoresSafeArea()
             .opacity(colorScheme == .dark ? 0.15 : 0.3) // Reduce opacity more in dark mode
-            
+
             // Semi-transparent background for better contrast
             Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
                 .ignoresSafeArea()
-            
+
             // Main content
             if !sessionService.isAuthenticated {
                 ContentUnavailableView(
@@ -53,7 +53,7 @@ struct ScoreView: View {
             updateGradientForScoreView()
         }
     }
-    
+
     private var notLoggedInView: some View {
         ContentUnavailableView(
             "Authentication Required",
@@ -62,7 +62,7 @@ struct ScoreView: View {
         )
         .padding()
     }
-    
+
     private var mainContent: some View {
         Group {
             if viewModel.isLoadingTerms && viewModel.terms.isEmpty {
@@ -82,7 +82,7 @@ struct ScoreView: View {
         }
         .transition(.opacity)
     }
-    
+
     private var termSelector: some View {
         Group {
             if !viewModel.terms.isEmpty {
@@ -117,7 +117,7 @@ struct ScoreView: View {
             }
         }
     }
-    
+
     private var scoreContent: some View {
         Group {
             if viewModel.isLoading {
@@ -156,7 +156,7 @@ struct ScoreView: View {
                                 value: animateIn
                             )
                         }
-                        
+
                         // Add space at the bottom for better scrolling
                         Color.clear.frame(height: 20)
                     }
@@ -165,7 +165,7 @@ struct ScoreView: View {
                 }
                 .transition(.opacity)
             }
-            
+
             if let errorMessage = viewModel.errorMessage {
                 ErrorView(
                     errorMessage: errorMessage,
@@ -178,7 +178,7 @@ struct ScoreView: View {
         .onAppear {
             // Reset animation state when appearing
             animateIn = false
-            
+
             // Use a shorter delay for better perceived performance
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 withAnimation(.spring(response: 0.5, dampingFraction: 0.75)) {
@@ -198,23 +198,23 @@ struct ScoreView: View {
             }
         }
     }
-    
+
     private var authenticationView: some View {
         VStack(spacing: 20) {
             Image(systemName: "lock.fill")
                 .font(.system(size: 60))
                 .foregroundStyle(.secondary)
-            
+
             Text("Authentication Required")
                 .font(.title2)
-            
+
             Text("Your academic records are protected.")
                 .foregroundStyle(.secondary)
-            
+
             Button("Authenticate", action: viewModel.authenticate)
                 .buttonStyle(.borderedProminent)
                 .padding(.top)
-            
+
             if let errorMessage = viewModel.errorMessage {
                 Text(errorMessage)
                     .foregroundColor(.red)
@@ -223,7 +223,7 @@ struct ScoreView: View {
         }
         .padding()
     }
-    
+
     private var toolbarItems: some ToolbarContent {
         Group {
             ToolbarItem(placement: .navigationBarTrailing) {
@@ -232,13 +232,13 @@ struct ScoreView: View {
                         .controlSize(.small)
                 }
             }
-            
+
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button(action: {
                     withAnimation {
                         refreshButtonRotation += 360
                     }
-                    
+
                     // Check if we need to authenticate first
                     if !viewModel.isUnlocked {
                         viewModel.authenticate()
@@ -254,7 +254,7 @@ struct ScoreView: View {
             }
         }
     }
-    
+
     // Add method to update gradient for score view
     private func updateGradientForScoreView() {
         gradientManager.updateGradientForView(.score, colorScheme: colorScheme)
@@ -265,18 +265,18 @@ struct TermButton: View {
     let term: Term
     let isSelected: Bool
     let action: () -> Void
-    
+
     var body: some View {
         Button(action: action) {
             VStack(spacing: 4) {
                 Text(term.W_Year)
                     .font(.subheadline)
                     .fontWeight(isSelected ? .semibold : .medium)
-                
+
                 Text("Term \(term.W_Term)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                
+
                 if isSelected {
                     Circle()
                         .fill(Color.accentColor)
@@ -305,16 +305,16 @@ struct SubjectScoreCard: View {
     let subject: Score
     let isExpanded: Bool
     let onTap: () -> Void
-    
+
     private var subjectColor: Color {
         ClasstableView.getSubjectColor(from: subject.subjectName)
     }
-    
+
     // Check if this subject has any valid scores
     private var hasAnyScores: Bool {
         return subject.examScores.contains { $0.hasScore }
     }
-    
+
     var body: some View {
         VStack(spacing: 0) {
             // Header
@@ -322,13 +322,13 @@ struct SubjectScoreCard: View {
                 Circle()
                     .fill(subjectColor)
                     .frame(width: 12, height: 12)
-                
+
                 Text(subject.subjectName)
                     .font(.headline)
                     .lineLimit(1)
-                
+
                 Spacer()
-                
+
                 // Average score pill
                 if subject.averageScore > 0 {
                     HStack(spacing: 4) {
@@ -346,7 +346,7 @@ struct SubjectScoreCard: View {
                         .foregroundStyle(.secondary)
                         .padding(.horizontal, 8)
                 }
-                
+
                 Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -361,12 +361,12 @@ struct SubjectScoreCard: View {
                     onTap()
                 }
             }
-            
+
             // Expanded content
             if isExpanded && hasAnyScores {
                 Divider()
                     .padding(.horizontal)
-                
+
                 VStack(spacing: 14) {
                     ForEach(subject.examScores.filter { $0.hasScore }) { exam in
                         HStack {
@@ -374,12 +374,12 @@ struct SubjectScoreCard: View {
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
                                 .frame(width: 80, alignment: .leading)
-                            
+
                             Spacer()
-                            
+
                             Text(exam.score)
                                 .font(.title3.bold())
-                            
+
                             if !exam.level.isEmpty && exam.level != "0" {
                                 Text(exam.level)
                                     .font(.caption)
@@ -405,7 +405,7 @@ struct SubjectScoreCard: View {
         .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
         .opacity(hasAnyScores ? 1 : 0.7)
     }
-    
+
     private func scoreGradeColor(_ grade: String) -> Color {
         switch grade {
         case "A*", "A+":
@@ -428,7 +428,7 @@ struct SubjectScoreCard: View {
 
 struct ScoreSkeletonView: View {
     @State private var isAnimating = false
-    
+
     var body: some View {
         VStack(spacing: 16) {
             ForEach(0..<5, id: \.self) { _ in
@@ -437,14 +437,14 @@ struct ScoreSkeletonView: View {
                         Circle()
                             .fill(Color.gray.opacity(0.1))
                             .frame(width: 12, height: 12)
-                        
+
                         RoundedRectangle(cornerRadius: 4)
                             .fill(Color.gray.opacity(0.1))
                             .frame(height: 16)
                             .frame(width: 100)
-                        
+
                         Spacer()
-                        
+
                         RoundedRectangle(cornerRadius: 10)
                             .fill(Color.gray.opacity(0.1))
                             .frame(height: 24)

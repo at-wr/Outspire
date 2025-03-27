@@ -4,16 +4,16 @@ import ColorfulX
 struct GradientSettingsView: View {
     @EnvironmentObject var gradientManager: GradientManager
     @Environment(\.colorScheme) private var colorScheme
-    
+
     // Since we're removing view-specific settings, we'll focus on global settings only
     @State private var animationSpeed: Double = 0.5
     @State private var noiseAmount: Double = 20.0
     @State private var transitionSpeed: Double = 1.0
     @State private var selectedPreset: GradientPreset = .aurora
-    
+
     // Track if user has customized settings
     @State private var hasCustomized: Bool = false
-    
+
     // Define the available gradient presets
     enum GradientPreset: String, CaseIterable, Identifiable {
         // Added all ColorfulPreset options
@@ -22,9 +22,9 @@ struct GradientSettingsView: View {
         case spring, summer, autumn, winter, neon, aurora
         // Custom color schemes
         case forest, lavender, cherry
-        
+
         var id: String { self.rawValue }
-        
+
         var colors: [Color] {
             switch self {
             // Map to ColorfulPreset values where available
@@ -45,7 +45,7 @@ struct GradientSettingsView: View {
             case .winter: return ColorfulPreset.winter.swiftUIColors
             case .neon: return ColorfulPreset.neon.swiftUIColors
             case .aurora: return ColorfulPreset.aurora.swiftUIColors
-                
+
             // Custom gradient combinations
             case .forest: return [Color.green, Color.mint, Color.teal, Color.blue]
             case .lavender: return [Color.purple, Color.indigo, Color.blue, Color.purple.opacity(0.7)]
@@ -53,9 +53,9 @@ struct GradientSettingsView: View {
             }
         }
     }
-    
+
     var body: some View {
-        List {            
+        List {
             Section(header: Text("Gradient Preset")) {
                 Picker("Preset", selection: $selectedPreset) {
                     ForEach(GradientPreset.allCases.sorted(by: { $0.rawValue < $1.rawValue })) { preset in
@@ -67,7 +67,7 @@ struct GradientSettingsView: View {
                             )
                             .frame(width: 30, height: 20)
                             .clipShape(RoundedRectangle(cornerRadius: 4))
-                            
+
                             Text(preset.rawValue.capitalized)
                                 .padding(.leading, 8)
                         }
@@ -79,11 +79,11 @@ struct GradientSettingsView: View {
                     hasCustomized = true
                 }
                 .pickerStyle(.navigationLink)
-                
+
                 // Preview of current gradient
                 gradientPreview
             }
-            
+
             Section(header: Text("Animation Settings")) {
                 VStack(alignment: .leading, spacing: 6) {
                     HStack {
@@ -92,7 +92,7 @@ struct GradientSettingsView: View {
                         Text(String(format: "%.1f", animationSpeed))
                             .foregroundStyle(.secondary)
                     }
-                    
+
                     Slider(value: $animationSpeed, in: 0.1...1.5) { editing in
                         if !editing {
                             updateGradientAnimation()
@@ -100,7 +100,7 @@ struct GradientSettingsView: View {
                         }
                     }
                 }
-                
+
                 VStack(alignment: .leading, spacing: 6) {
                     HStack {
                         Text("Noise Amount")
@@ -108,7 +108,7 @@ struct GradientSettingsView: View {
                         Text(String(format: "%.1f", noiseAmount))
                             .foregroundStyle(.secondary)
                     }
-                    
+
                     Slider(value: $noiseAmount, in: 0...50) { editing in
                         if !editing {
                             updateGradientAnimation()
@@ -116,7 +116,7 @@ struct GradientSettingsView: View {
                         }
                     }
                 }
-                
+
                 VStack(alignment: .leading, spacing: 6) {
                     HStack {
                         Text("Transition Speed")
@@ -124,7 +124,7 @@ struct GradientSettingsView: View {
                         Text(String(format: "%.1f", transitionSpeed))
                             .foregroundStyle(.secondary)
                     }
-                    
+
                     Slider(value: $transitionSpeed, in: 0.1...2.0) { editing in
                         if !editing {
                             updateGradientAnimation()
@@ -133,7 +133,7 @@ struct GradientSettingsView: View {
                     }
                 }
             }
-            
+
             Section {
                 Button("Reset to Default Settings") {
                     resetAllSettings()
@@ -141,7 +141,7 @@ struct GradientSettingsView: View {
                 .foregroundColor(.red)
                 .disabled(!hasCustomized)
             }
-            
+
             Section(header: Text("About Gradients")) {
                 Text("The app will automatically adjust gradients based on context, such as when you're in class or when it's a weekend.")
                     .font(.caption)
@@ -153,7 +153,7 @@ struct GradientSettingsView: View {
             loadCurrentSettings()
         }
     }
-    
+
     // Preview of the current gradient
     private var gradientPreview: some View {
         ZStack {
@@ -169,7 +169,7 @@ struct GradientSettingsView: View {
                 RoundedRectangle(cornerRadius: 12)
                     .strokeBorder(Color.secondary.opacity(0.3), lineWidth: 0.5)
             )
-            
+
             Text("Preview")
                 .font(.headline)
                 .foregroundStyle(colorScheme == .dark ? .white : .black)
@@ -177,24 +177,24 @@ struct GradientSettingsView: View {
         }
         .padding(.vertical, 8)
     }
-    
+
     // Load current settings from the gradient manager
     private func loadCurrentSettings() {
         // Load customization status
         hasCustomized = UserDefaults.standard.bool(forKey: "hasCustomizedGradients")
-        
+
         // Load global settings
         let settings = gradientManager.getBaseSettings()
-        
+
         // Update UI state with these settings
         animationSpeed = settings.speed
         noiseAmount = settings.noise
         transitionSpeed = settings.transitionSpeed
-        
+
         // Try to determine which preset matches the colors
         selectedPreset = findMatchingPreset(for: settings.colors) ?? .aurora
     }
-    
+
     // Find which preset matches a set of colors
     private func findMatchingPreset(for colors: [Color]) -> GradientPreset? {
         // Simple implementation - just check if the arrays have the same count
@@ -208,7 +208,7 @@ struct GradientSettingsView: View {
         }
         return nil
     }
-    
+
     // Update the gradient based on selected preset
     private func updateGradient(preset: GradientPreset) {
         // Update global settings
@@ -220,7 +220,7 @@ struct GradientSettingsView: View {
         )
         saveCustomSettings()
     }
-    
+
     // Update just the animation settings
     private func updateGradientAnimation() {
         // Update global settings
@@ -231,20 +231,20 @@ struct GradientSettingsView: View {
         )
         saveCustomSettings()
     }
-    
+
     // Reset all settings
     private func resetAllSettings() {
         // Reset all settings
         gradientManager.resetAllSettings()
-        
+
         // Update UI with default settings
         loadCurrentSettings()
-        
+
         // Clear customization flags
         hasCustomized = false
         saveCustomSettings()
     }
-    
+
     // Save custom settings to UserDefaults
     private func saveCustomSettings() {
         UserDefaults.standard.set(true, forKey: "hasCustomizedGradients")

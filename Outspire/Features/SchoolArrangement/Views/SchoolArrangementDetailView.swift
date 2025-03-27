@@ -6,7 +6,7 @@ struct SchoolArrangementDetailView: View {
     @State private var selectedImageIndex: Int?
     @State private var showingFullScreenImage = false
     @Environment(\.dismiss) private var dismiss
-    
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
@@ -15,7 +15,7 @@ struct SchoolArrangementDetailView: View {
                     Text(detail.title)
                         .font(.title2)
                         .fontWeight(.bold)
-                    
+
                     Text(detail.publishDate)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
@@ -25,7 +25,7 @@ struct SchoolArrangementDetailView: View {
                 .opacity(animateContent ? 1 : 0)
                 .offset(y: animateContent ? 0 : 10)
                 .animation(.easeOut(duration: 0.4).delay(0.1), value: animateContent)
-                
+
                 // Images section - only show if we have images
                 if !detail.imageUrls.isEmpty {
                     Text("Attachments")
@@ -34,7 +34,7 @@ struct SchoolArrangementDetailView: View {
                         .opacity(animateContent ? 1 : 0)
                         .offset(y: animateContent ? 0 : 10)
                         .animation(.easeOut(duration: 0.4).delay(0.2), value: animateContent)
-                    
+
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 12) {
                             ForEach(Array(detail.imageUrls.enumerated()), id: \.1) { index, imageUrlString in
@@ -70,21 +70,21 @@ struct SchoolArrangementDetailView: View {
                         .opacity(animateContent ? 1 : 0)
                         .animation(.easeOut(duration: 0.4).delay(0.2), value: animateContent)
                 }
-                
+
                 // Content section
                 if !detail.content.isEmpty {
                     Divider()
                         .padding(.vertical, 8)
                         .opacity(animateContent ? 1 : 0)
                         .animation(.easeOut(duration: 0.4).delay(0.4), value: animateContent)
-                    
+
                     Text("Description")
                         .font(.headline)
                         .padding(.bottom, 4)
                         .opacity(animateContent ? 1 : 0)
                         .offset(y: animateContent ? 0 : 10)
                         .animation(.easeOut(duration: 0.4).delay(0.5), value: animateContent)
-                    
+
                     HTMLContentView(htmlContent: detail.content)
                         .opacity(animateContent ? 1 : 0)
                         .offset(y: animateContent ? 0 : 10)
@@ -106,7 +106,7 @@ struct SchoolArrangementDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .background(Color(UIColor.systemBackground))
         .fullScreenCover(isPresented: $showingFullScreenImage) {
-            if let index = selectedImageIndex, 
+            if let index = selectedImageIndex,
                index < detail.imageUrls.count,
                let validUrlString = detail.imageUrls[index].addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
                URL(string: validUrlString) != nil { // Validate URL more thoroughly
@@ -135,7 +135,7 @@ struct SchoolArrangementDetailView: View {
         }
         .onAppear {
             print("DEBUG: Detail view appeared with \(detail.imageUrls.count) images")
-            
+
             // Animate content when view appears
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                 animateContent = true
@@ -150,7 +150,7 @@ struct ImageThumbnail: View {
     @State private var loadFailed = false
     @State private var retryCount = 0
     private let maxRetries = 2
-    
+
     var body: some View {
         AsyncImage(url: url) { phase in
             switch phase {
@@ -178,11 +178,11 @@ struct ImageThumbnail: View {
                             Image(systemName: "exclamationmark.triangle")
                                 .font(.title)
                                 .foregroundStyle(.secondary)
-                            
+
                             Text("Failed to load")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
-                            
+
                             if retryCount < maxRetries {
                                 Button("Retry") {
                                     retryCount += 1
@@ -190,7 +190,7 @@ struct ImageThumbnail: View {
                                     withAnimation {
                                         loadFailed = true
                                     }
-                                    
+
                                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                                         withAnimation {
                                             loadFailed = false
@@ -224,7 +224,7 @@ struct ImageViewer: View {
     @State private var lastOffset = CGSize.zero
     @State private var error: Bool = false
     @State private var loadFailed = false
-    
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
@@ -233,7 +233,7 @@ struct ImageViewer: View {
                     Text(title)
                         .font(.headline)
                         .lineLimit(2)
-                        
+
                     Text(date)
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -241,7 +241,7 @@ struct ImageViewer: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding()
                 .background(Color(UIColor.secondarySystemBackground))
-                
+
                 // Image content
                 GeometryReader { geo in
                     if let url = URL(string: imageUrl) {
@@ -261,7 +261,7 @@ struct ImageViewer: View {
                                             .onChanged { value in
                                                 let delta = value / lastScale
                                                 lastScale = value
-                                                
+
                                                 // Limit zoom scale between 1 and 5
                                                 scale = min(max(1.0, scale * delta), 5.0)
                                             }
@@ -308,7 +308,7 @@ struct ImageViewer: View {
                                         .foregroundStyle(.secondary)
                                     Text("Failed to load image")
                                         .foregroundStyle(.secondary)
-                                    
+
                                     Button("Try Again") {
                                         // Force image reload
                                         loadFailed = true
@@ -360,7 +360,7 @@ struct ImageViewer: View {
                         dismiss()
                     }
                 }
-                
+
                 ToolbarItem(placement: .topBarTrailing) {
                     if scale > 1.0 || offset != .zero {
                         Button {
@@ -382,13 +382,13 @@ struct ImageViewer: View {
 
 struct HTMLContentView: View {
     let htmlContent: String
-    
+
     var body: some View {
         Text(attributedString)
             .frame(maxWidth: .infinity, alignment: .leading)
             .fixedSize(horizontal: false, vertical: true) // Important for proper text sizing
     }
-    
+
     private var attributedString: AttributedString {
         do {
             // Process HTML content more safely
@@ -403,7 +403,7 @@ struct HTMLContentView: View {
                 // Remove potentially problematic tags
                 .replacingOccurrences(of: "<iframe[^>]*>.*?</iframe>", with: "", options: .regularExpression)
                 .replacingOccurrences(of: "<object[^>]*>.*?</object>", with: "", options: .regularExpression)
-            
+
             // Ensure we have valid HTML
             let safeHTML = """
             <!DOCTYPE html>
@@ -419,29 +419,29 @@ struct HTMLContentView: View {
             </body>
             </html>
             """
-            
+
             if let data = safeHTML.data(using: .utf8) {
                 let options: [NSAttributedString.DocumentReadingOptionKey: Any] = [
                     .documentType: NSAttributedString.DocumentType.html,
                     .characterEncoding: String.Encoding.utf8.rawValue
                 ]
-                
+
                 let attributed = try NSAttributedString(data: data, options: options, documentAttributes: nil)
                 return try AttributedString(attributed)
             }
         } catch {
             print("DEBUG: HTML parsing error: \(error)")
         }
-        
+
         // Fallback to plain text if HTML parsing fails
         let plainText = htmlContent
             .replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression, range: nil)
             .trimmingCharacters(in: .whitespacesAndNewlines)
-        
+
         if plainText.isEmpty {
             return AttributedString("No content available")
         }
-        
+
         return AttributedString(plainText)
     }
 }

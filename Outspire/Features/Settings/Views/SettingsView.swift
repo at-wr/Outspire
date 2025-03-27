@@ -6,7 +6,7 @@ struct SettingsView: View {
     @State private var navigationPath = NavigationPath()
     @State private var viewRefreshID = UUID()
     @State private var showOnboardingSheet = false
-    
+
     enum SettingsMenu: String, Hashable, CaseIterable {
         case account
         case general
@@ -18,7 +18,7 @@ struct SettingsView: View {
         case license
 
     }
-    
+
     var body: some View {
         NavigationStack(path: $navigationPath) {
             List {
@@ -28,7 +28,7 @@ struct SettingsView: View {
                         ProfileHeaderView()
                     }
                 }
-                
+
                 // General settings section
                 Section {
                     ForEach(SettingsMenu.allCases, id: \.self) { item in
@@ -39,7 +39,7 @@ struct SettingsView: View {
                         }
                     }
                 }
-                
+
                 // Links section
                 Section {
                     Link(destination: URL(string: "https://github.com/at-wr/Outspire/")!) {
@@ -60,7 +60,7 @@ struct SettingsView: View {
                     }
                 } footer: {
                 }
-                
+
 #if DEBUG
                 Section {
                     Button("View Onboarding") {
@@ -110,7 +110,7 @@ struct SettingsView: View {
             }
         }
     }
-    
+
     @ViewBuilder
     private func destinationView(for destination: SettingsMenu) -> some View {
         switch destination {
@@ -137,7 +137,7 @@ struct SettingsView: View {
 struct AccountWithNavigation: View {
     @StateObject private var viewModel = AccountViewModel()
     @EnvironmentObject var sessionService: SessionService
-    
+
     var body: some View {
         AccountView(viewModel: viewModel)
             .navigationTitle(sessionService.isAuthenticated ? "Account" : "Sign In")

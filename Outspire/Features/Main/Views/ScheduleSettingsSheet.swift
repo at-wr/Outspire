@@ -9,27 +9,27 @@ struct ScheduleSettingsSheet: View {
     @Binding var holidayEndDate: Date
     @Binding var holidayHasEndDate: Bool
     @State private var showCountdownForFutureClasses = Configuration.showCountdownForFutureClasses
-    
+
     // Debug properties
     @State private var debugOverrideMapView = Configuration.debugOverrideMapView
     @State private var debugShowMapView = Configuration.debugShowMapView
-    
+
     // Add state for the new setting
     @State private var manuallyHideMapAtSchool = Configuration.manuallyHideMapAtSchool
-    
+
     @Environment(\.dismiss) private var dismiss
-    
+
     private var currentWeekday: Int {
         let weekday = Calendar.current.component(.weekday, from: Date())
         // Convert to 0-based index (0 = Monday)
         return weekday == 1 ? 6 : weekday - 2
     }
-    
+
     private var isCurrentDayWeekend: Bool {
         let weekday = Calendar.current.component(.weekday, from: Date())
         return weekday == 1 || weekday == 7
     }
-    
+
     var body: some View {
         NavigationStack {
             if !sessionService.isAuthenticated {
@@ -37,14 +37,14 @@ struct ScheduleSettingsSheet: View {
                     Image(systemName: "lock.fill")
                         .font(.system(size: 50))
                         .foregroundStyle(.secondary)
-                    
+
                     Text("Authentication Required")
                         .font(.title2)
                         .bold()
-                    
+
                     Text("Please sign in to access schedule settings")
                         .foregroundStyle(.secondary)
-                    
+
                     Button("Close") {
                         dismiss()
                     }
@@ -62,7 +62,7 @@ struct ScheduleSettingsSheet: View {
                             selectedDay = nil
                             isHolidayMode = false
                             setAsToday = false
-                            
+
                             // Use a slight delay for dismissal to show the selection UI feedback
                             /*
                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
@@ -77,7 +77,7 @@ struct ScheduleSettingsSheet: View {
                                 } else {
                                     Text("Today")
                                 }
-                                
+
                                 Spacer()
                                 if selectedDay == nil && !isHolidayMode {
                                     Image(systemName: "checkmark")
@@ -86,7 +86,7 @@ struct ScheduleSettingsSheet: View {
                             }
                         }
                         .foregroundStyle(.primary)
-                        
+
                         // Filter out current weekday if today is a weekday (not weekend)
                         ForEach(0..<5, id: \.self) { index in
                             // Skip the current weekday if we're not on a weekend
@@ -96,7 +96,7 @@ struct ScheduleSettingsSheet: View {
                                 Button {
                                     selectedDay = index
                                     isHolidayMode = false
-                                    
+
                                     // Use a slight delay for dismissal
                                     /*
                                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
@@ -106,7 +106,7 @@ struct ScheduleSettingsSheet: View {
                                 } label: {
                                     HStack {
                                         Text(dayName(for: index))
-                                        
+
                                         Spacer()
                                         if selectedDay == index && !isHolidayMode {
                                             Image(systemName: "checkmark")
@@ -118,7 +118,7 @@ struct ScheduleSettingsSheet: View {
                             }
                         }
                     }
-                    
+
                     // Only show View Mode if selectedDay is set and not the same as today
                     if let day = selectedDay, day != currentWeekday || isCurrentDayWeekend {
                         Section(header: Text("View Mode")) {
@@ -130,7 +130,7 @@ struct ScheduleSettingsSheet: View {
                                 }
                         }
                     }
-                    
+
                     // Holiday mode section
                     Section(header: Text("Holiday Mode")) {
                         Toggle(isOn: $isHolidayMode) {
@@ -143,7 +143,7 @@ struct ScheduleSettingsSheet: View {
                                 setAsToday = false
                             }
                         }
-                        
+
                         if isHolidayMode {
                             Toggle("Set End Date", isOn: $holidayHasEndDate)
                             if holidayHasEndDate {
@@ -156,28 +156,28 @@ struct ScheduleSettingsSheet: View {
                             }
                         }
                     }
-                    
+
                     // Display options
                     Section(header: Text("Display Options")) {
                         Toggle("Show Countdown for Future Classes", isOn: $showCountdownForFutureClasses)
                             .onChange(of: showCountdownForFutureClasses) { newValue in
                                 Configuration.showCountdownForFutureClasses = newValue
                             }
-                        
+
                         // Add option to hide map when at school
                         Toggle("Hide Map When at School", isOn: $manuallyHideMapAtSchool)
                             .onChange(of: manuallyHideMapAtSchool) { newValue in
                                 Configuration.manuallyHideMapAtSchool = newValue
                             }
                     }
-                    
+
                     // Debug section
                     Section(header: Text("Developer Options")) {
                         Toggle("Override Map View Display", isOn: $debugOverrideMapView)
                             .onChange(of: debugOverrideMapView) { newValue in
                                 Configuration.debugOverrideMapView = newValue
                             }
-                        
+
                         if debugOverrideMapView {
                             Toggle("Show Map View", isOn: $debugShowMapView)
                                 .onChange(of: debugShowMapView) { newValue in
@@ -198,7 +198,7 @@ struct ScheduleSettingsSheet: View {
             }
         }
     }
-    
+
     private func dayName(for index: Int) -> String {
         let days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
         return days[index]

@@ -7,24 +7,24 @@ struct MapView: View {
     @ObservedObject private var regionChecker = RegionChecker.shared
     @State private var region: MKCoordinateRegion
     @State private var position: MapCameraPosition
-    
+
     private let campusLocations: [CampusLocation]
     private let campusBoundary: [CLLocationCoordinate2D]
     private let baseCoordinate = CLLocationCoordinate2D(latitude: 31.14704, longitude: 121.40758)
-    
+
     init() {
         let initialRegion = MKCoordinateRegion(
             center: baseCoordinate,
             span: MKCoordinateSpan(latitudeDelta: 0.005, longitudeDelta: 0.005)
         )
-        
+
         self._region = State(initialValue: initialRegion)
         self._position = State(initialValue: .region(initialRegion))
-        
+
         self.campusLocations = [
             CampusLocation(name: "WFLA International Campus", coordinate: baseCoordinate)
         ]
-        
+
         self.campusBoundary = [
             CLLocationCoordinate2D(latitude: 31.14792, longitude: 121.40819),
             CLLocationCoordinate2D(latitude: 31.14736, longitude: 121.40848),
@@ -37,25 +37,25 @@ struct MapView: View {
             CLLocationCoordinate2D(latitude: 31.14792, longitude: 121.40819)
         ]
     }
-    
+
     var body: some View {
         VStack {
             Map(position: $position) {
                 // Pre-compute converted coordinates
                 let convertedBoundary = convertedBoundaryCoordinates
                 let convertedLocations = convertedCampusLocations
-                
+
                 // Markers
                 ForEach(convertedLocations) { location in
                     Marker(location.name, coordinate: location.coordinate)
                         .tint(.red)
                 }
-                
+
                 // Boundary polygon
                 MapPolygon(coordinates: convertedBoundary)
                     .foregroundStyle(.cyan.opacity(0.3))
                     .stroke(.cyan, lineWidth: 2)
-                
+
                 UserAnnotation()
             }
             .mapControls {
@@ -67,14 +67,14 @@ struct MapView: View {
             .onChange(of: regionChecker.regionCode) { _ in updateRegionForChina() }
         }
     }
-    
+
     // MARK: - Computed Properties
     private var convertedBoundaryCoordinates: [CLLocationCoordinate2D] {
         regionChecker.isChinaRegion() ?
         campusBoundary.map(CoordinateConverter.coordinateHandler) :
         campusBoundary
     }
-    
+
     private var convertedCampusLocations: [CampusLocation] {
         campusLocations.map { location in
             let coordinate = regionChecker.isChinaRegion() ?
@@ -83,7 +83,7 @@ struct MapView: View {
             return CampusLocation(name: location.name, coordinate: coordinate)
         }
     }
-    
+
     // MARK: - Private Methods
     private func setupMap() {
         let locationManager = CLLocationManager()
@@ -91,7 +91,7 @@ struct MapView: View {
         // Use the checkRegion method on the shared instance
         regionChecker.checkRegion()
     }
-    
+
     private func handlePositionChange() {
         // Only recheck region if the center has changed significantly
         guard let currentCenter = position.region?.center else { return }
@@ -101,16 +101,16 @@ struct MapView: View {
             regionChecker.checkRegion()
         }
     }
-    
+
     private func updateRegionForChina() {
         guard regionChecker.isChinaRegion() else { return }
-        
+
         let adjustedCoordinate = CoordinateConverter.coordinateHandler(baseCoordinate)
         let newRegion = MKCoordinateRegion(
             center: adjustedCoordinate,
             span: MKCoordinateSpan(latitudeDelta: 0.015, longitudeDelta: 0.015)
         )
-        
+
         region = newRegion
         position = .region(newRegion)
     }

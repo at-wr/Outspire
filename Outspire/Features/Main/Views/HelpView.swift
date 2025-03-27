@@ -7,7 +7,7 @@ struct HelpView: View {
     @EnvironmentObject var gradientManager: GradientManager // Add gradient manager
     @State private var previewURL: URL?
     @State private var showPreview = false
-    
+
     var body: some View {
         ZStack {
             // Add ColorfulX as background
@@ -19,11 +19,11 @@ struct HelpView: View {
             )
             .ignoresSafeArea()
             .opacity(colorScheme == .dark ? 0.15 : 0.3) // Reduce opacity more in dark mode
-            
+
             // Semi-transparent background for better contrast
             Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
                 .ignoresSafeArea()
-            
+
             // Main help content
             VStack {
                 // ...existing help content...
@@ -39,7 +39,7 @@ struct HelpView: View {
             updateGradientForHelpView()
         }
     }
-    
+
     // Add method to update gradient for help view
     private func updateGradientForHelpView() {
         gradientManager.updateGradient(
@@ -48,7 +48,7 @@ struct HelpView: View {
             noise: colorScheme == .dark ? 15.0 : 20.0
         )
     }
-    
+
     // ...existing code...
 }
 

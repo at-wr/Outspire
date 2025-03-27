@@ -11,4 +11,3 @@ func setupRequest(urlString: String, sessionId: String?) -> URLRequest? {
     request.allHTTPHeaderFields = headers
     return request
 }
-

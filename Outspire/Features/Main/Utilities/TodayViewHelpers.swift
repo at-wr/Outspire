@@ -7,13 +7,13 @@ struct TodayViewHelpers {
         guard index >= 1 && index <= 5 else { return "" }
         return days[index - 1]
     }
-    
+
     static func isCurrentDateWeekend() -> Bool {
         let calendar = Calendar.current
         let weekday = calendar.component(.weekday, from: Date())
         return weekday == 1 || weekday == 7
     }
-    
+
     static func formatDateString(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "EEEE, MMMM d, yyyy"

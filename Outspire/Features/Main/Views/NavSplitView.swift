@@ -7,11 +7,11 @@ struct NavigationTip: Tip {
     var title: Text {
         Text("Welcome to Outspire")
     }
-    
+
     var message: Text? {
         Text("Start by signing in with your WFLA Account.")
     }
-    
+
     var image: Image? {
         Image(systemName: "party.popper.fill")
     }
@@ -22,11 +22,11 @@ struct SettingsTip: Tip {
     var title: Text {
         Text("Customize Your Experience")
     }
-    
+
     var message: Text? {
         Text("Tap here to access app settings and personalize your Outspire experience.")
     }
-    
+
     var image: Image? {
         Image(systemName: "gear")
     }
@@ -37,11 +37,11 @@ struct TodayTip: Tip {
     var title: Text {
         Text("Your Daily Overview")
     }
-    
+
     var message: Text? {
         Text("Check here daily for your schedule, announcements, and important updates.")
     }
-    
+
     var image: Image? {
         Image(systemName: "calendar")
     }
@@ -60,12 +60,12 @@ struct NavSplitView: View {
     @State private var shouldShowTip = false
     @State private var onboardingCompleted = false
     @Environment(\.colorScheme) private var colorScheme // Add colorScheme
-    
+
     // Initialize the tips
     @State private var navigationTip = NavigationTip()
     @State private var settingsTip = SettingsTip()
     @State private var todayTip = TodayTip()
-    
+
     var body: some View {
         NavigationSplitView {
             ZStack {
@@ -82,24 +82,24 @@ ColorfulView(
 // Semi-transparent background for better contrast
 Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
     .ignoresSafeArea()
-                
+
                 // Existing list content with better background
                 List(selection: $selectedLink) {
                     NavigationLink(value: "today") {
                         Label("Today", systemImage: "text.rectangle.page")
                             .tipKit(todayTip, shouldShowTip: shouldShowTip)
                     }
-                    
+
                     NavigationLink(value: "classtable") {
                         Label("Classtable", systemImage: "clock.badge.questionmark")
                     }
-                    
+
                     if !Configuration.hideAcademicScore {
                         NavigationLink(value: "score") {
                             Label("Academic Grades", systemImage: "pencil.and.list.clipboard")
                         }
                     }
-                    
+
                     Section {
                         NavigationLink(value: "club-info") {
                             Label("Hall of Clubs", systemImage: "person.2.circle")
@@ -110,7 +110,7 @@ Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
                     } header: {
                         Text("Activities")
                     }
-                    
+
                     Section {
                         NavigationLink(value: "map") {
                             Label("Campus Map", systemImage: "map")
@@ -202,7 +202,7 @@ Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
             updateGradientForSelectedLink(selectedLink)
         }
     }
-    
+
     @ViewBuilder
     private var detailView: some View {
         switch selectedLink {
@@ -228,7 +228,7 @@ Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
             TodayView()
         }
     }
-    
+
     private func configureTipsAndCheckOnboarding() async {
         do {
             try await Tips.configure([
@@ -238,17 +238,17 @@ Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
         } catch {
             print("Failed to configure TipKit: \(error)")
         }
-        
+
         let currentVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
         let thresholdVersion = "0.5.1"
-        
+
         if shouldShowOnboardingForVersion(lastVersionRun: lastVersionRun, thresholdVersion: thresholdVersion) {
             showOnboardingSheet = true
             lastVersionRun = currentVersion
             print("Showing onboarding due to version check.")
         } else if !hasCheckedOnboarding {
             hasCheckedOnboarding = true
-            
+
             await MainActor.run {
                 if !UserDefaults.standard.bool(forKey: "hasCompletedOnboarding") {
                     showOnboardingSheet = true
@@ -260,19 +260,19 @@ Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
             }
         }
     }
-    
+
     private func shouldShowOnboardingForVersion(lastVersionRun: String?, thresholdVersion: String) -> Bool {
         guard let lastVersion = lastVersionRun else {
             return true
         }
         return lastVersion.compare(thresholdVersion, options: .numeric) == .orderedAscending
     }
-    
+
     private func checkOnboardingStatus() {
         if UserDefaults.standard.bool(forKey: "hasCompletedOnboarding") {
             print("Onboarding has been completed, preparing to show tips")
             onboardingCompleted = true
-            
+
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                 Task {
                     await invalidateTips()
@@ -285,13 +285,13 @@ Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
             shouldShowTip = false
         }
     }
-    
+
     private func invalidateTips() async {
         await navigationTip.invalidate(reason: .tipClosed)
         await settingsTip.invalidate(reason: .tipClosed)
         await todayTip.invalidate(reason: .tipClosed)
     }
-    
+
     // Update the method to update gradient based on selected link
     private func updateGradientForSelectedLink(_ link: String?) {
         guard let link = link else {
@@ -299,13 +299,13 @@ Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
             gradientManager.updateGradientForView(.today, colorScheme: colorScheme)
             return
         }
-        
+
         // For Today view, we need to check the actual context
         if link == "today" {
             // Today view handles context-specific gradients in its own view
             let isWeekend = TodayViewHelpers.isCurrentDateWeekend()
             let isHoliday = Configuration.isHolidayMode
-            
+
             if !sessionService.isAuthenticated {
                 gradientManager.updateGradientForContext(context: .notSignedIn, colorScheme: colorScheme)
             } else if isHoliday {
@@ -332,7 +332,7 @@ Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
 // MARK: - Navigation Column Width Modifier
 struct NavigationColumnWidthModifier: ViewModifier {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-    
+
     func body(content: Content) -> some View {
         #if targetEnvironment(macCatalyst)
         // Use NavigationSplitViewVisibility instead of width for more consistent behavior
@@ -343,13 +343,13 @@ struct NavigationColumnWidthModifier: ViewModifier {
                 if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
                     windowScene.titlebar?.titleVisibility = .visible
                     windowScene.titlebar?.toolbar?.isVisible = true
-                    
+
                     // Override Mac Catalyst settings for better appearance
                     let sidebarAppearance = UINavigationBar.appearance(whenContainedInInstancesOf: [UISplitViewController.self])
                     sidebarAppearance.scrollEdgeAppearance = UINavigationBarAppearance()
                     sidebarAppearance.compactAppearance = UINavigationBarAppearance()
                     sidebarAppearance.standardAppearance = UINavigationBarAppearance()
-                    
+
                     // Set sidebar background to clear
                     UITableView.appearance().backgroundColor = .clear
                 }
@@ -376,7 +376,7 @@ extension View {
 struct TipViewModifier<T: Tip>: ViewModifier {
     let tip: T
     let shouldShowTip: Bool
-    
+
     func body(content: Content) -> some View {
         if shouldShowTip {
             content.popoverTip(tip)

@@ -5,7 +5,7 @@ struct AddRecordSheet: View {
     @Environment(\.presentToast) var presentToast
     @Environment(\.presentationMode) var presentationMode
     @StateObject private var viewModel: AddRecordViewModel
-    
+
     init(availableGroups: [ClubGroup], loggedInStudentId: String, onSave: @escaping () -> Void) {
         let model = AddRecordViewModel(
             availableGroups: availableGroups,
@@ -14,7 +14,7 @@ struct AddRecordSheet: View {
         )
         _viewModel = StateObject(wrappedValue: model)
     }
-    
+
     var body: some View {
         NavigationView {
             Form {
@@ -24,13 +24,13 @@ struct AddRecordSheet: View {
                             .tag(group.C_GroupsID)
                     }
                 }
-                
+
                 DatePicker("Date", selection: $viewModel.activityDate, displayedComponents: .date)
-                
+
                 TextField("Title...", text: $viewModel.activityTitle)
-                
+
                 Section(header: Text("Durations")) {
-                    Stepper("C: \(viewModel.durationC) hours", value: $viewModel.durationC, in: 0...10, onEditingChanged: { _ in 
+                    Stepper("C: \(viewModel.durationC) hours", value: $viewModel.durationC, in: 0...10, onEditingChanged: { _ in
                         viewModel.validateDuration()
                         if let errorMessage = viewModel.errorMessage {
                             let toast = ToastValue(
@@ -40,7 +40,7 @@ struct AddRecordSheet: View {
                             presentToast(toast)
                         }
                     })
-                    Stepper("A: \(viewModel.durationA) hours", value: $viewModel.durationA, in: 0...10, onEditingChanged: { _ in 
+                    Stepper("A: \(viewModel.durationA) hours", value: $viewModel.durationA, in: 0...10, onEditingChanged: { _ in
                         viewModel.validateDuration()
                         if let errorMessage = viewModel.errorMessage {
                             let toast = ToastValue(
@@ -50,7 +50,7 @@ struct AddRecordSheet: View {
                             presentToast(toast)
                         }
                     })
-                    Stepper("S: \(viewModel.durationS) hours", value: $viewModel.durationS, in: 0...10, onEditingChanged: { _ in 
+                    Stepper("S: \(viewModel.durationS) hours", value: $viewModel.durationS, in: 0...10, onEditingChanged: { _ in
                         viewModel.validateDuration()
                         if let errorMessage = viewModel.errorMessage {
                             let toast = ToastValue(
@@ -61,8 +61,8 @@ struct AddRecordSheet: View {
                         }
                     })
                 }
-                
-                Section(header: 
+
+                Section(header:
                     HStack {
                         Text("Reflection")
                         Spacer()
@@ -82,7 +82,7 @@ struct AddRecordSheet: View {
                             }
                         }
                 }
-                
+
                 if let errorMessage = viewModel.errorMessage {
                     Text(errorMessage)
                         .foregroundColor(.red)
@@ -95,7 +95,7 @@ struct AddRecordSheet: View {
                     Button("Cancel") {
                         viewModel.cacheFormData()  // Cache data when cancelling
                         presentationMode.wrappedValue.dismiss()
-                        
+
                         let toast = ToastValue(
                             icon: Image(systemName: "info.circle").foregroundStyle(.blue),
                             message: "Autosaved in cache"
@@ -103,7 +103,7 @@ struct AddRecordSheet: View {
                         presentToast(toast)
                     }
                 }
-                
+
                 ToolbarItem(id: "saveButton", placement: .navigationBarTrailing) {
                     Button("Save") {
                         viewModel.saveRecord()

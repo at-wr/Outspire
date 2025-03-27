@@ -4,7 +4,7 @@ enum CASType: String {
     case creativity = "C"
     case activity = "A"
     case service = "S"
-    
+
     var color: Color {
         switch self {
         case .creativity: return .red
@@ -17,7 +17,7 @@ enum CASType: String {
 struct CASBadge: View {
     let type: CASType
     let value: String
-    
+
     var body: some View {
         Text("\(type.rawValue): \(value)")
             .foregroundStyle(.white)

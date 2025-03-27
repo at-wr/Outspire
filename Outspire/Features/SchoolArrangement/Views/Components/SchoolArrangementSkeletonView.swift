@@ -3,7 +3,7 @@ import SwiftUI
 struct SchoolArrangementSkeletonView: View {
     // Animation states
     @State private var animateItems = false
-    
+
     var body: some View {
         VStack(spacing: 16) {
             ForEach(0..<3, id: \.self) { sectionIndex in
@@ -17,7 +17,7 @@ struct SchoolArrangementSkeletonView: View {
                 }
                 .padding(.horizontal)
                 .padding(.top, sectionIndex > 0 ? 16 : 0)
-                
+
                 // Items for this section
                 VStack(spacing: 12) {
                     ForEach(0..<(sectionIndex == 0 ? 2 : 1), id: \.self) { itemIndex in
@@ -28,20 +28,20 @@ struct SchoolArrangementSkeletonView: View {
                                     .fill(Color.gray.opacity(0.2))
                                     .frame(height: 22)
                                     .frame(width: 250)
-                                
+
                                 Spacer()
                             }
-                            
+
                             // Date skeleton
                             HStack {
                                 RoundedRectangle(cornerRadius: 4)
                                     .fill(Color.gray.opacity(0.2))
                                     .frame(height: 16)
                                     .frame(width: 120)
-                                
+
                                 Spacer()
                             }
-                            
+
                             // Week numbers skeleton
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 8) {
