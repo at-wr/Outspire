@@ -45,6 +45,7 @@ struct TodayView: View {
     @State private var showLocationUpdateSheet = false
     @State private var showScheduleTip: Bool = false
     @State private var skipTip: Bool = false
+    @AppStorage("hasShownScheduleTip") private var hasShownScheduleTip: Bool = false
 
 @StateObject private var weatherManager = WeatherManager.shared
     // Track if we've already started a Live Activity for the current class
@@ -120,13 +121,15 @@ struct TodayView: View {
                 }
             }
 
-            if sessionService.isAuthenticated && !skipTip {
+            if sessionService.isAuthenticated && !skipTip && !hasShownScheduleTip {
                 // Delay tip appearance for 1 second
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                     showScheduleTip = true
                     // Auto-hide the tip after 3 seconds
                     DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
                         showScheduleTip = false
+                        // Set the flag to prevent showing the tip again
+                        hasShownScheduleTip = true
                     }
                 }
             }
