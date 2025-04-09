@@ -5,7 +5,6 @@ class ClasstableViewModel: ObservableObject {
     @Published var selectedYearId: String = ""
     @Published var timetable: [[String]] = [] {
         didSet {
-            // Share timetable data with widgets when it changes
             shareTimetableWithWidgets()
         }
     }
@@ -71,18 +70,14 @@ class ClasstableViewModel: ObservableObject {
         }
     }
 
-    // Share timetable data with widgets
     private func shareTimetableWithWidgets() {
-        // Only share if timetable is not empty
         if !timetable.isEmpty {
-            // Post notification for widget data manager
             NotificationCenter.default.post(
                 name: .timetableDataDidChange,
                 object: nil,
                 userInfo: ["timetable": timetable]
             )
 
-            // Also directly save to app group container as a backup
             if let encoded = try? JSONEncoder().encode(timetable) {
                 UserDefaults(suiteName: "group.dev.wrye.Outspire")?.set(encoded, forKey: "widgetTimetableData")
             }

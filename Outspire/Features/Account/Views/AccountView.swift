@@ -9,8 +9,8 @@ struct AccountView: View {
     @State private var refreshButtonRotation = 0.0
     @State private var isTransitioning = false
     @FocusState private var focusedField: FormField?
-    @State private var lastToastId = UUID() // Track last displayed toast to prevent duplicates
-    @State private var captchaImage: Image? // Store the loaded captcha image
+    @State private var lastToastId = UUID()
+    @State private var captchaImage: Image?
 
     init(viewModel: AccountViewModel? = nil) {
         _viewModel = ObservedObject(wrappedValue: viewModel ?? AccountViewModel())
@@ -40,7 +40,6 @@ struct AccountView: View {
             handleMessage(successMessage, isError: false)
         }
         .onChange(of: viewModel.captchaImageData) { _, imageData in
-            // When captcha image data is available, create an Image
             if let data = imageData, let uiImage = UIImage(data: data) {
                 captchaImage = Image(uiImage: uiImage)
             } else {
@@ -80,9 +79,6 @@ struct AccountView: View {
                         .autocapitalization(.none)
                         .autocorrectionDisabled()
                         .focused($focusedField, equals: .password)
-                        // .submitLabel(.next).submitLabel(.done)
-                        // .onSubmit { focusedField = .captcha }
-                        // handle captcha all by app
                         .submitLabel(.done)
                         .onSubmit {
                             focusedField = nil
@@ -107,19 +103,7 @@ struct AccountView: View {
                         }
                     }
 
-                    /*
-                    if viewModel.isRecognizingCaptcha {
-                        HStack(spacing: 6) {
-                            ProgressView()
-                                .controlSize(.small)
-                            Text("Auto-recognizing...")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                     */
                 }
-                // .padding(.bottom, 30)
 
                 Section {
                     VStack(spacing: 2) {
@@ -168,17 +152,6 @@ struct AccountView: View {
                 }
 
             }
-            /*
-             .toolbar {
-             ToolbarItem(placement: .navigationBarTrailing) {
-             Button(action: refreshCaptcha) {
-             Image(systemName: "arrow.clockwise")
-             .rotationEffect(.degrees(refreshButtonRotation))
-             .animation(.spring(response: 0.6, dampingFraction: 0.5), value: refreshButtonRotation)
-             }
-             }
-             }
-             */
             .scrollDismissesKeyboard(.immediately)
             .onChange(of: viewModel.isAuthenticated) { _, newValue in
                 if newValue {

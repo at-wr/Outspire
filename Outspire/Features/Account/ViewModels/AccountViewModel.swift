@@ -15,7 +15,7 @@ class AccountViewModel: ObservableObject {
     @Published var isRecognizingCaptcha: Bool = false
     @Published var isAutoRetrying: Bool = false
     @Published var autoRetryCount: Int = 0
-    private let maxVisibleRetryCount = 10 // After this, just show "multiple attempts"
+    private let maxVisibleRetryCount = 10
 
     private let sessionService = SessionService.shared
     private let userDefaults = UserDefaults.standard
@@ -29,30 +29,24 @@ class AccountViewModel: ObservableObject {
     }
 
     init() {
-        // No longer loading cached captcha on init
-        // Always fetch a fresh captcha when view appears
-
         // Listen for authentication status changes
         NotificationCenter.default.addObserver(
             forName: Notification.Name.authenticationStatusChanged,
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            self?.objectWillChange.send() // Notify observers to update
+            self?.objectWillChange.send()
         }
     }
 
     func fetchCaptchaImage() {
-        // Only prevent refresh during active login process
         guard !isLoggingIn else { return }
 
         isCaptchaLoading = true
 
-        // Clear previous captcha
         self.captcha = ""
         self.captchaImageData = nil
 
-        // Clear previous session to ensure a fresh one
         sessionService.clearSession()
 
         guard let captchaURL = URL(string: "\(Configuration.baseURL)/php/login_key.php") else {
@@ -63,7 +57,6 @@ class AccountViewModel: ObservableObject {
 
         print("Fetching fresh captcha from: \(captchaURL)")
 
-        // Clear any cookies to ensure a fresh session
         let cookieStorage = HTTPCookieStorage.shared
         if let cookies = cookieStorage.cookies {
             for cookie in cookies {
@@ -73,7 +66,7 @@ class AccountViewModel: ObservableObject {
 
         var request = URLRequest(url: captchaURL)
         request.httpShouldHandleCookies = true
-        request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData // Ensure no caching
+        request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
 
         URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
             DispatchQueue.main.async {
@@ -89,12 +82,10 @@ class AccountViewModel: ObservableObject {
                 if let data = data {
                     self.captchaImageData = data
 
-                    // Extract session ID from response
                     if let sessionId = self.extractSessionId(from: response) {
                         print("Extracted session ID: \(sessionId)")
                         self.sessionService.updateSessionId(sessionId)
 
-                        // Try to recognize the captcha text with enhanced recognition
                         self.isRecognizingCaptcha = true
                         CaptchaRecognizer.recognizeText(in: data, method: .combined) { recognizedText in
                             DispatchQueue.main.async {
@@ -108,7 +99,6 @@ class AccountViewModel: ObservableObject {
                     } else {
                         print("Failed to extract session ID from response")
                         self.errorMessage = "Retrying..."
-                        // Automatic retry after a short delay
                         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                             self.fetchCaptchaImage()
                         }
@@ -123,28 +113,23 @@ class AccountViewModel: ObservableObject {
         }.resume()
     }
 
-    // Add properties and update login method
     func login(autoRetry: Bool = false) {
         guard !username.isEmpty, !password.isEmpty, !captcha.isEmpty else {
             errorMessage = "Please fill in all fields"
             return
         }
 
-        // Ensure we have a session ID before attempting login
         guard let sessionId = sessionService.sessionId, !sessionId.isEmpty else {
             errorMessage = "Retrying..."
             fetchCaptchaImage()
             return
         }
 
-        // Set state to logging in
         isLoggingIn = true
 
         if autoRetry {
             autoRetryCount += 1
             isAutoRetrying = true
-            // errorMessage = "Auto-retry #\(autoRetryCount)..."
-            // only enable while debug
         } else {
             errorMessage = nil
             successMessage = nil
@@ -156,13 +141,11 @@ class AccountViewModel: ObservableObject {
             guard let self = self else { return }
 
             if success {
-                // Login successful
                 self.isLoggingIn = false
                 self.isAutoRetrying = false
                 self.autoRetryCount = 0
 
                 print("Login successful")
-                // Clear form fields on successful login
                 self.username = ""
                 self.password = ""
                 self.captcha = ""
@@ -177,13 +160,10 @@ class AccountViewModel: ObservableObject {
                     self.successMessage = "Signed in successfully"
                 }
             } else if isCaptchaError {
-                // Captcha error - retry indefinitely
                 print("CAPTCHA error, retrying... Attempt #\(self.autoRetryCount)")
 
-                // Refresh captcha and retry without ever stopping
                 self.fetchCaptchaAndRetry()
             } else {
-                // Other error - stop retry
                 self.isLoggingIn = false
                 self.isAutoRetrying = false
                 self.autoRetryCount = 0
@@ -210,13 +190,10 @@ class AccountViewModel: ObservableObject {
         }
     }
 
-    // New method to fetch captcha and automatically retry
     private func fetchCaptchaAndRetry() {
-        // Clear previous captcha
         self.captcha = ""
         self.captchaImageData = nil
 
-        // Clear previous session
         sessionService.clearSession()
 
         guard let captchaURL = URL(string: "\(Configuration.baseURL)/php/login_key.php") else {
@@ -226,7 +203,6 @@ class AccountViewModel: ObservableObject {
             return
         }
 
-        // Clear cookies
         let cookieStorage = HTTPCookieStorage.shared
         if let cookies = cookieStorage.cookies {
             for cookie in cookies {

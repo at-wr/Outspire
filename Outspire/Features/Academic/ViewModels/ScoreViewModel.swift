@@ -71,7 +71,7 @@ class ScoreViewModel: ObservableObject {
     @Published var selectedTermId: String = ""
 
     private let sessionService = SessionService.shared
-    private let cacheDuration: TimeInterval = 300 // 5 minutes
+    private let cacheDuration: TimeInterval = 300
 
     init() {
         loadCachedData()
@@ -120,10 +120,9 @@ class ScoreViewModel: ObservableObject {
 
     func authenticate() {
         let context = LAContext()
-        context.localizedFallbackTitle = "Use device password" // Allows fallback option
+        context.localizedFallbackTitle = "Use device password"
         var error: NSError?
 
-        // Use deviceOwnerAuthentication which supports both biometrics and password
         if context.canEvaluatePolicy(.deviceOwnerAuthentication, error: &error) {
             let reason = "Authentication required for requesting sensitive information."
 
@@ -141,7 +140,6 @@ class ScoreViewModel: ObservableObject {
                 }
             }
         } else {
-            // Authentication not available; update error message accordingly.
             isUnlocked = false
             errorMessage = "Authentication is not available on this device."
         }
@@ -191,7 +189,6 @@ class ScoreViewModel: ObservableObject {
             return
         }
 
-        // Check if we have valid cache for THIS specific term
         if !forceRefresh && isCacheValid(for: "scoresCacheTimestamp-\(selectedTermId)") {
             loadCachedScores(for: selectedTermId)
             return

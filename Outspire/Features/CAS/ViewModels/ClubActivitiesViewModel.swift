@@ -15,7 +15,7 @@ class ClubActivitiesViewModel: ObservableObject {
     private var hasAttemptedInitialLoad = false
     private var cachedActivities: [String: [ActivityRecord]] = [:]
     private let cacheTimestampKey = "clubActivitiesCacheTimestamp"
-    private let cacheDuration: TimeInterval = 300 // 5 minutes
+    private let cacheDuration: TimeInterval = 300
     private let sessionService = SessionService.shared
 
     // MARK: - Initialization
@@ -110,7 +110,6 @@ class ClubActivitiesViewModel: ObservableObject {
             case .success(let response):
                 self.processSuccessfulGroupsResponse(response)
             case .failure(let error):
-                // self.errorMessage = "Failed to load groups: \(error.localizedDescription)"
                 self.errorMessage = "\(error.localizedDescription)"
             }
         }
@@ -170,7 +169,6 @@ class ClubActivitiesViewModel: ObservableObject {
                     self.cacheActivities(for: self.selectedGroupId, activities: response.casRecord)
                 }
             case .failure(let error):
-                // self.errorMessage = "Failed to load activities: \(error.localizedDescription)"
                 self.errorMessage = "\(error.localizedDescription)"
 
             }
@@ -200,8 +198,7 @@ class ClubActivitiesViewModel: ObservableObject {
         case .success(let response):
             processDeleteSuccess(response, recordId: recordId)
         case .failure(let error):
-            // errorMessage = "Failed to delete record: \(error.localizedDescription)"
-            errorMessage = "\(error.localizedDescription)"
+            self.errorMessage = "\(error.localizedDescription)"
         }
     }
 
@@ -210,18 +207,6 @@ class ClubActivitiesViewModel: ObservableObject {
             withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                 self.activities.removeAll { $0.C_ARecordID == recordId }
                 self.cacheActivities(for: self.selectedGroupId, activities: self.activities)
-                // Duplicate in ClubActivitiesView toast
-                /*
-                self.errorMessage = "Record deleted successfully"
-                
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                    withAnimation(.easeOut(duration: 0.3)) {
-                        if self.errorMessage == "Record deleted successfully" {
-                            self.errorMessage = nil
-                        }
-                    }
-                }
-                */
             }
         } else {
             self.errorMessage = response["status"] ?? "Unknown error"
@@ -233,20 +218,17 @@ class ClubActivitiesViewModel: ObservableObject {
     func copyTitle(_ activity: ActivityRecord) {
         HapticManager.shared.playFeedback(.light)
         UIPasteboard.general.string = activity.C_Theme
-        // showTemporaryMessage("Title copied to clipboard!")
     }
 
     func copyReflection(_ activity: ActivityRecord) {
         HapticManager.shared.playFeedback(.light)
         UIPasteboard.general.string = activity.C_Reflection
-        // showTemporaryMessage("Reflection copied to clipboard!")
     }
 
     func copyAll(_ activity: ActivityRecord) {
         HapticManager.shared.playFeedback(.light)
         let activityInfo = formatActivityInfo(activity)
         UIPasteboard.general.string = activityInfo
-        // showTemporaryMessage("Activity copied to clipboard!")
     }
 
     private func formatActivityInfo(_ activity: ActivityRecord) -> String {

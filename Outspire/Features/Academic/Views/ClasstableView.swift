@@ -1,5 +1,5 @@
-import SwiftUI
 import ColorfulX
+import SwiftUI
 
 struct ClasstableView: View {
     @StateObject private var viewModel = ClasstableViewModel()
@@ -8,11 +8,10 @@ struct ClasstableView: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var currentTime = Date()
     @State private var timer: Timer?
-    @State private var orientation = UIDevice.current.orientation // Track device orientation
+    @State private var orientation = UIDevice.current.orientation
     @EnvironmentObject private var sessionService: SessionService
-    @EnvironmentObject private var gradientManager: GradientManager // Add gradient manager
+    @EnvironmentObject private var gradientManager: GradientManager
 
-    // Dictionary to map subject keywords to consistent colors
     private let subjectColors: [Color: [String]] = [
         .blue.opacity(0.8): ["Math", "Mathematics", "Maths"],
         .green.opacity(0.8): ["English", "Language", "Literature", "General Paper", "ESL"],
@@ -27,7 +26,6 @@ struct ClasstableView: View {
         .gray.opacity(0.8): ["History", "历史", "Geography", "Geo", "政治"]
     ]
 
-    // Function to get subject color from name, used by both this view and others
     static func getSubjectColor(from subjectName: String) -> Color {
         let colors: [Color: [String]] = [
             .blue.opacity(0.8): ["Math", "Mathematics", "Maths"],
@@ -45,8 +43,6 @@ struct ClasstableView: View {
 
         let subject = subjectName.lowercased()
 
-        // First, try to match the exact or longer phrases to avoid "Math" matching before "Maths Further"
-        // Sort keywords by length (longest first) to prioritize more specific matches
         let allKeywords = colors.flatMap { color, keywords in
             keywords.map { (color, $0) }
         }.sorted { $0.1.count > $1.1.count }
@@ -57,13 +53,11 @@ struct ClasstableView: View {
             }
         }
 
-        // Default color based on subject hash for consistency
         let hash = abs(subject.hashValue)
         let hue = Double(hash % 12) / 12.0
         return Color(hue: hue, saturation: 0.7, brightness: 0.9)
     }
 
-    // Add periods data based on the provided times (unchanged)
     private var classPeriods: [ClassPeriod] {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
@@ -71,19 +65,45 @@ struct ClasstableView: View {
         formatter.dateFormat = "HH:mm"
 
         return [
-            ClassPeriod(number: 1, startTime: calendar.date(bySettingHour: 8, minute: 15, second: 0, of: today)!, endTime: calendar.date(bySettingHour: 8, minute: 55, second: 0, of: today)!),
-            ClassPeriod(number: 2, startTime: calendar.date(bySettingHour: 9, minute: 5, second: 0, of: today)!, endTime: calendar.date(bySettingHour: 9, minute: 45, second: 0, of: today)!),
-            ClassPeriod(number: 3, startTime: calendar.date(bySettingHour: 9, minute: 55, second: 0, of: today)!, endTime: calendar.date(bySettingHour: 10, minute: 35, second: 0, of: today)!),
-            ClassPeriod(number: 4, startTime: calendar.date(bySettingHour: 10, minute: 45, second: 0, of: today)!, endTime: calendar.date(bySettingHour: 11, minute: 25, second: 0, of: today)!),
-            ClassPeriod(number: 5, startTime: calendar.date(bySettingHour: 12, minute: 30, second: 0, of: today)!, endTime: calendar.date(bySettingHour: 13, minute: 10, second: 0, of: today)!),
-            ClassPeriod(number: 6, startTime: calendar.date(bySettingHour: 13, minute: 20, second: 0, of: today)!, endTime: calendar.date(bySettingHour: 14, minute: 0, second: 0, of: today)!),
-            ClassPeriod(number: 7, startTime: calendar.date(bySettingHour: 14, minute: 10, second: 0, of: today)!, endTime: calendar.date(bySettingHour: 14, minute: 50, second: 0, of: today)!),
-            ClassPeriod(number: 8, startTime: calendar.date(bySettingHour: 15, minute: 0, second: 0, of: today)!, endTime: calendar.date(bySettingHour: 15, minute: 40, second: 0, of: today)!),
-            ClassPeriod(number: 9, startTime: calendar.date(bySettingHour: 15, minute: 50, second: 0, of: today)!, endTime: calendar.date(bySettingHour: 16, minute: 30, second: 0, of: today)!)
+            ClassPeriod(
+                number: 1,
+                startTime: calendar.date(bySettingHour: 8, minute: 15, second: 0, of: today)!,
+                endTime: calendar.date(bySettingHour: 8, minute: 55, second: 0, of: today)!),
+            ClassPeriod(
+                number: 2,
+                startTime: calendar.date(bySettingHour: 9, minute: 5, second: 0, of: today)!,
+                endTime: calendar.date(bySettingHour: 9, minute: 45, second: 0, of: today)!),
+            ClassPeriod(
+                number: 3,
+                startTime: calendar.date(bySettingHour: 9, minute: 55, second: 0, of: today)!,
+                endTime: calendar.date(bySettingHour: 10, minute: 35, second: 0, of: today)!),
+            ClassPeriod(
+                number: 4,
+                startTime: calendar.date(bySettingHour: 10, minute: 45, second: 0, of: today)!,
+                endTime: calendar.date(bySettingHour: 11, minute: 25, second: 0, of: today)!),
+            ClassPeriod(
+                number: 5,
+                startTime: calendar.date(bySettingHour: 12, minute: 30, second: 0, of: today)!,
+                endTime: calendar.date(bySettingHour: 13, minute: 10, second: 0, of: today)!),
+            ClassPeriod(
+                number: 6,
+                startTime: calendar.date(bySettingHour: 13, minute: 20, second: 0, of: today)!,
+                endTime: calendar.date(bySettingHour: 14, minute: 0, second: 0, of: today)!),
+            ClassPeriod(
+                number: 7,
+                startTime: calendar.date(bySettingHour: 14, minute: 10, second: 0, of: today)!,
+                endTime: calendar.date(bySettingHour: 14, minute: 50, second: 0, of: today)!),
+            ClassPeriod(
+                number: 8,
+                startTime: calendar.date(bySettingHour: 15, minute: 0, second: 0, of: today)!,
+                endTime: calendar.date(bySettingHour: 15, minute: 40, second: 0, of: today)!),
+            ClassPeriod(
+                number: 9,
+                startTime: calendar.date(bySettingHour: 15, minute: 50, second: 0, of: today)!,
+                endTime: calendar.date(bySettingHour: 16, minute: 30, second: 0, of: today)!)
         ]
     }
 
-    // Find the current period or next period (unchanged)
     func getCurrentOrNextPeriod() -> (period: ClassPeriod?, isCurrentlyActive: Bool) {
         let now = Date()
         if let activePeriod = classPeriods.first(where: { $0.isCurrentlyActive() }) {
@@ -107,7 +127,7 @@ struct ClasstableView: View {
 
     var body: some View {
         ZStack {
-            // Add ColorfulX as background with higher opacity
+            // ColorfulX as background with higher opacity
             ColorfulView(
                 color: $gradientManager.gradientColors,
                 speed: $gradientManager.gradientSpeed,
@@ -117,7 +137,6 @@ struct ClasstableView: View {
             .ignoresSafeArea()
             .opacity(colorScheme == .dark ? 0.07 : 0.3)
 
-            // Semi-transparent background with reduced opacity for better contrast with gradient
             Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
                 .ignoresSafeArea()
 
@@ -128,31 +147,41 @@ struct ClasstableView: View {
                     GeometryReader { geometry in
                         ScrollView {
                             VStack(spacing: 0) {
-                                // Break up complex expressions to improve type checking
-                                let hasNonEmptyTimetable = !viewModel.timetable.isEmpty && viewModel.timetable[0].count > 1
+                                let hasNonEmptyTimetable =
+                                    !viewModel.timetable.isEmpty && viewModel.timetable[0].count > 1
 
-                                // Days of week header - sticky (unchanged)
+                                // Days of week header
                                 if hasNonEmptyTimetable {
                                     daysHeader
-                                        .background(Color(UIColor.tertiarySystemBackground).opacity(0.3))
-                                        .shadow(color: Color.black.opacity(0.05), radius: 3, x: 0, y: 2)
+                                        .background(
+                                            Color(UIColor.tertiarySystemBackground).opacity(0.3)
+                                        )
+                                        .shadow(
+                                            color: Color.black.opacity(0.05), radius: 3, x: 0, y: 2
+                                        )
                                         .zIndex(1)
                                         .overlay(Divider().opacity(0.5), alignment: .bottom)
                                         .padding(.top, 3)
                                         .padding(.bottom, 12)
                                 }
 
-                                // Main content depending on loading states (unchanged)
+                                // Main content
                                 if viewModel.years.isEmpty {
                                     if viewModel.isLoadingYears {
                                         TimeTableSkeletonView().padding()
                                     } else {
-                                        ContentUnavailableView("No Available Classtable", systemImage: "calendar.badge.exclamationmark")
+                                        ContentUnavailableView(
+                                            "No Available Classtable",
+                                            systemImage: "calendar.badge.exclamationmark")
                                     }
                                 } else if viewModel.isLoadingTimetable {
                                     TimeTableSkeletonView().padding()
                                 } else if viewModel.timetable.isEmpty {
-                                    ContentUnavailableView("No Timetable Data", systemImage: "calendar.badge.exclamationmark", description: Text("No timetable available for the selected year."))
+                                    ContentUnavailableView(
+                                        "No Timetable Data",
+                                        systemImage: "calendar.badge.exclamationmark",
+                                        description: Text(
+                                            "No timetable available for the selected year."))
                                 } else {
                                     VStack(spacing: 0) {
                                         ForEach(1..<viewModel.timetable.count, id: \.self) { row in
@@ -160,7 +189,10 @@ struct ClasstableView: View {
                                                 .padding(.vertical, 4)
                                                 .opacity(animateIn ? 1 : 0)
                                                 .offset(y: animateIn ? 0 : 20)
-                                                .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(Double(row) * 0.05), value: animateIn)
+                                                .animation(
+                                                    .spring(response: 0.5, dampingFraction: 0.7)
+                                                        .delay(Double(row) * 0.05), value: animateIn
+                                                )
 
                                             if row == 4 {
                                                 lunchBreakView.padding(.vertical, 12)
@@ -182,12 +214,11 @@ struct ClasstableView: View {
                                 }
                             }
                         }
-//                        .background(Color(UIColor.secondarySystemBackground))
+                        //                        .background(Color(UIColor.secondarySystemBackground))
                         .navigationTitle("Classtable")
                         .navigationBarTitleDisplayMode(.large)
                         .toolbar {
                             ToolbarItem(placement: .topBarTrailing) {
-                                // Fixed syntax error: Adding proper block labels
                                 if !viewModel.years.isEmpty {
                                     Menu {
                                         ForEach(viewModel.years) { year in
@@ -197,8 +228,12 @@ struct ClasstableView: View {
                                                 withAnimation(.easeOut(duration: 0.3)) {
                                                     animateIn = false
                                                 }
-                                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                                                    withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
+                                                DispatchQueue.main.asyncAfter(
+                                                    deadline: .now() + 0.2
+                                                ) {
+                                                    withAnimation(
+                                                        .spring(response: 0.6, dampingFraction: 0.7)
+                                                    ) {
                                                         animateIn = true
                                                     }
                                                 }
@@ -206,7 +241,9 @@ struct ClasstableView: View {
                                         }
                                     } label: {
                                         HStack(spacing: 4) {
-                                            if let selectedYear = viewModel.years.first(where: { $0.W_YearID == viewModel.selectedYearId }) {
+                                            if let selectedYear = viewModel.years.first(where: {
+                                                $0.W_YearID == viewModel.selectedYearId
+                                            }) {
                                                 Text(selectedYear.W_Year)
                                                     .foregroundColor(.primary)
                                             } else {
@@ -221,8 +258,13 @@ struct ClasstableView: View {
                                         .padding(.vertical, 6)
                                         .background(
                                             RoundedRectangle(cornerRadius: 8)
-                                                .fill(Color(UIColor.tertiarySystemBackground).opacity(0.6))
-                                                .shadow(color: .black.opacity(0.05), radius: 2, x: 0, y: 1)
+                                                .fill(
+                                                    Color(UIColor.tertiarySystemBackground).opacity(
+                                                        0.6)
+                                                )
+                                                .shadow(
+                                                    color: .black.opacity(0.05), radius: 2, x: 0,
+                                                    y: 1)
                                         )
                                     }
                                 } else if viewModel.isLoadingYears {
@@ -233,8 +275,12 @@ struct ClasstableView: View {
                         }
                         // Apply rotation for iPhone in portrait mode
                         .rotationEffect(isIphoneInPortrait() ? .degrees(-90) : .degrees(0))
-                        .frame(width: isIphoneInPortrait() ? geometry.size.height : geometry.size.width,
-                               height: isIphoneInPortrait() ? geometry.size.width : geometry.size.height)
+                        .frame(
+                            width: isIphoneInPortrait()
+                                ? geometry.size.height : geometry.size.width,
+                            height: isIphoneInPortrait()
+                                ? geometry.size.width : geometry.size.height
+                        )
                         .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
                     }
                 }
@@ -247,11 +293,12 @@ struct ClasstableView: View {
                     animateIn = true
                 }
             }
-            // Fixed syntax: adding semicolon between statements
             timer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { _ in
                 currentTime = Date()
             }
-            NotificationCenter.default.addObserver(forName: UIDevice.orientationDidChangeNotification, object: nil, queue: .main) { _ in
+            NotificationCenter.default.addObserver(
+                forName: UIDevice.orientationDidChangeNotification, object: nil, queue: .main
+            ) { _ in
                 orientation = UIDevice.current.orientation
             }
             updateGradientForClasstable()
@@ -259,7 +306,8 @@ struct ClasstableView: View {
         .onDisappear {
             timer?.invalidate()
             timer = nil
-            NotificationCenter.default.removeObserver(self, name: UIDevice.orientationDidChangeNotification, object: nil)
+            NotificationCenter.default.removeObserver(
+                self, name: UIDevice.orientationDidChangeNotification, object: nil)
         }
         .onChange(of: viewModel.isLoadingTimetable) { _, isLoading in
             if !isLoading && !viewModel.timetable.isEmpty {
@@ -273,16 +321,15 @@ struct ClasstableView: View {
     // Helper to check if device is iPhone in portrait mode
     private func isIphoneInPortrait() -> Bool {
         let isIphone = UIDevice.current.userInterfaceIdiom == .phone
-        let isPortrait = orientation.isPortrait || orientation == .unknown // .unknown assumes portrait as default
+        let isPortrait = orientation.isPortrait || orientation == .unknown  // .unknown assumes portrait as default
         return isIphone && isPortrait
     }
 
-    // Add method to update gradient for classtable
     private func updateGradientForClasstable() {
         gradientManager.updateGradientForView(.classtable, colorScheme: colorScheme)
     }
 
-    // Days of week header (unchanged)
+    // Days of week header
     private var daysHeader: some View {
         HStack(alignment: .center, spacing: 8) {
             Text("")
@@ -302,7 +349,7 @@ struct ClasstableView: View {
         .padding(.horizontal)
     }
 
-    // Period row (unchanged)
+    // Period row
     private func periodRow(row: Int) -> some View {
         let periods = ClassPeriodsManager.shared.classPeriods
         let currentPeriod = periods.first(where: { $0.number == row && $0.isCurrentlyActive() })
@@ -315,7 +362,8 @@ struct ClasstableView: View {
                     .padding(.top, 15)
                 if row < viewModel.timetable.count {
                     ForEach(1..<min(viewModel.timetable[row].count, 6), id: \.self) { col in
-                        ClassCell(cellContent: viewModel.timetable[row][col], colorMap: subjectColors)
+                        ClassCell(
+                            cellContent: viewModel.timetable[row][col], colorMap: subjectColors)
                     }
                 }
             }
@@ -326,7 +374,8 @@ struct ClasstableView: View {
                         .fill(Color.red)
                         .frame(height: 2)
                         .offset(y: 70 * period.currentProgressPercentage())
-                        .animation(.spring(response: 0.3), value: period.currentProgressPercentage())
+                        .animation(
+                            .spring(response: 0.3), value: period.currentProgressPercentage())
                 }
                 .zIndex(2)
             }
@@ -335,7 +384,7 @@ struct ClasstableView: View {
         .contentShape(Rectangle())
     }
 
-    // Lunch break view (unchanged)
+    // Lunch break view
     private var lunchBreakView: some View {
         HStack(spacing: 12) {
             Rectangle()
@@ -357,7 +406,7 @@ struct ClasstableView: View {
     }
 }
 
-// Class cell component that displays teacher, subject, and classroom
+// Class cell component
 struct ClassCell: View {
     let cellContent: String
     let colorMap: [Color: [String]]
@@ -370,14 +419,13 @@ struct ClassCell: View {
     }
 
     private var subjectColor: Color {
-        // Try to find the subject color based on keywords
         guard components.count > 1 else { return .gray.opacity(0.5) }
-
         return ClasstableView.getSubjectColor(from: components[1])
     }
 
     private var hasContent: Bool {
-        return components.count > 0 && !cellContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        return components.count > 0
+            && !cellContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     var body: some View {
@@ -390,7 +438,7 @@ struct ClassCell: View {
                         .foregroundColor(.secondary)
                         .lineLimit(1)
 
-                    // Subject name - highlighted
+                    // Subject name
                     if components.count > 1 {
                         Text(components[1])
                             .font(.subheadline.weight(.medium))
@@ -414,9 +462,11 @@ struct ClassCell: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(12)
-            // .glassmorphicCard(cornerRadius: 8) // Removed glassmorphic style
-            .background(Color(UIColor.secondarySystemBackground).opacity(colorScheme == .dark ? 0.5 : 0.8)) // Add a simple background
-            .cornerRadius(8) // Keep the corner radius
+
+            .background(
+                Color(UIColor.secondarySystemBackground).opacity(colorScheme == .dark ? 0.5 : 0.8)
+            )
+            .cornerRadius(8)
             .contentShape(Rectangle())
         } else {
             Color.clear
@@ -426,7 +476,7 @@ struct ClassCell: View {
     }
 }
 
-// Skeleton loading view for the timetable
+// Skeleton loading view
 struct TimeTableSkeletonView: View {
     @State private var isAnimating = false
 
@@ -460,7 +510,7 @@ struct TimeTableSkeletonView: View {
                             .fill(Color.gray.opacity(0.1))
                             .frame(height: 70)
                             .frame(maxWidth: .infinity)
-                            // .glassmorphicCard(cornerRadius: 8) // Removed glassmorphic style
+                        // .glassmorphicCard(cornerRadius: 8) // Removed glassmorphic style
                     }
                 }
                 .padding(.vertical, 4)
