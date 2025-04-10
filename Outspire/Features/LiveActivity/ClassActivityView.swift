@@ -7,29 +7,22 @@ import ActivityKit
 struct ClassActivityLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: ClassActivityAttributes.self) { context in
-            // Lock screen/banner UI
             ClassActivityLockScreenView(context: context)
-
         } dynamicIsland: { context in
             DynamicIsland {
-                // Expanded UI
                 DynamicIslandExpandedRegion(.leading) {
                     ClassLeadingView(context: context)
                 }
-
                 DynamicIslandExpandedRegion(.trailing) {
                     ClassTrailingView(context: context)
                 }
-
                 DynamicIslandExpandedRegion(.bottom) {
                     ClassBottomView(context: context)
                 }
             } compactLeading: {
-                // Compact leading UI
                 ZStack {
                     Circle()
                         .fill(statusColor(for: context.state.currentStatus))
-
                     Text("\(context.state.periodNumber)")
                         .font(.caption)
                         .fontWeight(.semibold)
@@ -37,7 +30,6 @@ struct ClassActivityLiveActivity: Widget {
                 }
                 .padding(3)
             } compactTrailing: {
-                // Compact trailing UI
                 Text(timerInterval: Date.now...context.state.endTime, countsDown: true)
                     .multilineTextAlignment(.center)
                     .monospacedDigit()
@@ -45,11 +37,9 @@ struct ClassActivityLiveActivity: Widget {
                     .fontWeight(.bold)
                     .frame(width: 40)
             } minimal: {
-                // Minimal UI
                 ZStack {
                     Circle()
                         .fill(statusColor(for: context.state.currentStatus))
-
                     Text("\(context.state.periodNumber)")
                         .font(.caption)
                         .fontWeight(.semibold)
@@ -72,8 +62,6 @@ struct ClassActivityLiveActivity: Widget {
         }
     }
 }
-
-// MARK: - Component Views
 
 struct ClassActivityLockScreenView: View {
     let context: ActivityViewContext<ClassActivityAttributes>

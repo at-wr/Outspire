@@ -10,7 +10,6 @@ struct ScheduleSettingsSheet: View {
     @Binding var holidayHasEndDate: Bool
     @State private var showCountdownForFutureClasses = Configuration.showCountdownForFutureClasses
 
-    // Debug properties
     @State private var debugOverrideMapView = Configuration.debugOverrideMapView
     @State private var debugShowMapView = Configuration.debugShowMapView
 
@@ -63,15 +62,8 @@ struct ScheduleSettingsSheet: View {
                             isHolidayMode = false
                             setAsToday = false
 
-                            // Use a slight delay for dismissal to show the selection UI feedback
-                            /*
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                                isPresented = false
-                            }
-                             */
                         } label: {
                             HStack {
-                                // Include the current day name in the Today option if it's a weekday
                                 if !isCurrentDayWeekend && currentWeekday >= 0 && currentWeekday < 5 {
                                     Text("Today (\(dayName(for: currentWeekday)))")
                                 } else {
@@ -87,22 +79,14 @@ struct ScheduleSettingsSheet: View {
                         }
                         .foregroundStyle(.primary)
 
-                        // Filter out current weekday if today is a weekday (not weekend)
                         ForEach(0..<5, id: \.self) { index in
-                            // Skip the current weekday if we're not on a weekend
                             if index == currentWeekday && !isCurrentDayWeekend {
-                                EmptyView() // Don't show the current day as a separate option
+                                EmptyView()
                             } else {
                                 Button {
                                     selectedDay = index
                                     isHolidayMode = false
 
-                                    // Use a slight delay for dismissal
-                                    /*
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                                        isPresented = false
-                                    }
-                                     */
                                 } label: {
                                     HStack {
                                         Text(dayName(for: index))
@@ -119,13 +103,11 @@ struct ScheduleSettingsSheet: View {
                         }
                     }
 
-                    // Only show View Mode if selectedDay is set and not the same as today
                     if let day = selectedDay, day != currentWeekday || isCurrentDayWeekend {
                         Section(header: Text("View Mode")) {
                             Toggle("Set as Current Day", isOn: $setAsToday)
                                 .foregroundStyle(.primary)
                                 .onChange(of: setAsToday) { newValue in
-                                    // When toggling setAsToday, immediately save to configuration
                                     Configuration.setAsToday = newValue
                                 }
                         }
@@ -164,7 +146,6 @@ struct ScheduleSettingsSheet: View {
                                 Configuration.showCountdownForFutureClasses = newValue
                             }
 
-                        // Add option to hide map when at school
                         Toggle("Hide Map When at School", isOn: $manuallyHideMapAtSchool)
                             .onChange(of: manuallyHideMapAtSchool) { newValue in
                                 Configuration.manuallyHideMapAtSchool = newValue

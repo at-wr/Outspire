@@ -28,22 +28,17 @@ struct ViewGradientSettings: Codable {
 }
 
 class GradientManager: ObservableObject {
-    // Current displayed gradient properties
-    @Published var gradientColors: [Color] = ColorfulPreset.aurora.swiftUIColors
+        @Published var gradientColors: [Color] = ColorfulPreset.aurora.swiftUIColors
     @Published var gradientSpeed: Double = 0.5
     @Published var gradientNoise: Double = 20.0
     @Published var gradientTransitionSpeed: Double = 1.5
 
-    // Whether to use global settings for all views
     @Published var useGlobalSettings: Bool = true
 
-    // Dictionary to store settings for each view type
     private var viewSettings: [ViewType: ViewGradientSettings] = [:]
 
-    // Global settings that apply when useGlobalSettings is true
     private var globalSettings: ViewGradientSettings?
 
-    // Track current context for consistent colors across app
 @Published var currentContext: GradientContext = .normal
 @Published var overrideGradientEnabled: Bool = false
 
@@ -51,7 +46,6 @@ class GradientManager: ObservableObject {
         loadSavedSettings()
     }
 
-    // Method to update the current displayed gradient settings
     func updateGradient(
         colors: [Color]? = nil,
         speed: Double? = nil,
@@ -75,7 +69,6 @@ class GradientManager: ObservableObject {
         saveCurrentSettings()
     }
 
-    // Update global gradient settings (affects all views when useGlobalSettings is true)
     func updateGlobalGradient(
         colors: [Color]? = nil,
         speed: Double? = nil,
@@ -120,7 +113,6 @@ class GradientManager: ObservableObject {
         }
     }
 
-    // Update settings for a specific view
     func updateViewGradient(
         viewType: ViewType,
         colors: [Color]? = nil,
@@ -169,7 +161,6 @@ class GradientManager: ObservableObject {
         saveViewSettings()
     }
 
-    // Apply global settings to all views
     func applyGlobalSettings() {
         guard let globalSettings = globalSettings else { return }
 
@@ -190,7 +181,6 @@ class GradientManager: ObservableObject {
         saveViewSettings()
     }
 
-    // Get settings for a specific view type
     func getSettingsForView(_ viewType: ViewType) -> (colors: [Color], speed: Double, noise: Double, transitionSpeed: Double) {
         if useGlobalSettings, let globalSettings = globalSettings {
             return (globalSettings.swiftUIColors, globalSettings.speed, globalSettings.noise, globalSettings.transitionSpeed)
@@ -205,7 +195,6 @@ class GradientManager: ObservableObject {
         return (defaultColors, 0.5, 20.0, 1.0)
     }
 
-    // Reset settings for a specific view
     func resetViewSettings(viewType: ViewType) {
         let defaultColors = getDefaultColorsForViewType(viewType)
         viewSettings[viewType] = ViewGradientSettings(
@@ -227,7 +216,6 @@ class GradientManager: ObservableObject {
         saveViewSettings()
     }
 
-    // Reset all settings
     func resetAllSettings() {
         // Clear all view-specific settings
         viewSettings.removeAll()
@@ -258,7 +246,6 @@ class GradientManager: ObservableObject {
         UserDefaults.standard.removeObject(forKey: "hasCustomizedGradients")
     }
 
-    // Get default colors for a view type
     private func getDefaultColorsForViewType(_ viewType: ViewType) -> [Color] {
         switch viewType {
         case .today: return AppGradients.defaultGradient
@@ -275,7 +262,6 @@ class GradientManager: ObservableObject {
         }
     }
 
-    // Load saved gradient settings from UserDefaults
     private func loadSavedSettings() {
         // Load whether to use global settings
         useGlobalSettings = UserDefaults.standard.bool(forKey: "useGlobalGradientSettings")
@@ -321,7 +307,6 @@ class GradientManager: ObservableObject {
         }
     }
 
-    // Save current settings to UserDefaults
     private func saveCurrentSettings() {
         // Save useGlobalSettings flag
         UserDefaults.standard.set(useGlobalSettings, forKey: "useGlobalGradientSettings")
@@ -330,7 +315,6 @@ class GradientManager: ObservableObject {
         UserDefaults.standard.set(true, forKey: "hasCustomizedGradients")
     }
 
-    // Save view-specific settings
     private func saveViewSettings() {
         // Save global settings
         if let globalSettings = globalSettings,
@@ -356,7 +340,6 @@ class GradientManager: ObservableObject {
         UserDefaults.standard.set(true, forKey: "hasCustomizedGradients")
     }
 
-    // Updated context-based gradient application
     func updateGradientForContext(context: GradientContext, colorScheme: ColorScheme) {
         // Store current context for consistency
         self.currentContext = context
@@ -378,7 +361,6 @@ class GradientManager: ObservableObject {
         )
     }
 
-    // Helper to get colors appropriate for the current context
     private func getColorsForContext(_ context: GradientContext) -> [Color] {
         switch context {
         case .normal:
@@ -451,7 +433,6 @@ class GradientManager: ObservableObject {
         }
     }
 
-    // Get current base settings regardless of context
     func getBaseSettings() -> (colors: [Color], speed: Double, noise: Double, transitionSpeed: Double) {
         if useGlobalSettings, let globalSettings = globalSettings {
             return (globalSettings.swiftUIColors, globalSettings.speed, globalSettings.noise, globalSettings.transitionSpeed)
@@ -463,7 +444,6 @@ class GradientManager: ObservableObject {
 }
 
 extension GradientManager {
-    /// Updates the gradient to the appropriate preset for the given view type
     func updateGradientForView(_ viewType: ViewType, colorScheme: ColorScheme) {
         // Simply update with default settings since we're removing view-specific gradients
         let settings = getBaseSettings()
@@ -477,7 +457,6 @@ extension GradientManager {
         )
     }
 
-    // Updated context-based gradient application
     func updateGradientForContext(
         isAuthenticated: Bool,
         isHolidayMode: Bool,
@@ -579,7 +558,6 @@ enum GradientContext: Equatable {
         }
     }
 
-    // ...existing code for Equatable conformance...
 }
 
 // Add extension method to UIColor for hex string conversion

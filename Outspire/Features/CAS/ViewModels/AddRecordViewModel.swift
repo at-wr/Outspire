@@ -125,7 +125,7 @@ class AddRecordViewModel: ObservableObject {
         guard !selectedGroupId.isEmpty,
               !activityTitle.isEmpty,
               !activityDescription.isEmpty,
-              descriptionWordCount >= 80,  // Changed from character count to word count
+              descriptionWordCount >= 80,
               totalDuration > 0 else {
             errorMessage = "All fields are required."
             return

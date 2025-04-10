@@ -1,10 +1,6 @@
 import SwiftUI
 import Foundation
 
-//
-// Club
-//
-
 struct Category: Decodable, Identifiable, Hashable {
     let C_CategoryID: String
     let C_Category: String
@@ -48,10 +44,6 @@ struct Member: Decodable, Identifiable {
 
     var id: String { StudentID }
 }
-
-//
-// Activity
-//
 
 struct GroupDropdownResponse: Decodable {
     let groups: [ClubGroup]

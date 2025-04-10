@@ -249,7 +249,6 @@ struct AccountView: View {
         // Create toast value
         let toast = ToastValue(icon: icon, message: message)
 
-        // Present toast with small delay to ensure it appears after UI updates
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             self.presentToast(toast)
 

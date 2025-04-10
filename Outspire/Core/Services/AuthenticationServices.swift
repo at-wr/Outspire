@@ -24,7 +24,6 @@ class AuthenticationService {
                     return
                 }
 
-                // Extract session ID from response
                 let sessionId = self.extractSessionId(from: response)
                 completion(.success((data, sessionId)))
             }

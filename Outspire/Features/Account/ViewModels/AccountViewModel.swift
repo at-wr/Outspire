@@ -29,7 +29,6 @@ class AccountViewModel: ObservableObject {
     }
 
     init() {
-        // Listen for authentication status changes
         NotificationCenter.default.addObserver(
             forName: Notification.Name.authenticationStatusChanged,
             object: nil,
@@ -277,13 +276,9 @@ class AccountViewModel: ObservableObject {
         password = ""
         captcha = ""
 
-        // Fetch a new captcha
         fetchCaptchaImage()
+        successMessage = "You've signed out"
 
-        // Show success message
-        successMessage = "Signed out from TSIMS"
-
-        // Notify that authentication status has changed with additional context
         NotificationCenter.default.post(
             name: Notification.Name.authenticationStatusChanged,
             object: nil,
