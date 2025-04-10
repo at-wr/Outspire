@@ -19,7 +19,11 @@ class ClassActivityManager {
         startTime: Date,
         endTime: Date
     ) {
-        if #available(iOS 16.2, *) {
+        let now = Date()
+if now < startTime && Calendar.current.component(.hour, from: now) < 6 {
+    return
+}
+if #available(iOS 16.2, *) {
             for activity in Activity<ClassActivityAttributes>.activities {
                 if activity.attributes.className == className && activity.content.state.periodNumber == periodNumber {
                     activeClassActivities["\(periodNumber)_\(className)"] = activity
