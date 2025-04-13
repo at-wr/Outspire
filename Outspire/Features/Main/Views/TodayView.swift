@@ -70,7 +70,7 @@ struct TodayView: View {
             .opacity(0.2) // Reduce opacity to make content readable
 
             // Semi-transparent white background to ensure content readability
-            Color.white.opacity(colorScheme == .dark ? 0.2 : 0.7)
+            Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
                 .ignoresSafeArea()
 
             ScrollView {

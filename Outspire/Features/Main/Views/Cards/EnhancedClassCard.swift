@@ -222,43 +222,6 @@ struct EnhancedClassCard: View {
                         }
                     }
                     .padding(.vertical, 10)
-#if !targetEnvironment(macCatalyst)
-                    // Live Activity toggle button with better contrast
-                    if (isForToday || setAsToday) && toggleLiveActivity != nil {
-                        Divider()
-                            .padding(.horizontal, 16)
-
-                        Button(action: {
-                            let generator = UIImpactFeedbackGenerator(style: .light)
-                            generator.impactOccurred()
-                            toggleLiveActivity?()
-                        }) {
-                            HStack {
-                                Image(systemName: hasActiveActivity ? "pause.circle" : "play.circle")
-                                    .font(.caption)
-                                    .imageScale(.medium)
-
-                                Text(hasActiveActivity ? "Stop Live Activity" : "Start Live Activity")
-                                    .font(.callout)
-                                    .fontWeight(.medium)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 6)
-                            .foregroundStyle(colorScheme == .dark ? .white : statusTextColor)
-                            .background(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .fill(colorScheme == .dark ?
-                                          Color.black.opacity(0.3) :
-                                          statusBackgroundColor.opacity(0.7))
-                            )
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(BorderlessButtonStyle())
-                        .padding(.horizontal, 16)
-                        .padding(.top, 4)
-                        .padding(.bottom, 12)
-                    }
-                    #endif
                 }
             }
         }
@@ -534,24 +497,13 @@ struct EnhancedClassCard: View {
     // MARK: - Private Methods
 
     // Sets up the timer for countdown updates
-    private func setupTimer() {
-        // Cancel any existing timer first
-        timer?.invalidate()
+private func setupTimer() {
+    // Cancel any existing timer first
+    timer?.invalidate()
 
-        // Create a new timer that fires every second
-        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
-            // Remove 'weak self' since EnhancedClassCard is a struct
-            self.updateTimeRemaining()
-        }
-
-        // Make sure timer runs even during scrolling
-        if let timer = timer {
-            RunLoop.current.add(timer, forMode: .common)
-        }
-
-        // Initial update
-        updateTimeRemaining()
-    }
+    // Initial update without timer
+    updateTimeRemaining()
+}
 
     // Updates the class status
     private func updateClassStatus() {
