@@ -22,13 +22,8 @@ struct HelpView: View {
             .ignoresSafeArea()
             .opacity(colorScheme == .dark ? 0.15 : 0.3)
 #else
-            LinearGradient(
-                colors: [Color.blue, Color.purple],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
-            .opacity(colorScheme == .dark ? 0.15 : 0.3)
+            Color(.systemBackground)
+                .ignoresSafeArea()
 #endif
 
             Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
@@ -58,9 +53,9 @@ struct HelpView: View {
         )
 #else
         gradientManager.updateGradient(
-            colors: [Color.blue, Color.purple],
-            speed: 0.3,
-            noise: colorScheme == .dark ? 15.0 : 20.0
+            colors: [Color(.systemBackground)],
+            speed: 0.0,
+            noise: 0.0
         )
 #endif
     }

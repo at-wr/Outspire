@@ -1,5 +1,7 @@
 import SwiftUI
+#if !targetEnvironment(macCatalyst)
 import ColorfulX
+#endif
 import Toasts
 
 struct ClubActivitiesView: View {
@@ -16,7 +18,8 @@ struct ClubActivitiesView: View {
     var body: some View {
         // Remove the nested NavigationView
         ZStack {
-            // Add ColorfulX as background with higher opacity
+            // Background: ColorfulX for iOS, native gradient for Mac Catalyst
+#if !targetEnvironment(macCatalyst)
             ColorfulView(
                 color: $gradientManager.gradientColors,
                 speed: $gradientManager.gradientSpeed,
@@ -24,7 +27,11 @@ struct ClubActivitiesView: View {
                 transitionSpeed: $gradientManager.gradientTransitionSpeed
             )
             .ignoresSafeArea()
-            .opacity(colorScheme == .dark ? 0.1 : 0.3) // Increase opacity for better visibility
+            .opacity(colorScheme == .dark ? 0.1 : 0.3)
+#else
+            Color(.systemBackground)
+                .ignoresSafeArea()
+#endif
 
             // Semi-transparent background with reduced opacity for better contrast with gradient
             Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
@@ -215,7 +222,15 @@ struct ClubActivitiesView: View {
 
     // Add method to update gradient for activities
     private func updateGradientForClubActivities() {
+#if !targetEnvironment(macCatalyst)
         gradientManager.updateGradientForView(.clubActivities, colorScheme: colorScheme)
+#else
+        gradientManager.updateGradient(
+            colors: [Color(.systemBackground)],
+            speed: 0.0,
+            noise: 0.0
+        )
+#endif
     }
 }
 
