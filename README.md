@@ -82,4 +82,6 @@ Outspire doesn't collect any user data. All data will be transmitted between the
 
 ## License
 
-Outspire is licensed under the MIT license. The licenses for other open-source third-party packages are listed [here](./THIRD_PARTY_LICENSES).
+Outspire is licensed under the MIT license.
+
+All open-source third-party package licenses are maintained in [Outspire/Resources/ThirdPartyLicenses.txt](Outspire/Resources/ThirdPartyLicenses.txt).
