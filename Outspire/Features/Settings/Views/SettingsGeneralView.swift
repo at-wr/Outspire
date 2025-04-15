@@ -105,6 +105,7 @@ struct SettingsGeneralView: View {
                 }
             }
         }
+        .toggleStyle(.switch)
         .navigationTitle("General")
         .toolbarBackground(Color(UIColor.secondarySystemBackground))
         .contentMargins(.vertical, 10.0)

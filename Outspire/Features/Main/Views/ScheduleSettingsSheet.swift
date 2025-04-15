@@ -167,6 +167,7 @@ struct ScheduleSettingsSheet: View {
                         }
                     }
                 }
+                .toggleStyle(.switch)
                 .navigationTitle("Schedule Settings")
                 .toolbarBackground(Color(UIColor.secondarySystemBackground))
                 .toolbar {
