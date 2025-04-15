@@ -1,5 +1,7 @@
 import SwiftUI
+#if !targetEnvironment(macCatalyst)
 import ColorfulX
+#endif
 
 struct GradientSettingsView: View {
     @EnvironmentObject var gradientManager: GradientManager
@@ -9,24 +11,33 @@ struct GradientSettingsView: View {
     @State private var animationSpeed: Double = 0.5
     @State private var noiseAmount: Double = 20.0
     @State private var transitionSpeed: Double = 1.0
+#if !targetEnvironment(macCatalyst)
     @State private var selectedPreset: GradientPreset = .aurora
+#else
+    @State private var selectedPreset: GradientPreset = .forest
+#endif
 
     // Track if user has customized settings
     @State private var hasCustomized: Bool = false
 
     // Define the available gradient presets
     enum GradientPreset: String, CaseIterable, Identifiable {
+#if !targetEnvironment(macCatalyst)
         // Added all ColorfulPreset options
         case sunrise, sunset, love, ocean, barbie, starry, jelly
         case lavandula, watermelon, dandelion, lemon
         case spring, summer, autumn, winter, neon, aurora
         // Custom color schemes
         case forest, lavender, cherry
+#else
+        case forest, lavender, cherry
+#endif
 
         var id: String { self.rawValue }
 
         var colors: [Color] {
             switch self {
+#if !targetEnvironment(macCatalyst)
             // Map to ColorfulPreset values where available
             case .sunrise: return ColorfulPreset.sunrise.swiftUIColors
             case .sunset: return ColorfulPreset.sunset.swiftUIColors
@@ -45,7 +56,7 @@ struct GradientSettingsView: View {
             case .winter: return ColorfulPreset.winter.swiftUIColors
             case .neon: return ColorfulPreset.neon.swiftUIColors
             case .aurora: return ColorfulPreset.aurora.swiftUIColors
-
+#endif
             // Custom gradient combinations
             case .forest: return [Color.green, Color.mint, Color.teal, Color.blue]
             case .lavender: return [Color.purple, Color.indigo, Color.blue, Color.purple.opacity(0.7)]
@@ -56,9 +67,10 @@ struct GradientSettingsView: View {
 
     var body: some View {
         List {
+#if !targetEnvironment(macCatalyst)
             Section(header: Text("Gradient Preset")) {
                 Picker("Preset", selection: $selectedPreset) {
-                    ForEach(GradientPreset.allCases.sorted(by: { $0.rawValue < $1.rawValue })) { preset in
+                    ForEach(GradientPreset.allCases.sorted(by: { $0.rawValue < $1.rawValue }), id: \.self) { preset in
                         HStack {
                             LinearGradient(
                                 colors: preset.colors,
@@ -83,6 +95,7 @@ struct GradientSettingsView: View {
                 // Preview of current gradient
                 gradientPreview
             }
+#endif
 
             Section(header: Text("Animation Settings")) {
                 VStack(alignment: .leading, spacing: 6) {
@@ -157,6 +170,7 @@ struct GradientSettingsView: View {
     // Preview of the current gradient
     private var gradientPreview: some View {
         ZStack {
+#if !targetEnvironment(macCatalyst)
             ColorfulView(
                 color: .constant(selectedPreset.colors),
                 speed: .constant(animationSpeed),
@@ -169,6 +183,19 @@ struct GradientSettingsView: View {
                 RoundedRectangle(cornerRadius: 12)
                     .strokeBorder(Color.secondary.opacity(0.3), lineWidth: 0.5)
             )
+#else
+            LinearGradient(
+                colors: selectedPreset.colors,
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+            .frame(height: 100)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .strokeBorder(Color.secondary.opacity(0.3), lineWidth: 0.5)
+            )
+#endif
 
             Text("Preview")
                 .font(.headline)
@@ -192,7 +219,11 @@ struct GradientSettingsView: View {
         transitionSpeed = settings.transitionSpeed
 
         // Try to determine which preset matches the colors
+#if !targetEnvironment(macCatalyst)
         selectedPreset = findMatchingPreset(for: settings.colors) ?? .aurora
+#else
+        selectedPreset = findMatchingPreset(for: settings.colors) ?? .forest
+#endif
     }
 
     // Find which preset matches a set of colors

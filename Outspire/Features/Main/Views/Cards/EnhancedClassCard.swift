@@ -1,5 +1,7 @@
 import SwiftUI
+#if !targetEnvironment(macCatalyst)
 import ColorfulX
+#endif
 
 struct EnhancedClassCard: View {
     let day: String

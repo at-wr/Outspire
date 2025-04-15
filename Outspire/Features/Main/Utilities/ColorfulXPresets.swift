@@ -1,4 +1,6 @@
 import SwiftUI
+
+#if !targetEnvironment(macCatalyst)
 import ColorfulX
 
 // Extension to convert ColorfulPreset to SwiftUI Color array
@@ -7,6 +9,7 @@ extension ColorfulPreset {
         colors.map { Color(uiColor: $0) }
     }
 }
+#endif
 
 // Extension to add these presets to ColorfulX
 extension Color {

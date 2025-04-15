@@ -1,5 +1,7 @@
 import SwiftUI
+#if !targetEnvironment(macCatalyst)
 import ColorfulX
+#endif
 
 // Structure to hold view-specific gradient settings
 struct ViewGradientSettings: Codable {
@@ -28,7 +30,7 @@ struct ViewGradientSettings: Codable {
 }
 
 class GradientManager: ObservableObject {
-        @Published var gradientColors: [Color] = ColorfulPreset.aurora.swiftUIColors
+    @Published var gradientColors: [Color] = AppGradients.defaultGradient
     @Published var gradientSpeed: Double = 0.5
     @Published var gradientNoise: Double = 20.0
     @Published var gradientTransitionSpeed: Double = 1.5
@@ -222,7 +224,7 @@ class GradientManager: ObservableObject {
 
         // Reset global settings
         globalSettings = ViewGradientSettings(
-            colors: ColorfulPreset.aurora.swiftUIColors,
+            colors: AppGradients.defaultGradient,
             speed: 0.5,
             noise: 20.0,
             transitionSpeed: 1.0
@@ -233,7 +235,7 @@ class GradientManager: ObservableObject {
 
         // Update the active gradient
         updateGradient(
-            colors: ColorfulPreset.aurora.swiftUIColors,
+            colors: AppGradients.defaultGradient,
             speed: 0.5,
             noise: 20.0,
             transitionSpeed: 1.0
@@ -249,13 +251,13 @@ class GradientManager: ObservableObject {
     private func getDefaultColorsForViewType(_ viewType: ViewType) -> [Color] {
         switch viewType {
         case .today: return AppGradients.defaultGradient
-        case .classtable: return ColorfulPreset.ocean.swiftUIColors
-        case .score: return ColorfulPreset.sunset.swiftUIColors
-        case .clubInfo: return ColorfulPreset.spring.swiftUIColors
-        case .clubActivities: return ColorfulPreset.summer.swiftUIColors
-        case .schoolArrangements: return ColorfulPreset.autumn.swiftUIColors
-        case .lunchMenu: return ColorfulPreset.watermelon.swiftUIColors
-        case .map: return ColorfulPreset.starry.swiftUIColors
+        case .classtable: return AppGradients.inClass
+        case .score: return AppGradients.afterSchool
+        case .clubInfo: return AppGradients.holiday
+        case .clubActivities: return AppGradients.weekend
+        case .schoolArrangements: return AppGradients.holiday
+        case .lunchMenu: return AppGradients.afterSchool
+        case .map: return AppGradients.defaultGradient
         case .notSignedIn: return AppGradients.notSignedIn
         case .weekend: return AppGradients.weekend
         case .holiday: return AppGradients.holiday
@@ -273,7 +275,7 @@ class GradientManager: ObservableObject {
         } else {
             // Default global settings
             globalSettings = ViewGradientSettings(
-                colors: ColorfulPreset.aurora.swiftUIColors,
+                colors: AppGradients.defaultGradient,
                 speed: 0.5,
                 noise: 20.0,
                 transitionSpeed: 1.0

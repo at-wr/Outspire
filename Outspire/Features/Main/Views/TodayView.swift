@@ -2,7 +2,9 @@ import SwiftUI
 import Foundation
 import CoreLocation
 import WeatherKit
+#if !targetEnvironment(macCatalyst)
 import ColorfulX
+#endif
 import TipKit
 
 // Define a tip for the schedule button on TodayView
@@ -59,6 +61,7 @@ struct TodayView: View {
     // MARK: - Body
     var body: some View {
         ZStack {
+#if !targetEnvironment(macCatalyst)
             // Use the shared ColorfulX view
             ColorfulView(
                 color: $gradientManager.gradientColors,
@@ -72,6 +75,7 @@ struct TodayView: View {
             // Semi-transparent white background to ensure content readability
             Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
                 .ignoresSafeArea()
+#endif
 
             ScrollView {
                 contentView

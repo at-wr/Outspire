@@ -1,4 +1,6 @@
 import SwiftUI
+
+#if !targetEnvironment(macCatalyst)
 import ColorfulX
 
 /// A central place to define app-wide gradient presets for consistency
@@ -18,3 +20,17 @@ struct AppGradients {
     // Default fallback gradient
     static let defaultGradient = ColorfulPreset.aurora.swiftUIColors
 }
+#else
+/// Fallback gradients for Mac Catalyst (simple color arrays)
+struct AppGradients {
+    static let inClass = [Color.blue, Color.green]
+    static let upcomingClass = [Color.purple, Color.blue]
+    static let selfStudy = [Color.purple, Color.gray]
+    static let upcomingSelfStudy = [Color.purple.opacity(0.8), Color.gray.opacity(0.8)]
+    static let afterSchool = [Color.orange, Color.red]
+    static let notSignedIn = [Color.gray, Color.white]
+    static let weekend = [Color.yellow, Color.orange]
+    static let holiday = [Color.red, Color.orange]
+    static let defaultGradient = [Color.blue, Color.purple]
+}
+#endif

@@ -1,5 +1,7 @@
 import SwiftUI
+#if !targetEnvironment(macCatalyst)
 import ColorfulX
+#endif
 import LocalAuthentication
 
 struct ScoreView: View {
@@ -13,6 +15,7 @@ struct ScoreView: View {
 
     var body: some View {
         ZStack {
+#if !targetEnvironment(macCatalyst)
             ColorfulView(
                 color: $gradientManager.gradientColors,
                 speed: $gradientManager.gradientSpeed,
@@ -24,6 +27,7 @@ struct ScoreView: View {
 
             Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
                 .ignoresSafeArea()
+#endif
 
             // Main content
             if !sessionService.isAuthenticated {

@@ -1,5 +1,7 @@
 import SwiftUI
+#if !targetEnvironment(macCatalyst)
 import ColorfulX
+#endif
 import QuickLook
 
 struct HelpView: View {
@@ -10,6 +12,7 @@ struct HelpView: View {
 
     var body: some View {
         ZStack {
+#if !targetEnvironment(macCatalyst)
             ColorfulView(
                 color: $gradientManager.gradientColors,
                 speed: $gradientManager.gradientSpeed,
@@ -18,6 +21,15 @@ struct HelpView: View {
             )
             .ignoresSafeArea()
             .opacity(colorScheme == .dark ? 0.15 : 0.3)
+#else
+            LinearGradient(
+                colors: [Color.blue, Color.purple],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+            .opacity(colorScheme == .dark ? 0.15 : 0.3)
+#endif
 
             Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
                 .ignoresSafeArea()
@@ -38,11 +50,19 @@ struct HelpView: View {
     }
 
     private func updateGradientForHelpView() {
+#if !targetEnvironment(macCatalyst)
         gradientManager.updateGradient(
             colors: ColorfulPreset.ocean.swiftUIColors,
             speed: 0.3,
             noise: colorScheme == .dark ? 15.0 : 20.0
         )
+#else
+        gradientManager.updateGradient(
+            colors: [Color.blue, Color.purple],
+            speed: 0.3,
+            noise: colorScheme == .dark ? 15.0 : 20.0
+        )
+#endif
     }
 
 }

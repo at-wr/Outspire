@@ -1,6 +1,8 @@
 import SwiftUI
 import TipKit
+#if !targetEnvironment(macCatalyst)
 import ColorfulX
+#endif
 
 // Define the tip for the main navigation
 struct NavigationTip: Tip {
@@ -84,6 +86,7 @@ struct NavSplitView: View {
     var body: some View {
         NavigationSplitView {
             ZStack {
+#if !targetEnvironment(macCatalyst)
                 // Add ColorfulX as background
 ColorfulView(
     color: $gradientManager.gradientColors,
@@ -97,6 +100,7 @@ ColorfulView(
 // Semi-transparent background for better contrast
 Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
     .ignoresSafeArea()
+#endif
 
                 // Existing list content with better background
                 List(selection: $selectedLink) {
