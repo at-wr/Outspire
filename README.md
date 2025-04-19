@@ -33,6 +33,9 @@ Your all-in-one WFLA campus companian. It's an iOS app for WFLA TSIMS, which is 
 - School Data
 	- [x] Weekly Arrangements
 	- [x] Lunch Menus
+- iOS Features
+	- [x] Classtable Widget Support
+	- [x] Live Activity Support
 - [ ] …
 
 ## URL Scheme Support
