@@ -7,10 +7,8 @@ struct MenuItemView: View {
         switch item {
         case .general:
             Label("General", systemImage: "switch.2")
-#if DEBUG
-        case .export:
-            Label("Export App Package", systemImage: "shippingbox")
-#endif
+        case .notifications:
+            Label("Notifications", systemImage: "bell")
         case .gradients:
             Label("Gradients", systemImage: "paintpalette")
         case .license:

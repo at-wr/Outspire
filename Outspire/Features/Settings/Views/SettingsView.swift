@@ -10,6 +10,7 @@ struct SettingsView: View {
     enum SettingsMenu: String, Hashable, CaseIterable {
         case account
         case general
+        case notifications
         case gradients
 #if DEBUG
         case export
@@ -31,8 +32,14 @@ struct SettingsView: View {
 
                 // General settings section
                 Section {
+                    NavigationLink(value: SettingsMenu.general) {
+                        MenuItemView(item: .general)
+                    }
+                    NavigationLink(value: SettingsMenu.notifications) {
+                        MenuItemView(item: .notifications)
+                    }
                     ForEach(SettingsMenu.allCases, id: \.self) { item in
-                        if item != .account {
+                        if item != .account && item != .general && item != .notifications {
                             NavigationLink(value: item) {
                                 MenuItemView(item: item)
                             }
@@ -116,6 +123,8 @@ struct SettingsView: View {
         switch destination {
         case .account:
             AccountWithNavigation()
+        case .notifications:
+            SettingsNotificationsView()
         case .general:
             SettingsGeneralView()
         case .gradients:

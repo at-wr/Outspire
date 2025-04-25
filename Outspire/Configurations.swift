@@ -1,6 +1,18 @@
 import Foundation
 
 struct Configuration {
+    static var departureNotificationsEnabled: Bool {
+        get {
+            if UserDefaults.standard.object(forKey: "departureNotificationsEnabled") == nil {
+                return false // Default: disabled
+            }
+            return UserDefaults.standard.bool(forKey: "departureNotificationsEnabled")
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "departureNotificationsEnabled")
+        }
+    }
+
     static var useSSL: Bool {
         get {
             return UserDefaults.standard.bool(forKey: "useSSL")
@@ -132,7 +144,12 @@ struct Configuration {
 
     // Add new setting for automatic Live Activities
     static var automaticallyStartLiveActivities: Bool {
-        get { UserDefaults.standard.bool(forKey: "automaticallyStartLiveActivities") }
+        get {
+            if UserDefaults.standard.object(forKey: "automaticallyStartLiveActivities") == nil {
+                return true // Default: enabled
+            }
+            return UserDefaults.standard.bool(forKey: "automaticallyStartLiveActivities")
+        }
         set { UserDefaults.standard.set(newValue, forKey: "automaticallyStartLiveActivities") }
     }
 }
