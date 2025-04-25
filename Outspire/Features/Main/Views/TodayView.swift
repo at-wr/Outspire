@@ -7,7 +7,6 @@ import ColorfulX
 #endif
 import TipKit
 
-// Define a tip for the schedule button on TodayView
 struct ScheduleTip: Tip {
     var title: Text {
         Text("Your Schedule Settings")
@@ -24,13 +23,10 @@ struct TodayView: View {
     // MARK: - Environment & State
     @EnvironmentObject var sessionService: SessionService
     @StateObject private var classtableViewModel = ClasstableViewModel()
-    // Use the shared instance for LocationManager
     @ObservedObject private var locationManager = LocationManager.shared
-    // Use the shared instance for RegionChecker
     @ObservedObject private var regionChecker = RegionChecker.shared
-    // Add URL scheme handler environment object
     @EnvironmentObject var urlSchemeHandler: URLSchemeHandler
-    @EnvironmentObject var gradientManager: GradientManager // Add gradient manager
+    @EnvironmentObject var gradientManager: GradientManager
 
     @State private var currentTime = Date()
     @State private var timer: Timer?
@@ -43,17 +39,16 @@ struct TodayView: View {
     @State private var holidayHasEndDate: Bool = Configuration.holidayHasEndDate
     @State private var setAsToday: Bool = Configuration.setAsToday
     @State private var allowAnimation = true
-    @State private var forceUpdate: Bool = false  // Added to force UI updates
+    @State private var forceUpdate: Bool = false
     @State private var showLocationUpdateSheet = false
     @State private var showScheduleTip: Bool = false
     @State private var skipTip: Bool = false
     @AppStorage("hasShownScheduleTip") private var hasShownScheduleTip: Bool = false
 
 @StateObject private var weatherManager = WeatherManager.shared
-    // Track if we've already started a Live Activity for the current class
     @State private var hasStartedLiveActivity = false
     @State private var activeClassLiveActivities: [String: Bool] = [:]
-    // Add this state variable to track returning from sheets
+
     @State private var isReturningFromSheet = false
 
     @Environment(\.colorScheme) private var colorScheme
@@ -72,18 +67,17 @@ struct TodayView: View {
             .ignoresSafeArea()
             .opacity(0.2) // Reduce opacity to make content readable
 
-            // Semi-transparent white background to ensure content readability
-            Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
-                .ignoresSafeArea()
+    Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
+        .ignoresSafeArea()
 #endif
 
-            ScrollView {
+    ScrollView {
                 contentView
             }
         }
         .navigationTitle("Today @ WFLA")
         .navigationBarTitleDisplayMode(.large)
-        .toolbarBackground(.hidden, for: .navigationBar) // This works with our custom appearances
+        .toolbarBackground(.hidden, for: .navigationBar)
         .scrollIndicators(.hidden)
 
         .toolbar {
@@ -92,31 +86,24 @@ struct TodayView: View {
             }
         }
         .sheet(isPresented: $isSettingsSheetPresented, onDismiss: {
-            // Mark that we're returning from a sheet and skip tip on next onAppear
             isReturningFromSheet = true
             skipTip = true
-
-            // Immediately set animateCards to true without animation
-            // This is critical to prevent the animation from running again
             animateCards = true
-
-            // Update gradient colors based on current state
             updateGradientColors()
         }) {
             scheduleSettingsSheet
-                .environmentObject(sessionService) // Explicitly pass the SessionService to fix Mac Catalyst crash
+                .environmentObject(sessionService)
         }
         .onAppear {
             setupOnAppear()
             customizeNavigationBarAppearance()
-            updateGradientColors() // Still call this to update shared gradient
+            updateGradientColors()
 
             if let location = locationManager.userLocation {
                 Task {
                     await weatherManager.fetchWeather(for: location)
                 }
             }
-            // Additional fetch to update weather if the initial fetch hasn't updated (avoids showing the placeholder)
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                 if weatherManager.currentTemperature == "--", let location = locationManager.userLocation {
                     Task {
@@ -126,21 +113,15 @@ struct TodayView: View {
             }
 
             if sessionService.isAuthenticated && !skipTip && !hasShownScheduleTip {
-                // Delay tip appearance for 1 second
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                     showScheduleTip = true
-                    // Auto-hide the tip after 3 seconds
                     DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
                         showScheduleTip = false
-                        // Set the flag to prevent showing the tip again
                         hasShownScheduleTip = true
                     }
                 }
             }
-            // Do not automatically reset skipTip here; once the settings sheet is dismissed, the tip should remain suppressed.
-            // Check for URL scheme navigation to today view
             if urlSchemeHandler.navigateToToday {
-                // Reset the handler state after navigation is complete
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     urlSchemeHandler.navigateToToday = false
                 }
@@ -165,44 +146,36 @@ struct TodayView: View {
                 skipTip = true
             }
         }
-        .onChange(of: selectedDayOverride) { newValue in
-            // Save the selected day override to Configuration
+        .onChange(of: selectedDayOverride) { _, newValue in
             Configuration.selectedDayOverride = newValue
-            forceUpdate.toggle() // Force UI update
-            updateGradientColors() // Update gradient when selected day changes
-            // When day changes, force update of calculations
+            forceUpdate.toggle()
+            updateGradientColors()
             if timer == nil {
-                // If timer isn't active, create it temporarily
-                currentTime = Date() // Force time update
+                currentTime = Date()
             }
         }
-        .onChange(of: setAsToday) { newValue in
-            // Save the setAsToday setting to Configuration
+        .onChange(of: setAsToday) { _, newValue in
             Configuration.setAsToday = newValue
-            forceUpdate.toggle() // Force UI update
+            forceUpdate.toggle()
         }
-        .onChange(of: isHolidayMode) { newValue in
+        .onChange(of: isHolidayMode) { _, newValue in
             Configuration.isHolidayMode = newValue
-            forceUpdate.toggle() // Force UI update
-            updateGradientColors() // Update gradient when holiday mode changes
-        }
-        .onChange(of: holidayHasEndDate) { newValue in
-            Configuration.holidayHasEndDate = newValue
-        }
-        .onChange(of: holidayEndDate) { newValue in
-            Configuration.holidayEndDate = newValue
-        }
-        .onChange(of: colorScheme) { _ in
-            // Update gradient when color scheme changes
+            forceUpdate.toggle()
             updateGradientColors()
         }
-        // Add observer for upcomingClassInfo changes
+        .onChange(of: holidayHasEndDate) { _, newValue in
+            Configuration.holidayHasEndDate = newValue
+        }
+        .onChange(of: holidayEndDate) { _, newValue in
+            Configuration.holidayEndDate = newValue
+        }
+        .onChange(of: colorScheme) { _, _ in
+            updateGradientColors()
+        }
         .onChange(of: upcomingClassInfo?.period.id) { _, _ in
-            // When the relevant class period changes, update the Live Activity
-            // Use forceCheck to ensure it runs even if the manager thinks an activity exists
             startClassLiveActivityIfNeeded(forceCheck: true)
         }
-        .onChange(of: locationManager.userLocation) { newLocation in
+        .onChange(of: locationManager.userLocation) { _, newLocation in
             if let location = newLocation {
                 Task {
                     await weatherManager.fetchWeather(for: location)
@@ -215,7 +188,6 @@ struct TodayView: View {
 
     // MARK: - Gradient Methods
 
-    // Update gradient colors based on the current state of the app
     private func updateGradientColors() {
         if !sessionService.isAuthenticated {
             gradientManager.updateGradientForContext(context: .notSignedIn, colorScheme: colorScheme)
@@ -232,13 +204,11 @@ struct TodayView: View {
             return
         }
 
-        // Determine if we have an upcoming class
         if let upcomingInfo = upcomingClassInfo {
             let isSelfStudy = upcomingInfo.classData.contains("Self-Study")
             let isActive = upcomingInfo.period.isCurrentlyActive()
 
             if isActive {
-                // Currently in a class period
                 if isSelfStudy {
                     gradientManager.updateGradientForContext(context: .inSelfStudy, colorScheme: colorScheme)
                 } else {
@@ -248,7 +218,6 @@ struct TodayView: View {
                     )
                 }
             } else {
-                // Upcoming class period
                 if isSelfStudy {
                     gradientManager.updateGradientForContext(context: .upcomingSelfStudy, colorScheme: colorScheme)
                 } else {
@@ -259,34 +228,27 @@ struct TodayView: View {
                 }
             }
         } else {
-            // No upcoming class
             gradientManager.updateGradientForContext(context: .afterSchool, colorScheme: colorScheme)
         }
     }
 
     private func customizeNavigationBarAppearance() {
-        // Configure transparent appearance for expanded state
         let transparentAppearance = UINavigationBarAppearance()
         transparentAppearance.configureWithTransparentBackground()
         transparentAppearance.backgroundColor = .clear
         transparentAppearance.shadowColor = .clear
 
-        // Configure solid appearance for collapsed state
         let solidAppearance = UINavigationBarAppearance()
         solidAppearance.configureWithDefaultBackground()
         solidAppearance.backgroundColor = UIColor.secondarySystemBackground
-        solidAppearance.shadowColor = .clear // Still remove shadow if desired
+        solidAppearance.shadowColor = .clear
 
-        // Apply transparent appearance when title is large/expanded
         UINavigationBar.appearance().scrollEdgeAppearance = transparentAppearance
-
-        // Apply solid appearance when scrolled/collapsed
         UINavigationBar.appearance().standardAppearance = solidAppearance
         UINavigationBar.appearance().compactAppearance = solidAppearance
         UINavigationBar.appearance().compactScrollEdgeAppearance = solidAppearance
     }
 
-    // Save all settings on disappear
     private func saveSettings() {
         Configuration.selectedDayOverride = selectedDayOverride
         Configuration.setAsToday = setAsToday
@@ -1015,7 +977,6 @@ struct MainContentView: View {
         }
     }
 
-    // Helper method for card animations, to make it accessible within this struct
     private func animatedCard<Content: View>(delay: Double, @ViewBuilder content: @escaping () -> Content) -> some View {
         content()
             .padding(.horizontal)
@@ -1156,7 +1117,6 @@ struct MainContentView: View {
 
     @ViewBuilder
     private var notAuthenticatedContent: some View {
-        // Instead of creating a new implementation, use the existing SignInPromptCard
         SignInPromptCard()
             .padding(.horizontal)
             .offset(y: animateCards ? 0 : 30)
