@@ -9,9 +9,12 @@ class WeatherManager: ObservableObject {
     private let weatherService = WeatherService()
 
     @Published var currentTemperature: String = "--"
-    @Published var conditionSymbol: String = "cloud.sun"
+    @Published var conditionSymbol: String = ""
+    @Published var isLoading: Bool = true
 
     func fetchWeather(for location: CLLocation) async {
+        isLoading = true
+        defer { isLoading = false }
         do {
             let weather = try await weatherService.weather(for: location)
             let temperatureValue = Int(weather.currentWeather.temperature.value.rounded())

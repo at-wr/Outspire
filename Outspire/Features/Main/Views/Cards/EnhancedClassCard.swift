@@ -503,8 +503,19 @@ private func setupTimer() {
     // Cancel any existing timer first
     timer?.invalidate()
 
-    // Initial update without timer
-    updateTimeRemaining()
+    // Initial update
+    calculateTimeRemaining()
+    updateCirclePercent()
+    checkAndUpdateGradient()
+
+    // Schedule a repeating timer to update every second
+    timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
+        DispatchQueue.main.async {
+            self.calculateTimeRemaining()
+            self.updateCirclePercent()
+            self.checkAndUpdateGradient()
+        }
+    }
 }
 
     // Updates the class status

@@ -333,6 +333,7 @@ struct TodayView: View {
     // MARK: - Subviews
     private var headerView: some View {
         HeaderView(
+            weatherManager: weatherManager,
             greeting: greeting,
             formattedDate: formattedDate,
             nickname: sessionService.userInfo?.nickname,
@@ -887,6 +888,8 @@ struct TodayView: View {
 
 // MARK: - Supporting Views
 struct HeaderView: View {
+    @ObservedObject var weatherManager: WeatherManager
+
     let greeting: String
     let formattedDate: String
     let nickname: String?
@@ -919,11 +922,16 @@ struct HeaderView: View {
             }
             Spacer()
                 VStack(spacing: 4) {
-                    Image(systemName: weatherSymbol)
-                        .font(.title2)
-                        .symbolRenderingMode(.multicolor)
-                    Text(weatherTemperature)
-                        .font(.caption)
+                    if weatherManager.isLoading {
+                        ProgressView()
+                            .progressViewStyle(.circular)
+                            .frame(width: 24, height: 24)
+                    } else {
+                        WeatherIconView(conditionSymbol: weatherSymbol)
+                            .font(.title2)
+                        Text(weatherTemperature)
+                            .font(.caption)
+                    }
                 }
                 .padding(6)
         }
