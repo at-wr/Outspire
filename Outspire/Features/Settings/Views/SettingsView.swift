@@ -12,9 +12,6 @@ struct SettingsView: View {
         case general
         case notifications
         case gradients
-#if DEBUG
-        case export
-#endif
         case about
         case license
 
@@ -129,10 +126,6 @@ struct SettingsView: View {
             SettingsGeneralView()
         case .gradients:
             GradientSettingsView()
-#if DEBUG
-        case .export:
-            ExportView()
-#endif
         case .about:
             AboutView()
         case .license:
