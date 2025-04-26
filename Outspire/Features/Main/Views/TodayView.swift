@@ -5,19 +5,6 @@ import WeatherKit
 #if !targetEnvironment(macCatalyst)
 import ColorfulX
 #endif
-import TipKit
-
-struct ScheduleTip: Tip {
-    var title: Text {
-        Text("Your Schedule Settings")
-    }
-    var message: Text? {
-        Text("Tap here to adjust today's schedule settings.")
-    }
-    var image: Image? {
-        Image(systemName: "calendar.badge.clock")
-    }
-}
 
 struct TodayView: View {
     // MARK: - Environment & State
@@ -41,8 +28,7 @@ struct TodayView: View {
     @State private var allowAnimation = true
     @State private var forceUpdate: Bool = false
     @State private var showLocationUpdateSheet = false
-    @State private var showScheduleTip: Bool = false
-    @State private var skipTip: Bool = false
+
     @AppStorage("hasShownScheduleTip") private var hasShownScheduleTip: Bool = false
 
 @ObservedObject private var weatherManager = WeatherManager.shared
@@ -88,7 +74,7 @@ struct TodayView: View {
         }
         .sheet(isPresented: $isSettingsSheetPresented, onDismiss: {
             isReturningFromSheet = true
-            skipTip = true
+
             animateCards = true
             updateGradientColors()
         }) {
@@ -110,15 +96,6 @@ struct TodayView: View {
                 }
             }
 
-            if sessionService.isAuthenticated && !skipTip && !hasShownScheduleTip {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                    showScheduleTip = true
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
-                        showScheduleTip = false
-                        hasShownScheduleTip = true
-                    }
-                }
-            }
             if urlSchemeHandler.navigateToToday {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     urlSchemeHandler.navigateToToday = false
@@ -140,9 +117,7 @@ struct TodayView: View {
         .onChange(of: sessionService.isAuthenticated) { _, isAuthenticated in
             handleAuthChange(isAuthenticated)
             updateGradientColors() // Update gradient when authentication changes
-            if isAuthenticated {
-                skipTip = true
-            }
+
         }
         .onChange(of: selectedDayOverride) { _, newValue in
             Configuration.selectedDayOverride = newValue
@@ -279,7 +254,7 @@ struct TodayView: View {
         }
         .disabled(!sessionService.isAuthenticated)
         .opacity(sessionService.isAuthenticated ? 1.0 : 0.5)
-        .tipKit(ScheduleTip(), shouldShowTip: showScheduleTip)
+
     }
 
     private var scheduleSettingsSheet: some View {

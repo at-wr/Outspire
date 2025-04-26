@@ -1,67 +1,7 @@
 import SwiftUI
-import TipKit
 #if !targetEnvironment(macCatalyst)
 import ColorfulX
 #endif
-
-// Define the tip for the main navigation
-struct NavigationTip: Tip {
-    var title: Text {
-        Text("Welcome to Outspire")
-    }
-
-    var message: Text? {
-        Text("Start by signing in with your WFLA Account.")
-    }
-
-    var image: Image? {
-        Image(systemName: "party.popper.fill")
-    }
-}
-
-// Define a tip specifically for the settings button
-struct SettingsTip: Tip {
-    var title: Text {
-        Text("Customize Your Experience")
-    }
-
-    var message: Text? {
-        Text("Tap here to access app settings and personalize your Outspire experience.")
-    }
-
-    var image: Image? {
-        Image(systemName: "gear")
-    }
-}
-
-struct TodayTip: Tip {
-    var title: Text {
-        Text("Your Daily Overview")
-    }
-
-    var message: Text? {
-        Text("Check here daily for your schedule, announcements, and important updates.")
-    }
-
-    var image: Image? {
-        Image(systemName: "calendar")
-    }
-}
-
-// Define a tip to instruct the user to sign in
-struct SignInTip: Tip {
-    var title: Text {
-        Text("Sign in to Outspire")
-    }
-
-    var message: Text? {
-        Text("Tap here to sign in and access full features.")
-    }
-
-    var image: Image? {
-        Image(systemName: "person.crop.circle.badge.checkmark")
-    }
-}
 
 struct NavSplitView: View {
     @EnvironmentObject var sessionService: SessionService
@@ -73,15 +13,8 @@ struct NavSplitView: View {
     @State private var showOnboardingSheet = false
     @State private var hasCheckedOnboarding = false
     @AppStorage("lastVersionRun") private var lastVersionRun: String?
-    @State private var currentActiveTip: String?
     @State private var onboardingCompleted = false
     @Environment(\.colorScheme) private var colorScheme // Add colorScheme
-
-    // Initialize the tips
-    @State private var navigationTip = NavigationTip()
-    @State private var settingsTip = SettingsTip()
-    @State private var todayTip = TodayTip()
-    @State private var signInTip = SignInTip()
 
     var body: some View {
         NavigationSplitView {
@@ -106,7 +39,7 @@ Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
                 List(selection: $selectedLink) {
                     NavigationLink(value: "today") {
                         Label("Today", systemImage: "text.rectangle.page")
-                            .tipKit(todayTip, shouldShowTip: currentActiveTip == "today")
+
                     }
 
                     NavigationLink(value: "classtable") {
@@ -154,21 +87,12 @@ Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
                 .modifier(NavigationColumnWidthModifier()) // Apply column width correctly
                 .toolbar {
                     ToolbarItem(placement: .navigationBarTrailing) {
-                        ZStack {
-                            Button(action: {
-                                settingsManager.showSettingsSheet.toggle()
-                            }) {
-                                Image(systemName: "gear")
-                            }
-                            .tipKit(settingsTip, shouldShowTip: currentActiveTip == "settings")
-                            
-                            // Additional non-interactive overlay for better tip targeting on iPhone
-                            if UIDevice.current.userInterfaceIdiom == .phone && currentActiveTip == "settings" {
-                                Color.clear
-                                    .frame(width: 44, height: 44)
-                                    .allowsHitTesting(false)
-                            }
+                        Button(action: {
+                            settingsManager.showSettingsSheet.toggle()
+                        }) {
+                            Image(systemName: "gear")
                         }
+
                     }
                 }
                 .navigationTitle("Outspire")
@@ -219,7 +143,7 @@ Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
         }
         .id(refreshID)
         .task {
-            await configureTipsAndCheckOnboarding()
+            checkOnboardingStatus()
         }
         .onChange(of: selectedLink) { _, newLink in
             // Update gradient when the selected view changes
@@ -288,16 +212,7 @@ Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
         }
     }
 
-    private func configureTipsAndCheckOnboarding() async {
-        do {
-            try await Tips.configure([
-                .displayFrequency(.immediate),
-                .datastoreLocation(.applicationDefault)
-            ])
-        } catch {
-            print("Failed to configure TipKit: \(error)")
-        }
-
+    private func checkOnboardingStatus() {
         let currentVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
         let thresholdVersion = "0.5.1"
 
@@ -308,14 +223,12 @@ Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
         } else if !hasCheckedOnboarding {
             hasCheckedOnboarding = true
 
-            await MainActor.run {
-                if !UserDefaults.standard.bool(forKey: "hasCompletedOnboarding") {
-                    showOnboardingSheet = true
-                    print("Showing onboarding because 'hasCompletedOnboarding' is false.")
-                } else {
-                    print("'hasCompletedOnboarding' is already true. Onboarding will not be shown.")
-                    checkOnboardingStatus()
-                }
+            if !UserDefaults.standard.bool(forKey: "hasCompletedOnboarding") {
+                showOnboardingSheet = true
+                print("Showing onboarding because 'hasCompletedOnboarding' is false.")
+            } else {
+                print("'hasCompletedOnboarding' is already true. Onboarding will not be shown.")
+
             }
         }
     }
@@ -325,59 +238,6 @@ Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
             return true
         }
         return lastVersion.compare(thresholdVersion, options: .numeric) == .orderedAscending
-    }
-
-    private func checkOnboardingStatus() {
-        if UserDefaults.standard.bool(forKey: "hasCompletedOnboarding") {
-            print("Onboarding has been completed, preparing to show tips sequentially")
-            onboardingCompleted = true
-
-            if UIDevice.current.userInterfaceIdiom == .phone {
-                if !sessionService.isAuthenticated {
-                    // For iPhone not logged in: show Today tip, then Sign In tip, then Settings tip
-                    DispatchQueue.main.async {
-                        self.currentActiveTip = "today"
-                    }
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
-                        self.currentActiveTip = "signin"
-                    }
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 10.0) {
-                        self.currentActiveTip = "settings"
-                    }
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 15.0) {
-                        self.currentActiveTip = nil
-                    }
-                } else {
-                    // For iPhone logged in: show Today tip then Settings tip
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                        self.currentActiveTip = "today"
-                    }
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 6.0) {
-                        self.currentActiveTip = "settings"
-                    }
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 11.0) {
-                        self.currentActiveTip = nil
-                    }
-                }
-            } else {
-                // For non-iPhone devices, show only the Settings tip briefly
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                    self.currentActiveTip = "settings"
-                }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
-                    self.currentActiveTip = nil
-                }
-            }
-        } else {
-            print("Onboarding not completed yet")
-            self.currentActiveTip = nil
-        }
-    }
-
-    private func invalidateTips() async {
-        await navigationTip.invalidate(reason: .tipClosed)
-        await settingsTip.invalidate(reason: .tipClosed)
-        await todayTip.invalidate(reason: .tipClosed)
     }
 
     // Update the method to update gradient based on selected link
@@ -450,50 +310,5 @@ struct NavigationColumnWidthModifier: ViewModifier {
                 view.navigationSplitViewColumnWidth(250)
             }
         #endif
-    }
-}
-
-// MARK: - TipKit View Extension
-extension View {
-    func tipKit<T: Tip>(_ tip: T, shouldShowTip: Bool) -> some View {
-        self.modifier(TipViewModifier(tip: tip, shouldShowTip: shouldShowTip))
-    }
-}
-
-// MARK: - TipKit View Modifier
-struct TipViewModifier<T: Tip>: ViewModifier {
-    let tip: T
-    let shouldShowTip: Bool
-    
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-    
-    func body(content: Content) -> some View {
-        if shouldShowTip {
-            if UIDevice.current.userInterfaceIdiom == .phone {
-                // On iPhone, use a different presentation style to avoid layout issues
-                content
-                    .overlay(
-                        Group {
-                            if UIDevice.current.userInterfaceIdiom == .phone && horizontalSizeClass == .compact {
-                                // For compact iPhone layouts, use TipView with padding and better positioning
-                                TipView(tip)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 4)
-                                    .offset(y: 40) // Offset to avoid overlapping the navigation bar
-                                    .zIndex(100) // Ensure the tip appears above other content
-                            } else {
-                                // For larger layouts, use standard popover
-                                EmptyView()
-                            }
-                        }
-                    )
-                    .popoverTip(tip, arrowEdge: .top)
-            } else {
-                // On iPad, use standard popover which works fine
-                content.popoverTip(tip)
-            }
-        } else {
-            content
-        }
     }
 }
