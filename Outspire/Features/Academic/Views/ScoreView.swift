@@ -1,8 +1,9 @@
-import SwiftUI
-#if !targetEnvironment(macCatalyst)
-import ColorfulX
-#endif
 import LocalAuthentication
+import SwiftUI
+
+#if !targetEnvironment(macCatalyst)
+    import ColorfulX
+#endif
 
 struct ScoreView: View {
     @StateObject private var viewModel = ScoreViewModel()
@@ -15,19 +16,19 @@ struct ScoreView: View {
 
     var body: some View {
         ZStack {
-#if !targetEnvironment(macCatalyst)
-            ColorfulView(
-                color: $gradientManager.gradientColors,
-                speed: $gradientManager.gradientSpeed,
-                noise: $gradientManager.gradientNoise,
-                transitionSpeed: $gradientManager.gradientTransitionSpeed
-            )
-            .ignoresSafeArea()
-            .opacity(colorScheme == .dark ? 0.15 : 0.3)
-
-            Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
+            #if !targetEnvironment(macCatalyst)
+                ColorfulView(
+                    color: $gradientManager.gradientColors,
+                    speed: $gradientManager.gradientSpeed,
+                    noise: $gradientManager.gradientNoise,
+                    transitionSpeed: $gradientManager.gradientTransitionSpeed
+                )
                 .ignoresSafeArea()
-#endif
+                .opacity(colorScheme == .dark ? 0.15 : 0.3)
+
+                Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
+                    .ignoresSafeArea()
+            #endif
 
             // Main content
             if !sessionService.isAuthenticated {
@@ -37,10 +38,13 @@ struct ScoreView: View {
                     description: Text("Please sign in to view your academic grades.")
                 )
                 .padding()
+                .transition(.opacity)
             } else if viewModel.isUnlocked {
                 mainContent
+                    .transition(.opacity)
             } else {
                 authenticationView
+                    .transition(.opacity)
             }
         }
         .navigationTitle("Academic Grades")
@@ -48,12 +52,33 @@ struct ScoreView: View {
             toolbarItems
         }
         .onAppear {
-            // Only attempt to fetch data if user is logged in
-            if sessionService.isAuthenticated && viewModel.isUnlocked && viewModel.terms.isEmpty {
-                viewModel.fetchTerms()
-            }
             updateGradientForScoreView()
+            
+            // Force a reset to the most recent term when the view appears
+            if sessionService.isAuthenticated && viewModel.isUnlocked {
+                viewModel.selectMostRecentTerm()
+            }
         }
+        .task {
+            // This ensures initialization happens correctly when switching tabs
+            if sessionService.isAuthenticated {
+                if !viewModel.isUnlocked {
+                    viewModel.authenticate()
+                } else if viewModel.terms.isEmpty {
+                    viewModel.fetchTerms()
+                } else if viewModel.scores.isEmpty && !viewModel.selectedTermId.isEmpty {
+                    viewModel.fetchScores()
+                }
+            }
+        }
+        .onChange(of: viewModel.selectedTermId) { oldValue, newValue in
+            // When term changes, ensure we load data for the new term
+            if !newValue.isEmpty && oldValue != newValue {
+                viewModel.fetchScores()
+            }
+        }
+        // Using a unique ID ensures the view is properly recreated when switching tabs
+        .id("scoreView-\(sessionService.isAuthenticated)-\(viewModel.isUnlocked)")
     }
 
     private var notLoggedInView: some View {
@@ -68,13 +93,40 @@ struct ScoreView: View {
     private var mainContent: some View {
         Group {
             if viewModel.isLoadingTerms && viewModel.terms.isEmpty {
-                LoadingView(message: "Loading terms...")
+                VStack {
+                    // Fixed height container to prevent layout jumps
+                    VStack(spacing: 0) {
+                        // Empty term selector placeholder with same height
+                        Rectangle()
+                            .fill(Color(UIColor.secondarySystemBackground))
+                            .frame(height: 70)
+
+                        Divider()
+                            .background(Color.secondary.opacity(0.3))
+                    }
+
+                    LoadingView(message: "Loading terms...", fixedHeight: 400)
+                }
             } else if viewModel.terms.isEmpty && !viewModel.isLoadingTerms {
-                ContentUnavailableView(
-                    "No Academic Terms",
-                    systemImage: "calendar.badge.exclamationmark",
-                    description: Text("No academic terms are available.")
-                )
+                VStack {
+                    // Fixed height container to prevent layout jumps
+                    VStack(spacing: 0) {
+                        // Empty term selector placeholder with same height
+                        Rectangle()
+                            .fill(Color(UIColor.secondarySystemBackground))
+                            .frame(height: 70)
+
+                        Divider()
+                            .background(Color.secondary.opacity(0.3))
+                    }
+
+                    ContentUnavailableView(
+                        "No Academic Terms",
+                        systemImage: "calendar.badge.exclamationmark",
+                        description: Text("No academic terms are available.")
+                    )
+                    .frame(minHeight: 400)
+                }
             } else {
                 VStack(spacing: 0) {
                     termSelector
@@ -86,56 +138,111 @@ struct ScoreView: View {
     }
 
     private var termSelector: some View {
-        Group {
+        VStack(spacing: 0) {
             if !viewModel.terms.isEmpty {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 12) {
-                        ForEach(viewModel.terms) { term in
-                            TermButton(
-                                term: term,
-                                isSelected: viewModel.selectedTermId == term.W_YearID,
-                                action: {
-                                    withAnimation {
-                                        // Only fetch if we're changing terms
-                                        if viewModel.selectedTermId != term.W_YearID {
-                                            viewModel.selectedTermId = term.W_YearID
-                                            viewModel.fetchScores()
-                                            animateIn = false
-                                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                                                withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
-                                                    animateIn = true
+                ScrollViewReader { scrollProxy in
+                    // Fix the height of the scroll view to prevent layout jumps
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(viewModel.terms) { term in
+                                TermButton(
+                                    term: term,
+                                    isSelected: viewModel.selectedTermId == term.W_YearID,
+                                    action: {
+                                        withAnimation(.easeInOut(duration: 0.3)) {
+                                            // Only fetch if we're changing terms
+                                            if viewModel.selectedTermId != term.W_YearID {
+                                                viewModel.selectedTermId = term.W_YearID
+
+                                                // Scroll to make selected term visible
+                                                withAnimation {
+                                                    scrollProxy.scrollTo(term.id, anchor: .center)
+                                                }
+
+                                                viewModel.fetchScores()
+
+                                                // Reset animation state with a short delay for smoother transition
+                                                animateIn = false
+                                                DispatchQueue.main.asyncAfter(
+                                                    deadline: .now() + 0.1
+                                                ) {
+                                                    withAnimation(
+                                                        .spring(response: 0.6, dampingFraction: 0.7)
+                                                    ) {
+                                                        animateIn = true
+                                                    }
                                                 }
                                             }
                                         }
-                                    }
+                                    },
+                                    hasData: viewModel.termsWithData.contains(term.W_YearID)
+                                )
+                                .id(term.id)
+                            }
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                    }
+                    .frame(height: 60)
+                    .background(Color(UIColor.secondarySystemBackground).opacity(0.7))
+                    .onAppear {
+                        // Scroll to selected term when view appears
+                        if let selectedTerm = viewModel.terms.first(where: {
+                            $0.W_YearID == viewModel.selectedTermId
+                        }) {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                withAnimation {
+                                    scrollProxy.scrollTo(selectedTerm.id, anchor: .center)
                                 }
-                            )
+                            }
                         }
                     }
-                    .padding(.horizontal)
-                    .padding(.vertical, 12)
                 }
-                .background(Color(UIColor.tertiarySystemBackground))
+
+                // Add a subtle divider
+                Divider()
+                    .background(Color.secondary.opacity(0.1))
             }
         }
     }
 
     private var scoreContent: some View {
-        Group {
+        ZStack {
+            // Background placeholder for stable layout
+            Rectangle()
+                .fill(Color.clear)
+                .frame(maxWidth: .infinity, minHeight: 400)
+
             if viewModel.isLoading {
                 ScoreSkeletonView()
                     .transition(.opacity)
-            } else if viewModel.scores.isEmpty {
+            } else if viewModel.scores.isEmpty && viewModel.errorMessage == nil {
+                // Fallback empty state (though this shouldn't happen with our improved handling)
                 ContentUnavailableView(
                     "No Scores Available",
                     systemImage: "doc.text.magnifyingglass",
                     description: Text("There are no scores available for this term yet.")
                 )
                 .transition(.opacity)
-            } else {
+            } else if viewModel.scores.isEmpty && viewModel.errorMessage != nil {
+                // Contextual empty state based on the term
+                let message = viewModel.errorMessage ?? "No data available"
+                let isUpcoming = message.contains("hasn't started")
+                let isPast = message.contains("before your enrollment")
+
+                ContentUnavailableView(
+                    isUpcoming ? "Future Term" : (isPast ? "Past Term" : "No Scores Available"),
+                    systemImage: isUpcoming
+                        ? "calendar.badge.clock"
+                        : (isPast ? "calendar.badge.exclamationmark" : "doc.text.magnifyingglass"),
+                    description: Text(message)
+                )
+                .transition(.opacity)
+            } else if !viewModel.scores.isEmpty {
                 ScrollView {
                     LazyVStack(spacing: 16) {
-                        ForEach(Array(viewModel.scores.enumerated()), id: \.element.id) { index, subject in
+                        ForEach(Array(viewModel.scores.enumerated()), id: \.element.id) {
+                            index, subject in
                             SubjectScoreCard(
                                 subject: subject,
                                 isExpanded: selectedSubjectId == subject.id,
@@ -150,33 +257,94 @@ struct ScoreView: View {
                                 }
                             )
                             .padding(.horizontal)
-                            .offset(y: animateIn ? 0 : 30)  // Reduced offset for smoother animation
+                            .offset(y: animateIn ? 0 : 10)  // Smaller offset for more subtle animation
                             .opacity(animateIn ? 1 : 0)
                             .animation(
-                                .spring(response: 0.5, dampingFraction: 0.7)
-                                .delay(Double(index) * 0.04),  // Slightly faster staggered delay
+                                .spring(response: 0.4, dampingFraction: 0.8)
+                                    .delay(Double(index) * 0.02),  // Faster staggered delay for more responsive feel
                                 value: animateIn
                             )
                         }
 
                         // Add space at the bottom for better scrolling
-                        Color.clear.frame(height: 20)
+                        Color.clear.frame(height: 30)
+                        
+                        if !viewModel.scores.isEmpty {
+                            VStack(spacing: 4) {
+                                Divider()
+                                    .padding(.horizontal, 32)
+                                    .padding(.bottom, 8)
+                                
+                                Text(viewModel.formattedLastUpdateTime)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .padding(.bottom, 16)
+                            }
+                            .opacity(animateIn ? 0.7 : 0)
+                            .animation(.easeIn.delay(0.5), value: animateIn)
+                            .id(viewModel.lastUpdateTime) // This ensures the view updates when the time changes
+                        }
                     }
                     .padding(.top)
-                    .id(viewModel.selectedTermId) // This ensures scrolling resets when term changes
+                    .id(viewModel.selectedTermId)  // This ensures scrolling resets when term changes
+                }
+                .refreshable {
+                    // Reset animation state
+                    animateIn = false
+
+                    // Pull to refresh functionality
+                    viewModel.fetchScores(forceRefresh: true)
+
+                    // Restart animations after a short delay
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
+                            animateIn = true
+                        }
+                    }
                 }
                 .transition(.opacity)
             }
 
-            if let errorMessage = viewModel.errorMessage {
-                ErrorView(
-                    errorMessage: errorMessage,
-                    retryAction: viewModel.refreshData
-                )
-                .padding()
-                .transition(.move(edge: .bottom).combined(with: .opacity))
+            // Error toast overlay - for network errors only, not for empty terms
+            // Only show the overlay for actual errors, not for informational messages
+            if let errorMessage = viewModel.errorMessage,
+                errorMessage.starts(with: "Failed")
+            {
+                VStack {
+                    Spacer()  // Push error to bottom
+
+                    ErrorView(
+                        errorMessage: errorMessage,
+                        retryAction: {
+                            // Reset animation state
+                            animateIn = false
+
+                            // Refresh data
+                            viewModel.refreshData()
+
+                            // Restart animations after a delay
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                                withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
+                                    animateIn = true
+                                }
+                            }
+                        }
+                    )
+                    .padding()
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color(UIColor.tertiarySystemBackground))
+                            .shadow(radius: 4)
+                    )
+                    .padding()
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+                .zIndex(100)  // Ensure error is on top
             }
         }
+        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: viewModel.errorMessage)
+        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: viewModel.isLoading)
+        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: viewModel.scores.isEmpty)
         .onAppear {
             // Reset animation state when appearing
             animateIn = false
@@ -186,6 +354,14 @@ struct ScoreView: View {
                 withAnimation(.spring(response: 0.5, dampingFraction: 0.75)) {
                     animateIn = true
                 }
+            }
+
+            // Check if there's stale data that needs refreshing
+            if !viewModel.scores.isEmpty && !viewModel.isLoading
+                && !viewModel.isCacheValid(for: "scoresCacheTimestamp-\(viewModel.selectedTermId)")
+            {
+                // Silently refresh data if cache is stale
+                viewModel.fetchScores(forceRefresh: true)
             }
         }
         .onChange(of: viewModel.isLoading) { oldValue, isLoading in
@@ -203,6 +379,8 @@ struct ScoreView: View {
 
     private var authenticationView: some View {
         VStack(spacing: 20) {
+            Spacer()
+
             Image(systemName: "lock.fill")
                 .font(.system(size: 60))
                 .foregroundStyle(.secondary)
@@ -213,17 +391,28 @@ struct ScoreView: View {
             Text("Your academic records are protected.")
                 .foregroundStyle(.secondary)
 
-            Button("Authenticate", action: viewModel.authenticate)
-                .buttonStyle(.borderedProminent)
-                .padding(.top)
+            if viewModel.isLoading {
+                ProgressView()
+                    .padding(.top)
+            } else {
+                Button("Authenticate", action: viewModel.authenticate)
+                    .buttonStyle(.borderedProminent)
+                    .padding(.top)
+            }
 
             if let errorMessage = viewModel.errorMessage {
                 Text(errorMessage)
                     .foregroundColor(.red)
                     .font(.caption)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
             }
+
+            Spacer()
+            Spacer()
         }
         .padding()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var toolbarItems: some ToolbarContent {
@@ -241,18 +430,32 @@ struct ScoreView: View {
                         refreshButtonRotation += 360
                     }
 
+                    // Reset animation state
+                    animateIn = false
+
                     // Check if we need to authenticate first
                     if !viewModel.isUnlocked {
                         viewModel.authenticate()
                     } else {
                         viewModel.refreshData()
                     }
+
+                    // Restart animations after a small delay
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                        withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
+                            animateIn = true
+                        }
+                    }
                 }) {
                     Image(systemName: "arrow.clockwise")
                         .rotationEffect(.degrees(refreshButtonRotation))
-                        .animation(.spring(response: 0.6, dampingFraction: 0.5), value: refreshButtonRotation)
+                        .animation(
+                            .spring(response: 0.6, dampingFraction: 0.5),
+                            value: refreshButtonRotation)
                 }
-                .disabled(!sessionService.isAuthenticated || viewModel.isLoading || viewModel.isLoadingTerms)
+                .disabled(
+                    !sessionService.isAuthenticated || viewModel.isLoading
+                        || viewModel.isLoadingTerms)
             }
         }
     }
@@ -267,39 +470,29 @@ struct TermButton: View {
     let term: Term
     let isSelected: Bool
     let action: () -> Void
+    let hasData: Bool  // We'll keep this parameter but not use it visually
 
     var body: some View {
         Button(action: action) {
             VStack(spacing: 4) {
                 Text(term.W_Year)
-                    .font(.subheadline)
-                    .fontWeight(isSelected ? .semibold : .medium)
-
+                    .font(.system(size: 15, weight: isSelected ? .semibold : .regular))
+                    .foregroundColor(isSelected ? .accentColor : .primary)
+                
                 Text("Term \(term.W_Term)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                if isSelected {
-                    Circle()
-                        .fill(Color.accentColor)
-                        .frame(width: 6, height: 6)
-                        .padding(.top, 2)
-                } else {
-                    Circle()
-                        .fill(Color.clear)
-                        .frame(width: 6, height: 6)
-                        .padding(.top, 2)
-                }
+                    .font(.system(size: 13))
+                    .foregroundColor(isSelected ? .accentColor.opacity(0.8) : .secondary)
             }
-            .padding(.vertical, 6)
-            .padding(.horizontal, 12)
+            .frame(height: 44)
+            .padding(.horizontal, 16)
             .background(
                 RoundedRectangle(cornerRadius: 10)
                     .fill(isSelected ? Color.accentColor.opacity(0.1) : Color.clear)
             )
-            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .contentShape(Rectangle())
+        .animation(.easeInOut(duration: 0.2), value: isSelected)
     }
 }
 
@@ -321,42 +514,41 @@ struct SubjectScoreCard: View {
         VStack(spacing: 0) {
             // Header
             HStack(spacing: 12) {
-                Circle()
+                Rectangle()
                     .fill(subjectColor)
-                    .frame(width: 12, height: 12)
-
+                    .frame(width: 4)
+                    .cornerRadius(2)
+                
                 Text(subject.subjectName)
-                    .font(.headline)
+                    .font(.system(size: 17, weight: .medium))
                     .lineLimit(1)
+                    .foregroundColor(.primary)
 
                 Spacer()
 
                 // Average score pill
                 if subject.averageScore > 0 {
-                    HStack(spacing: 4) {
-                        Text("Avg: \(String(format: "%.1f", subject.averageScore))")
-                            .font(.subheadline.weight(.medium))
-                            .foregroundStyle(.white)
-                    }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 4)
-                    .background(subjectColor.opacity(0.8))
-                    .clipShape(Capsule())
+                    Text("Avg. \(String(format: "%.1f", subject.averageScore))")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(Capsule().fill(subjectColor))
                 } else {
                     Text("No scores")
-                        .font(.caption)
+                        .font(.footnote)
                         .foregroundStyle(.secondary)
-                        .padding(.horizontal, 8)
                 }
 
-                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .animation(.easeInOut(duration: 0.2), value: isExpanded)
-                    .opacity(hasAnyScores ? 1 : 0.5)
+                if hasAnyScores {
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 14))
+                        .foregroundStyle(.secondary)
+                        .animation(.easeInOut(duration: 0.2), value: isExpanded)
+                }
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 14)
+            .padding(.vertical, 16)
             .contentShape(Rectangle())
             .onTapGesture {
                 if hasAnyScores {
@@ -364,48 +556,47 @@ struct SubjectScoreCard: View {
                 }
             }
 
-            // Expanded content
+            // Expanded content with improved animation
             if isExpanded && hasAnyScores {
-                Divider()
-                    .padding(.horizontal)
+                VStack(spacing: 0) {
+                    Divider()
+                        .padding(.horizontal)
+                    
+                    VStack(spacing: 12) {
+                        ForEach(subject.examScores.filter { $0.hasScore }) { exam in
+                            HStack {
+                                Text(exam.name)
+                                    .font(.system(size: 15))
+                                    .foregroundStyle(.secondary)
+                                    .frame(width: 90, alignment: .leading)
 
-                VStack(spacing: 14) {
-                    ForEach(subject.examScores.filter { $0.hasScore }) { exam in
-                        HStack {
-                            Text(exam.name)
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                                .frame(width: 80, alignment: .leading)
+                                Spacer()
 
-                            Spacer()
+                                Text(exam.score)
+                                    .font(.system(size: 17, weight: .semibold))
+                                    .foregroundColor(.primary)
 
-                            Text(exam.score)
-                                .font(.title3.bold())
-
-                            if !exam.level.isEmpty && exam.level != "0" {
-                                Text(exam.level)
-                                    .font(.caption)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 4)
-                                    .background(
-                                        scoreGradeColor(exam.level)
-                                            .opacity(0.2)
-                                    )
-                                    .clipShape(Capsule())
-                                    .frame(width: 30)
+                                if !exam.level.isEmpty && exam.level != "0" {
+                                    Text(exam.level)
+                                        .font(.system(size: 14))
+                                        .foregroundColor(scoreGradeColor(exam.level))
+                                        .frame(width: 30, alignment: .trailing)
+                                        .fontWeight(.medium)
+                                }
                             }
+                            .padding(.horizontal, 16)
                         }
-                        .padding(.horizontal, 16)
                     }
+                    .padding(.vertical, 12)
                 }
-                .padding(.vertical, 12)
-                .transition(.opacity.combined(with: .move(edge: .top)))
+                .transition(.opacity.animation(.easeInOut(duration: 0.2)))
             }
         }
         .background(Color(UIColor.tertiarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
-        .opacity(hasAnyScores ? 1 : 0.7)
+        .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.03), radius: 1, x: 0, y: 1)
+        .opacity(hasAnyScores ? 1 : 0.8)
+        .animation(.easeInOut(duration: 0.25), value: isExpanded)
     }
 
     private func scoreGradeColor(_ grade: String) -> Color {
@@ -432,6 +623,7 @@ struct ScoreSkeletonView: View {
     @State private var isAnimating = false
 
     var body: some View {
+        // Fixed-size container to prevent layout jumps
         VStack(spacing: 16) {
             ForEach(0..<5, id: \.self) { _ in
                 VStack(spacing: 8) {
@@ -458,9 +650,13 @@ struct ScoreSkeletonView: View {
                 .background(Color(UIColor.tertiarySystemBackground))
                 .clipShape(RoundedRectangle(cornerRadius: 16))
             }
+
+            // Add some spacers to ensure a consistent minimum height
+            Spacer().frame(height: 20)
         }
         .padding(.horizontal)
         .padding(.top)
+        .frame(minHeight: 400)  // Ensures consistent height
         .opacity(isAnimating ? 0.6 : 1.0)
         .animation(
             Animation.easeInOut(duration: 1.2)

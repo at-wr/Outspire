@@ -224,27 +224,58 @@ Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
 
     @ViewBuilder
     private var detailView: some View {
+        // Use a switch with explicit NavigationStack wrapped views for better tab switching
         switch selectedLink {
         case "today":
-            TodayView()
+            NavigationStack {
+                TodayView()
+            }
+            .id("nav-today")
         case "classtable":
-            ClasstableView()
+            NavigationStack {
+                ClasstableView()
+            }
+            .id("nav-classtable")
         case "score":
-            ScoreView()
+            NavigationStack {
+                ScoreView()
+            }
+            .id("nav-score")
         case "club-info":
-            ClubInfoView()
+            NavigationStack {
+                ClubInfoView()
+            }
+            .id("nav-club-info")
         case "club-activity":
-            ClubActivitiesView()
+            NavigationStack {
+                ClubActivitiesView()
+            }
+            .id("nav-club-activity")
         case "school-arrangement":
-            SchoolArrangementView()
+            NavigationStack {
+                SchoolArrangementView()
+            }
+            .id("nav-school-arrangement")
         case "lunch-menu":
-            LunchMenuView()
+            NavigationStack {
+                LunchMenuView()
+            }
+            .id("nav-lunch-menu")
         case "help":
-            HelpView()
+            NavigationStack {
+                HelpView()
+            }
+            .id("nav-help")
         case "map":
-            MapView()
+            NavigationStack {
+                MapView()
+            }
+            .id("nav-map")
         default:
-            TodayView()
+            NavigationStack {
+                TodayView()
+            }
+            .id("nav-default")
         }
     }
 
