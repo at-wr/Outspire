@@ -53,7 +53,7 @@ struct ScoreView: View {
         }
         .onAppear {
             updateGradientForScoreView()
-            
+
             // Force a reset to the most recent term when the view appears
             if sessionService.isAuthenticated && viewModel.isUnlocked {
                 viewModel.selectMostRecentTerm()
@@ -153,7 +153,7 @@ struct ScoreView: View {
                                             // Only fetch if we're changing terms
                                             if viewModel.selectedTermId != term.W_YearID {
                                                 viewModel.selectedTermId = term.W_YearID
-                                                
+
                                                 // Save the selected term ID to make this choice persistent
                                                 UserDefaults.standard.set(term.W_YearID, forKey: "selectedTermId")
 
@@ -278,13 +278,13 @@ struct ScoreView: View {
 
                         // Add space at the bottom for better scrolling
                         Color.clear.frame(height: 30)
-                        
+
                         if !viewModel.scores.isEmpty {
                             VStack(spacing: 4) {
                                 Divider()
                                     .padding(.horizontal, 32)
                                     .padding(.bottom, 8)
-                                
+
                                 Text(viewModel.formattedLastUpdateTime)
                                     .font(.caption)
                                     .foregroundColor(.secondary)
@@ -318,8 +318,7 @@ struct ScoreView: View {
             // Error toast overlay - for network errors only, not for empty terms
             // Only show the overlay for actual errors, not for informational messages
             if let errorMessage = viewModel.errorMessage,
-                errorMessage.starts(with: "Failed")
-            {
+                errorMessage.starts(with: "Failed") {
                 VStack {
                     Spacer()  // Push error to bottom
 
@@ -368,8 +367,7 @@ struct ScoreView: View {
 
             // Check if there's stale data that needs refreshing
             if !viewModel.scores.isEmpty && !viewModel.isLoading
-                && !viewModel.isCacheValid(for: "scoresCacheTimestamp-\(viewModel.selectedTermId)")
-            {
+                && !viewModel.isCacheValid(for: "scoresCacheTimestamp-\(viewModel.selectedTermId)") {
                 // Silently refresh data if cache is stale
                 viewModel.fetchScores(forceRefresh: true)
             }
@@ -488,7 +486,7 @@ struct TermButton: View {
                 Text(term.W_Year)
                     .font(.system(size: 15, weight: isSelected ? .semibold : .regular))
                     .foregroundColor(isSelected ? .accentColor : .primary)
-                
+
                 Text("Term \(term.W_Term)")
                     .font(.system(size: 13))
                     .foregroundColor(isSelected ? .accentColor.opacity(0.8) : .secondary)
@@ -528,7 +526,7 @@ struct SubjectScoreCard: View {
                     .fill(subjectColor)
                     .frame(width: 4)
                     .cornerRadius(2)
-                
+
                 Text(subject.subjectName)
                     .font(.system(size: 17, weight: .medium))
                     .lineLimit(1)
@@ -571,7 +569,7 @@ struct SubjectScoreCard: View {
                 VStack(spacing: 0) {
                     Divider()
                         .padding(.horizontal)
-                    
+
                     VStack(spacing: 12) {
                         ForEach(subject.examScores.filter { $0.hasScore }) { exam in
                             HStack {

@@ -3,7 +3,7 @@ import SwiftUI
 struct LoadingView: View {
     let message: String
     var fixedHeight: CGFloat?
-    
+
     var body: some View {
         VStack(spacing: 15) {
             ProgressView()
@@ -23,7 +23,7 @@ struct LoadingView: View {
 #Preview {
     VStack {
         LoadingView(message: "Loading data...")
-        
+
         LoadingView(message: "Loading data with fixed height...", fixedHeight: 300)
             .background(Color.gray.opacity(0.1))
     }

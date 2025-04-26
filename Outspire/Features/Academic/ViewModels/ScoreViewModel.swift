@@ -71,10 +71,10 @@ class ScoreViewModel: ObservableObject {
     @Published var selectedTermId: String = ""
     @Published var lastUpdateTime: Date = Date()
     @Published var formattedLastUpdateTime: String = ""
-    
+
     // Track terms with available data
     @Published var termsWithData: Set<String> = []
-    
+
     private let sessionService = SessionService.shared
     private let cacheDuration: TimeInterval = 300
 
@@ -82,7 +82,7 @@ class ScoreViewModel: ObservableObject {
         loadCachedData()
         updateFormattedTimestamp()
     }
-    
+
     private func updateFormattedTimestamp() {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
@@ -95,17 +95,17 @@ class ScoreViewModel: ObservableObject {
         if let cachedTermsWithData = UserDefaults.standard.array(forKey: "termsWithData") as? [String] {
             self.termsWithData = Set(cachedTermsWithData)
         }
-        
+
         if let cachedTermsData = UserDefaults.standard.data(forKey: "cachedTerms"),
            let decodedTerms = try? JSONDecoder().decode([Term].self, from: cachedTermsData) {
             self.terms = decodedTerms
-            
+
             // First try to use the previously selected term if it exists
             if let savedTermId = UserDefaults.standard.string(forKey: "selectedTermId"),
                decodedTerms.contains(where: { $0.W_YearID == savedTermId }) {
                 self.selectedTermId = savedTermId
                 loadCachedScores(for: savedTermId)
-            } 
+            }
             // If no saved term or it's not in the list, always select the most recent term
             else if let mostRecentTerm = findMostRecentTerm(from: decodedTerms) {
                 self.selectedTermId = mostRecentTerm
@@ -116,54 +116,54 @@ class ScoreViewModel: ObservableObject {
             }
         }
     }
-    
+
     private func findMostRecentTermWithData(from terms: [Term]) -> String? {
         // Sort terms by year and term number in descending order
-        let sortedTerms = terms.sorted { 
+        let sortedTerms = terms.sorted {
             // First compare years
             if $0.W_Year != $1.W_Year {
                 return $0.W_Year > $1.W_Year
             }
             // Then compare term numbers
-            return $0.W_Term > $1.W_Term 
+            return $0.W_Term > $1.W_Term
         }
-        
+
         // Find the first term that has data
         return sortedTerms.first { termsWithData.contains($0.W_YearID) }?.W_YearID
     }
-    
+
     private func findMostRecentTerm(from terms: [Term]) -> String? {
         // Sort terms by year and term number in descending order
-        let sortedTerms = terms.sorted { 
+        let sortedTerms = terms.sorted {
             // First compare years
             if $0.W_Year != $1.W_Year {
                 return $0.W_Year > $1.W_Year
             }
             // Then compare term numbers
-            return $0.W_Term > $1.W_Term 
+            return $0.W_Term > $1.W_Term
         }
-        
+
         return sortedTerms.first?.W_YearID
     }
 
     private func loadCachedScores(for termId: String) {
         // Clear any previous error message when loading new scores
         self.errorMessage = nil
-        
+
         if let cachedData = UserDefaults.standard.data(forKey: "cachedScores-\(termId)"),
            let decodedScores = try? JSONDecoder().decode([Score].self, from: cachedData) {
             self.scores = decodedScores
-            
+
             // Load cached timestamp
             if let cachedTimestamp = UserDefaults.standard.object(forKey: "scoresCacheTimestamp-\(termId)") as? TimeInterval {
                 self.lastUpdateTime = Date(timeIntervalSince1970: cachedTimestamp)
             } else {
                 self.lastUpdateTime = Date()
             }
-            
+
             // Update the formatted timestamp
             updateFormattedTimestamp()
-            
+
             // Update termsWithData based on whether the cached scores are empty or not
             if !decodedScores.isEmpty {
                 termsWithData.insert(termId)
@@ -174,11 +174,11 @@ class ScoreViewModel: ObservableObject {
         } else {
             // If we can't load cached scores, clear the current scores
             self.scores = []
-            
+
             // Reset timestamp to current time
             self.lastUpdateTime = Date()
             updateFormattedTimestamp()
-            
+
             // Also remove this term from termsWithData since we have no data for it
             termsWithData.remove(termId)
             UserDefaults.standard.set(Array(termsWithData), forKey: "termsWithData")
@@ -195,12 +195,12 @@ class ScoreViewModel: ObservableObject {
     private func cacheScores(for termId: String, scores: [Score]) {
         if let encodedData = try? JSONEncoder().encode(scores) {
             UserDefaults.standard.set(encodedData, forKey: "cachedScores-\(termId)")
-            
+
             // Save current timestamp
             let currentTime = Date().timeIntervalSince1970
             UserDefaults.standard.set(currentTime, forKey: "scoresCacheTimestamp-\(termId)")
             self.lastUpdateTime = Date()
-            
+
             // Update terms with data set
             if !scores.isEmpty {
                 // If we got scores, add this term to the terms with data set
@@ -233,11 +233,11 @@ class ScoreViewModel: ObservableObject {
 
             context.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason) { [weak self] success, authenticationError in
                 guard let self = self else { return }
-                
+
                 // Small delay before updating UI to ensure smooth transitions
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                     self.isLoading = false
-                    
+
                     if success {
                         self.isUnlocked = true
                         self.errorMessage = nil
@@ -297,7 +297,7 @@ class ScoreViewModel: ObservableObject {
                     if let mostRecentTerm = self.findMostRecentTerm(from: terms) {
                         self.selectedTermId = mostRecentTerm
                     }
-                    
+
                     self.fetchScores()
 
                 case .failure(let error):
@@ -320,7 +320,7 @@ class ScoreViewModel: ObservableObject {
 
         // Set loading state first, before clearing scores
         isLoading = true
-        
+
         // Small delay before clearing scores to minimize layout jumps
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             // Clear any error message from previous requests - this will be set again if the request fails
@@ -328,7 +328,7 @@ class ScoreViewModel: ObservableObject {
             // Clear scores while loading - do this after a short delay to prevent layout jumps
             self.scores = []
         }
-        
+
         UserDefaults.standard.set(selectedTermId, forKey: "selectedTermId")
 
         let parameters = ["yearID": selectedTermId]
@@ -336,12 +336,12 @@ class ScoreViewModel: ObservableObject {
         // Using custom responseHandler to handle null responses properly
         fetchScoresWithNullHandling(parameters: parameters) { [weak self] result in
             guard let self = self else { return }
-            
+
             DispatchQueue.main.async {
                 // Small delay before updating UI to ensure smooth transitions
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                     self.isLoading = false
-                    
+
                     switch result {
                     case .success(let scores):
                         withAnimation {
@@ -350,7 +350,7 @@ class ScoreViewModel: ObservableObject {
                             self.lastUpdateTime = Date()
                             self.updateFormattedTimestamp()
                             self.cacheScores(for: self.selectedTermId, scores: scores)
-                            
+
                             // If scores are empty, show a contextual message based on term date
                             if scores.isEmpty {
                                 self.determineEmptyScoreMessage(for: self.selectedTermId)
@@ -367,7 +367,7 @@ class ScoreViewModel: ObservableObject {
             }
         }
     }
-    
+
     // Helper function to determine appropriate message for empty terms
     private func determineEmptyScoreMessage(for termId: String) {
         // Find the term object to get more context
@@ -375,21 +375,21 @@ class ScoreViewModel: ObservableObject {
             self.errorMessage = "No scores available for this term yet."
             return
         }
-        
+
         // Current date for comparison
         let currentDate = Date()
         let calendar = Calendar.current
         let currentYear = calendar.component(.year, from: currentDate)
-        
+
         // Extract year from the term.W_Year (assuming it's in a format that includes the year)
         guard let termYear = Int(term.W_Year) else {
             self.errorMessage = "No scores available for this term yet."
             return
         }
-        
+
         // Term number for sequence context
         let termNumber = Int(term.W_Term) ?? 0
-        
+
         // Logic for different messages based on term timing
         if termYear > currentYear {
             // Future term
@@ -405,31 +405,31 @@ class ScoreViewModel: ObservableObject {
             self.errorMessage = "No scores available for this term yet."
         }
     }
-    
+
     // Special handler for the API endpoint that might return null
     private func fetchScoresWithNullHandling(parameters: [String: String], completion: @escaping (Result<[Score], NetworkError>) -> Void) {
         guard let url = URL(string: "\(Configuration.baseURL)/php/search_student_score.php") else {
             completion(.failure(.invalidURL))
             return
         }
-        
+
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        
+
         var headers = ["Content-Type": "application/x-www-form-urlencoded"]
         if let sessionId = sessionService.sessionId {
             headers["Cookie"] = "PHPSESSID=\(sessionId)"
         }
         request.allHTTPHeaderFields = headers
-        
+
         // URL-encode parameter values - use the same encoding as NetworkService
         let paramString = parameters.map { key, value -> String in
             let encodedValue = value.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? value
             return "\(key)=\(encodedValue)"
         }.joined(separator: "&")
-        
+
         request.httpBody = paramString.data(using: .utf8)
-        
+
         URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {
                 DispatchQueue.main.async {
@@ -437,7 +437,7 @@ class ScoreViewModel: ObservableObject {
                 }
                 return
             }
-            
+
             // Check HTTP response for server errors
             if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode >= 400 {
                 DispatchQueue.main.async {
@@ -445,23 +445,23 @@ class ScoreViewModel: ObservableObject {
                 }
                 return
             }
-            
+
             guard let data = data, !data.isEmpty else {
                 DispatchQueue.main.async {
                     completion(.success([]))  // Empty array for no data
                 }
                 return
             }
-            
+
             // Check if the response is "null"
-            if let string = String(data: data, encoding: .utf8), 
+            if let string = String(data: data, encoding: .utf8),
                string.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == "null" {
                 DispatchQueue.main.async {
                     completion(.success([]))  // Empty array for null response
                 }
                 return
             }
-            
+
             // Normal JSON decoding for valid data
             do {
                 let decodedResponse = try JSONDecoder().decode([Score].self, from: data)
@@ -471,7 +471,7 @@ class ScoreViewModel: ObservableObject {
             } catch {
                 print("Score decoding error: \(error)")
                 print("Response data: \(String(data: data, encoding: .utf8) ?? "unable to convert to string")")
-                
+
                 DispatchQueue.main.async {
                     completion(.failure(.decodingError(error)))
                 }
@@ -482,15 +482,15 @@ class ScoreViewModel: ObservableObject {
     func refreshData() {
         // Clear any error message
         errorMessage = nil
-        
+
         // Update the last update time immediately to give visual feedback
         lastUpdateTime = Date()
         updateFormattedTimestamp()
-        
+
         // Force refresh data by fetching terms first
         fetchTerms(forceRefresh: true)
     }
-    
+
     // Method to explicitly select the most recent term
     func selectMostRecentTerm() {
         if let mostRecentTerm = findMostRecentTerm(from: terms) {
