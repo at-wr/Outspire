@@ -153,6 +153,9 @@ struct ScoreView: View {
                                             // Only fetch if we're changing terms
                                             if viewModel.selectedTermId != term.W_YearID {
                                                 viewModel.selectedTermId = term.W_YearID
+                                                
+                                                // Save the selected term ID to make this choice persistent
+                                                UserDefaults.standard.set(term.W_YearID, forKey: "selectedTermId")
 
                                                 // Scroll to make selected term visible
                                                 withAnimation {
@@ -186,13 +189,20 @@ struct ScoreView: View {
                     .frame(height: 60)
                     .background(Color(UIColor.secondarySystemBackground).opacity(0.7))
                     .onAppear {
-                        // Scroll to selected term when view appears
+                        // Scroll to selected term when view appears, but with a slight delay to ensure view is ready
                         if let selectedTerm = viewModel.terms.first(where: {
                             $0.W_YearID == viewModel.selectedTermId
                         }) {
                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                                 withAnimation {
                                     scrollProxy.scrollTo(selectedTerm.id, anchor: .center)
+                                }
+                            }
+                        } else if !viewModel.terms.isEmpty {
+                            // If for some reason the selected term isn't found, scroll to first term
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                withAnimation {
+                                    scrollProxy.scrollTo(viewModel.terms[0].id, anchor: .center)
                                 }
                             }
                         }

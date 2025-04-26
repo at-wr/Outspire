@@ -154,12 +154,21 @@ Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
                 .modifier(NavigationColumnWidthModifier()) // Apply column width correctly
                 .toolbar {
                     ToolbarItem(placement: .navigationBarTrailing) {
-                        Button(action: {
-                            settingsManager.showSettingsSheet.toggle()
-                        }) {
-                            Image(systemName: "gear")
+                        ZStack {
+                            Button(action: {
+                                settingsManager.showSettingsSheet.toggle()
+                            }) {
+                                Image(systemName: "gear")
+                            }
+                            .tipKit(settingsTip, shouldShowTip: currentActiveTip == "settings")
+                            
+                            // Additional non-interactive overlay for better tip targeting on iPhone
+                            if UIDevice.current.userInterfaceIdiom == .phone && currentActiveTip == "settings" {
+                                Color.clear
+                                    .frame(width: 44, height: 44)
+                                    .allowsHitTesting(false)
+                            }
                         }
-                        .tipKit(settingsTip, shouldShowTip: currentActiveTip == "settings")
                     }
                 }
                 .navigationTitle("Outspire")
@@ -329,33 +338,33 @@ Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
                     DispatchQueue.main.async {
                         self.currentActiveTip = "today"
                     }
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
                         self.currentActiveTip = "signin"
                     }
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 8.0) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 10.0) {
                         self.currentActiveTip = "settings"
                     }
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 12.0) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 15.0) {
                         self.currentActiveTip = nil
                     }
                 } else {
                     // For iPhone logged in: show Today tip then Settings tip
-                    DispatchQueue.main.async {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                         self.currentActiveTip = "today"
                     }
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 6.0) {
                         self.currentActiveTip = "settings"
                     }
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 8.0) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 11.0) {
                         self.currentActiveTip = nil
                     }
                 }
             } else {
                 // For non-iPhone devices, show only the Settings tip briefly
-                DispatchQueue.main.async {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                     self.currentActiveTip = "settings"
                 }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
                     self.currentActiveTip = nil
                 }
             }
@@ -455,10 +464,34 @@ extension View {
 struct TipViewModifier<T: Tip>: ViewModifier {
     let tip: T
     let shouldShowTip: Bool
-
+    
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    
     func body(content: Content) -> some View {
         if shouldShowTip {
-            content.popoverTip(tip)
+            if UIDevice.current.userInterfaceIdiom == .phone {
+                // On iPhone, use a different presentation style to avoid layout issues
+                content
+                    .overlay(
+                        Group {
+                            if UIDevice.current.userInterfaceIdiom == .phone && horizontalSizeClass == .compact {
+                                // For compact iPhone layouts, use TipView with padding and better positioning
+                                TipView(tip)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 4)
+                                    .offset(y: 40) // Offset to avoid overlapping the navigation bar
+                                    .zIndex(100) // Ensure the tip appears above other content
+                            } else {
+                                // For larger layouts, use standard popover
+                                EmptyView()
+                            }
+                        }
+                    )
+                    .popoverTip(tip, arrowEdge: .top)
+            } else {
+                // On iPad, use standard popover which works fine
+                content.popoverTip(tip)
+            }
         } else {
             content
         }

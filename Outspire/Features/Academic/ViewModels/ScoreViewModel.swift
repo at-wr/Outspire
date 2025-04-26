@@ -100,20 +100,19 @@ class ScoreViewModel: ObservableObject {
            let decodedTerms = try? JSONDecoder().decode([Term].self, from: cachedTermsData) {
             self.terms = decodedTerms
             
-            // First try to use the previously selected term
+            // First try to use the previously selected term if it exists
             if let savedTermId = UserDefaults.standard.string(forKey: "selectedTermId"),
-               termsWithData.contains(savedTermId) {
+               decodedTerms.contains(where: { $0.W_YearID == savedTermId }) {
                 self.selectedTermId = savedTermId
                 loadCachedScores(for: savedTermId)
             } 
-            // If no saved term or it has no data, find the most recent term with data
-            else if let mostRecentTermWithData = findMostRecentTermWithData(from: decodedTerms) {
-                self.selectedTermId = mostRecentTermWithData
-                loadCachedScores(for: mostRecentTermWithData)
-            }
-            // If no terms with data yet, just select the most recent term
+            // If no saved term or it's not in the list, always select the most recent term
             else if let mostRecentTerm = findMostRecentTerm(from: decodedTerms) {
                 self.selectedTermId = mostRecentTerm
+                // Only load cached scores if available for this term
+                if termsWithData.contains(mostRecentTerm) {
+                    loadCachedScores(for: mostRecentTerm)
+                }
             }
         }
     }
@@ -267,11 +266,8 @@ class ScoreViewModel: ObservableObject {
     func fetchTerms(forceRefresh: Bool = false) {
         if !forceRefresh && !terms.isEmpty && isCacheValid(for: "termsCacheTimestamp") {
             if selectedTermId.isEmpty {
-                // Try to find the most recent term with data
-                if let mostRecentTermWithData = findMostRecentTermWithData(from: terms) {
-                    selectedTermId = mostRecentTermWithData
-                    loadCachedScores(for: mostRecentTermWithData)
-                } else if let mostRecentTerm = findMostRecentTerm(from: terms) {
+                // Always prioritize the most recent term regardless of data availability
+                if let mostRecentTerm = findMostRecentTerm(from: terms) {
                     selectedTermId = mostRecentTerm
                 }
             }
@@ -297,21 +293,9 @@ class ScoreViewModel: ObservableObject {
                     self.terms = terms
                     self.cacheTerms(terms)
 
-                    // Always try to select the most recent term first, regardless of previous selection
+                    // Always select the most recent term
                     if let mostRecentTerm = self.findMostRecentTerm(from: terms) {
                         self.selectedTermId = mostRecentTerm
-                        
-                        // If the most recent term has data, load it
-                        if self.termsWithData.contains(mostRecentTerm) {
-                            self.loadCachedScores(for: mostRecentTerm)
-                        } else {
-                            // If there's no data for the most recent term,
-                            // try to find the most recent term that has data as a fallback
-                            if let mostRecentTermWithData = self.findMostRecentTermWithData(from: terms) {
-                                self.selectedTermId = mostRecentTermWithData
-                                self.loadCachedScores(for: mostRecentTermWithData)
-                            }
-                        }
                     }
                     
                     self.fetchScores()

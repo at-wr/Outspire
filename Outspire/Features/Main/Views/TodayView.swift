@@ -45,9 +45,10 @@ struct TodayView: View {
     @State private var skipTip: Bool = false
     @AppStorage("hasShownScheduleTip") private var hasShownScheduleTip: Bool = false
 
-@StateObject private var weatherManager = WeatherManager.shared
+@ObservedObject private var weatherManager = WeatherManager.shared
     @State private var hasStartedLiveActivity = false
     @State private var activeClassLiveActivities: [String: Bool] = [:]
+    @State private var isWeatherLoading = true
 
     @State private var isReturningFromSheet = false
 
@@ -100,14 +101,11 @@ struct TodayView: View {
             updateGradientColors()
 
             if let location = locationManager.userLocation {
+                isWeatherLoading = true
                 Task {
                     await weatherManager.fetchWeather(for: location)
-                }
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                if weatherManager.currentTemperature == "--", let location = locationManager.userLocation {
-                    Task {
-                        await weatherManager.fetchWeather(for: location)
+                    DispatchQueue.main.async {
+                        self.isWeatherLoading = false
                     }
                 }
             }
@@ -177,8 +175,12 @@ struct TodayView: View {
         }
         .onChange(of: locationManager.userLocation) { _, newLocation in
             if let location = newLocation {
+                isWeatherLoading = true
                 Task {
                     await weatherManager.fetchWeather(for: location)
+                    DispatchQueue.main.async {
+                        self.isWeatherLoading = false
+                    }
                 }
             }
         }
@@ -306,7 +308,8 @@ struct TodayView: View {
             isHolidayMode: isHolidayMode,
             animateCards: animateCards,
             weatherSymbol: weatherManager.conditionSymbol,
-            weatherTemperature: weatherManager.currentTemperature
+            weatherTemperature: weatherManager.currentTemperature,
+            isWeatherLoading: isWeatherLoading
         )
     }
 
@@ -463,6 +466,33 @@ struct TodayView: View {
         // Setup location services and region check - only once on appear
         setupLocationServices()
 
+        // Fetch weather if location is available
+        if let location = locationManager.userLocation {
+            isWeatherLoading = true
+            Task {
+                await weatherManager.fetchWeather(for: location)
+                DispatchQueue.main.async {
+                    self.isWeatherLoading = false
+                }
+            }
+        } else {
+            // Set a timer to fetch weather once location becomes available
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                if let location = self.locationManager.userLocation {
+                    self.isWeatherLoading = true
+                    Task {
+                        await self.weatherManager.fetchWeather(for: location)
+                        DispatchQueue.main.async {
+                            self.isWeatherLoading = false
+                        }
+                    }
+                } else {
+                    // Still no location, stop showing loading indicator
+                    self.isWeatherLoading = false
+                }
+            }
+        }
+
         // Setup notifications
         setupNotifications()
 
@@ -471,11 +501,15 @@ struct TodayView: View {
             self.currentTime = Date()
             let second = Calendar.current.component(.second, from: self.currentTime)
             // Refresh weather every 30 seconds or when a class transition is detected
-            if second % 30 == 0 || self.checkForClassTransition() {
+            if (second % 30 == 0 || self.checkForClassTransition()) && !isWeatherLoading {
                 self.forceUpdate.toggle()
                 if let location = locationManager.userLocation {
+                    self.isWeatherLoading = true
                     Task {
                         await weatherManager.fetchWeather(for: location)
+                        DispatchQueue.main.async {
+                            self.isWeatherLoading = false
+                        }
                     }
                 }
             }
@@ -863,6 +897,7 @@ struct HeaderView: View {
     let animateCards: Bool
     let weatherSymbol: String
     let weatherTemperature: String
+    let isWeatherLoading: Bool
 
     var body: some View {
         HStack {
@@ -884,7 +919,7 @@ struct HeaderView: View {
             }
             Spacer()
                 VStack(spacing: 4) {
-                    if weatherManager.isLoading {
+                    if isWeatherLoading {
                         ProgressView()
                             .progressViewStyle(.circular)
                             .frame(width: 24, height: 24)

@@ -10,11 +10,10 @@ class WeatherManager: ObservableObject {
 
     @Published var currentTemperature: String = "--"
     @Published var conditionSymbol: String = ""
-    @Published var isLoading: Bool = true
+    @Published var isLoading: Bool = false
 
     func fetchWeather(for location: CLLocation) async {
         isLoading = true
-        defer { isLoading = false }
         do {
             let weather = try await weatherService.weather(for: location)
             let temperatureValue = Int(weather.currentWeather.temperature.value.rounded())
@@ -64,8 +63,10 @@ class WeatherManager: ObservableObject {
             default:
                 self.conditionSymbol = "cloud.sun.fill"
             }
+            isLoading = false
         } catch {
             print("WeatherManager fetchWeather error: \(error)")
+            isLoading = false
         }
     }
 }

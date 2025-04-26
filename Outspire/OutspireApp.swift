@@ -216,10 +216,12 @@ class OutspireAppDelegate: NSObject, UIApplicationDelegate {
             LocationManager.shared.startUpdatingLocation()
         }
 
-        // Schedule notifications if permission was granted during onboarding
-        NotificationManager.shared.checkAuthorizationStatus { status in
-            if status == .authorized {
-                NotificationManager.shared.scheduleMorningETANotification()
+        // Schedule notifications only if enabled in settings AND permission was granted
+        if Configuration.departureNotificationsEnabled {
+            NotificationManager.shared.checkAuthorizationStatus { status in
+                if status == .authorized {
+                    NotificationManager.shared.scheduleMorningETANotification()
+                }
             }
         }
     }
