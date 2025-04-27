@@ -264,6 +264,7 @@ struct ActivitiesSection: View {
     @Binding var showingAddRecordSheet: Bool
     let animateList: Bool
     @State private var hasCompletedInitialLoad = false
+    @State private var loadAttempted = false
     @Environment(\.presentToast) var presentToast
 
     var body: some View {
@@ -288,13 +289,26 @@ struct ActivitiesSection: View {
                     }
                 }
                 .transition(.scale.combined(with: .opacity))
-            } else if viewModel.isLoadingActivities || !hasCompletedInitialLoad {
-                // Show skeleton during loading or before completing initial load
+            } else if viewModel.isLoadingActivities || !loadAttempted {
+                // Show skeleton during loading or before attempting to load data
                 ActivitySkeletonView()
                     .listRowInsets(EdgeInsets())
                     .listRowBackground(Color.clear)
                     .transition(.opacity)
                     .animation(.easeInOut(duration: 0.5), value: viewModel.isLoadingActivities)
+                    .onAppear {
+                        // Mark that we've attempted to load data
+                        if !loadAttempted {
+                            loadAttempted = true
+                            // If we still don't have groups, force-refresh
+                            if viewModel.groups.isEmpty {
+                                viewModel.fetchGroups()
+                            } else if viewModel.activities.isEmpty {
+                                // Force-refresh activities if we have groups but no activities
+                                viewModel.fetchActivityRecords(forceRefresh: true)
+                            }
+                        }
+                    }
             } else if viewModel.activities.isEmpty {
                 // Only show empty state after loading is complete and we confirmed no activities
                 ClubEmptyStateView(action: { showingAddRecordSheet.toggle() })
@@ -308,7 +322,7 @@ struct ActivitiesSection: View {
         }
         .onChange(of: viewModel.isLoadingActivities) { isLoading in
             // After loading completes, mark initial load as complete
-            if !isLoading && !hasCompletedInitialLoad {
+            if !isLoading {
                 hasCompletedInitialLoad = true
             }
         }

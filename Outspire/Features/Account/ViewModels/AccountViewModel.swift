@@ -276,6 +276,10 @@ class AccountViewModel: ObservableObject {
         password = ""
         captcha = ""
 
+        // Clear all cached data
+        CacheManager.clearAllCache()
+        
+        // Refresh the CAPTCHA for the login page
         fetchCaptchaImage()
         successMessage = "You've signed out"
 

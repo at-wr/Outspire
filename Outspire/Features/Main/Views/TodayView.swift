@@ -121,7 +121,7 @@ struct TodayView: View {
         }
         .onChange(of: selectedDayOverride) { _, newValue in
             Configuration.selectedDayOverride = newValue
-            forceUpdate.toggle()
+            forceContentRefresh()
             updateGradientColors()
             if timer == nil {
                 currentTime = Date()
@@ -129,11 +129,11 @@ struct TodayView: View {
         }
         .onChange(of: setAsToday) { _, newValue in
             Configuration.setAsToday = newValue
-            forceUpdate.toggle()
+            forceContentRefresh()
         }
         .onChange(of: isHolidayMode) { _, newValue in
             Configuration.isHolidayMode = newValue
-            forceUpdate.toggle()
+            forceContentRefresh()
             updateGradientColors()
         }
         .onChange(of: holidayHasEndDate) { _, newValue in
@@ -159,7 +159,8 @@ struct TodayView: View {
                 }
             }
         }
-        .id("todayView-\(sessionService.isAuthenticated)-\(forceUpdate)")
+        // Only use ID changes when authentication changes, not for every update
+        .id("todayView-\(sessionService.isAuthenticated)")
         .environment(\.colorScheme, colorScheme)
     }
 
@@ -472,16 +473,26 @@ struct TodayView: View {
         setupNotifications()
 
         // Timer to update current time - optimized to reduce unnecessary refreshes
-        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [self] _ in
+        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
+            // Only update the time
             self.currentTime = Date()
+    
+            // Reduced frequency check for class transitions and weather
             let second = Calendar.current.component(.second, from: self.currentTime)
-            // Refresh weather every 30 seconds or when a class transition is detected
-            if (second % 30 == 0 || self.checkForClassTransition()) && !isWeatherLoading {
-                self.forceUpdate.toggle()
-                if let location = locationManager.userLocation {
+    
+            // Only check for transitions every 10 seconds to reduce processing
+            if second % 10 == 0 {
+                if self.checkForClassTransition() {
+                    self.forceContentRefresh()
+                }
+            }
+    
+            // Refresh weather every 30 seconds with a more efficient check
+            if second % 30 == 0 && !self.isWeatherLoading {
+                if let location = self.locationManager.userLocation {
                     self.isWeatherLoading = true
                     Task {
-                        await weatherManager.fetchWeather(for: location)
+                        await self.weatherManager.fetchWeather(for: location)
                         DispatchQueue.main.async {
                             self.isWeatherLoading = false
                         }
@@ -731,25 +742,27 @@ struct TodayView: View {
         return currentDay <= endDay
     }
 
-    // Add helper method to detect class period changes
-    private func shouldRefreshClassInfo() -> Bool {
-        let calendar = Calendar.current
-        let currentMinute = calendar.component(.minute, from: Date())
-        let currentSecond = calendar.component(.second, from: Date())
-
-        // Check if we're at an exact class change time (0 seconds)
-        // Add common class change minutes to this array
-        let classChangeMinutes = [0, 5, 45, 35, 15, 30, 10, 55]
-
-        // Check if we're close to the end of a period (last 10 seconds)
-        if let upcoming = upcomingClassInfo, upcoming.isForToday && upcoming.period.isCurrentlyActive() {
-            let secondsRemaining = upcoming.period.endTime.timeIntervalSince(Date())
-            if secondsRemaining <= 10 && secondsRemaining > 0 {
-                return true
+    // Method to force refresh content without rebuilding the entire view
+    private func forceContentRefresh() {
+        // Reset animation state
+        withAnimation(.easeOut(duration: 0.2)) {
+            animateCards = false
+        }
+        
+        // Reload data if needed
+        if sessionService.isAuthenticated {
+            classtableViewModel.fetchTimetable()
+        }
+        
+        // Update current time
+        currentTime = Date()
+        
+        // Restart animations
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
+                self.animateCards = true
             }
         }
-
-        return classChangeMinutes.contains(currentMinute) && currentSecond == 0
     }
 
     // Safer method to detect class transitions
@@ -770,6 +783,27 @@ struct TodayView: View {
             }
         }
         return false
+    }
+    
+    // Add helper method to detect class period changes
+    private func shouldRefreshClassInfo() -> Bool {
+        let calendar = Calendar.current
+        let currentMinute = calendar.component(.minute, from: Date())
+        let currentSecond = calendar.component(.second, from: Date())
+
+        // Check if we're at an exact class change time (0 seconds)
+        // Add common class change minutes to this array
+        let classChangeMinutes = [0, 5, 45, 35, 15, 30, 10, 55]
+
+        // Check if we're close to the end of a period (last 10 seconds)
+        if let upcoming = upcomingClassInfo, upcoming.isForToday && upcoming.period.isCurrentlyActive() {
+            let secondsRemaining = upcoming.period.endTime.timeIntervalSince(Date())
+            if secondsRemaining <= 10 && secondsRemaining > 0 {
+                return true
+            }
+        }
+
+        return classChangeMinutes.contains(currentMinute) && currentSecond == 0
     }
 
     // In the existing startClassLiveActivityIfNeeded method, update to use the enhanced functionality:

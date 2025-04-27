@@ -108,6 +108,17 @@ class SessionService: ObservableObject {
         Configuration.setAsToday = false
         Configuration.isHolidayMode = false
         Configuration.holidayHasEndDate = false
+        Configuration.holidayEndDate = Date()
+
+        // Clear cookies
+        if let cookies = HTTPCookieStorage.shared.cookies {
+            for cookie in cookies {
+                HTTPCookieStorage.shared.deleteCookie(cookie)
+            }
+        }
+        
+        // Reset the network session
+        URLSession.shared.reset { }
 
         // Clear user defaults
         userDefaults.removeObject(forKey: "sessionId")
@@ -119,14 +130,7 @@ class SessionService: ObservableObject {
 
         // Cancel all notifications when user logs out
         NotificationManager.shared.cancelAllNotifications()
-
-        // Clear all cookies to ensure clean slate
-        if let cookies = HTTPCookieStorage.shared.cookies {
-            for cookie in cookies {
-                HTTPCookieStorage.shared.deleteCookie(cookie)
-            }
-        }
-
+        
         // Post notification that authentication has changed
         NotificationCenter.default.post(
             name: Notification.Name.authenticationStatusChanged,

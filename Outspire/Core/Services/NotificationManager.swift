@@ -37,7 +37,7 @@ class NotificationManager: ObservableObject {
         }
     }
 
-    // Schedule morning ETA notification for weekdays at 6:55 AM
+    // Schedule morning ETA notification for weekdays at the user-configured time
     func scheduleMorningETANotification() {
         // Remove any existing ETA notifications first
         cancelNotification(of: .morningETA)
@@ -54,10 +54,16 @@ class NotificationManager: ObservableObject {
             content.sound = UNNotificationSound.default
             content.categoryIdentifier = NotificationType.morningETA.rawValue
 
-            // Create a calendar trigger for 6:55 AM on weekdays (Monday=2 to Friday=6)
+            // Get the user's preferred notification time from Configuration
+            let notificationTime = Configuration.departureNotificationTime
+            let calendar = Calendar.current
+            let hour = calendar.component(.hour, from: notificationTime)
+            let minute = calendar.component(.minute, from: notificationTime)
+            
+            // Create a calendar trigger for the custom time on weekdays (Monday=2 to Friday=6)
             var dateComponents = DateComponents()
-            dateComponents.hour = 6
-            dateComponents.minute = 55
+            dateComponents.hour = hour
+            dateComponents.minute = minute
 
             // Set up a trigger for each weekday
             for weekday in 2...6 {
@@ -76,7 +82,7 @@ class NotificationManager: ObservableObject {
                     if let error = error {
                         print("Error scheduling morning ETA notification for weekday \(weekday): \(error)")
                     } else {
-                        print("Scheduled morning ETA notification for weekday \(weekday)")
+                        print("Scheduled morning ETA notification for weekday \(weekday) at \(hour):\(minute)")
                     }
                 }
             }

@@ -1,13 +1,40 @@
 import SwiftUI
+import UserNotifications
 
 struct SettingsNotificationsView: View {
     @State private var departureNotificationsEnabled = Configuration.departureNotificationsEnabled
-    @State private var automaticallyStartLiveActivities = Configuration.automaticallyStartLiveActivities
+    @State private var departureNotificationTime = Configuration.departureNotificationTime
+    @State private var automaticallyStartLiveActivities = Configuration
+        .automaticallyStartLiveActivities
     @State private var isRequestingPermission = false
     @State private var permissionDenied = false
-
+    @State private var notificationStatus: UNAuthorizationStatus = .notDetermined
+    
     var body: some View {
         List {
+            Section {
+                // Current permission status
+                HStack {
+                    Label("Permission Status", systemImage: "checkmark.shield")
+                    Spacer()
+                    Text(notificationStatusText)
+                        .foregroundColor(notificationStatusColor)
+                }
+                
+                if notificationStatus == .denied {
+                    Button(action: openSettings) {
+                        Label("Open System Settings", systemImage: "gear")
+                            .foregroundColor(.blue)
+                    }
+                }
+            } header: {
+                Text("Notification Permissions")
+            } footer: {
+                Text("Notifications must be enabled in iOS Settings to receive alerts from Outspire.")
+                    .font(.footnote)
+                    .foregroundColor(.secondary)
+            }
+            
             Section {
                 Toggle(isOn: $departureNotificationsEnabled) {
                     Label("Departure Notifications", systemImage: "bell")
@@ -23,12 +50,35 @@ struct SettingsNotificationsView: View {
                                 if granted {
                                     NotificationManager.shared.scheduleMorningETANotification()
                                 }
+                                // Refresh permission status after request
+                                checkNotificationPermission()
                             }
                         }
                     } else {
                         NotificationManager.shared.cancelNotification(of: .morningETA)
                     }
                 }
+                .disabled(notificationStatus == .denied)
+                
+                if departureNotificationsEnabled && notificationStatus == .authorized {
+                    HStack {
+                        Label("Notification Time", systemImage: "clock")
+                        Spacer()
+                        DatePicker(
+                            "Select time",
+                            selection: $departureNotificationTime,
+                            displayedComponents: .hourAndMinute
+                        )
+                        .labelsHidden()
+                        .onChange(of: departureNotificationTime) { _, newValue in
+                            Configuration.departureNotificationTime = newValue
+                            if departureNotificationsEnabled {
+                                NotificationManager.shared.scheduleMorningETANotification()
+                            }
+                        }
+                    }
+                }
+                
                 if isRequestingPermission {
                     ProgressView("Requesting Notification Permission…")
                 }
@@ -40,9 +90,11 @@ struct SettingsNotificationsView: View {
             } header: {
                 Text("Commute Reminders")
             } footer: {
-                Text("Enable to receive a morning notification reminding you to leave for school. You must grant notification permission.")
-                    .font(.footnote)
-                    .foregroundColor(.secondary)
+                Text(
+                    "Enable to receive a morning notification reminding you to leave for school. You must grant notification permission."
+                )
+                .font(.footnote)
+                .foregroundColor(.secondary)
             }
 
             Section {
@@ -52,17 +104,69 @@ struct SettingsNotificationsView: View {
                 .onChange(of: automaticallyStartLiveActivities) { _, newValue in
                     Configuration.automaticallyStartLiveActivities = newValue
                 }
+                .disabled(notificationStatus == .denied)
             } header: {
                 Text("Live Activities")
             } footer: {
-                Text("Enable to automatically start Live Activities for your classes. You can also start/stop them manually from the class view.")
-                    .font(.footnote)
-                    .foregroundColor(.secondary)
+                Text(
+                    "Enable to automatically start Live Activities for your classes. You can also remove them manually from the Lock Screen."
+                )
+                .font(.footnote)
+                .foregroundColor(.secondary)
             }
         }
         .toggleStyle(.switch)
         .navigationTitle("Notifications")
         .toolbarBackground(Color(UIColor.secondarySystemBackground))
         .contentMargins(.vertical, 10.0)
+        .onAppear {
+            checkNotificationPermission()
+        }
+    }
+    
+    // Check the current notification permission status
+    private func checkNotificationPermission() {
+        NotificationManager.shared.checkAuthorizationStatus { status in
+            self.notificationStatus = status
+        }
+    }
+    
+    // Helper to open the app's settings in iOS Settings
+    private func openSettings() {
+        if let url = URL(string: UIApplication.openSettingsURLString) {
+            UIApplication.shared.open(url)
+        }
+    }
+    
+    // Format the notification status as text
+    private var notificationStatusText: String {
+        switch notificationStatus {
+        case .authorized:
+            return "Allowed"
+        case .denied:
+            return "Denied"
+        case .provisional:
+            return "Provisional"
+        case .ephemeral:
+            return "Ephemeral"
+        case .notDetermined:
+            return "Not Determined"
+        @unknown default:
+            return "Unknown"
+        }
+    }
+    
+    // Color coding for the permission status
+    private var notificationStatusColor: Color {
+        switch notificationStatus {
+        case .authorized, .provisional, .ephemeral:
+            return .green
+        case .denied:
+            return .red
+        case .notDetermined:
+            return .orange
+        @unknown default:
+            return .gray
+        }
     }
 }

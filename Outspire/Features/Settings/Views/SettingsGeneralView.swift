@@ -15,7 +15,7 @@ struct SettingsGeneralView: View {
         List {
             Section {
                 Toggle(isOn: $useSSL) {
-                    Label("Enable Relay Encryption", systemImage: "lock.square")
+                    Label("Enable HTTPS Relay", systemImage: "lock.square")
                 }
                 .onChange(of: useSSL) { _, newValue in
                     Configuration.useSSL = newValue
@@ -23,9 +23,11 @@ struct SettingsGeneralView: View {
             } header: {
                 Text("Network")
             } footer: {
-                Text("Enables Hypertext Transfer Protocol Secure. Relay Service provided by developer.")
-                    .font(.footnote)
-                    .foregroundColor(.secondary)
+                Text(
+                    "Enables Hypertext Transfer Protocol Secure. Relay Service provided by developer."
+                )
+                .font(.footnote)
+                .foregroundColor(.secondary)
             }
 
             Section {
@@ -57,7 +59,8 @@ struct SettingsGeneralView: View {
                 .onChange(of: hideAcademicScore) { _, newValue in
                     Configuration.hideAcademicScore = newValue
                     let toast = ToastValue(
-                        icon: Image(systemName: "person.fill.checkmark").foregroundStyle(.secondary),
+                        icon: Image(systemName: "person.fill.checkmark").foregroundStyle(
+                            .secondary),
                         message: "Settings Saved"
                     )
                     presentToast(toast)
@@ -83,9 +86,11 @@ struct SettingsGeneralView: View {
             } header: {
                 Text("Data Management")
             } footer: {
-                Text("This will remove all locally cached data including groups, activities, and academic records.")
-                    .font(.footnote)
-                    .foregroundColor(.secondary)
+                Text(
+                    "This will remove all locally cached data including groups, activities, and academic records."
+                )
+                .font(.footnote)
+                .foregroundColor(.secondary)
             }
 
             Section {
@@ -125,7 +130,8 @@ struct SettingsGeneralView: View {
 
                 if showCacheCleared {
                     let toast = ToastValue(
-                        icon: Image(systemName: "externaldrive.badge.checkmark").foregroundStyle(.secondary),
+                        icon: Image(systemName: "externaldrive.badge.checkmark").foregroundStyle(
+                            .secondary),
                         message: "Cache Cleared"
                     )
                     presentToast(toast)

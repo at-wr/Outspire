@@ -13,15 +13,15 @@ struct GlassmorphicCard: ViewModifier {
                     // Base blur layer
                     RoundedRectangle(cornerRadius: 16)
                         .fill(.ultraThinMaterial)
-                        .opacity(colorScheme == .dark ? 0.8 : 0.92)
+                        .opacity(colorScheme == .dark ? 0.8 : 0.97) // Increased opacity in light mode from 0.92 to 0.97
 
                     // Subtle gradient overlay for depth
                     RoundedRectangle(cornerRadius: 16)
                         .fill(
                             LinearGradient(
                                 colors: [
-                                    Color.white.opacity(colorScheme == .dark ? 0.05 : 0.3),
-                                    Color.white.opacity(colorScheme == .dark ? 0.02 : 0.1)
+                                    Color.white.opacity(colorScheme == .dark ? 0.05 : 0.4), // Increased from 0.3 to 0.4
+                                    Color.white.opacity(colorScheme == .dark ? 0.02 : 0.15) // Increased from 0.1 to 0.15
                                 ],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing

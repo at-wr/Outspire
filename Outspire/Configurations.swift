@@ -12,6 +12,23 @@ struct Configuration {
             UserDefaults.standard.set(newValue, forKey: "departureNotificationsEnabled")
         }
     }
+    
+    static var departureNotificationTime: Date {
+        get {
+            if let storedTime = UserDefaults.standard.object(forKey: "departureNotificationTime") as? Date {
+                return storedTime
+            } else {
+                // Default time: 6:55 AM
+                var components = DateComponents()
+                components.hour = 6
+                components.minute = 55
+                return Calendar.current.date(from: components) ?? Date()
+            }
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "departureNotificationTime")
+        }
+    }
 
     static var useSSL: Bool {
         get {

@@ -157,58 +157,58 @@ Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
 
     @ViewBuilder
     private var detailView: some View {
-        // Use a switch with explicit NavigationStack wrapped views for better tab switching
+        // Use a NavigationStack wrapper for each view type
         switch selectedLink {
         case "today":
             NavigationStack {
                 TodayView()
+                    .id("today-nav-content")
             }
-            .id("nav-today")
         case "classtable":
             NavigationStack {
                 ClasstableView()
+                    .id("classtable-nav-content")
             }
-            .id("nav-classtable")
         case "score":
             NavigationStack {
                 ScoreView()
+                    .id("score-nav-content")
             }
-            .id("nav-score")
         case "club-info":
             NavigationStack {
                 ClubInfoView()
+                    .id("club-info-nav-content")
             }
-            .id("nav-club-info")
         case "club-activity":
             NavigationStack {
                 ClubActivitiesView()
+                    .id("club-activity-nav-content")
             }
-            .id("nav-club-activity")
         case "school-arrangement":
             NavigationStack {
                 SchoolArrangementView()
+                    .id("school-arrangement-nav-content")
             }
-            .id("nav-school-arrangement")
         case "lunch-menu":
             NavigationStack {
                 LunchMenuView()
+                    .id("lunch-menu-nav-content")
             }
-            .id("nav-lunch-menu")
         case "help":
             NavigationStack {
                 HelpView()
+                    .id("help-nav-content")
             }
-            .id("nav-help")
         case "map":
             NavigationStack {
                 MapView()
+                    .id("map-nav-content")
             }
-            .id("nav-map")
         default:
             NavigationStack {
                 TodayView()
+                    .id("default-nav-content")
             }
-            .id("nav-default")
         }
     }
 
