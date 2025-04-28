@@ -67,7 +67,7 @@ struct GradientSettingsView: View {
 
     var body: some View {
         List {
-#if !targetEnvironment(macCatalyst)
+#if DEBUG
             Section(header: Text("Gradient Preset")) {
                 Picker("Preset", selection: $selectedPreset) {
                     ForEach(GradientPreset.allCases.sorted(by: { $0.rawValue < $1.rawValue }), id: \.self) { preset in
@@ -148,7 +148,7 @@ struct GradientSettingsView: View {
             }
 
             Section {
-                Button("Reset to Default Settings") {
+                Button("Reset to Default") {
                     resetAllSettings()
                 }
                 .foregroundColor(.red)
@@ -157,11 +157,11 @@ struct GradientSettingsView: View {
 
             Section(header: Text("About Gradients")) {
                 Text("The app will automatically adjust gradients based on context, such as when you're in class or when it's a weekend.")
-                    .font(.caption)
+//                    .font(.caption)
                     .foregroundStyle(.secondary)
             }
         }
-        .navigationTitle("Gradient Settings")
+        .navigationTitle("Display")
         .onAppear {
             loadCurrentSettings()
         }

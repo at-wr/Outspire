@@ -70,44 +70,67 @@ class NetworkService {
             completion(.failure(.invalidURL))
             return
         }
-
+        
+        // Track if we're using SSL for this request (to check connection if it fails)
+        let isUsingSSL = Configuration.useSSL
+        
         var request = URLRequest(url: url)
         request.httpMethod = method.rawValue
-
+        request.timeoutInterval = 10.0 // Add a default timeout of 10 seconds
+        
         var headers = ["Content-Type": "application/x-www-form-urlencoded"]
         if let sessionId = sessionId {
             headers["Cookie"] = "PHPSESSID=\(sessionId)"
         }
         request.allHTTPHeaderFields = headers
-
+        
         if let parameters = parameters {
             // URL-encode parameter values with stricter encoding for form submissions
             let paramString = parameters.map { key, value -> String in
                 let encodedValue = value.addingPercentEncoding(withAllowedCharacters: Self.formURLEncodedAllowedCharacters) ?? value
                 return "\(key)=\(encodedValue)"
             }.joined(separator: "&")
-
+            
             request.httpBody = paramString.data(using: .utf8)
         }
-
+        
         URLSession.shared.dataTask(with: request) { data, response, error in
             DispatchQueue.main.async {
                 if let error = error {
+                    // Handle connection error
+                    print("Network request failed: \(error.localizedDescription)")
+                    
+                    // Check if this is a timeout or connectivity issue
+                    if let nsError = error as? NSError {
+                        if nsError.domain == NSURLErrorDomain && 
+                            (nsError.code == NSURLErrorTimedOut ||
+                             nsError.code == NSURLErrorCannotConnectToHost ||
+                             nsError.code == NSURLErrorNetworkConnectionLost ||
+                             nsError.code == NSURLErrorNotConnectedToInternet) {
+                            // This is a connectivity issue - check if we should switch servers
+                            ConnectivityManager.shared.handleNetworkRequestFailure(wasUsingSSL: isUsingSSL)
+                        }
+                    }
+                    
                     completion(.failure(.requestFailed(error)))
                     return
                 }
-
+                
                 guard let data = data else {
                     completion(.failure(.noData))
                     return
                 }
-
+                
                 if let httpResponse = response as? HTTPURLResponse,
-                    httpResponse.statusCode >= 400 {
+                   httpResponse.statusCode >= 400 {
+                    // Server error - also check connectivity if this is a serious server error
+                    if httpResponse.statusCode >= 500 {
+                        ConnectivityManager.shared.handleNetworkRequestFailure(wasUsingSSL: isUsingSSL)
+                    }
                     completion(.failure(.serverError(httpResponse.statusCode)))
                     return
                 }
-
+                
                 do {
                     let decodedResponse = try JSONDecoder().decode(T.self, from: data)
                     completion(.success(decodedResponse))

@@ -8,9 +8,9 @@ struct MenuItemView: View {
         case .general:
             Label("General", systemImage: "switch.2")
         case .notifications:
-            Label("Notifications", systemImage: "bell")
+            Label("Notifications", systemImage: "bell.badge")
         case .gradients:
-            Label("Gradients", systemImage: "paintpalette")
+            Label("Display", systemImage: "paintpalette")
         case .license:
             Label("Open Source Licenses", systemImage: "doc.text")
         case .about:

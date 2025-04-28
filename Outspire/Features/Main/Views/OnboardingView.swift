@@ -183,6 +183,9 @@ struct OnboardingView: View {
         .onAppear {
             hasAppeared = true
             checkPermissionStatus()
+            
+            // Mark onboarding as active to prevent alerts during onboarding
+            ConnectivityManager.shared.setOnboardingActive(true)
 
             // Set initial focus
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
@@ -190,6 +193,10 @@ struct OnboardingView: View {
             }
         }
         .interactiveDismissDisabled(true)
+        .onDisappear {
+            // Mark onboarding as inactive when view disappears
+            ConnectivityManager.shared.setOnboardingActive(false)
+        }
         .onChange(of: isPresented) { _, newValue in
             if !newValue && !hasAppeared {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
@@ -413,6 +420,8 @@ struct OnboardingView: View {
 
     private func markOnboardingComplete() {
         UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
+        // Make sure to mark onboarding as inactive
+        ConnectivityManager.shared.setOnboardingActive(false)
     }
 }
 

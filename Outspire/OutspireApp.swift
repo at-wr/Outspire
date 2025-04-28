@@ -21,6 +21,9 @@ struct OutspireApp: App {
 
     // Add gradient manager
     @StateObject private var gradientManager = GradientManager()
+    
+    // Add connectivity manager
+    @StateObject private var connectivityManager = ConnectivityManager.shared
 
     // Add observer for widget data updates
     @StateObject private var widgetDataManager = WidgetDataManager()
@@ -60,13 +63,28 @@ struct OutspireApp: App {
                 .environmentObject(settingsManager) // Add settings manager
                 .environmentObject(urlSchemeHandler) // Add URL scheme handler
                 .environmentObject(gradientManager) // Add gradient manager to environment
+                .environmentObject(connectivityManager) // Add connectivity manager
                 .installToast(position: .top)
                 .environmentObject(widgetDataManager)
+                .withConnectivityAlerts() // Add the connectivity alerts
                 .onAppear {
                     // Setup widget data sharing
                     setupWidgetDataSharing()
                     // Setup URL Scheme Handler
                     URLSchemeHandler.shared.setAppReady()
+                    // Start connectivity monitoring
+                    connectivityManager.startMonitoring()
+                }
+                .onChange(of: scenePhase) { _, newPhase in
+                    if newPhase == .active {
+                        // Check connectivity when app becomes active
+                        connectivityManager.checkConnectivity()
+                        
+                        // Also refresh session status if needed
+                        if sessionService.isAuthenticated && sessionService.userInfo == nil {
+                            sessionService.fetchUserInfo { _, _ in }
+                        }
+                    }
                 }
                 // Handle URLs when app is already running
                 .onOpenURL { url in

@@ -15,7 +15,7 @@ struct SettingsNotificationsView: View {
             Section {
                 // Current permission status
                 HStack {
-                    Label("Permission Status", systemImage: "checkmark.shield")
+                    Label("Notification Status", systemImage: "app.badge")
                     Spacer()
                     Text(notificationStatusText)
                         .foregroundColor(notificationStatusColor)
@@ -28,16 +28,16 @@ struct SettingsNotificationsView: View {
                     }
                 }
             } header: {
-                Text("Notification Permissions")
+                Text("Permissions")
             } footer: {
-                Text("Notifications must be enabled in iOS Settings to receive alerts from Outspire.")
+                Text("Notifications must be enabled in Settings to receive alerts from Outspire.")
                     .font(.footnote)
                     .foregroundColor(.secondary)
             }
             
             Section {
                 Toggle(isOn: $departureNotificationsEnabled) {
-                    Label("Departure Notifications", systemImage: "bell")
+                    Label("Departure Reminder", systemImage: "car")
                 }
                 .onChange(of: departureNotificationsEnabled) { _, newValue in
                     Configuration.departureNotificationsEnabled = newValue
@@ -88,10 +88,10 @@ struct SettingsNotificationsView: View {
                         .foregroundColor(.red)
                 }
             } header: {
-                Text("Commute Reminders")
+                Text("Notifications")
             } footer: {
                 Text(
-                    "Enable to receive a morning notification reminding you to leave for school. You must grant notification permission."
+                    "Enable to receive a morning notification reminding you to leave for school."
                 )
                 .font(.footnote)
                 .foregroundColor(.secondary)
@@ -109,7 +109,7 @@ struct SettingsNotificationsView: View {
                 Text("Live Activities")
             } footer: {
                 Text(
-                    "Enable to automatically start Live Activities for your classes. You can also remove them manually from the Lock Screen."
+                    "Enable to automatically start Live Activities for your classes."
                 )
                 .font(.footnote)
                 .foregroundColor(.secondary)

@@ -10,16 +10,41 @@ struct SettingsGeneralView: View {
     @State private var showClearCacheConfirmation = false
     @State private var showCacheCleared = false
     @Environment(\.colorScheme) private var colorScheme
+    @StateObject private var connectivityManager = ConnectivityManager.shared
 
     var body: some View {
         List {
             Section {
                 Toggle(isOn: $useSSL) {
-                    Label("Enable HTTPS Relay", systemImage: "lock.square")
+//                    HStack {
+                        Label("Enable HTTPS Relay", systemImage: "lock.square")
+
+//                        if connectivityManager.isCheckingConnectivity {
+//                            ProgressView()
+//                                .controlSize(.small)
+//                                .padding(.horizontal, 4)
+//                        }
+//                    }
                 }
                 .onChange(of: useSSL) { _, newValue in
                     Configuration.useSSL = newValue
+                    connectivityManager.userToggledRelay(isEnabled: newValue)
                 }
+
+//                #if DEBUG
+//                Button {
+//                    connectivityManager.checkConnectivity(forceCheck: true)
+//                    let toast = ToastValue(
+//                        icon: Image(systemName: "arrow.clockwise").foregroundStyle(.secondary),
+//                        message: "Checking connectivity..."
+//                    )
+//                    presentToast(toast)
+//                } label: {
+//                    Label("Check Connection", systemImage: "arrow.triangle.2.circlepath")
+//                        .font(.subheadline)
+//                }
+//                #endif
+
             } header: {
                 Text("Network")
             } footer: {
