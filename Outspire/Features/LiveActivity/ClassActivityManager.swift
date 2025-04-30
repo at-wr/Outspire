@@ -139,8 +139,6 @@ if #available(iOS 16.2, *) {
 
         schedulePeriodicUpdates(activityId: activityId, startTime: startTime, endTime: endTime)
 
-        scheduleEndOfActivity(activity: activity, endTime: endTime)
-
         let now = Date()
         if now < startTime {
             scheduleStatusUpdate(activity: activity, activityId: activityId, startTime: startTime, endTime: endTime)
@@ -157,7 +155,8 @@ if #available(iOS 16.2, *) {
     }
 
     private func schedulePeriodicUpdates(activityId: String, startTime: Date, endTime: Date) {
-        let timer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] timer in
+        // Update more frequently for smoother progress
+        let timer = Timer.scheduledTimer(withTimeInterval: 15, repeats: true) { [weak self] timer in
             guard let self = self, let activity = self.activeClassActivities[activityId] else {
                 timer.invalidate()
                 return
@@ -165,11 +164,12 @@ if #available(iOS 16.2, *) {
 
             let now = Date()
 
-            if (activity.content.state.currentStatus == .upcoming && startTime.timeIntervalSince(now) < 300) ||
-               (activity.content.state.currentStatus != .upcoming && endTime.timeIntervalSince(now) < 300) {
-                timer.tolerance = 5
+            // Adjust tolerance based on new interval
+            if (activity.content.state.currentStatus == .upcoming && startTime.timeIntervalSince(now) < 180) ||
+               (activity.content.state.currentStatus != .upcoming && endTime.timeIntervalSince(now) < 180) {
+                timer.tolerance = 2 // Tighter tolerance when close to start/end
             } else {
-                timer.tolerance = 15
+                timer.tolerance = 5  // Standard tolerance
             }
 
             self.updateActivityState(activityId: activityId, startTime: startTime, endTime: endTime)
@@ -320,8 +320,6 @@ if #available(iOS 16.2, *) {
 
             schedulePeriodicUpdates(activityId: activityId, startTime: startTime, endTime: endTime)
 
-            scheduleEndOfActivity(activity: activity, endTime: endTime)
-
             if initialStatus == .upcoming {
                 scheduleStatusUpdate(activity: activity, activityId: activityId, startTime: startTime, endTime: endTime)
             } else {
@@ -357,15 +355,15 @@ if #available(iOS 16.2, *) {
         } else {
             timeRemaining = 0
             progress = 1.0
-
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
-                self?.endActivity(for: activityId)
-            }
+            // End the activity directly when the time is up
+            // Use .default dismissal policy for natural ending
+            self.endActivity(for: activityId, dismissalPolicy: .default)
             return
         }
 
+        // Update more frequently if progress changed noticeably or status changed
         let shouldUpdate = newStatus != activity.content.state.currentStatus ||
-                          abs(progress - activity.content.state.progress) > 0.01
+                          abs(progress - activity.content.state.progress) > 0.005 // Lower threshold for smoother updates
 
         if shouldUpdate {
             Task {
@@ -431,33 +429,19 @@ if #available(iOS 16.2, *) {
         }
     }
 
-    private func scheduleEndOfActivity(activity: Activity<ClassActivityAttributes>, endTime: Date) {
-        let now = Date()
-
-        let activityEndTime = endTime.addingTimeInterval(30)
-
-        guard activityEndTime > now else {
-            endActivity(for: activity.id)
-            return
-        }
-
-        let delay = activityEndTime.timeIntervalSince(now)
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
-            self?.endActivity(for: activity.id)
-        }
-    }
-
-    func endActivity(for activityId: String) {
+    func endActivity(for activityId: String, dismissalPolicy: ActivityUIDismissalPolicy = .immediate) {
         for (id, activity) in activeClassActivities where activity.id == activityId {
             Task {
+                let finalContent = activity.content // Use last known content or a specific 'ended' state if desired
                 if #available(iOS 16.2, *) {
-                    await activity.end(nil, dismissalPolicy: .immediate)
+                    await activity.end(ActivityContent(state: finalContent.state, staleDate: Date()), dismissalPolicy: dismissalPolicy)
                 } else {
-                    await activity.end(dismissalPolicy: .immediate)
+                    // Prior to 16.2, content update on end is not directly supported, rely on dismissal policy
+                    await activity.end(dismissalPolicy: dismissalPolicy)
                 }
                 activeClassActivities.removeValue(forKey: id)
-                print("Ended Live Activity with ID: \(activityId)")
+                cancelExistingTimers(for: id) // Ensure timers are cancelled on end
+                print("Ended Live Activity with ID: \(activityId) using policy: \(dismissalPolicy)")
             }
             break
         }
@@ -488,16 +472,9 @@ if #available(iOS 16.2, *) {
         let activityId = "\(periodNumber)_\(className)"
 
         if let existingActivity = activeClassActivities[activityId] {
-        Task {
-            if #available(iOS 16.2, *) {
-                await existingActivity.end(nil, dismissalPolicy: .immediate)
-            } else {
-                await existingActivity.end(dismissalPolicy: .immediate)
-            }
-            activeClassActivities.removeValue(forKey: activityId)
-            cancelExistingTimers(for: activityId)
+            // Manually ending should be immediate
+            endActivity(for: activityId, dismissalPolicy: .immediate)
             print("Manually ended Live Activity with ID: \(existingActivity.id)")
-        }
         return false
         } else {
         startOrUpdateClassActivity(
