@@ -116,7 +116,7 @@ class SessionService: ObservableObject {
                 HTTPCookieStorage.shared.deleteCookie(cookie)
             }
         }
-        
+
         // Reset the network session
         URLSession.shared.reset { }
 
@@ -130,7 +130,7 @@ class SessionService: ObservableObject {
 
         // Cancel all notifications when user logs out
         NotificationManager.shared.cancelAllNotifications()
-        
+
         // Post notification that authentication has changed
         NotificationCenter.default.post(
             name: Notification.Name.authenticationStatusChanged,

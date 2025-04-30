@@ -2,7 +2,7 @@ import SwiftUI
 
 struct ConnectivityAlertsViewModifier: ViewModifier {
     @ObservedObject var connectivityManager = ConnectivityManager.shared
-    
+
     func body(content: Content) -> some View {
         content
             // Alert for no internet connection
@@ -11,7 +11,7 @@ struct ConnectivityAlertsViewModifier: ViewModifier {
             } message: {
                 Text("Please check your internet connection and try again.")
             }
-            
+
             // Alert for relay server suggestion
             .alert("Connection Issues", isPresented: $connectivityManager.showRelayAlert) {
                 Button("Not Now", role: .cancel) {
@@ -23,7 +23,7 @@ struct ConnectivityAlertsViewModifier: ViewModifier {
             } message: {
                 Text("Possibly due to GeoIP or Network restrictions, direct connection to the school server is not available. Would you like to use the Relay server instead?")
             }
-            
+
             // Alert for direct connection suggestion
             .alert("Faster Connection Available", isPresented: $connectivityManager.showDirectAlert) {
                 Button("Not Now", role: .cancel) {

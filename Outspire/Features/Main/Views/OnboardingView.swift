@@ -183,7 +183,7 @@ struct OnboardingView: View {
         .onAppear {
             hasAppeared = true
             checkPermissionStatus()
-            
+
             // Mark onboarding as active to prevent alerts during onboarding
             ConnectivityManager.shared.setOnboardingActive(true)
 

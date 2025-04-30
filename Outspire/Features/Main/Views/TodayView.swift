@@ -476,17 +476,17 @@ struct TodayView: View {
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
             // Only update the time
             self.currentTime = Date()
-    
+
             // Reduced frequency check for class transitions and weather
             let second = Calendar.current.component(.second, from: self.currentTime)
-    
+
             // Only check for transitions every 10 seconds to reduce processing
             if second % 10 == 0 {
                 if self.checkForClassTransition() {
                     self.forceContentRefresh()
                 }
             }
-    
+
             // Refresh weather every 30 seconds with a more efficient check
             if second % 30 == 0 && !self.isWeatherLoading {
                 if let location = self.locationManager.userLocation {
@@ -748,15 +748,15 @@ struct TodayView: View {
         withAnimation(.easeOut(duration: 0.2)) {
             animateCards = false
         }
-        
+
         // Reload data if needed
         if sessionService.isAuthenticated {
             classtableViewModel.fetchTimetable()
         }
-        
+
         // Update current time
         currentTime = Date()
-        
+
         // Restart animations
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
@@ -784,7 +784,7 @@ struct TodayView: View {
         }
         return false
     }
-    
+
     // Add helper method to detect class period changes
     private func shouldRefreshClassInfo() -> Bool {
         let calendar = Calendar.current

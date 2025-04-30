@@ -21,7 +21,7 @@ struct OutspireApp: App {
 
     // Add gradient manager
     @StateObject private var gradientManager = GradientManager()
-    
+
     // Add connectivity manager
     @StateObject private var connectivityManager = ConnectivityManager.shared
 
@@ -79,7 +79,7 @@ struct OutspireApp: App {
                     if newPhase == .active {
                         // Check connectivity when app becomes active
                         connectivityManager.checkConnectivity()
-                        
+
                         // Also refresh session status if needed
                         if sessionService.isAuthenticated && sessionService.userInfo == nil {
                             sessionService.fetchUserInfo { _, _ in }

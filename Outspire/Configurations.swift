@@ -12,7 +12,7 @@ struct Configuration {
             UserDefaults.standard.set(newValue, forKey: "departureNotificationsEnabled")
         }
     }
-    
+
     static var departureNotificationTime: Date {
         get {
             if let storedTime = UserDefaults.standard.object(forKey: "departureNotificationTime") as? Date {

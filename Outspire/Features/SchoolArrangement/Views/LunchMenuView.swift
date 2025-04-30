@@ -583,7 +583,7 @@ struct LunchMenuSkeletonView: View {
                 // Add spacing at the top to account for the search bar
                 Spacer()
                     .frame(height: 16)
-                
+
                 // Add year header skeleton
                 HStack {
                     RoundedRectangle(cornerRadius: 4)
@@ -594,7 +594,7 @@ struct LunchMenuSkeletonView: View {
                 }
                 .padding(.horizontal, 8)
                 .padding(.bottom, 4)
-                
+
                 ForEach(0..<3, id: \.self) { index in
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
