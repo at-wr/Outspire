@@ -2,6 +2,7 @@
 
 # Outspire
 [![Xcode Build & Test](https://github.com/at-wr/Outspire/actions/workflows/build_test.yml/badge.svg)](https://github.com/at-wr/Outspire/actions/workflows/build_test.yml)
+[![App Store](https://img.shields.io/badge/App_Store-0D96F6?logo=app-store&logoColor=white)](https://apps.apple.com/us/app/outspire/id6743143348)
 
 Your all-in-one WFLA campus companian. It's an iOS app for WFLA TSIMS, which is also compatible with macOS.
 
