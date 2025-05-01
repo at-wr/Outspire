@@ -11,7 +11,7 @@ struct WeatherIconView: View {
 
     private var renderingMode: SymbolRenderingMode {
         // Use hierarchical for single-layer symbols like cloud.fill
-        if conditionSymbol == "cloud.fill" || conditionSymbol == "wind" || conditionSymbol == "cloud.hail" || conditionSymbol == "cloud.snow" || conditionSymbol == "wind.snow" || conditionSymbol == "hurricane" || conditionSymbol == "tropicalstorm" {
+        if conditionSymbol == "cloud.fill" || conditionSymbol == "wind" || conditionSymbol == "cloud.hail" || conditionSymbol == "cloud.snow" || conditionSymbol == "wind.snow" || conditionSymbol == "hurricane" || conditionSymbol == "tropicalstorm" || conditionSymbol == "cloud.bolt.rain.fill" {
             return .hierarchical
         } else {
             return .palette
@@ -20,7 +20,7 @@ struct WeatherIconView: View {
 
     private var colors: AnyShapeStyle {
         // Use hierarchical for single-layer symbols like cloud.fill
-        if conditionSymbol == "cloud.fill" || conditionSymbol == "wind" || conditionSymbol == "cloud.hail" || conditionSymbol == "cloud.snow" || conditionSymbol == "wind.snow" || conditionSymbol == "hurricane" || conditionSymbol == "tropicalstorm" {
+        if conditionSymbol == "cloud.fill" || conditionSymbol == "wind" || conditionSymbol == "cloud.hail" || conditionSymbol == "cloud.snow" || conditionSymbol == "wind.snow" || conditionSymbol == "hurricane" || conditionSymbol == "tropicalstorm" || conditionSymbol == "cloud.bolt.rain.fill" {
             // For hierarchical, just use the accent color
             return AnyShapeStyle(accentColor)
         } else {
@@ -52,7 +52,7 @@ struct WeatherIconView: View {
             return .weatherDrizzle
         case "cloud.rain.fill":
             return .weatherRain
-        case "cloud.bolt.rain.fillw": // Note: This symbol name seems incorrect, should be cloud.bolt.rain.fill
+        case "cloud.bolt.rain.fill": // fixed symbol from cloud.bolt.rain.fillw to fill
             return .weatherThunderstorm
         case "wind":
             return .weatherWind
@@ -81,7 +81,7 @@ struct WeatherIconView_Previews: PreviewProvider {
             WeatherIconView(conditionSymbol: "cloud.sun.fill")
             WeatherIconView(conditionSymbol: "cloud.fill")
             WeatherIconView(conditionSymbol: "cloud.rain.fill")
-            WeatherIconView(conditionSymbol: "cloud.bolt.rain.fillw") // Check this symbol
+            WeatherIconView(conditionSymbol: "cloud.bolt.rain.fill") // fixed typo
             WeatherIconView(conditionSymbol: "cloud.snow")
         }
         .padding()
@@ -94,7 +94,7 @@ struct WeatherIconView_Previews: PreviewProvider {
             WeatherIconView(conditionSymbol: "cloud.sun.fill")
             WeatherIconView(conditionSymbol: "cloud.fill")
             WeatherIconView(conditionSymbol: "cloud.rain.fill")
-            WeatherIconView(conditionSymbol: "cloud.bolt.rain.fillw") // Check this symbol
+            WeatherIconView(conditionSymbol: "cloud.bolt.rain.fill") // fixed typo
             WeatherIconView(conditionSymbol: "cloud.snow")
         }
         .padding()

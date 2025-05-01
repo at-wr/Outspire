@@ -143,8 +143,8 @@ struct TodayView: View {
         .onChange(of: upcomingClassInfo?.period.id) { _, _ in
             startClassLiveActivityIfNeeded(forceCheck: true)
         }
-        .onChange(of: locationManager.userLocation) { _, newLocation in
-            if let location = newLocation {
+        .onReceive(NotificationCenter.default.publisher(for: .locationSignificantChange)) { _ in
+            if let location = locationManager.userLocation {
                 isWeatherLoading = true
                 Task {
                     await weatherManager.fetchWeather(for: location)
@@ -480,7 +480,8 @@ struct TodayView: View {
                 }
             }
 
-            // Removed frequent weather refresh to prevent shaking; weather now updates only on location change or onAppear
+            // Removed frequent weather refresh to prevent the weird issue :(
+            // Weather now updates only on location change or onAppear :(
         }
 
         // Handle animations differently depending on context
@@ -909,21 +910,20 @@ struct HeaderView: View {
                     .padding(.top, 2)
             }
             Spacer()
-                VStack(spacing: 4) {
-                    if isWeatherLoading {
-                        ProgressView()
-                            .progressViewStyle(.circular)
-                            .frame(width: 24, height: 24)
-                    } else {
-                        WeatherIconView(conditionSymbol: weatherSymbol)
-                            .font(.title2)
-                        Text(weatherTemperature)
-                            .font(.caption)
-                            .monospacedDigit()    // Use monospaced digits to avoid width changes
-                            .frame(width: 40, alignment: .trailing)
-                    }
-                }
-                .padding(6)
+            HStack(spacing: 4) {
+                // Always present to stabilize layout
+                WeatherIconView(conditionSymbol: weatherSymbol)
+                    .font(.subheadline)
+                    .opacity(isWeatherLoading ? 0 : 1)
+                Text(weatherTemperature)
+                    .font(.caption)
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
+                    .opacity(isWeatherLoading ? 0 : 1)
+            }
+            .frame(minWidth: 50, alignment: .trailing)
+            .padding(6)
+            .animation(.easeInOut(duration: 0.3), value: isWeatherLoading)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal)

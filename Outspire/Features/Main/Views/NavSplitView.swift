@@ -171,8 +171,7 @@ Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
         switch selectedLink {
         case "today":
             NavigationStack {
-                TodayView()
-                    .id("today-nav-content")
+                TodayView() // Removed explicit id to enable default transition animations
             }
         case "classtable":
             NavigationStack {
