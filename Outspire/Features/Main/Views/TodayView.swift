@@ -74,8 +74,6 @@ struct TodayView: View {
         }
         .sheet(isPresented: $isSettingsSheetPresented, onDismiss: {
             isReturningFromSheet = true
-
-            animateCards = true
             updateGradientColors()
         }) {
             scheduleSettingsSheet
@@ -121,7 +119,6 @@ struct TodayView: View {
         }
         .onChange(of: selectedDayOverride) { _, newValue in
             Configuration.selectedDayOverride = newValue
-            forceContentRefresh()
             updateGradientColors()
             if timer == nil {
                 currentTime = Date()
@@ -129,11 +126,9 @@ struct TodayView: View {
         }
         .onChange(of: setAsToday) { _, newValue in
             Configuration.setAsToday = newValue
-            forceContentRefresh()
         }
         .onChange(of: isHolidayMode) { _, newValue in
             Configuration.isHolidayMode = newValue
-            forceContentRefresh()
             updateGradientColors()
         }
         .onChange(of: holidayHasEndDate) { _, newValue in
@@ -159,8 +154,6 @@ struct TodayView: View {
                 }
             }
         }
-        // Only use ID changes when authentication changes, not for every update
-        .id("todayView-\(sessionService.isAuthenticated)")
         .environment(\.colorScheme, colorScheme)
     }
 
@@ -487,18 +480,7 @@ struct TodayView: View {
                 }
             }
 
-            // Refresh weather every 30 seconds with a more efficient check
-            if second % 30 == 0 && !self.isWeatherLoading {
-                if let location = self.locationManager.userLocation {
-                    self.isWeatherLoading = true
-                    Task {
-                        await self.weatherManager.fetchWeather(for: location)
-                        DispatchQueue.main.async {
-                            self.isWeatherLoading = false
-                        }
-                    }
-                }
-            }
+            // Removed frequent weather refresh to prevent shaking; weather now updates only on location change or onAppear
         }
 
         // Handle animations differently depending on context
@@ -937,6 +919,8 @@ struct HeaderView: View {
                             .font(.title2)
                         Text(weatherTemperature)
                             .font(.caption)
+                            .monospacedDigit()    // Use monospaced digits to avoid width changes
+                            .frame(width: 40, alignment: .trailing)
                     }
                 }
                 .padding(6)
