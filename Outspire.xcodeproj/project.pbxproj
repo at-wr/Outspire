@@ -12,6 +12,7 @@
 		6E4BCC772D87E12B00C10AEA /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6E4BCC762D87E12B00C10AEA /* WidgetKit.framework */; };
 		6E4BCC792D87E12B00C10AEA /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6E4BCC782D87E12B00C10AEA /* SwiftUI.framework */; };
 		6E4BCC8A2D87E12C00C10AEA /* OutspireWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 6E4BCC752D87E12B00C10AEA /* OutspireWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		6E587DB92DC3F62B00394872 /* SwiftOpenAI in Frameworks */ = {isa = PBXBuildFile; productRef = 6E587DB82DC3F62B00394872 /* SwiftOpenAI */; };
 		6ED03BFF2D84675400C81CF9 /* Toasts in Frameworks */ = {isa = PBXBuildFile; productRef = 6ED03BFE2D84675400C81CF9 /* Toasts */; };
 		6ED03C022D8467B000C81CF9 /* SwiftSoup in Frameworks */ = {isa = PBXBuildFile; productRef = 6ED03C012D8467B000C81CF9 /* SwiftSoup */; };
 		6ED03C042D84684000C81CF9 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6ED03C032D84684000C81CF9 /* UIKit.framework */; };
@@ -135,6 +136,7 @@
 				6E2C3F2F2D8AC7EF005C01E6 /* ActivityKit.framework in Frameworks */,
 				6ED03C082D846F2A00C81CF9 /* CoreLocation.framework in Frameworks */,
 				6ED03BFF2D84675400C81CF9 /* Toasts in Frameworks */,
+				6E587DB92DC3F62B00394872 /* SwiftOpenAI in Frameworks */,
 				6ED03C0A2D846F5100C81CF9 /* MapKit.framework in Frameworks */,
 				6ED03C042D84684000C81CF9 /* UIKit.framework in Frameworks */,
 				6ED03C022D8467B000C81CF9 /* SwiftSoup in Frameworks */,
@@ -242,6 +244,7 @@
 				6ED03BFE2D84675400C81CF9 /* Toasts */,
 				6ED03C012D8467B000C81CF9 /* SwiftSoup */,
 				6E3C2DC42D92D7E300C2EEF3 /* ColorfulX */,
+				6E587DB82DC3F62B00394872 /* SwiftOpenAI */,
 			);
 			productName = Outspire;
 			productReference = 6ED03A502D84647300C81CF9 /* Outspire.app */;
@@ -332,6 +335,7 @@
 				6ED03BFD2D84675400C81CF9 /* XCRemoteSwiftPackageReference "swiftui-toasts" */,
 				6ED03C002D8467B000C81CF9 /* XCRemoteSwiftPackageReference "SwiftSoup" */,
 				6E3C2DC32D92D7E300C2EEF3 /* XCRemoteSwiftPackageReference "ColorfulX" */,
+				6E587DB72DC3F62B00394872 /* XCRemoteSwiftPackageReference "SwiftOpenAI" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 6ED03A512D84647300C81CF9 /* Products */;
@@ -631,11 +635,10 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Outspire/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Outspire;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
 				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "Required to protect sensitive privacy, including academic grades, etc.";
-				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Required to estimate the time taken for school transportation.";
-				INFOPLIST_KEY_NSLocationAlwaysUsageDescription = "Required to estimate the time taken for school transportation.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Required to provide campus map and ETAs.";
 				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
@@ -688,11 +691,10 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Outspire/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Outspire;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
 				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "Required to protect sensitive privacy, including academic grades, etc.";
-				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Required to estimate the time taken for school transportation.";
-				INFOPLIST_KEY_NSLocationAlwaysUsageDescription = "Required to estimate the time taken for school transportation.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Required to provide campus map and ETAs.";
 				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
@@ -881,6 +883,14 @@
 				minimumVersion = 5.6.4;
 			};
 		};
+		6E587DB72DC3F62B00394872 /* XCRemoteSwiftPackageReference "SwiftOpenAI" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/jamesrochabrun/SwiftOpenAI.git";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
 		6ED03BFD2D84675400C81CF9 /* XCRemoteSwiftPackageReference "swiftui-toasts" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/sunghyun-k/swiftui-toasts";
@@ -904,6 +914,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 6E3C2DC32D92D7E300C2EEF3 /* XCRemoteSwiftPackageReference "ColorfulX" */;
 			productName = ColorfulX;
+		};
+		6E587DB82DC3F62B00394872 /* SwiftOpenAI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 6E587DB72DC3F62B00394872 /* XCRemoteSwiftPackageReference "SwiftOpenAI" */;
+			productName = SwiftOpenAI;
 		};
 		6ED03BFE2D84675400C81CF9 /* Toasts */ = {
 			isa = XCSwiftPackageProductDependency;

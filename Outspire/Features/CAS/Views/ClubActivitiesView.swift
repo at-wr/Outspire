@@ -138,7 +138,8 @@ struct ClubActivitiesView: View {
             AddRecordSheet(
                 availableGroups: viewModel.groups,
                 loggedInStudentId: userId,
-                onSave: { viewModel.fetchActivityRecords(forceRefresh: true) }
+                onSave: { viewModel.fetchActivityRecords(forceRefresh: true) },
+                clubActivitiesViewModel: viewModel
             )
         } else {
             VStack(spacing: 10) {
@@ -470,7 +471,7 @@ struct ActivityCardView: View {
                 .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
         )
         .contextMenu {
-            Button(action: {
+            Button(role: .destructive, action: {
                 viewModel.recordToDelete = activity
                 viewModel.showingDeleteConfirmation = true
             }) {

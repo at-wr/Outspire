@@ -1,0 +1,13 @@
+// Copy this file to Configurations.local.swift and fill in your real secrets.
+// This file is ignored by git (see .gitignore).
+
+import Foundation
+
+extension Configuration {
+    static var llmApiKey: String {
+        return "YOUR_API_KEY"
+    }
+    static var llmBaseURL: String {
+        return "https://api.endpoint.com/v1"
+    }
+}

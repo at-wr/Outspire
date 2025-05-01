@@ -6,11 +6,20 @@ struct AddRecordSheet: View {
     @Environment(\.presentationMode) var presentationMode
     @StateObject private var viewModel: AddRecordViewModel
 
-    init(availableGroups: [ClubGroup], loggedInStudentId: String, onSave: @escaping () -> Void) {
+    let clubActivitiesViewModel: ClubActivitiesViewModel
+
+    init(
+        availableGroups: [ClubGroup],
+        loggedInStudentId: String,
+        onSave: @escaping () -> Void,
+        clubActivitiesViewModel: ClubActivitiesViewModel
+    ) {
+        self.clubActivitiesViewModel = clubActivitiesViewModel
         let model = AddRecordViewModel(
             availableGroups: availableGroups,
             loggedInStudentId: loggedInStudentId,
-            onSave: onSave
+            onSave: onSave,
+            clubActivitiesViewModel: clubActivitiesViewModel
         )
         _viewModel = StateObject(wrappedValue: model)
     }
@@ -95,13 +104,36 @@ struct AddRecordSheet: View {
                     Button("Cancel") {
                         viewModel.cacheFormData()  // Cache data when cancelling
                         presentationMode.wrappedValue.dismiss()
-
-                        let toast = ToastValue(
-                            icon: Image(systemName: "info.circle").foregroundStyle(.blue),
-                            message: "Autosaved in cache"
-                        )
-                        presentToast(toast)
                     }
+                }
+                
+                ToolbarItem(id: "llmSuggest", placement: .navigationBarTrailing) {
+                    Menu {
+                        Button {
+                            viewModel.fetchLLMSuggestion()
+                        } label: {
+                            Label("Suggest", systemImage: "pencil.and.scribble")
+                        }
+                        Button {
+                            viewModel.revertSuggestion()
+                        } label: {
+                            Label("Revert", systemImage: "arrow.uturn.backward")
+                        }
+                        .disabled(!viewModel.canRevertSuggestion)
+                        Button(role: .destructive) {
+                            viewModel.clearForm()
+                        } label: {
+                            Label("Clear All", systemImage: "trash")
+                        }
+                        // Future: add more options like "Polish", "Extend"
+                    } label: {
+                        if viewModel.isFetchingSuggestion {
+                            ProgressView()
+                        } else {
+                            Image(systemName: "wand.and.stars")
+                        }
+                    }
+                    .disabled(viewModel.isFetchingSuggestion)
                 }
 
                 ToolbarItem(id: "saveButton", placement: .navigationBarTrailing) {
@@ -128,6 +160,18 @@ struct AddRecordSheet: View {
             .onDisappear {
                 // This is a backup in case the form is dismissed in other ways
                 viewModel.cacheFormData()
+            }
+            .alert(isPresented: Binding<Bool>(
+                get: { viewModel.suggestionError != nil },
+                set: { if !$0 { viewModel.suggestionError = nil } }
+            )) {
+                Alert(
+                    title: Text("Suggestion Error"),
+                    message: Text(viewModel.suggestionError ?? ""),
+                    dismissButton: .default(Text("OK")) {
+                        viewModel.suggestionError = nil
+                    }
+                )
             }
         }
     }

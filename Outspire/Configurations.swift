@@ -1,6 +1,9 @@
 import Foundation
 
 struct Configuration {
+    // For LLM Service
+    // Go to Configuration.local.swift
+
     static var departureNotificationsEnabled: Bool {
         get {
             if UserDefaults.standard.object(forKey: "departureNotificationsEnabled") == nil {

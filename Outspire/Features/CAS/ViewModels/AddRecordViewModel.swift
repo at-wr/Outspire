@@ -11,6 +11,18 @@ class AddRecordViewModel: ObservableObject {
     @Published var activityDescription: String = ""
     @Published var errorMessage: String?
 
+    // LLM Suggestion State
+    @Published var isFetchingSuggestion: Bool = false
+    @Published var suggestionError: String? = nil
+    @Published var canRevertSuggestion: Bool = false
+
+    private var originalTitleBeforeSuggestion: String?
+    private var originalDescriptionBeforeSuggestion: String?
+
+    // Dependencies
+    let clubActivitiesViewModel: ClubActivitiesViewModel
+    let llmService: LLMService
+
     let availableGroups: [ClubGroup]
     let loggedInStudentId: String
     let onSave: () -> Void
@@ -39,10 +51,18 @@ class AddRecordViewModel: ObservableObject {
         activityDescription.isEmpty ? 0 : activityDescription.split(separator: " ").count
     }
 
-    init(availableGroups: [ClubGroup], loggedInStudentId: String, onSave: @escaping () -> Void) {
+    init(
+        availableGroups: [ClubGroup],
+        loggedInStudentId: String,
+        onSave: @escaping () -> Void,
+        clubActivitiesViewModel: ClubActivitiesViewModel,
+        llmService: LLMService = LLMService()
+    ) {
         self.availableGroups = availableGroups
         self.loggedInStudentId = loggedInStudentId
         self.onSave = onSave
+        self.clubActivitiesViewModel = clubActivitiesViewModel
+        self.llmService = llmService
 
         // Try to restore from cache first
         if let cache = AddRecordViewModel.cachedFormData {
@@ -69,6 +89,51 @@ class AddRecordViewModel: ObservableObject {
                 // Clear the cached form data
                 Self.cachedFormData = nil
             }
+    }
+
+    // MARK: - LLM Suggestion
+    @MainActor
+    func fetchLLMSuggestion() {
+        isFetchingSuggestion = true
+        suggestionError = nil
+
+        // Save originals before AI edit
+        originalTitleBeforeSuggestion = activityTitle
+        originalDescriptionBeforeSuggestion = activityDescription
+
+        let userInput = activityTitle
+        let pastRecords = Array(clubActivitiesViewModel.activities.prefix(3))
+
+        Task {
+            do {
+                let suggestion = try await llmService.suggestCasRecord(
+                    userInput: userInput,
+                    pastRecords: pastRecords
+                )
+                // Only update if suggestion is not empty
+                if let title = suggestion.title, !title.isEmpty {
+                    self.activityTitle = title
+                }
+                if let desc = suggestion.description, !desc.isEmpty {
+                    self.activityDescription = desc
+                }
+                self.canRevertSuggestion = true
+            } catch {
+                self.suggestionError = error.localizedDescription
+                self.canRevertSuggestion = false
+            }
+            self.isFetchingSuggestion = false
+        }
+    }
+
+    func revertSuggestion() {
+        if let originalTitle = originalTitleBeforeSuggestion {
+            activityTitle = originalTitle
+        }
+        if let originalDesc = originalDescriptionBeforeSuggestion {
+            activityDescription = originalDesc
+        }
+        canRevertSuggestion = false
     }
 
     private func setupPublishers() {
@@ -118,6 +183,23 @@ class AddRecordViewModel: ObservableObject {
 
     // Clear the cache after successful submission
     func clearCache() {
+        AddRecordViewModel.cachedFormData = nil
+    }
+
+    // Clear all form fields and cache
+    func clearForm() {
+        selectedGroupId = availableGroups.first?.C_GroupsID ?? ""
+        activityDate = Date()
+        activityTitle = ""
+        durationC = 0
+        durationA = 0
+        durationS = 0
+        activityDescription = ""
+        errorMessage = nil
+        suggestionError = nil
+        canRevertSuggestion = false
+        originalTitleBeforeSuggestion = nil
+        originalDescriptionBeforeSuggestion = nil
         AddRecordViewModel.cachedFormData = nil
     }
 
