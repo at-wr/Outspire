@@ -110,33 +110,37 @@ Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
                             checkOnboardingStatus()
                         }
                 }
+                .onChange(of: showOnboardingSheet) { _, newValue in
+                    // Pause or resume connectivity monitoring during onboarding
+                    ConnectivityManager.shared.setOnboardingActive(newValue)
+                }
             }
         } detail: {
             detailView
         }
-        .onChange(of: Configuration.hideAcademicScore) { newValue in
+        .onChange(of: Configuration.hideAcademicScore) { _, newValue in
             if newValue && selectedLink == "score" {
                 selectedLink = "today"
             }
             refreshID = UUID()
         }
         // Add URL scheme handling changes
-        .onChange(of: urlSchemeHandler.navigateToToday) { newValue in
+        .onChange(of: urlSchemeHandler.navigateToToday) { _, newValue in
             if newValue {
                 selectedLink = "today"
             }
         }
-        .onChange(of: urlSchemeHandler.navigateToClassTable) { newValue in
+        .onChange(of: urlSchemeHandler.navigateToClassTable) { _, newValue in
             if newValue {
                 selectedLink = "classtable"
             }
         }
-        .onChange(of: urlSchemeHandler.navigateToClub) { clubId in
+        .onChange(of: urlSchemeHandler.navigateToClub) { _, clubId in
             if clubId != nil {
                 selectedLink = "club-info"
             }
         }
-        .onChange(of: urlSchemeHandler.navigateToAddActivity) { clubId in
+        .onChange(of: urlSchemeHandler.navigateToAddActivity) { _, clubId in
             if clubId != nil {
                 selectedLink = "club-activity"
             }
@@ -152,6 +156,12 @@ Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
         .onAppear {
             // Initialize gradient based on current view
             updateGradientForSelectedLink(selectedLink)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+            // Ensure onboarding sheet reappears if not completed
+            if !UserDefaults.standard.bool(forKey: "hasCompletedOnboarding") {
+                showOnboardingSheet = true
+            }
         }
     }
 

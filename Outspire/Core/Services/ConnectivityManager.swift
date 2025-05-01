@@ -44,10 +44,9 @@ class ConnectivityManager: ObservableObject {
         directServerAccessible = true
         relayServerAccessible = true
 
-        // Check if onboarding is active (has not been completed)
+        // Removed initial network monitoring to avoid alerts during onboarding
+        // start monitoring only after onboarding completes
         isOnboardingActive = !UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
-
-        setupNetworkMonitoring()
     }
 
     deinit {
@@ -60,13 +59,15 @@ class ConnectivityManager: ObservableObject {
     func setOnboardingActive(_ active: Bool) {
         isOnboardingActive = active
 
-        // Clear any pending alerts if onboarding becomes active
         if active {
             DispatchQueue.main.async {
                 self.showRelayAlert = false
                 self.showDirectAlert = false
                 self.showNoInternetAlert = false
             }
+        } else {
+            // Onboarding finished, start connectivity monitoring
+            startMonitoring()
         }
     }
 
@@ -184,12 +185,13 @@ class ConnectivityManager: ObservableObject {
             DispatchQueue.main.async {
                 self?.isInternetAvailable = path.status == .satisfied
 
-                // If internet just became available, check connectivity
                 if path.status == .satisfied {
                     self?.checkConnectivity()
                 } else {
-                    // If internet is lost, show no internet alert
-                    self?.showNoInternetAlert = true
+                    // Only show no internet alert if not in onboarding
+                    if let self = self, !self.isOnboardingActive {
+                        self.showNoInternetAlert = true
+                    }
                 }
             }
         }
