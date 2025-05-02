@@ -54,10 +54,11 @@ final class LLMService {
     /// Suggests a CAS record (title and description) based on user input and past records.
     func suggestCasRecord(
         userInput: String,
-        pastRecords: [ActivityRecord]
+        pastRecords: [ActivityRecord],
+        clubName: String
     ) async throws -> CasSuggestion {
         let systemPrompt = """
-            You are an IB CAS activity record writer. Given the user's input and several past records, suggest a suitable title and description for a new CAS record. The title should be concise and descriptive. The description should be personal, reflective, and no less than 90 words. Focus on personal insights and learning experiences.
+            You are an IB CAS activity record writer for the \(clubName) Club. Given the user's input and several past records, suggest a suitable title and description for a new CAS record for this club. The title should be concise and descriptive. The description should be personal, reflective, and no less than 90 words. Focus on personal insights and learning experiences.
 
             Output must be in JSON format matching this schema:
             {
@@ -125,7 +126,7 @@ final class LLMService {
         additionalContext: String
     ) async throws -> String {
         let systemPrompt = """
-            You are an IB student writing a CAS activity reflection for your club's activities. Your task is to create a structured outline reflecting on activities in the (clubName) Club. Your outline should incorporate the learning outcomes provided without explicitly mentioning them.
+            You are an IB student writing a CAS activity reflection for your club's activities. Your task is to create a structured outline reflecting on activities in the \(clubName) Club. Your outline should incorporate the learning outcomes provided without explicitly mentioning them.
 
             Return a JSON object with the following fields:
             - title: A descriptive title for the reflection (string)
@@ -142,13 +143,13 @@ final class LLMService {
 
             The reflection should demonstrate personal growth and critical thinking, while incorporating all applicable learning outcomes without naming them explicitly.
 
-            Learning outcomes to address: (learningOutcomes)
+            Learning outcomes to address: \(learningOutcomes)
             """
 
         let userPrompt = """
-            Please create a reflection outline for the (clubName) Club. During this semester, I (additionalContext).
+            Please create a reflection outline for the \(clubName) Club. During this semester, I \(additionalContext).
 
-            Make sure to address these learning outcomes: (learningOutcomes).
+            Make sure to address these learning outcomes: \(learningOutcomes).
 
             Structure your response in JSON format with 'title', 'summary', and 'content' fields.
             """
@@ -220,7 +221,7 @@ final class LLMService {
         }
 
         let systemPrompt = """
-            You are an IB student writing a CAS activity reflection for your club's activities during the past semester. Your task is to create a comprehensive reflection about the (clubName) Club that addresses the specified learning outcomes without explicitly mentioning them.
+            You are an IB student writing a CAS activity reflection for your club's activities during the past semester. Your task is to create a comprehensive reflection about the \(clubName) Club that addresses the specified learning outcomes without explicitly mentioning them.
 
             The user may provide existing content in their title, summary, and main content. If content is provided, build upon and improve it rather than starting from scratch. Pay attention to the style and focus of what the user has already written.
 
@@ -243,18 +244,18 @@ final class LLMService {
 
             Your reflection should demonstrate genuine personal growth and critical thinking while naturally incorporating all relevant learning outcomes.
 
-            Learning outcomes to address: (learningOutcomes)
+            Learning outcomes to address: \(learningOutcomes)
             """
 
         let userPrompt = """
-            Please create a complete reflection for the (clubName) Club.
+            Please create a complete reflection for the \(clubName) Club.
 
             Current information:
             - Title: \(currentTitle.isEmpty ? "[Not provided yet]" : currentTitle)
             - Summary: \(currentSummary.isEmpty ? "[Not provided yet]" : currentSummary)
             - Content: \(currentContent.isEmpty ? "[Not provided yet]" : currentContent)
 
-            Make sure to address these learning outcomes: (learningOutcomes).
+            Make sure to address these learning outcomes: \(learningOutcomes).
 
             If I've already started writing, please build upon my existing text while improving it.
             Structure your response in JSON format with 'title', 'summary', and 'content' fields.
@@ -330,7 +331,7 @@ final class LLMService {
 
             The record should be personal and include insights about your involvement while naturally incorporating the learning outcomes without directly naming them.
 
-            Learning outcomes to address: (learningOutcomes)
+            Learning outcomes to address: \(learningOutcomes)
             """
 
         let userPrompt = """
@@ -341,7 +342,7 @@ final class LLMService {
             - Summary: \(currentSummary.isEmpty ? "[Not provided yet]" : currentSummary)
             - Content: \(currentContent.isEmpty ? "[Not provided yet]" : currentContent)
 
-            The conversation included discussion about these learning outcomes: (learningOutcomes).
+            The conversation included discussion about these learning outcomes: \(learningOutcomes).
 
             Write a brief record about this conversation that includes what I did in the clubs, some brief reflections, and future expectations.
             If I've already started writing, please build upon my existing text while improving it.
