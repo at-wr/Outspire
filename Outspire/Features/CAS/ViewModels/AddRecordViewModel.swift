@@ -1,5 +1,6 @@
 import SwiftUI
 import Combine
+import Foundation
 
 class AddRecordViewModel: ObservableObject {
     @Published var selectedGroupId: String = ""
@@ -15,6 +16,8 @@ class AddRecordViewModel: ObservableObject {
     @Published var isFetchingSuggestion: Bool = false
     @Published var suggestionError: String?
     @Published var canRevertSuggestion: Bool = false
+    @Published var showFirstTimeSuggestionAlert: Bool = false
+    @Published var showCompletedSuggestionAlert: Bool = false
 
     private var originalTitleBeforeSuggestion: String?
     private var originalDescriptionBeforeSuggestion: String?
@@ -86,31 +89,39 @@ class AddRecordViewModel: ObservableObject {
             forName: Notification.Name("ClearCachedFormData"),
             object: nil,
             queue: .main) { [weak self] _ in
-                // Clear the cached form data
-                Self.cachedFormData = nil
-            }
+            // Clear the cached form data
+            Self.cachedFormData = nil
+        }
     }
 
     // MARK: - LLM Suggestion
     @MainActor
     func fetchLLMSuggestion() {
+        // Check if user should see the disclaimer first
+        if !DisclaimerManager.shared.hasShownRecordSuggestionDisclaimer {
+            showFirstTimeSuggestionAlert = true
+            return
+        }
+        
+        // Save originals before AI edit
         isFetchingSuggestion = true
         suggestionError = nil
-
-        // Save originals before AI edit
         originalTitleBeforeSuggestion = activityTitle
         originalDescriptionBeforeSuggestion = activityDescription
 
+        // Get suggestion context
         let userInput = activityTitle
         let pastRecords = Array(clubActivitiesViewModel.activities.prefix(3))
 
         Task {
             do {
+                // Request the AI suggestion
                 let suggestion = try await llmService.suggestCasRecord(
                     userInput: userInput,
                     pastRecords: pastRecords
                 )
-                // Only update if suggestion is not empty
+                
+                // Update content with suggestion
                 if let title = suggestion.title, !title.isEmpty {
                     self.activityTitle = title
                 }
@@ -118,6 +129,9 @@ class AddRecordViewModel: ObservableObject {
                     self.activityDescription = desc
                 }
                 self.canRevertSuggestion = true
+                
+                // Show the post-suggestion disclaimer
+                self.showCompletedSuggestionAlert = true
             } catch {
                 self.suggestionError = error.localizedDescription
                 self.canRevertSuggestion = false
@@ -140,11 +154,11 @@ class AddRecordViewModel: ObservableObject {
         // Combine all form field publishers to update cache on any change
         Publishers.CombineLatest4($selectedGroupId, $activityDate, $activityTitle,
                                   Publishers.CombineLatest3($durationC, $durationA, $durationS))
-        .debounce(for: .seconds(0.5), scheduler: RunLoop.main)
-        .sink { [weak self] _, _, _, _ in
-            self?.cacheFormData()
-        }
-        .store(in: &cancellables)
+            .debounce(for: .seconds(0.5), scheduler: RunLoop.main)
+            .sink { [weak self] _, _, _, _ in
+                self?.cacheFormData()
+            }
+            .store(in: &cancellables)
 
         $activityDescription
             .debounce(for: .seconds(0.5), scheduler: RunLoop.main)
@@ -253,8 +267,24 @@ class AddRecordViewModel: ObservableObject {
                 }
             case .failure(let error):
                 self.errorMessage = "Unable to save record: \(error.localizedDescription)"
-                // Cache is automatically maintained
+            // Cache is automatically maintained
             }
         }
+    }
+    
+    // MARK: - Disclaimer Methods
+    func dismissFirstTimeSuggestionAlert() {
+        // Mark that we've shown the disclaimer
+        DisclaimerManager.shared.markRecordSuggestionDisclaimerAsShown()
+        showFirstTimeSuggestionAlert = false
+        
+        // Now proceed with the suggestion
+        Task { @MainActor in
+            await fetchLLMSuggestion()
+        }
+    }
+    
+    func dismissCompletedSuggestionAlert() {
+        showCompletedSuggestionAlert = false
     }
 }

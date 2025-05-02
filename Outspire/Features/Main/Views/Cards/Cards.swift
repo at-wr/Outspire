@@ -268,8 +268,8 @@ struct DailyScheduleCard: View {
 
         static func == (lhs: ClassPeriodItem, rhs: ClassPeriodItem) -> Bool {
             return lhs.period == rhs.period &&
-            lhs.data == rhs.data &&
-            lhs.isSelfStudy == rhs.isSelfStudy
+                lhs.data == rhs.data &&
+                lhs.isSelfStudy == rhs.isSelfStudy
         }
     }
 
@@ -355,8 +355,8 @@ struct DailyScheduleCard: View {
                 VStack(spacing: 12) {
                     // Only show periods up to maxClassesToShow or all if expanded
                     let visibleClasses = isExpandedSchedule ?
-                    scheduledClassesForToday :
-                    Array(scheduledClassesForToday.prefix(maxClassesToShow))
+                        scheduledClassesForToday :
+                        Array(scheduledClassesForToday.prefix(maxClassesToShow))
 
                     ForEach(visibleClasses) { item in
                         if let period = ClassPeriodsManager.shared.classPeriods.first(where: { $0.number == item.period }) {
@@ -443,7 +443,7 @@ struct SignInPromptCard: View {
             Text("Make your campus life easier")
                 .font(.title3)
                 .foregroundStyle(.secondary)
-//                .fontWeight(.bold)
+                //                .fontWeight(.bold)
                 .fontDesign(.rounded)
                 .multilineTextAlignment(.center)
                 .padding(.bottom, 10)

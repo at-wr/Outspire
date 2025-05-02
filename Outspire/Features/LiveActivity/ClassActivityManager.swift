@@ -20,10 +20,10 @@ class ClassActivityManager {
         endTime: Date
     ) {
         let now = Date()
-if now < startTime && Calendar.current.component(.hour, from: now) < 6 {
-    return
-}
-if #available(iOS 16.2, *) {
+        if now < startTime && Calendar.current.component(.hour, from: now) < 6 {
+            return
+        }
+        if #available(iOS 16.2, *) {
             for activity in Activity<ClassActivityAttributes>.activities {
                 if activity.attributes.className == className && activity.content.state.periodNumber == periodNumber {
                     activeClassActivities["\(periodNumber)_\(className)"] = activity
@@ -166,7 +166,7 @@ if #available(iOS 16.2, *) {
 
             // Adjust tolerance based on new interval
             if (activity.content.state.currentStatus == .upcoming && startTime.timeIntervalSince(now) < 180) ||
-               (activity.content.state.currentStatus != .upcoming && endTime.timeIntervalSince(now) < 180) {
+                (activity.content.state.currentStatus != .upcoming && endTime.timeIntervalSince(now) < 180) {
                 timer.tolerance = 2 // Tighter tolerance when close to start/end
             } else {
                 timer.tolerance = 5  // Standard tolerance
@@ -363,24 +363,24 @@ if #available(iOS 16.2, *) {
 
         // Update more frequently if progress changed noticeably or status changed
         let shouldUpdate = newStatus != activity.content.state.currentStatus ||
-                          abs(progress - activity.content.state.progress) > 0.005 // Lower threshold for smoother updates
+            abs(progress - activity.content.state.progress) > 0.005 // Lower threshold for smoother updates
 
         if shouldUpdate {
             Task {
-            if #available(iOS 16.2, *) {
-                let staleDate = endTime.addingTimeInterval(60)
+                if #available(iOS 16.2, *) {
+                    let staleDate = endTime.addingTimeInterval(60)
 
-                await activity.update(
-                    .init(state: ClassActivityAttributes.ContentState(
-                        startTime: startTime,
-                        endTime: endTime,
-                        currentStatus: newStatus,
-                        periodNumber: activity.content.state.periodNumber,
-                        progress: progress,
-                        timeRemaining: timeRemaining
-                    ), staleDate: staleDate)
-                )
-            } else {
+                    await activity.update(
+                        .init(state: ClassActivityAttributes.ContentState(
+                            startTime: startTime,
+                            endTime: endTime,
+                            currentStatus: newStatus,
+                            periodNumber: activity.content.state.periodNumber,
+                            progress: progress,
+                            timeRemaining: timeRemaining
+                        ), staleDate: staleDate)
+                    )
+                } else {
                     await activity.update(
                         using: ClassActivityAttributes.ContentState(
                             startTime: startTime,
@@ -475,17 +475,17 @@ if #available(iOS 16.2, *) {
             // Manually ending should be immediate
             endActivity(for: activityId, dismissalPolicy: .immediate)
             print("Manually ended Live Activity with ID: \(existingActivity.id)")
-        return false
+            return false
         } else {
-        startOrUpdateClassActivity(
-            className: className,
-            periodNumber: periodNumber,
-            roomNumber: roomNumber,
-            teacherName: teacherName,
-            startTime: startTime,
-            endTime: endTime
-        )
-        return true
+            startOrUpdateClassActivity(
+                className: className,
+                periodNumber: periodNumber,
+                roomNumber: roomNumber,
+                teacherName: teacherName,
+                startTime: startTime,
+                endTime: endTime
+            )
+            return true
         }
     }
 }

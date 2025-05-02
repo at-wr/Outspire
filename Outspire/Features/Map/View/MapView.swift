@@ -71,15 +71,15 @@ struct MapView: View {
     // MARK: - Computed Properties
     private var convertedBoundaryCoordinates: [CLLocationCoordinate2D] {
         regionChecker.isChinaRegion() ?
-        campusBoundary.map(CoordinateConverter.coordinateHandler) :
-        campusBoundary
+            campusBoundary.map(CoordinateConverter.coordinateHandler) :
+            campusBoundary
     }
 
     private var convertedCampusLocations: [CampusLocation] {
         campusLocations.map { location in
             let coordinate = regionChecker.isChinaRegion() ?
-            CoordinateConverter.coordinateHandler(location.coordinate) :
-            location.coordinate
+                CoordinateConverter.coordinateHandler(location.coordinate) :
+                location.coordinate
             return CampusLocation(name: location.name, coordinate: coordinate)
         }
     }

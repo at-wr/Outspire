@@ -66,14 +66,14 @@ struct SettingsView: View {
                 } footer: {
                 }
 
-#if DEBUG
+                #if DEBUG
                 Section {
                     Button("View Onboarding") {
                         showOnboardingSheet = true
                     }
                     .foregroundStyle(.blue)
                 }
-#endif
+                #endif
             }
             .id(viewRefreshID)
             .navigationTitle("Settings")
@@ -83,18 +83,18 @@ struct SettingsView: View {
                     showSettingsSheet = false
                 }) {
                     #if targetEnvironment(macCatalyst)
-                        Text("Close")
-                            .font(.system(size: 14, weight: .medium))
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 5)
-                            .background(Color(.tertiarySystemFill))
-                            .cornerRadius(6)
-                            .foregroundStyle(.primary)
-                        #else
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.title2)
-                            .foregroundStyle(.secondary)
-                        #endif
+                    Text("Close")
+                        .font(.system(size: 14, weight: .medium))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(Color(.tertiarySystemFill))
+                        .cornerRadius(6)
+                        .foregroundStyle(.primary)
+                    #else
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.title2)
+                        .foregroundStyle(.secondary)
+                    #endif
                 }
             }
             .navigationDestination(for: SettingsMenu.self) { destination in

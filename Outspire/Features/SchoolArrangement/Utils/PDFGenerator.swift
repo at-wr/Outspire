@@ -43,7 +43,7 @@ class PDFGenerator {
                 drawSeparator(at: yPosition, width: pageWidth, margin: margin)
                 yPosition += 20.0 // Fixed: Use CGFloat literal
 
-                // Check if we have images to show 
+                // Check if we have images to show
                 if !images.isEmpty {
                     // Draw image section title
                     let sectionFont = UIFont.boldSystemFont(ofSize: 14)

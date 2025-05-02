@@ -10,8 +10,8 @@ struct SchoolMapView: View {
     // So we need to convert them to GCJ-02 when in China region
     private var schoolCoordinate: CLLocationCoordinate2D {
         isInChina ?
-        CoordinateConverter.coordinateHandler(LocationManager.schoolCoordinate) :
-        LocationManager.schoolCoordinate
+            CoordinateConverter.coordinateHandler(LocationManager.schoolCoordinate) :
+            LocationManager.schoolCoordinate
     }
 
     private var adjustedUserCoordinate: CLLocationCoordinate2D? {

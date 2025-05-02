@@ -14,8 +14,8 @@ struct OutspireWidgetBundle: WidgetBundle {
         OutspireWidget()
         OutspireWidgetControl()
         CurrentNextClassWidget()
-#if !targetEnvironment(macCatalyst)
+        #if !targetEnvironment(macCatalyst)
         OutspireWidgetLiveActivity()
-#endif
+        #endif
     }
 }

@@ -30,7 +30,7 @@ class SessionService: ObservableObject {
         // Don't clear user info to keep the UI consistent
     }
 
-    // Update the loginUser method    
+    // Update the loginUser method
     func loginUser(username: String, password: String, captcha: String, completion: @escaping (Bool, String?, Bool) -> Void) {
         guard let sessionId = self.sessionId, !sessionId.isEmpty else {
             completion(false, "Please refresh the captcha.", true) // Mark as captcha error to trigger retry

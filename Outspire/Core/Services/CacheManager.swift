@@ -25,9 +25,9 @@ class CacheManager {
         // Clear pattern-based keys
         for key in userDefaults.dictionaryRepresentation().keys {
             if key.hasPrefix("cachedActivities-") ||
-               key.hasPrefix("cachedScores-") ||
-               key.hasPrefix("scoresCacheTimestamp-") ||
-               key.hasPrefix("cachedSchoolArrangementDetail-") {
+                key.hasPrefix("cachedScores-") ||
+                key.hasPrefix("scoresCacheTimestamp-") ||
+                key.hasPrefix("cachedSchoolArrangementDetail-") {
                 userDefaults.removeObject(forKey: key)
                 userDefaults.removeObject(forKey: "\(key)-timestamp")
             }

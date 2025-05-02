@@ -2,7 +2,7 @@ import LocalAuthentication
 import SwiftUI
 
 #if !targetEnvironment(macCatalyst)
-    import ColorfulX
+import ColorfulX
 #endif
 
 struct ScoreView: View {
@@ -17,17 +17,17 @@ struct ScoreView: View {
     var body: some View {
         ZStack {
             #if !targetEnvironment(macCatalyst)
-                ColorfulView(
-                    color: $gradientManager.gradientColors,
-                    speed: $gradientManager.gradientSpeed,
-                    noise: $gradientManager.gradientNoise,
-                    transitionSpeed: $gradientManager.gradientTransitionSpeed
-                )
-                .ignoresSafeArea()
-                .opacity(colorScheme == .dark ? 0.15 : 0.3)
+            ColorfulView(
+                color: $gradientManager.gradientColors,
+                speed: $gradientManager.gradientSpeed,
+                noise: $gradientManager.gradientNoise,
+                transitionSpeed: $gradientManager.gradientTransitionSpeed
+            )
+            .ignoresSafeArea()
+            .opacity(colorScheme == .dark ? 0.15 : 0.3)
 
-                Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
-                    .ignoresSafeArea()
+            Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
+                .ignoresSafeArea()
             #endif
 
             // Main content
@@ -318,7 +318,7 @@ struct ScoreView: View {
             // Error toast overlay - for network errors only, not for empty terms
             // Only show the overlay for actual errors, not for informational messages
             if let errorMessage = viewModel.errorMessage,
-                errorMessage.starts(with: "Failed") {
+               errorMessage.starts(with: "Failed") {
                 VStack {
                     Spacer()  // Push error to bottom
 

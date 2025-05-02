@@ -425,7 +425,7 @@ extension Color {
 }
 
 #Preview("Notification", as: .content, using: ClassActivityAttributes.preview) {
-   OutspireWidgetLiveActivity()
+    OutspireWidgetLiveActivity()
 } contentStates: {
     ClassActivityAttributes.ContentState.current
     ClassActivityAttributes.ContentState.next

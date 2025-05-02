@@ -31,7 +31,7 @@ struct TodayView: View {
 
     @AppStorage("hasShownScheduleTip") private var hasShownScheduleTip: Bool = false
 
-@ObservedObject private var weatherManager = WeatherManager.shared
+    @ObservedObject private var weatherManager = WeatherManager.shared
     @State private var hasStartedLiveActivity = false
     @State private var activeClassLiveActivities: [String: Bool] = [:]
     @State private var isWeatherLoading = true
@@ -43,7 +43,7 @@ struct TodayView: View {
     // MARK: - Body
     var body: some View {
         ZStack {
-#if !targetEnvironment(macCatalyst)
+            #if !targetEnvironment(macCatalyst)
             // Use the shared ColorfulX view
             ColorfulView(
                 color: $gradientManager.gradientColors,
@@ -54,11 +54,11 @@ struct TodayView: View {
             .ignoresSafeArea()
             .opacity(0.2) // Reduce opacity to make content readable
 
-    Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
-        .ignoresSafeArea()
-#endif
+            Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
+                .ignoresSafeArea()
+            #endif
 
-    ScrollView {
+            ScrollView {
                 contentView
             }
         }
@@ -511,8 +511,8 @@ struct TodayView: View {
             forName: .locationSignificantChange,
             object: nil,
             queue: .main) { _ in
-                self.regionChecker.fetchRegionCode()
-            }
+            self.regionChecker.fetchRegionCode()
+        }
 
         // Start Live Activity for the current class if available
         startClassLiveActivityIfNeeded()
@@ -588,7 +588,7 @@ struct TodayView: View {
         // Check if user location is available and authorized
         guard let _ = locationManager.userLocation,
               locationManager.authorizationStatus == .authorizedWhenInUse ||
-               locationManager.authorizationStatus == .authorizedAlways else {
+                locationManager.authorizationStatus == .authorizedAlways else {
             return false
         }
 
@@ -792,7 +792,7 @@ struct TodayView: View {
     // In the existing startClassLiveActivityIfNeeded method, update to use the enhanced functionality:
 
     private func startClassLiveActivityIfNeeded(forceCheck: Bool = false) {
-    #if !targetEnvironment(macCatalyst)
+        #if !targetEnvironment(macCatalyst)
         // Don't start Live Activity if holiday mode is active
         guard !isHolidayActive() else { return }
 
@@ -833,13 +833,13 @@ struct TodayView: View {
 
         // Mark this specific class period as having an active Live Activity
         activeClassLiveActivities[activityId] = true
-    #endif
+        #endif
     }
 
     // Update the toggleLiveActivityForCurrentClass method to use the new toggle functionality:
 
     private func toggleLiveActivityForCurrentClass() {
-    #if !targetEnvironment(macCatalyst)
+        #if !targetEnvironment(macCatalyst)
         guard let upcoming = upcomingClassInfo else { return }
 
         let components = upcoming.classData.replacingOccurrences(of: "<br>", with: "\n")
@@ -870,7 +870,7 @@ struct TodayView: View {
         // Give haptic feedback
         let generator = UIImpactFeedbackGenerator(style: .medium)
         generator.impactOccurred(intensity: isActive ? 0.7 : 1.0)
-    #endif
+        #endif
     }
 }
 
@@ -1012,7 +1012,7 @@ struct MainContentView: View {
             .opacity(animateCards ? 1 : 0)
             .animation(
                 .spring(response: 0.7, dampingFraction: 0.8)
-                .delay(delay),
+                    .delay(delay),
                 value: animateCards
             )
     }
@@ -1089,7 +1089,7 @@ struct MainContentView: View {
             .opacity(animateCards ? 1 : 0)
             .animation(
                 .spring(response: 0.7, dampingFraction: 0.8)
-                .delay(0.1),
+                    .delay(0.1),
                 value: animateCards
             )
 
@@ -1104,7 +1104,7 @@ struct MainContentView: View {
                 .opacity(animateCards ? 1 : 0)
                 .animation(
                     .spring(response: 0.7, dampingFraction: 0.8)
-                    .delay(0.15),
+                        .delay(0.15),
                     value: animateCards
                 )
             }
@@ -1114,7 +1114,7 @@ struct MainContentView: View {
                 assemblyTime: assemblyTime,
                 arrivalTime: arrivalTime,
                 travelInfo: shouldShowTravelInfo() ?
-                (travelTime: travelTimeToSchool, distance: travelDistance) : nil,
+                    (travelTime: travelTimeToSchool, distance: travelDistance) : nil,
                 isInChina: isInChinaRegion
             )
             .padding(.horizontal)
@@ -1122,7 +1122,7 @@ struct MainContentView: View {
             .opacity(animateCards ? 1 : 0)
             .animation(
                 .spring(response: 0.7, dampingFraction: 0.8)
-                .delay(0.2),
+                    .delay(0.2),
                 value: animateCards
             )
             .id(travelInfoKey) // Force view recreation when travel info significantly changes
@@ -1137,7 +1137,7 @@ struct MainContentView: View {
             .opacity(animateCards ? 1 : 0)
             .animation(
                 .spring(response: 0.7, dampingFraction: 0.8)
-                .delay(0.3),
+                    .delay(0.3),
                 value: animateCards
             )
         }
@@ -1151,7 +1151,7 @@ struct MainContentView: View {
             .opacity(animateCards ? 1 : 0)
             .animation(
                 .spring(response: 0.7, dampingFraction: 0.8)
-                .delay(0.1),
+                    .delay(0.1),
                 value: animateCards
             )
     }
@@ -1160,7 +1160,7 @@ struct MainContentView: View {
         // Show travel info if user is not near school and we have travel data
         guard let _ = locationManager.userLocation,
               locationManager.authorizationStatus == .authorizedWhenInUse ||
-               locationManager.authorizationStatus == .authorizedAlways,
+                locationManager.authorizationStatus == .authorizedAlways,
               travelTimeToSchool != nil,
               travelDistance != nil else {
             return false

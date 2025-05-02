@@ -32,7 +32,7 @@ enum NetworkError: Error {
 }
 
 /// A service that handles all network requests to the TSIMS API.
-/// 
+///
 /// This class provides methods for making HTTP requests and handling responses.
 /// It includes functionality for managing session cookies, handling parameters,
 /// and decoding JSON responses.
@@ -104,9 +104,9 @@ class NetworkService {
                     if let nsError = error as? NSError {
                         if nsError.domain == NSURLErrorDomain &&
                             (nsError.code == NSURLErrorTimedOut ||
-                             nsError.code == NSURLErrorCannotConnectToHost ||
-                             nsError.code == NSURLErrorNetworkConnectionLost ||
-                             nsError.code == NSURLErrorNotConnectedToInternet) {
+                                nsError.code == NSURLErrorCannotConnectToHost ||
+                                nsError.code == NSURLErrorNetworkConnectionLost ||
+                                nsError.code == NSURLErrorNotConnectedToInternet) {
                             // This is a connectivity issue - check if we should switch servers
                             ConnectivityManager.shared.handleNetworkRequestFailure(wasUsingSSL: isUsingSSL)
                         }
@@ -140,5 +140,47 @@ class NetworkService {
                 }
             }
         }.resume()
+    }
+
+    // MARK: - Reflection API
+    func fetchReflections(groupID: String, completion: @escaping (Result<ReflectionResponse, NetworkError>) -> Void) {
+        guard let sessionId = SessionService.shared.sessionId else {
+            completion(.failure(.unauthorized))
+            return
+        }
+        let parameters = ["groupid": groupID]
+        request(
+            endpoint: "cas_add_reflection.php",
+            parameters: parameters,
+            sessionId: sessionId,
+            completion: completion
+        )
+    }
+
+    func saveReflection(parameters: [String: String], completion: @escaping (Result<StatusResponse, NetworkError>) -> Void) {
+        guard let sessionId = SessionService.shared.sessionId else {
+            completion(.failure(.unauthorized))
+            return
+        }
+        request(
+            endpoint: "cas_save_reflection.php",
+            parameters: parameters,
+            sessionId: sessionId,
+            completion: completion
+        )
+    }
+
+    func deleteReflection(reflectionID: String, completion: @escaping (Result<StatusResponse, NetworkError>) -> Void) {
+        guard let sessionId = SessionService.shared.sessionId else {
+            completion(.failure(.unauthorized))
+            return
+        }
+        let parameters = ["reflecid": reflectionID]
+        request(
+            endpoint: "cas_delete_reflection.php",
+            parameters: parameters,
+            sessionId: sessionId,
+            completion: completion
+        )
     }
 }

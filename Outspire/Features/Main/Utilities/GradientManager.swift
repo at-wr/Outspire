@@ -41,8 +41,8 @@ class GradientManager: ObservableObject {
 
     private var globalSettings: ViewGradientSettings?
 
-@Published var currentContext: GradientContext = .normal
-@Published var overrideGradientEnabled: Bool = false
+    @Published var currentContext: GradientContext = .normal
+    @Published var overrideGradientEnabled: Bool = false
 
     init() {
         loadSavedSettings()

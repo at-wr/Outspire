@@ -19,21 +19,21 @@ struct NavSplitView: View {
     var body: some View {
         NavigationSplitView {
             ZStack {
-#if !targetEnvironment(macCatalyst)
+                #if !targetEnvironment(macCatalyst)
                 // Add ColorfulX as background
-ColorfulView(
-    color: $gradientManager.gradientColors,
-    speed: $gradientManager.gradientSpeed,
-    noise: $gradientManager.gradientNoise,
-    transitionSpeed: $gradientManager.gradientTransitionSpeed
-)
-.ignoresSafeArea()
-.opacity(colorScheme == .dark ? 0.15 : 0.3) // Reduce opacity more in dark mode
+                ColorfulView(
+                    color: $gradientManager.gradientColors,
+                    speed: $gradientManager.gradientSpeed,
+                    noise: $gradientManager.gradientNoise,
+                    transitionSpeed: $gradientManager.gradientTransitionSpeed
+                )
+                .ignoresSafeArea()
+                .opacity(colorScheme == .dark ? 0.15 : 0.3) // Reduce opacity more in dark mode
 
-// Semi-transparent background for better contrast
-Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
-    .ignoresSafeArea()
-#endif
+                // Semi-transparent background for better contrast
+                Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
+                    .ignoresSafeArea()
+                #endif
 
                 // Existing list content with better background
                 List(selection: $selectedLink) {
@@ -59,6 +59,9 @@ Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
                         NavigationLink(value: "club-activity") {
                             Label("Activity Records", systemImage: "checklist")
                         }
+                        NavigationLink(value: "club-reflection") {
+                            Label("Reflections", systemImage: "pencil.and.list.clipboard")
+                        }
                     } header: {
                         Text("Activities")
                     }
@@ -73,11 +76,11 @@ Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
                         NavigationLink(value: "lunch-menu") {
                             Label("Dining Menus", systemImage: "fork.knife")
                         }
-#if DEBUG
+                        #if DEBUG
                         NavigationLink(value: "help") {
                             Label("Help", systemImage: "questionmark.circle.dashed")
                         }
-#endif
+                        #endif
                     } header: {
                         Text("Miscellaneous")
                     }
@@ -145,6 +148,9 @@ Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
                 selectedLink = "club-activity"
             }
         }
+        .onChange(of: urlSchemeHandler.navigateToReflection) { _, _ in
+            selectedLink = "club-reflection"
+        }
         .id(refreshID)
         .task {
             checkOnboardingStatus()
@@ -192,6 +198,11 @@ Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
             NavigationStack {
                 ClubActivitiesView()
                     .id("club-activity-nav-content")
+            }
+        case "club-reflection":
+            NavigationStack {
+                ReflectionsView()
+                    .id("club-reflection-nav-content")
             }
         case "school-arrangement":
             NavigationStack {

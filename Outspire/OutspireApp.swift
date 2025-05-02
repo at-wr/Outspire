@@ -46,11 +46,11 @@ struct OutspireApp: App {
         }
 
         // Register the Live Activity widget
-#if !targetEnvironment(macCatalyst)
+        #if !targetEnvironment(macCatalyst)
         if #available(iOS 16.1, *) {
             LiveActivityRegistration.registerLiveActivities()
         }
-#endif
+        #endif
     }
 
     var body: some Scene {
@@ -245,12 +245,12 @@ class OutspireAppDelegate: NSObject, UIApplicationDelegate {
     }
 
     func applicationWillTerminate(_ application: UIApplication) {
-#if !targetEnvironment(macCatalyst)
+        #if !targetEnvironment(macCatalyst)
         // Clean up Live Activities
         if #available(iOS 16.1, *) {
             ClassActivityManager.shared.cleanup()
         }
-#endif
+        #endif
     }
 
     // Handle URL scheme when app is launched from a URL

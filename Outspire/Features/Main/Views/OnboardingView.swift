@@ -155,15 +155,15 @@ struct OnboardingView: View {
                         }
                         .padding(.horizontal, 16)
                         .padding(.vertical, 10)
-#if targetEnvironment(macCatalyst)
+                        #if targetEnvironment(macCatalyst)
                         .background(
                             Capsule().fill(Color.accentColor.opacity(0.8))
                         )
-#else
+                        #else
                         .background(
-                            Capsule().fill(Color.accentColor)
+                        Capsule().fill(Color.accentColor)
                         )
-#endif
+                        #endif
                         .foregroundStyle(.white)
                     }
                     .keyboardShortcut(.rightArrow, modifiers: [])
@@ -176,7 +176,7 @@ struct OnboardingView: View {
             }
             .background(
                 colorScheme == .dark ?
-                Color(UIColor.systemBackground) :
+                    Color(UIColor.systemBackground) :
                     Color(UIColor.secondarySystemBackground)
             )
         }

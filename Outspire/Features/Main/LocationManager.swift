@@ -49,7 +49,7 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, UN
     }
 
     func startUpdatingLocation() {
-            if authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways {
+        if authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways {
             locationManager.startUpdatingLocation()
         }
     }
@@ -69,7 +69,7 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, UN
         return userLocation.distance(from: LocationManager.schoolLocation)
     }
 
-        func calculateETAToSchool(isInChina: Bool, completion: @escaping () -> Void) {
+    func calculateETAToSchool(isInChina: Bool, completion: @escaping () -> Void) {
         guard let userLocation = userLocation,
               authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways else {
             self.travelTimeToSchool = nil
@@ -88,8 +88,8 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, UN
 
         let previousTravelTime = self.travelTimeToSchool
 
-            if isInChina {
-                    calculateETAWithMapKit(from: userLocation.coordinate, isInChina: isInChina) {
+        if isInChina {
+            calculateETAWithMapKit(from: userLocation.coordinate, isInChina: isInChina) {
                 self.lastETACalculationTime = Date()
                 self.checkForSignificantETAChanges(previousTime: previousTravelTime)
                 completion()
@@ -107,8 +107,8 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, UN
 
         let sourceCoordinate = userCoordinate
         let destCoordinate = isInChina ?
-        CoordinateConverter.coordinateHandler(LocationManager.schoolCoordinate) :
-        LocationManager.schoolCoordinate
+            CoordinateConverter.coordinateHandler(LocationManager.schoolCoordinate) :
+            LocationManager.schoolCoordinate
 
         let sourcePlacemark = MKPlacemark(coordinate: sourceCoordinate)
         let destinationPlacemark = MKPlacemark(coordinate: destCoordinate)
@@ -135,7 +135,7 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, UN
     private func checkForSignificantETAChanges(previousTime: TimeInterval?) {
         guard let currentTime = travelTimeToSchool, let previousTime = previousTime else { return }
 
-    let difference = abs(currentTime - previousTime)
+        let difference = abs(currentTime - previousTime)
         if difference > significantChangeThreshold {
             NotificationCenter.default.post(
                 name: .travelTimeSignificantChange,
@@ -208,7 +208,7 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, UN
     }
 
     func handleMorningETANotification() {
-            let regionChecker = RegionChecker.shared
+        let regionChecker = RegionChecker.shared
         regionChecker.fetchRegionCode()
 
         lastETACalculationTime = nil
