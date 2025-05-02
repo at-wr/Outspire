@@ -200,7 +200,7 @@ struct AddRecordSheet: View {
                 Text(DisclaimerManager.fullDisclaimerText)
             }
             .alert(
-                "Suggestion Finished",
+                "Suggestion Completed",
                 isPresented: $viewModel.showCompletedSuggestionAlert
             ) {
                 Button("Agree", role: .cancel) {
