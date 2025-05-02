@@ -248,10 +248,10 @@ struct AddReflectionSheet: View {
             Text(DisclaimerManager.fullDisclaimerText)
         }
         .alert(
-            "Content Generation",
+            "Suggestion Completed",
             isPresented: $viewModel.showCompletedSuggestionAlert
         ) {
-            Button("OK", role: .cancel) {
+            Button("Agree", role: .cancel) {
                 viewModel.dismissCompletedSuggestionAlert()
             }
         } message: {

@@ -47,6 +47,6 @@ extension DisclaimerManager {
     // Get the short disclaimer text for post-suggestion reminders
     static var shortDisclaimerText: String {
         return
-            "AI-generated content is for recreational purposes only, not for academic work. Please carefully review all content before submission."
+            "AI-generated content is for recreational purposes only, not for academic work. Do not submit generated content."
     }
 }
