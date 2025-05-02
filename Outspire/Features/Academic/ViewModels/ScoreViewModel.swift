@@ -1,5 +1,5 @@
-import SwiftUI
 import LocalAuthentication
+import SwiftUI
 
 struct Term: Identifiable, Codable {
     let W_YearID: String
@@ -37,12 +37,14 @@ struct Score: Identifiable, Codable {
             ExamScore(name: "Mid-term", score: Score2, level: LScore2),
             ExamScore(name: "Monthly 2", score: Score3, level: LScore3),
             ExamScore(name: "Final-term", score: Score4, level: LScore4),
-            ExamScore(name: "Homework", score: Score5, level: LScore5)
+            ExamScore(name: "Homework", score: Score5, level: LScore5),
         ]
     }
 
     var averageScore: Double {
-        let validScores = [Score1, Score2, Score3, Score4].compactMap { Double($0) }.filter { $0 > 0 }
+        let validScores = [Score1, Score2, Score3, Score4].compactMap { Double($0) }.filter {
+            $0 > 0
+        }
         return validScores.isEmpty ? 0 : validScores.reduce(0, +) / Double(validScores.count)
     }
 
@@ -92,17 +94,21 @@ class ScoreViewModel: ObservableObject {
 
     private func loadCachedData() {
         // Load cached terms with data
-        if let cachedTermsWithData = UserDefaults.standard.array(forKey: "termsWithData") as? [String] {
+        if let cachedTermsWithData = UserDefaults.standard.array(forKey: "termsWithData")
+            as? [String]
+        {
             self.termsWithData = Set(cachedTermsWithData)
         }
 
         if let cachedTermsData = UserDefaults.standard.data(forKey: "cachedTerms"),
-           let decodedTerms = try? JSONDecoder().decode([Term].self, from: cachedTermsData) {
+            let decodedTerms = try? JSONDecoder().decode([Term].self, from: cachedTermsData)
+        {
             self.terms = decodedTerms
 
             // First try to use the previously selected term if it exists
             if let savedTermId = UserDefaults.standard.string(forKey: "selectedTermId"),
-               decodedTerms.contains(where: { $0.W_YearID == savedTermId }) {
+                decodedTerms.contains(where: { $0.W_YearID == savedTermId })
+            {
                 self.selectedTermId = savedTermId
                 loadCachedScores(for: savedTermId)
             }
@@ -151,11 +157,14 @@ class ScoreViewModel: ObservableObject {
         self.errorMessage = nil
 
         if let cachedData = UserDefaults.standard.data(forKey: "cachedScores-\(termId)"),
-           let decodedScores = try? JSONDecoder().decode([Score].self, from: cachedData) {
+            let decodedScores = try? JSONDecoder().decode([Score].self, from: cachedData)
+        {
             self.scores = decodedScores
 
             // Load cached timestamp
-            if let cachedTimestamp = UserDefaults.standard.object(forKey: "scoresCacheTimestamp-\(termId)") as? TimeInterval {
+            if let cachedTimestamp = UserDefaults.standard.object(
+                forKey: "scoresCacheTimestamp-\(termId)") as? TimeInterval
+            {
                 self.lastUpdateTime = Date(timeIntervalSince1970: cachedTimestamp)
             } else {
                 self.lastUpdateTime = Date()
@@ -231,7 +240,8 @@ class ScoreViewModel: ObservableObject {
         if context.canEvaluatePolicy(.deviceOwnerAuthentication, error: &error) {
             let reason = "Authentication required for requesting sensitive information."
 
-            context.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason) { [weak self] success, authenticationError in
+            context.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason) {
+                [weak self] success, authenticationError in
                 guard let self = self else { return }
 
                 // Small delay before updating UI to ensure smooth transitions
@@ -248,7 +258,7 @@ class ScoreViewModel: ObservableObject {
                     } else {
                         self.isUnlocked = false
                         if let authError = authenticationError {
-                            self.errorMessage = "Authentication failed: \(authError.localizedDescription)"
+                            self.errorMessage = "\(authError.localizedDescription)"
                         }
                     }
                 }
@@ -397,7 +407,9 @@ class ScoreViewModel: ObservableObject {
         } else if termYear < currentYear - 3 {
             // Very old term - likely before student enrolled
             self.errorMessage = "This term occurred before your enrollment."
-        } else if termYear == currentYear && termNumber > (calendar.component(.month, from: currentDate) / 4) + 1 {
+        } else if termYear == currentYear
+            && termNumber > (calendar.component(.month, from: currentDate) / 4) + 1
+        {
             // Current year but future term
             self.errorMessage = "This term hasn't started yet."
         } else {
@@ -407,7 +419,9 @@ class ScoreViewModel: ObservableObject {
     }
 
     // Special handler for the API endpoint that might return null
-    private func fetchScoresWithNullHandling(parameters: [String: String], completion: @escaping (Result<[Score], NetworkError>) -> Void) {
+    private func fetchScoresWithNullHandling(
+        parameters: [String: String], completion: @escaping (Result<[Score], NetworkError>) -> Void
+    ) {
         guard let url = URL(string: "\(Configuration.baseURL)/php/search_student_score.php") else {
             completion(.failure(.invalidURL))
             return
@@ -424,7 +438,8 @@ class ScoreViewModel: ObservableObject {
 
         // URL-encode parameter values - use the same encoding as NetworkService
         let paramString = parameters.map { key, value -> String in
-            let encodedValue = value.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? value
+            let encodedValue =
+                value.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? value
             return "\(key)=\(encodedValue)"
         }.joined(separator: "&")
 
@@ -455,7 +470,8 @@ class ScoreViewModel: ObservableObject {
 
             // Check if the response is "null"
             if let string = String(data: data, encoding: .utf8),
-               string.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == "null" {
+                string.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == "null"
+            {
                 DispatchQueue.main.async {
                     completion(.success([]))  // Empty array for null response
                 }
@@ -470,7 +486,9 @@ class ScoreViewModel: ObservableObject {
                 }
             } catch {
                 print("Score decoding error: \(error)")
-                print("Response data: \(String(data: data, encoding: .utf8) ?? "unable to convert to string")")
+                print(
+                    "Response data: \(String(data: data, encoding: .utf8) ?? "unable to convert to string")"
+                )
 
                 DispatchQueue.main.async {
                     completion(.failure(.decodingError(error)))
