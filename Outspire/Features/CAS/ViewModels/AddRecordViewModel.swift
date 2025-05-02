@@ -13,7 +13,7 @@ class AddRecordViewModel: ObservableObject {
 
     // LLM Suggestion State
     @Published var isFetchingSuggestion: Bool = false
-    @Published var suggestionError: String? = nil
+    @Published var suggestionError: String?
     @Published var canRevertSuggestion: Bool = false
 
     private var originalTitleBeforeSuggestion: String?

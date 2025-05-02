@@ -106,7 +106,7 @@ struct AddRecordSheet: View {
                         presentationMode.wrappedValue.dismiss()
                     }
                 }
-                
+
                 ToolbarItem(id: "llmSuggest", placement: .navigationBarTrailing) {
                     Menu {
                         Button {

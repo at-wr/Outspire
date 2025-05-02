@@ -46,18 +46,19 @@ struct SettingsView: View {
 
                 // Links section
                 Section {
-                    Link(destination: URL(string: "https://github.com/at-wr/Outspire/")!) {
-                        Label("GitHub Repository", systemImage: "globe.asia.australia")
+                    ShareLink(
+                        item: URL(string: "https://apps.apple.com/us/app/outspire/id6743143348")!,
+                        message: Text("\nCheck out Outspire, an app that makes your WFLA life easier!\nWidgets, Class countdowns, CAS... \n\nDownload now on the App Store.")
+                    ) {
+                        Label("Spread the Love", systemImage: "square.and.arrow.up")
                             .foregroundStyle(.primary)
                     }
-                    Link(destination: URL(string: "https://github.com/at-wr/Outspire?tab=readme-ov-file#terms-of-service")!) {
-                        Label("Terms of Service", systemImage: "text.document")
+
+                    Link(destination: URL(string: "https://outspire.wrye.dev")!) {
+                        Label("Visit our Website", systemImage: "globe")
                             .foregroundStyle(.primary)
                     }
-                    Link(destination: URL(string: "https://github.com/at-wr/Outspire?tab=readme-ov-file#privacy-policy")!) {
-                        Label("Privacy Policy", systemImage: "hand.raised")
-                            .foregroundStyle(.primary)
-                    }
+
                     Link(destination: URL(string: "https://github.com/at-wr/Outspire/issues/new/choose")!) {
                         Label("Report an Issue", systemImage: "exclamationmark.bubble")
                             .foregroundStyle(.primary)

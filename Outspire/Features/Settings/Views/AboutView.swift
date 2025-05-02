@@ -35,8 +35,13 @@ struct AboutView: View {
                 HStack {
                     Label("License", systemImage: "key.card")
                     Spacer()
-                    Text("Open-sourced under MIT")
-                        .foregroundStyle(.secondary)
+                    if ReceiptChecker.isAppStore {
+                        Text("Purchased from Store ❤️")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text("Open-sourced under MIT")
+                            .foregroundStyle(.secondary)
+                    }
                 }
 
             }
@@ -59,12 +64,28 @@ struct AboutView: View {
             }
 
             Section {
-                Link(destination: URL(string: "mailto:alanye@fastmail.com")!) {
-                    Label("Feedbacks & Requests", systemImage: "tray.and.arrow.down")
-                        .foregroundStyle(.primary)
-                }
                 Link(destination: URL(string: "https://object-battle.netlify.app/")!) {
                     Label("Feelin' Lucky", systemImage: "dice")
+                        .foregroundStyle(.primary)
+                }
+
+                Link(destination: URL(string: "mailto:outspire@wrye.dev")!) {
+                    Label("Contact via Mail", systemImage: "tray.and.arrow.down")
+                        .foregroundStyle(.primary)
+                }
+
+                Link(destination: URL(string: "https://github.com/at-wr/Outspire?tab=readme-ov-file#terms-of-service")!) {
+                    Label("Terms of Service", systemImage: "text.document")
+                        .foregroundStyle(.primary)
+                }
+
+                Link(destination: URL(string: "https://github.com/at-wr/Outspire?tab=readme-ov-file#privacy-policy")!) {
+                    Label("Privacy Policy", systemImage: "hand.raised")
+                        .foregroundStyle(.primary)
+                }
+
+                Link(destination: URL(string: "https://github.com/at-wr/Outspire/")!) {
+                    Label("GitHub Repository", systemImage: "globe.asia.australia")
                         .foregroundStyle(.primary)
                 }
             }
