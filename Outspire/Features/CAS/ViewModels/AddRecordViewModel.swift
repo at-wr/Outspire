@@ -115,10 +115,14 @@ class AddRecordViewModel: ObservableObject {
 
         Task {
             do {
+                // Compute club name from selected group
+                let selectedGroup = availableGroups.first { $0.C_GroupsID == selectedGroupId }
+                let clubNameValue = (selectedGroup?.C_NameE.isEmpty ?? true) ? selectedGroup?.C_NameC ?? "" : selectedGroup?.C_NameE ?? ""
                 // Request the AI suggestion
                 let suggestion = try await llmService.suggestCasRecord(
                     userInput: userInput,
-                    pastRecords: pastRecords
+                    pastRecords: pastRecords,
+                    clubName: clubNameValue
                 )
 
                 // Update content with suggestion

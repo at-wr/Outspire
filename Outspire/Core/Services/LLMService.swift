@@ -109,7 +109,7 @@ final class LLMService {
         let chat = try await service.startChat(parameters: parameters)
         guard let choice = chat.choices?.first,
               let message = choice.message,
-              let jsonString = message.content as? String,
+              let jsonString = message.content,
               let data = jsonString.data(using: .utf8)
         else {
             throw NSError(
@@ -183,7 +183,7 @@ final class LLMService {
         let chat = try await service.startChat(parameters: parameters)
         guard let choice = chat.choices?.first,
               let message = choice.message,
-              let jsonString = message.content as? String,
+              let jsonString = message.content,
               let data = jsonString.data(using: .utf8)
         else {
             throw NSError(
@@ -290,7 +290,7 @@ final class LLMService {
         let chat = try await service.startChat(parameters: parameters)
         guard let choice = chat.choices?.first,
               let message = choice.message,
-              let jsonString = message.content as? String,
+              let jsonString = message.content,
               let data = jsonString.data(using: .utf8)
         else {
             throw NSError(
@@ -379,7 +379,7 @@ final class LLMService {
         let chat = try await service.startChat(parameters: parameters)
         guard let choice = chat.choices?.first,
               let message = choice.message,
-              let jsonString = message.content as? String,
+              let jsonString = message.content,
               let data = jsonString.data(using: .utf8)
         else {
             throw NSError(
