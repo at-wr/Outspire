@@ -50,6 +50,10 @@ struct AboutView: View {
                     Text("WFLMS.cn")
                         .foregroundStyle(.primary)
                 }
+                HStack {
+                    Text(" Weather")
+                        .foregroundStyle(.primary)
+                }
             } header: {
                 Text("Data Sources")
             }
