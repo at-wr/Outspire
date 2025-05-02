@@ -102,7 +102,7 @@ class AddRecordViewModel: ObservableObject {
             showFirstTimeSuggestionAlert = true
             return
         }
-        
+
         // Save originals before AI edit
         isFetchingSuggestion = true
         suggestionError = nil
@@ -120,7 +120,7 @@ class AddRecordViewModel: ObservableObject {
                     userInput: userInput,
                     pastRecords: pastRecords
                 )
-                
+
                 // Update content with suggestion
                 if let title = suggestion.title, !title.isEmpty {
                     self.activityTitle = title
@@ -129,7 +129,7 @@ class AddRecordViewModel: ObservableObject {
                     self.activityDescription = desc
                 }
                 self.canRevertSuggestion = true
-                
+
                 // Show the post-suggestion disclaimer
                 self.showCompletedSuggestionAlert = true
             } catch {
@@ -271,19 +271,19 @@ class AddRecordViewModel: ObservableObject {
             }
         }
     }
-    
+
     // MARK: - Disclaimer Methods
     func dismissFirstTimeSuggestionAlert() {
         // Mark that we've shown the disclaimer
         DisclaimerManager.shared.markRecordSuggestionDisclaimerAsShown()
         showFirstTimeSuggestionAlert = false
-        
+
         // Now proceed with the suggestion
         Task { @MainActor in
             await fetchLLMSuggestion()
         }
     }
-    
+
     func dismissCompletedSuggestionAlert() {
         showCompletedSuggestionAlert = false
     }

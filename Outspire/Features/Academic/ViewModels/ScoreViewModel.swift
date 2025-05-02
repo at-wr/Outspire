@@ -37,7 +37,7 @@ struct Score: Identifiable, Codable {
             ExamScore(name: "Mid-term", score: Score2, level: LScore2),
             ExamScore(name: "Monthly 2", score: Score3, level: LScore3),
             ExamScore(name: "Final-term", score: Score4, level: LScore4),
-            ExamScore(name: "Homework", score: Score5, level: LScore5),
+            ExamScore(name: "Homework", score: Score5, level: LScore5)
         ]
     }
 
@@ -95,20 +95,17 @@ class ScoreViewModel: ObservableObject {
     private func loadCachedData() {
         // Load cached terms with data
         if let cachedTermsWithData = UserDefaults.standard.array(forKey: "termsWithData")
-            as? [String]
-        {
+            as? [String] {
             self.termsWithData = Set(cachedTermsWithData)
         }
 
         if let cachedTermsData = UserDefaults.standard.data(forKey: "cachedTerms"),
-            let decodedTerms = try? JSONDecoder().decode([Term].self, from: cachedTermsData)
-        {
+           let decodedTerms = try? JSONDecoder().decode([Term].self, from: cachedTermsData) {
             self.terms = decodedTerms
 
             // First try to use the previously selected term if it exists
             if let savedTermId = UserDefaults.standard.string(forKey: "selectedTermId"),
-                decodedTerms.contains(where: { $0.W_YearID == savedTermId })
-            {
+               decodedTerms.contains(where: { $0.W_YearID == savedTermId }) {
                 self.selectedTermId = savedTermId
                 loadCachedScores(for: savedTermId)
             }
@@ -157,14 +154,12 @@ class ScoreViewModel: ObservableObject {
         self.errorMessage = nil
 
         if let cachedData = UserDefaults.standard.data(forKey: "cachedScores-\(termId)"),
-            let decodedScores = try? JSONDecoder().decode([Score].self, from: cachedData)
-        {
+           let decodedScores = try? JSONDecoder().decode([Score].self, from: cachedData) {
             self.scores = decodedScores
 
             // Load cached timestamp
             if let cachedTimestamp = UserDefaults.standard.object(
-                forKey: "scoresCacheTimestamp-\(termId)") as? TimeInterval
-            {
+                forKey: "scoresCacheTimestamp-\(termId)") as? TimeInterval {
                 self.lastUpdateTime = Date(timeIntervalSince1970: cachedTimestamp)
             } else {
                 self.lastUpdateTime = Date()
@@ -408,8 +403,7 @@ class ScoreViewModel: ObservableObject {
             // Very old term - likely before student enrolled
             self.errorMessage = "This term occurred before your enrollment."
         } else if termYear == currentYear
-            && termNumber > (calendar.component(.month, from: currentDate) / 4) + 1
-        {
+                    && termNumber > (calendar.component(.month, from: currentDate) / 4) + 1 {
             // Current year but future term
             self.errorMessage = "This term hasn't started yet."
         } else {
@@ -470,8 +464,7 @@ class ScoreViewModel: ObservableObject {
 
             // Check if the response is "null"
             if let string = String(data: data, encoding: .utf8),
-                string.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == "null"
-            {
+               string.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == "null" {
                 DispatchQueue.main.async {
                     completion(.success([]))  // Empty array for null response
                 }

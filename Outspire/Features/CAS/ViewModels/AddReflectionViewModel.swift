@@ -202,9 +202,9 @@ class AddReflectionViewModel: ObservableObject {
     func validate() -> Bool {
         // All required
         guard !selectedGroupId.isEmpty,
-            !title.trimmingCharacters(in: .whitespaces).isEmpty,
-            !summary.trimmingCharacters(in: .whitespaces).isEmpty,
-            !content.trimmingCharacters(in: .whitespaces).isEmpty
+              !title.trimmingCharacters(in: .whitespaces).isEmpty,
+              !summary.trimmingCharacters(in: .whitespaces).isEmpty,
+              !content.trimmingCharacters(in: .whitespaces).isEmpty
         else {
             errorMessage = "All fields are required."
             return false
@@ -245,7 +245,7 @@ class AddReflectionViewModel: ObservableObject {
             lo5 ? "Commitment" : "",
             lo6 ? "Global Value" : "",
             lo7 ? "Ethics" : "",
-            lo8 ? "New Skills" : "",
+            lo8 ? "New Skills" : ""
         ]
 
         var params: [String: String] = [
@@ -253,7 +253,7 @@ class AddReflectionViewModel: ObservableObject {
             "refltitle": title,
             "summary": summary,
             "refnote": content,
-            "studentid": studentId,
+            "studentid": studentId
         ]
         for idx in 1...8 {
             params["c_lo\(idx)"] = loValues[idx - 1]
@@ -346,7 +346,7 @@ class AddReflectionViewModel: ObservableObject {
             lo5 ? "Commitment" : nil,
             lo6 ? "Global Value" : nil,
             lo7 ? "Ethics" : nil,
-            lo8 ? "New Skills" : nil,
+            lo8 ? "New Skills" : nil
         ].compactMap { $0 }.joined(separator: ", ")
     }
 

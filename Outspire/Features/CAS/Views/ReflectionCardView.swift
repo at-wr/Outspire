@@ -68,7 +68,7 @@ struct ReflectionCardView: View {
             } label: {
                 Label("Delete", systemImage: "trash")
             }
-            
+
             // Group Copy options in a submenu like in Activities
             Menu {
                 Button {

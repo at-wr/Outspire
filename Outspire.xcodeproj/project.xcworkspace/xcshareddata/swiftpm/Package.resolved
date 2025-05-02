@@ -1,5 +1,5 @@
 {
-  "originHash" : "1baace98c590d5e63d0ef1259633246210abbe229dbbc41cd68c72d4fc13bf79",
+  "originHash" : "a320e962268e0c9f0af53eea7204df7e3adc32b169b053d08fe0e3ceb6c6be08",
   "pins" : [
     {
       "identity" : "colorfulx",
@@ -69,8 +69,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/sunghyun-k/swiftui-window-overlay.git",
       "state" : {
-        "revision" : "af0adae224dfe27e094bdef19a71fa4cc020cfbb",
-        "version" : "1.0.1"
+        "revision" : "46739300713772a62a3bf31d77f8f23ba9cf61f7",
+        "version" : "1.0.2"
       }
     }
   ],

@@ -85,7 +85,7 @@ final class LLMService {
             type: .object,
             properties: [
                 "title": JSONSchema(type: .string),
-                "description": JSONSchema(type: .string),
+                "description": JSONSchema(type: .string)
             ],
             required: ["title", "description"],
             additionalProperties: false
@@ -99,7 +99,7 @@ final class LLMService {
         let parameters = ChatCompletionParameters(
             messages: [
                 .init(role: .system, content: .text(systemPrompt)),
-                .init(role: .user, content: .text(userPrompt)),
+                .init(role: .user, content: .text(userPrompt))
             ],
             model: .custom(model),
             responseFormat: .jsonSchema(responseFormat)
@@ -107,9 +107,9 @@ final class LLMService {
 
         let chat = try await service.startChat(parameters: parameters)
         guard let choice = chat.choices?.first,
-            let message = choice.message,
-            let jsonString = message.content as? String,
-            let data = jsonString.data(using: .utf8)
+              let message = choice.message,
+              let jsonString = message.content as? String,
+              let data = jsonString.data(using: .utf8)
         else {
             throw NSError(
                 domain: "LLMService", code: 1,
@@ -158,7 +158,7 @@ final class LLMService {
             properties: [
                 "title": JSONSchema(type: .string),
                 "summary": JSONSchema(type: .string),
-                "content": JSONSchema(type: .string),
+                "content": JSONSchema(type: .string)
             ],
             required: ["title", "summary", "content"],
             additionalProperties: false
@@ -173,7 +173,7 @@ final class LLMService {
         let parameters = ChatCompletionParameters(
             messages: [
                 .init(role: .system, content: .text(systemPrompt)),
-                .init(role: .user, content: .text(userPrompt)),
+                .init(role: .user, content: .text(userPrompt))
             ],
             model: .custom(model),
             responseFormat: .jsonSchema(responseFormat)
@@ -181,9 +181,9 @@ final class LLMService {
 
         let chat = try await service.startChat(parameters: parameters)
         guard let choice = chat.choices?.first,
-            let message = choice.message,
-            let jsonString = message.content as? String,
-            let data = jsonString.data(using: .utf8)
+              let message = choice.message,
+              let jsonString = message.content as? String,
+              let data = jsonString.data(using: .utf8)
         else {
             throw NSError(
                 domain: "LLMService", code: 2,
@@ -265,7 +265,7 @@ final class LLMService {
             properties: [
                 "title": JSONSchema(type: .string),
                 "summary": JSONSchema(type: .string),
-                "content": JSONSchema(type: .string),
+                "content": JSONSchema(type: .string)
             ],
             required: ["title", "summary", "content"],
             additionalProperties: false
@@ -280,7 +280,7 @@ final class LLMService {
         let parameters = ChatCompletionParameters(
             messages: [
                 .init(role: .system, content: .text(systemPrompt)),
-                .init(role: .user, content: .text(userPrompt)),
+                .init(role: .user, content: .text(userPrompt))
             ],
             model: .custom(model),
             responseFormat: .jsonSchema(responseFormat)
@@ -288,9 +288,9 @@ final class LLMService {
 
         let chat = try await service.startChat(parameters: parameters)
         guard let choice = chat.choices?.first,
-            let message = choice.message,
-            let jsonString = message.content as? String,
-            let data = jsonString.data(using: .utf8)
+              let message = choice.message,
+              let jsonString = message.content as? String,
+              let data = jsonString.data(using: .utf8)
         else {
             throw NSError(
                 domain: "LLMService", code: 3,
@@ -354,7 +354,7 @@ final class LLMService {
             properties: [
                 "title": JSONSchema(type: .string),
                 "summary": JSONSchema(type: .string),
-                "content": JSONSchema(type: .string),
+                "content": JSONSchema(type: .string)
             ],
             required: ["title", "summary", "content"],
             additionalProperties: false
@@ -369,7 +369,7 @@ final class LLMService {
         let parameters = ChatCompletionParameters(
             messages: [
                 .init(role: .system, content: .text(systemPrompt)),
-                .init(role: .user, content: .text(userPrompt)),
+                .init(role: .user, content: .text(userPrompt))
             ],
             model: .custom(model),
             responseFormat: .jsonSchema(responseFormat)
@@ -377,9 +377,9 @@ final class LLMService {
 
         let chat = try await service.startChat(parameters: parameters)
         guard let choice = chat.choices?.first,
-            let message = choice.message,
-            let jsonString = message.content as? String,
-            let data = jsonString.data(using: .utf8)
+              let message = choice.message,
+              let jsonString = message.content as? String,
+              let data = jsonString.data(using: .utf8)
         else {
             throw NSError(
                 domain: "LLMService", code: 4,

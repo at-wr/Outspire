@@ -19,8 +19,7 @@ struct Configuration {
     static var departureNotificationTime: Date {
         get {
             if let storedTime = UserDefaults.standard.object(forKey: "departureNotificationTime")
-                as? Date
-            {
+                as? Date {
                 return storedTime
             } else {
                 // Default time: 6:55 AM
@@ -179,7 +178,7 @@ struct Configuration {
     }
 
     //// Add setting for AI suggestion disclaimer flags
-    //static func resetAIDisclaimers() {
+    // static func resetAIDisclaimers() {
     //    DisclaimerManager.shared.resetDisclaimers()
-    //}
+    // }
 }

@@ -5,7 +5,7 @@ struct ReflectionDetailView: View {
     let reflection: Reflection
     @Environment(\.presentationMode) private var presentationMode
     @Environment(\.presentToast) var presentToast
-    
+
     private var learningOutcomes: [(String, String, String)] {
         var outcomes: [(String, String, String)] = []
         if let v = reflection.c_lo1, !v.isEmpty { outcomes.append(("brain.head.profile", "Awareness", "Increase your awareness of your strengths and areas for growth")) }
@@ -18,7 +18,7 @@ struct ReflectionDetailView: View {
         if let v = reflection.c_lo8, !v.isEmpty { outcomes.append(("wrench.and.screwdriver", "New Skills", "Developed new skills")) }
         return outcomes
     }
-    
+
     var body: some View {
         NavigationView {
             ScrollView {
@@ -28,46 +28,46 @@ struct ReflectionDetailView: View {
                         Text(reflection.C_Title)
                             .font(.title2)
                             .fontWeight(.bold)
-                        
+
                         Text(formatDate(reflection.C_Date))
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    
+
                     Divider()
-                    
+
                     // Summary Section
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Summary")
                             .font(.headline)
                             .foregroundStyle(.primary)
-                        
+
                         Text(reflection.C_Summary)
                             .font(.body)
                     }
-                    
+
                     Divider()
-                    
+
                     // Content Section
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Content")
                             .font(.headline)
                             .foregroundStyle(.primary)
-                        
+
                         Text(reflection.C_Content)
                             .font(.body)
                     }
-                    
+
                     if !learningOutcomes.isEmpty {
                         Divider()
-                        
+
                         // Learning Outcomes Section
                         VStack(alignment: .leading, spacing: 12) {
                             Text("Learning Outcomes")
                                 .font(.headline)
                                 .foregroundStyle(.primary)
-                            
+
                             ForEach(learningOutcomes, id: \.1) { icon, title, description in
                                 LearningOutcomeExplanationRow(
                                     icon: icon,
@@ -95,7 +95,7 @@ struct ReflectionDetailView: View {
                         } label: {
                             Label("Copy Title", systemImage: "textformat")
                         }
-                        
+
                         Button {
                             UIPasteboard.general.string = reflection.C_Summary
                             let toast = ToastValue(
@@ -106,7 +106,7 @@ struct ReflectionDetailView: View {
                         } label: {
                             Label("Copy Summary", systemImage: "doc.text")
                         }
-                        
+
                         Button {
                             UIPasteboard.general.string = reflection.C_Content
                             let toast = ToastValue(
@@ -117,7 +117,7 @@ struct ReflectionDetailView: View {
                         } label: {
                             Label("Copy Content", systemImage: "doc.text")
                         }
-                        
+
                         Button {
                             let all = """
                             Title: \(reflection.C_Title)
@@ -138,7 +138,7 @@ struct ReflectionDetailView: View {
                         Image(systemName: "square.and.arrow.up")
                     }
                 }
-                
+
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") {
                         presentationMode.wrappedValue.dismiss()
@@ -147,7 +147,7 @@ struct ReflectionDetailView: View {
             }
         }
     }
-    
+
     private func formatDate(_ dateString: String) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
@@ -178,7 +178,7 @@ struct ReflectionDetailView_Previews: PreviewProvider {
             c_lo7: nil,
             c_lo8: nil
         )
-        
+
         ReflectionDetailView(reflection: sampleReflection)
     }
 }
