@@ -31,7 +31,7 @@ struct TodayView: View {
 
     @AppStorage("hasShownScheduleTip") private var hasShownScheduleTip: Bool = false
 
-@ObservedObject private var weatherManager = WeatherManager.shared
+    @ObservedObject private var weatherManager = WeatherManager.shared
     @State private var hasStartedLiveActivity = false
     @State private var activeClassLiveActivities: [String: Bool] = [:]
     @State private var isWeatherLoading = true
@@ -43,7 +43,7 @@ struct TodayView: View {
     // MARK: - Body
     var body: some View {
         ZStack {
-#if !targetEnvironment(macCatalyst)
+            #if !targetEnvironment(macCatalyst)
             // Use the shared ColorfulX view
             ColorfulView(
                 color: $gradientManager.gradientColors,
@@ -54,11 +54,11 @@ struct TodayView: View {
             .ignoresSafeArea()
             .opacity(0.2) // Reduce opacity to make content readable
 
-    Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
-        .ignoresSafeArea()
-#endif
+            Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
+                .ignoresSafeArea()
+            #endif
 
-    ScrollView {
+            ScrollView {
                 contentView
             }
         }
@@ -74,8 +74,6 @@ struct TodayView: View {
         }
         .sheet(isPresented: $isSettingsSheetPresented, onDismiss: {
             isReturningFromSheet = true
-
-            animateCards = true
             updateGradientColors()
         }) {
             scheduleSettingsSheet
@@ -121,7 +119,6 @@ struct TodayView: View {
         }
         .onChange(of: selectedDayOverride) { _, newValue in
             Configuration.selectedDayOverride = newValue
-            forceContentRefresh()
             updateGradientColors()
             if timer == nil {
                 currentTime = Date()
@@ -129,11 +126,9 @@ struct TodayView: View {
         }
         .onChange(of: setAsToday) { _, newValue in
             Configuration.setAsToday = newValue
-            forceContentRefresh()
         }
         .onChange(of: isHolidayMode) { _, newValue in
             Configuration.isHolidayMode = newValue
-            forceContentRefresh()
             updateGradientColors()
         }
         .onChange(of: holidayHasEndDate) { _, newValue in
@@ -148,8 +143,8 @@ struct TodayView: View {
         .onChange(of: upcomingClassInfo?.period.id) { _, _ in
             startClassLiveActivityIfNeeded(forceCheck: true)
         }
-        .onChange(of: locationManager.userLocation) { _, newLocation in
-            if let location = newLocation {
+        .onReceive(NotificationCenter.default.publisher(for: .locationSignificantChange)) { _ in
+            if let location = locationManager.userLocation {
                 isWeatherLoading = true
                 Task {
                     await weatherManager.fetchWeather(for: location)
@@ -159,8 +154,6 @@ struct TodayView: View {
                 }
             }
         }
-        // Only use ID changes when authentication changes, not for every update
-        .id("todayView-\(sessionService.isAuthenticated)")
         .environment(\.colorScheme, colorScheme)
     }
 
@@ -476,29 +469,19 @@ struct TodayView: View {
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
             // Only update the time
             self.currentTime = Date()
-    
+
             // Reduced frequency check for class transitions and weather
             let second = Calendar.current.component(.second, from: self.currentTime)
-    
+
             // Only check for transitions every 10 seconds to reduce processing
             if second % 10 == 0 {
                 if self.checkForClassTransition() {
                     self.forceContentRefresh()
                 }
             }
-    
-            // Refresh weather every 30 seconds with a more efficient check
-            if second % 30 == 0 && !self.isWeatherLoading {
-                if let location = self.locationManager.userLocation {
-                    self.isWeatherLoading = true
-                    Task {
-                        await self.weatherManager.fetchWeather(for: location)
-                        DispatchQueue.main.async {
-                            self.isWeatherLoading = false
-                        }
-                    }
-                }
-            }
+
+            // Removed frequent weather refresh to prevent the weird issue :(
+            // Weather now updates only on location change or onAppear :(
         }
 
         // Handle animations differently depending on context
@@ -528,8 +511,8 @@ struct TodayView: View {
             forName: .locationSignificantChange,
             object: nil,
             queue: .main) { _ in
-                self.regionChecker.fetchRegionCode()
-            }
+            self.regionChecker.fetchRegionCode()
+        }
 
         // Start Live Activity for the current class if available
         startClassLiveActivityIfNeeded()
@@ -605,7 +588,7 @@ struct TodayView: View {
         // Check if user location is available and authorized
         guard let _ = locationManager.userLocation,
               locationManager.authorizationStatus == .authorizedWhenInUse ||
-               locationManager.authorizationStatus == .authorizedAlways else {
+                locationManager.authorizationStatus == .authorizedAlways else {
             return false
         }
 
@@ -748,15 +731,15 @@ struct TodayView: View {
         withAnimation(.easeOut(duration: 0.2)) {
             animateCards = false
         }
-        
+
         // Reload data if needed
         if sessionService.isAuthenticated {
             classtableViewModel.fetchTimetable()
         }
-        
+
         // Update current time
         currentTime = Date()
-        
+
         // Restart animations
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
@@ -784,7 +767,7 @@ struct TodayView: View {
         }
         return false
     }
-    
+
     // Add helper method to detect class period changes
     private func shouldRefreshClassInfo() -> Bool {
         let calendar = Calendar.current
@@ -809,7 +792,7 @@ struct TodayView: View {
     // In the existing startClassLiveActivityIfNeeded method, update to use the enhanced functionality:
 
     private func startClassLiveActivityIfNeeded(forceCheck: Bool = false) {
-    #if !targetEnvironment(macCatalyst)
+        #if !targetEnvironment(macCatalyst)
         // Don't start Live Activity if holiday mode is active
         guard !isHolidayActive() else { return }
 
@@ -850,13 +833,13 @@ struct TodayView: View {
 
         // Mark this specific class period as having an active Live Activity
         activeClassLiveActivities[activityId] = true
-    #endif
+        #endif
     }
 
     // Update the toggleLiveActivityForCurrentClass method to use the new toggle functionality:
 
     private func toggleLiveActivityForCurrentClass() {
-    #if !targetEnvironment(macCatalyst)
+        #if !targetEnvironment(macCatalyst)
         guard let upcoming = upcomingClassInfo else { return }
 
         let components = upcoming.classData.replacingOccurrences(of: "<br>", with: "\n")
@@ -887,7 +870,7 @@ struct TodayView: View {
         // Give haptic feedback
         let generator = UIImpactFeedbackGenerator(style: .medium)
         generator.impactOccurred(intensity: isActive ? 0.7 : 1.0)
-    #endif
+        #endif
     }
 }
 
@@ -927,19 +910,20 @@ struct HeaderView: View {
                     .padding(.top, 2)
             }
             Spacer()
-                VStack(spacing: 4) {
-                    if isWeatherLoading {
-                        ProgressView()
-                            .progressViewStyle(.circular)
-                            .frame(width: 24, height: 24)
-                    } else {
-                        WeatherIconView(conditionSymbol: weatherSymbol)
-                            .font(.title2)
-                        Text(weatherTemperature)
-                            .font(.caption)
-                    }
-                }
-                .padding(6)
+            HStack(spacing: 4) {
+                // Always present to stabilize layout
+                WeatherIconView(conditionSymbol: weatherSymbol)
+                    .font(.subheadline)
+                    .opacity(isWeatherLoading ? 0 : 1)
+                Text(weatherTemperature)
+                    .font(.caption)
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
+                    .opacity(isWeatherLoading ? 0 : 1)
+            }
+            .frame(minWidth: 50, alignment: .trailing)
+            .padding(6)
+            .animation(.easeInOut(duration: 0.3), value: isWeatherLoading)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal)
@@ -1028,7 +1012,7 @@ struct MainContentView: View {
             .opacity(animateCards ? 1 : 0)
             .animation(
                 .spring(response: 0.7, dampingFraction: 0.8)
-                .delay(delay),
+                    .delay(delay),
                 value: animateCards
             )
     }
@@ -1105,7 +1089,7 @@ struct MainContentView: View {
             .opacity(animateCards ? 1 : 0)
             .animation(
                 .spring(response: 0.7, dampingFraction: 0.8)
-                .delay(0.1),
+                    .delay(0.1),
                 value: animateCards
             )
 
@@ -1120,7 +1104,7 @@ struct MainContentView: View {
                 .opacity(animateCards ? 1 : 0)
                 .animation(
                     .spring(response: 0.7, dampingFraction: 0.8)
-                    .delay(0.15),
+                        .delay(0.15),
                     value: animateCards
                 )
             }
@@ -1130,7 +1114,7 @@ struct MainContentView: View {
                 assemblyTime: assemblyTime,
                 arrivalTime: arrivalTime,
                 travelInfo: shouldShowTravelInfo() ?
-                (travelTime: travelTimeToSchool, distance: travelDistance) : nil,
+                    (travelTime: travelTimeToSchool, distance: travelDistance) : nil,
                 isInChina: isInChinaRegion
             )
             .padding(.horizontal)
@@ -1138,7 +1122,7 @@ struct MainContentView: View {
             .opacity(animateCards ? 1 : 0)
             .animation(
                 .spring(response: 0.7, dampingFraction: 0.8)
-                .delay(0.2),
+                    .delay(0.2),
                 value: animateCards
             )
             .id(travelInfoKey) // Force view recreation when travel info significantly changes
@@ -1153,7 +1137,7 @@ struct MainContentView: View {
             .opacity(animateCards ? 1 : 0)
             .animation(
                 .spring(response: 0.7, dampingFraction: 0.8)
-                .delay(0.3),
+                    .delay(0.3),
                 value: animateCards
             )
         }
@@ -1167,7 +1151,7 @@ struct MainContentView: View {
             .opacity(animateCards ? 1 : 0)
             .animation(
                 .spring(response: 0.7, dampingFraction: 0.8)
-                .delay(0.1),
+                    .delay(0.1),
                 value: animateCards
             )
     }
@@ -1176,7 +1160,7 @@ struct MainContentView: View {
         // Show travel info if user is not near school and we have travel data
         guard let _ = locationManager.userLocation,
               locationManager.authorizationStatus == .authorizedWhenInUse ||
-               locationManager.authorizationStatus == .authorizedAlways,
+                locationManager.authorizationStatus == .authorizedAlways,
               travelTimeToSchool != nil,
               travelDistance != nil else {
             return false

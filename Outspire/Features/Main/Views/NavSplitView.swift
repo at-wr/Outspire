@@ -19,21 +19,21 @@ struct NavSplitView: View {
     var body: some View {
         NavigationSplitView {
             ZStack {
-#if !targetEnvironment(macCatalyst)
+                #if !targetEnvironment(macCatalyst)
                 // Add ColorfulX as background
-ColorfulView(
-    color: $gradientManager.gradientColors,
-    speed: $gradientManager.gradientSpeed,
-    noise: $gradientManager.gradientNoise,
-    transitionSpeed: $gradientManager.gradientTransitionSpeed
-)
-.ignoresSafeArea()
-.opacity(colorScheme == .dark ? 0.15 : 0.3) // Reduce opacity more in dark mode
+                ColorfulView(
+                    color: $gradientManager.gradientColors,
+                    speed: $gradientManager.gradientSpeed,
+                    noise: $gradientManager.gradientNoise,
+                    transitionSpeed: $gradientManager.gradientTransitionSpeed
+                )
+                .ignoresSafeArea()
+                .opacity(colorScheme == .dark ? 0.15 : 0.3) // Reduce opacity more in dark mode
 
-// Semi-transparent background for better contrast
-Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
-    .ignoresSafeArea()
-#endif
+                // Semi-transparent background for better contrast
+                Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
+                    .ignoresSafeArea()
+                #endif
 
                 // Existing list content with better background
                 List(selection: $selectedLink) {
@@ -59,6 +59,9 @@ Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
                         NavigationLink(value: "club-activity") {
                             Label("Activity Records", systemImage: "checklist")
                         }
+                        NavigationLink(value: "club-reflection") {
+                            Label("Reflections", systemImage: "pencil.and.list.clipboard")
+                        }
                     } header: {
                         Text("Activities")
                     }
@@ -73,11 +76,11 @@ Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
                         NavigationLink(value: "lunch-menu") {
                             Label("Dining Menus", systemImage: "fork.knife")
                         }
-#if DEBUG
+                        #if DEBUG
                         NavigationLink(value: "help") {
                             Label("Help", systemImage: "questionmark.circle.dashed")
                         }
-#endif
+                        #endif
                     } header: {
                         Text("Miscellaneous")
                     }
@@ -110,36 +113,43 @@ Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
                             checkOnboardingStatus()
                         }
                 }
+                .onChange(of: showOnboardingSheet) { _, newValue in
+                    // Pause or resume connectivity monitoring during onboarding
+                    ConnectivityManager.shared.setOnboardingActive(newValue)
+                }
             }
         } detail: {
             detailView
         }
-        .onChange(of: Configuration.hideAcademicScore) { newValue in
+        .onChange(of: Configuration.hideAcademicScore) { _, newValue in
             if newValue && selectedLink == "score" {
                 selectedLink = "today"
             }
             refreshID = UUID()
         }
         // Add URL scheme handling changes
-        .onChange(of: urlSchemeHandler.navigateToToday) { newValue in
+        .onChange(of: urlSchemeHandler.navigateToToday) { _, newValue in
             if newValue {
                 selectedLink = "today"
             }
         }
-        .onChange(of: urlSchemeHandler.navigateToClassTable) { newValue in
+        .onChange(of: urlSchemeHandler.navigateToClassTable) { _, newValue in
             if newValue {
                 selectedLink = "classtable"
             }
         }
-        .onChange(of: urlSchemeHandler.navigateToClub) { clubId in
+        .onChange(of: urlSchemeHandler.navigateToClub) { _, clubId in
             if clubId != nil {
                 selectedLink = "club-info"
             }
         }
-        .onChange(of: urlSchemeHandler.navigateToAddActivity) { clubId in
+        .onChange(of: urlSchemeHandler.navigateToAddActivity) { _, clubId in
             if clubId != nil {
                 selectedLink = "club-activity"
             }
+        }
+        .onChange(of: urlSchemeHandler.navigateToReflection) { _, _ in
+            selectedLink = "club-reflection"
         }
         .id(refreshID)
         .task {
@@ -153,6 +163,12 @@ Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
             // Initialize gradient based on current view
             updateGradientForSelectedLink(selectedLink)
         }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+            // Ensure onboarding sheet reappears if not completed
+            if !UserDefaults.standard.bool(forKey: "hasCompletedOnboarding") {
+                showOnboardingSheet = true
+            }
+        }
     }
 
     @ViewBuilder
@@ -161,8 +177,7 @@ Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
         switch selectedLink {
         case "today":
             NavigationStack {
-                TodayView()
-                    .id("today-nav-content")
+                TodayView() // Removed explicit id to enable default transition animations
             }
         case "classtable":
             NavigationStack {
@@ -183,6 +198,11 @@ Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
             NavigationStack {
                 ClubActivitiesView()
                     .id("club-activity-nav-content")
+            }
+        case "club-reflection":
+            NavigationStack {
+                ReflectionsView()
+                    .id("club-reflection-nav-content")
             }
         case "school-arrangement":
             NavigationStack {

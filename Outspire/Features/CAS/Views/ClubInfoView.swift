@@ -21,7 +21,7 @@ struct ClubInfoView: View {
     var body: some View {
         ZStack {
             // Background: ColorfulX for iOS, native gradient for Mac Catalyst
-#if !targetEnvironment(macCatalyst)
+            #if !targetEnvironment(macCatalyst)
             ColorfulView(
                 color: $gradientManager.gradientColors,
                 speed: $gradientManager.gradientSpeed,
@@ -30,10 +30,10 @@ struct ClubInfoView: View {
             )
             .ignoresSafeArea()
             .opacity(colorScheme == .dark ? 0.1 : 0.3)
-#else
+            #else
             Color(.systemBackground)
                 .ignoresSafeArea()
-#endif
+            #endif
 
             // Semi-transparent background with reduced opacity for better contrast with gradient
             Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
@@ -724,15 +724,15 @@ struct ClubInfoView: View {
 
     // Add method to update gradient for club info
     private func updateGradientForClubInfo() {
-#if !targetEnvironment(macCatalyst)
+        #if !targetEnvironment(macCatalyst)
         gradientManager.updateGradientForView(.clubInfo, colorScheme: colorScheme)
-#else
+        #else
         gradientManager.updateGradient(
             colors: [Color(.systemBackground)],
             speed: 0.0,
             noise: 0.0
         )
-#endif
+        #endif
     }
 }
 
@@ -774,7 +774,7 @@ struct ClubDetailView: View {
     private var descriptionView: some View {
         Group {
             if let descriptionC = extractText(groupInfo.C_DescriptionC),
-                !descriptionC.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+               !descriptionC.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 Divider()
 
                 Text("\(descriptionC)")
@@ -785,7 +785,7 @@ struct ClubDetailView: View {
             }
 
             if let descriptionE = extractText(groupInfo.C_DescriptionE),
-                !descriptionE.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+               !descriptionE.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 if extractText(groupInfo.C_DescriptionC) != nil {
                     Divider()
                 }
@@ -896,7 +896,7 @@ struct MemberRow: View {
         .opacity(animateList ? 1 : 0)
         .animation(
             .spring(response: 0.35, dampingFraction: 0.8)
-            .delay(Double(index) * 0.04),
+                .delay(Double(index) * 0.04),
             value: animateList
         )
         .padding(.vertical, 4)

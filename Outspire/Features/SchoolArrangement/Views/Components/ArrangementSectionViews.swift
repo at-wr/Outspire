@@ -66,7 +66,7 @@ struct MonthSection: View {
                                 .combined(with: .scale(scale: 0.95, anchor: .top))
                                 .combined(with: .offset(y: -5))
                                 .animation(.spring(response: 0.4, dampingFraction: 0.65)
-                                    .delay(Double(index) * 0.05)),
+                                            .delay(Double(index) * 0.05)),
                             removal: .opacity
                                 .combined(with: .scale(scale: 0.95, anchor: .top))
                                 .animation(.easeOut(duration: 0.2))
@@ -81,8 +81,8 @@ struct MonthSection: View {
         // Only animate on larger screens or first appearance
         .animation(
             (isSmallScreen && AnimationManager.shared.hasAnimated(viewId: "SchoolArrangementView"))
-            ? nil
-            : .spring(response: 0.5, dampingFraction: 0.8).delay(transitionDuration * 0.2),
+                ? nil
+                : .spring(response: 0.5, dampingFraction: 0.8).delay(transitionDuration * 0.2),
             value: shouldAnimate
         )
     }

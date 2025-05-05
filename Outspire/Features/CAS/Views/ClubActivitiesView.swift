@@ -19,7 +19,7 @@ struct ClubActivitiesView: View {
         // Remove the nested NavigationView
         ZStack {
             // Background: ColorfulX for iOS, native gradient for Mac Catalyst
-#if !targetEnvironment(macCatalyst)
+            #if !targetEnvironment(macCatalyst)
             ColorfulView(
                 color: $gradientManager.gradientColors,
                 speed: $gradientManager.gradientSpeed,
@@ -28,10 +28,10 @@ struct ClubActivitiesView: View {
             )
             .ignoresSafeArea()
             .opacity(colorScheme == .dark ? 0.1 : 0.3)
-#else
+            #else
             Color(.systemBackground)
                 .ignoresSafeArea()
-#endif
+            #endif
 
             // Semi-transparent background with reduced opacity for better contrast with gradient
             Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
@@ -96,7 +96,7 @@ struct ClubActivitiesView: View {
         .onChange(of: viewModel.errorMessage) { errorMessage in
             if let errorMessage = errorMessage {
                 let icon = errorMessage.contains("copied") ?
-                "checkmark.circle.fill" : "exclamationmark.circle.fill"
+                    "checkmark.circle.fill" : "exclamationmark.circle.fill"
                 let toast = ToastValue(
                     icon: Image(systemName: icon).foregroundStyle(.red),
                     message: errorMessage
@@ -138,7 +138,8 @@ struct ClubActivitiesView: View {
             AddRecordSheet(
                 availableGroups: viewModel.groups,
                 loggedInStudentId: userId,
-                onSave: { viewModel.fetchActivityRecords(forceRefresh: true) }
+                onSave: { viewModel.fetchActivityRecords(forceRefresh: true) },
+                clubActivitiesViewModel: viewModel
             )
         } else {
             VStack(spacing: 10) {
@@ -222,15 +223,15 @@ struct ClubActivitiesView: View {
 
     // Add method to update gradient for activities
     private func updateGradientForClubActivities() {
-#if !targetEnvironment(macCatalyst)
+        #if !targetEnvironment(macCatalyst)
         gradientManager.updateGradientForView(.clubActivities, colorScheme: colorScheme)
-#else
+        #else
         gradientManager.updateGradient(
             colors: [Color(.systemBackground)],
             speed: 0.0,
             noise: 0.0
         )
-#endif
+        #endif
     }
 }
 
@@ -421,7 +422,7 @@ struct ActivitiesList: View {
                 .opacity(animateList ? 1 : 0)
                 .animation(
                     .spring(response: 0.4, dampingFraction: 0.7)
-                    .delay(Double(index) * 0.05),
+                        .delay(Double(index) * 0.05),
                     value: animateList
                 )
                 .contentTransition(.opacity)
@@ -470,7 +471,7 @@ struct ActivityCardView: View {
                 .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
         )
         .contextMenu {
-            Button(action: {
+            Button(role: .destructive, action: {
                 viewModel.recordToDelete = activity
                 viewModel.showingDeleteConfirmation = true
             }) {
@@ -516,8 +517,8 @@ struct ActivityCardView: View {
 
     private var totalDuration: Double {
         (Double(activity.C_DurationC) ?? 0) +
-        (Double(activity.C_DurationA) ?? 0) +
-        (Double(activity.C_DurationS) ?? 0)
+            (Double(activity.C_DurationA) ?? 0) +
+            (Double(activity.C_DurationS) ?? 0)
     }
 
     private func formatDate(_ dateString: String) -> String {

@@ -231,9 +231,9 @@ struct EnhancedClassCard: View {
         .onAppear {
             setupTimer()
             updateClassStatus()
-    checkAndUpdateGradient()
-    updateCirclePercent()
-}
+            checkAndUpdateGradient()
+            updateCirclePercent()
+        }
         .onDisappear {
             timer?.invalidate()
             timer = nil
@@ -511,24 +511,24 @@ struct EnhancedClassCard: View {
     // MARK: - Private Methods
 
     // Sets up the timer for countdown updates
-private func setupTimer() {
-    // Cancel any existing timer first
-    timer?.invalidate()
+    private func setupTimer() {
+        // Cancel any existing timer first
+        timer?.invalidate()
 
-    // Initial update
-    calculateTimeRemaining()
-    updateCirclePercent()
-    checkAndUpdateGradient()
+        // Initial update
+        calculateTimeRemaining()
+        updateCirclePercent()
+        checkAndUpdateGradient()
 
-    // Schedule a repeating timer to update every second
-    timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
-        DispatchQueue.main.async {
-            self.calculateTimeRemaining()
-            self.updateCirclePercent()
-            self.checkAndUpdateGradient()
+        // Schedule a repeating timer to update every second
+        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
+            DispatchQueue.main.async {
+                self.calculateTimeRemaining()
+                self.updateCirclePercent()
+                self.checkAndUpdateGradient()
+            }
         }
     }
-}
 
     // Updates the class status
     private func updateClassStatus() {
@@ -558,7 +558,7 @@ private func setupTimer() {
             // Set next class status if not current class
             if !isCurrentClass {
                 isNextClass = effectiveNow < adjustedStartTime &&
-                              adjustedStartTime.timeIntervalSince(effectiveNow) < 3600 // Within the next hour
+                    adjustedStartTime.timeIntervalSince(effectiveNow) < 3600 // Within the next hour
             } else {
                 isNextClass = false
             }

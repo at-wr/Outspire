@@ -129,7 +129,7 @@ struct ClasstableView: View {
 
     var body: some View {
         ZStack {
-#if !targetEnvironment(macCatalyst)
+            #if !targetEnvironment(macCatalyst)
             // ColorfulX as background with higher opacity
             ColorfulView(
                 color: $gradientManager.gradientColors,
@@ -142,7 +142,7 @@ struct ClasstableView: View {
 
             Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
                 .ignoresSafeArea()
-#endif
+            #endif
 
             VStack(spacing: 0) {
                 if !sessionService.isAuthenticated {

@@ -16,34 +16,34 @@ struct SettingsGeneralView: View {
         List {
             Section {
                 Toggle(isOn: $useSSL) {
-//                    HStack {
-                        Label("Enable HTTPS Relay", systemImage: "lock.square")
+                    //                    HStack {
+                    Label("Enable HTTPS Relay", systemImage: "lock.square")
 
-//                        if connectivityManager.isCheckingConnectivity {
-//                            ProgressView()
-//                                .controlSize(.small)
-//                                .padding(.horizontal, 4)
-//                        }
-//                    }
+                    //                        if connectivityManager.isCheckingConnectivity {
+                    //                            ProgressView()
+                    //                                .controlSize(.small)
+                    //                                .padding(.horizontal, 4)
+                    //                        }
+                    //                    }
                 }
                 .onChange(of: useSSL) { _, newValue in
                     Configuration.useSSL = newValue
                     connectivityManager.userToggledRelay(isEnabled: newValue)
                 }
 
-//                #if DEBUG
-//                Button {
-//                    connectivityManager.checkConnectivity(forceCheck: true)
-//                    let toast = ToastValue(
-//                        icon: Image(systemName: "arrow.clockwise").foregroundStyle(.secondary),
-//                        message: "Checking connectivity..."
-//                    )
-//                    presentToast(toast)
-//                } label: {
-//                    Label("Check Connection", systemImage: "arrow.triangle.2.circlepath")
-//                        .font(.subheadline)
-//                }
-//                #endif
+                //                #if DEBUG
+                //                Button {
+                //                    connectivityManager.checkConnectivity(forceCheck: true)
+                //                    let toast = ToastValue(
+                //                        icon: Image(systemName: "arrow.clockwise").foregroundStyle(.secondary),
+                //                        message: "Checking connectivity..."
+                //                    )
+                //                    presentToast(toast)
+                //                } label: {
+                //                    Label("Check Connection", systemImage: "arrow.triangle.2.circlepath")
+                //                        .font(.subheadline)
+                //                }
+                //                #endif
 
             } header: {
                 Text("Network")

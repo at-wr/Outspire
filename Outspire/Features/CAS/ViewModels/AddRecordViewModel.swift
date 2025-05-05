@@ -1,5 +1,6 @@
 import SwiftUI
 import Combine
+import Foundation
 
 class AddRecordViewModel: ObservableObject {
     @Published var selectedGroupId: String = ""
@@ -10,6 +11,20 @@ class AddRecordViewModel: ObservableObject {
     @Published var durationS: Int = 0
     @Published var activityDescription: String = ""
     @Published var errorMessage: String?
+
+    // LLM Suggestion State
+    @Published var isFetchingSuggestion: Bool = false
+    @Published var suggestionError: String?
+    @Published var canRevertSuggestion: Bool = false
+    @Published var showFirstTimeSuggestionAlert: Bool = false
+    @Published var showCompletedSuggestionAlert: Bool = false
+
+    private var originalTitleBeforeSuggestion: String?
+    private var originalDescriptionBeforeSuggestion: String?
+
+    // Dependencies
+    let clubActivitiesViewModel: ClubActivitiesViewModel
+    let llmService: LLMService
 
     let availableGroups: [ClubGroup]
     let loggedInStudentId: String
@@ -39,10 +54,18 @@ class AddRecordViewModel: ObservableObject {
         activityDescription.isEmpty ? 0 : activityDescription.split(separator: " ").count
     }
 
-    init(availableGroups: [ClubGroup], loggedInStudentId: String, onSave: @escaping () -> Void) {
+    init(
+        availableGroups: [ClubGroup],
+        loggedInStudentId: String,
+        onSave: @escaping () -> Void,
+        clubActivitiesViewModel: ClubActivitiesViewModel,
+        llmService: LLMService = LLMService()
+    ) {
         self.availableGroups = availableGroups
         self.loggedInStudentId = loggedInStudentId
         self.onSave = onSave
+        self.clubActivitiesViewModel = clubActivitiesViewModel
+        self.llmService = llmService
 
         // Try to restore from cache first
         if let cache = AddRecordViewModel.cachedFormData {
@@ -66,20 +89,80 @@ class AddRecordViewModel: ObservableObject {
             forName: Notification.Name("ClearCachedFormData"),
             object: nil,
             queue: .main) { [weak self] _ in
-                // Clear the cached form data
-                Self.cachedFormData = nil
+            // Clear the cached form data
+            Self.cachedFormData = nil
+        }
+    }
+
+    // MARK: - LLM Suggestion
+    @MainActor
+    func fetchLLMSuggestion() {
+        // Check if user should see the disclaimer first
+        if !DisclaimerManager.shared.hasShownRecordSuggestionDisclaimer {
+            showFirstTimeSuggestionAlert = true
+            return
+        }
+
+        // Save originals before AI edit
+        isFetchingSuggestion = true
+        suggestionError = nil
+        originalTitleBeforeSuggestion = activityTitle
+        originalDescriptionBeforeSuggestion = activityDescription
+
+        // Get suggestion context
+        let userInput = activityTitle
+        let pastRecords = Array(clubActivitiesViewModel.activities.prefix(3))
+
+        Task {
+            do {
+                // Compute club name from selected group
+                let selectedGroup = availableGroups.first { $0.C_GroupsID == selectedGroupId }
+                let clubNameValue = (selectedGroup?.C_NameE.isEmpty ?? true) ? selectedGroup?.C_NameC ?? "" : selectedGroup?.C_NameE ?? ""
+                // Request the AI suggestion
+                let suggestion = try await llmService.suggestCasRecord(
+                    userInput: userInput,
+                    pastRecords: pastRecords,
+                    clubName: clubNameValue
+                )
+
+                // Update content with suggestion
+                if let title = suggestion.title, !title.isEmpty {
+                    self.activityTitle = title
+                }
+                if let desc = suggestion.description, !desc.isEmpty {
+                    self.activityDescription = desc
+                }
+                self.canRevertSuggestion = true
+
+                // Show the post-suggestion disclaimer
+                self.showCompletedSuggestionAlert = true
+            } catch {
+                self.suggestionError = error.localizedDescription
+                self.canRevertSuggestion = false
             }
+            self.isFetchingSuggestion = false
+        }
+    }
+
+    func revertSuggestion() {
+        if let originalTitle = originalTitleBeforeSuggestion {
+            activityTitle = originalTitle
+        }
+        if let originalDesc = originalDescriptionBeforeSuggestion {
+            activityDescription = originalDesc
+        }
+        canRevertSuggestion = false
     }
 
     private func setupPublishers() {
         // Combine all form field publishers to update cache on any change
         Publishers.CombineLatest4($selectedGroupId, $activityDate, $activityTitle,
                                   Publishers.CombineLatest3($durationC, $durationA, $durationS))
-        .debounce(for: .seconds(0.5), scheduler: RunLoop.main)
-        .sink { [weak self] _, _, _, _ in
-            self?.cacheFormData()
-        }
-        .store(in: &cancellables)
+            .debounce(for: .seconds(0.5), scheduler: RunLoop.main)
+            .sink { [weak self] _, _, _, _ in
+                self?.cacheFormData()
+            }
+            .store(in: &cancellables)
 
         $activityDescription
             .debounce(for: .seconds(0.5), scheduler: RunLoop.main)
@@ -118,6 +201,23 @@ class AddRecordViewModel: ObservableObject {
 
     // Clear the cache after successful submission
     func clearCache() {
+        AddRecordViewModel.cachedFormData = nil
+    }
+
+    // Clear all form fields and cache
+    func clearForm() {
+        selectedGroupId = availableGroups.first?.C_GroupsID ?? ""
+        activityDate = Date()
+        activityTitle = ""
+        durationC = 0
+        durationA = 0
+        durationS = 0
+        activityDescription = ""
+        errorMessage = nil
+        suggestionError = nil
+        canRevertSuggestion = false
+        originalTitleBeforeSuggestion = nil
+        originalDescriptionBeforeSuggestion = nil
         AddRecordViewModel.cachedFormData = nil
     }
 
@@ -171,8 +271,24 @@ class AddRecordViewModel: ObservableObject {
                 }
             case .failure(let error):
                 self.errorMessage = "Unable to save record: \(error.localizedDescription)"
-                // Cache is automatically maintained
+            // Cache is automatically maintained
             }
         }
+    }
+
+    // MARK: - Disclaimer Methods
+    func dismissFirstTimeSuggestionAlert() {
+        // Mark that we've shown the disclaimer
+        DisclaimerManager.shared.markRecordSuggestionDisclaimerAsShown()
+        showFirstTimeSuggestionAlert = false
+
+        // Now proceed with the suggestion
+        Task { @MainActor in
+            await fetchLLMSuggestion()
+        }
+    }
+
+    func dismissCompletedSuggestionAlert() {
+        showCompletedSuggestionAlert = false
     }
 }

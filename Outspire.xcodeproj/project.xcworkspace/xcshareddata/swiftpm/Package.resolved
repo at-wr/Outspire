@@ -1,5 +1,5 @@
 {
-  "originHash" : "8733ecc7265ea18db1dbb1363bff5d4e534fcdf65888c14f9de7f9a87ee0dbd2",
+  "originHash" : "a320e962268e0c9f0af53eea7204df7e3adc32b169b053d08fe0e3ceb6c6be08",
   "pins" : [
     {
       "identity" : "colorfulx",
@@ -38,6 +38,15 @@
       }
     },
     {
+      "identity" : "swiftopenai",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/jamesrochabrun/SwiftOpenAI.git",
+      "state" : {
+        "branch" : "main",
+        "revision" : "180790b46e263ddfd9fa927545ad06ef6ce6d365"
+      }
+    },
+    {
       "identity" : "swiftsoup",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/scinfu/SwiftSoup.git",
@@ -60,8 +69,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/sunghyun-k/swiftui-window-overlay.git",
       "state" : {
-        "revision" : "af0adae224dfe27e094bdef19a71fa4cc020cfbb",
-        "version" : "1.0.1"
+        "revision" : "46739300713772a62a3bf31d77f8f23ba9cf61f7",
+        "version" : "1.0.2"
       }
     }
   ],

@@ -50,7 +50,7 @@ struct LunchMenuView: View {
         NavigationStack {
             ZStack {
                 // Background: ColorfulX for iOS, native gradient for Mac Catalyst
-#if !targetEnvironment(macCatalyst)
+                #if !targetEnvironment(macCatalyst)
                 ColorfulView(
                     color: $gradientManager.gradientColors,
                     speed: $gradientManager.gradientSpeed,
@@ -59,19 +59,19 @@ struct LunchMenuView: View {
                 )
                 .ignoresSafeArea()
                 .opacity(colorScheme == .dark ? 0.15 : 0.3)
-#else
+                #else
                 Color(.systemBackground)
                     .ignoresSafeArea()
-#endif
+                #endif
 
                 // Semi-transparent background for better contrast
                 Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
                     .ignoresSafeArea()
 
                 // Original background - keep for additional system background coloring
-//                Color(UIColor.systemGroupedBackground)
-//                    .opacity(0.6)
-//                    .ignoresSafeArea()
+                //                Color(UIColor.systemGroupedBackground)
+                //                    .opacity(0.6)
+                //                    .ignoresSafeArea()
 
                 // Content layers
                 Group {
@@ -326,15 +326,15 @@ struct LunchMenuView: View {
 
     // Add method to update gradient for lunch menu
     private func updateGradientForLunchMenu() {
-#if !targetEnvironment(macCatalyst)
+        #if !targetEnvironment(macCatalyst)
         gradientManager.updateGradientForView(.lunchMenu, colorScheme: colorScheme)
-#else
+        #else
         gradientManager.updateGradient(
             colors: [Color(.systemBackground)],
             speed: 0.0,
             noise: 0.0
         )
-#endif
+        #endif
     }
 }
 
@@ -406,7 +406,7 @@ struct LunchMenuSection: View {
                                 .combined(with: .scale(scale: 0.95, anchor: .top))
                                 .combined(with: .offset(y: -5))
                                 .animation(.spring(response: 0.4, dampingFraction: 0.65)
-                                    .delay(Double(index) * 0.05)),
+                                            .delay(Double(index) * 0.05)),
                             removal: .opacity
                                 .combined(with: .scale(scale: 0.95, anchor: .top))
                                 .animation(.easeOut(duration: 0.2))
@@ -421,8 +421,8 @@ struct LunchMenuSection: View {
         // Only animate on larger screens or first appearance
         .animation(
             (isSmallScreen && AnimationManager.shared.hasAnimated(viewId: "LunchMenuView"))
-            ? nil
-            : .spring(response: 0.5, dampingFraction: 0.8).delay(transitionDuration * 0.2),
+                ? nil
+                : .spring(response: 0.5, dampingFraction: 0.8).delay(transitionDuration * 0.2),
             value: shouldAnimate
         )
     }
@@ -583,7 +583,7 @@ struct LunchMenuSkeletonView: View {
                 // Add spacing at the top to account for the search bar
                 Spacer()
                     .frame(height: 16)
-                
+
                 // Add year header skeleton
                 HStack {
                     RoundedRectangle(cornerRadius: 4)
@@ -594,7 +594,7 @@ struct LunchMenuSkeletonView: View {
                 }
                 .padding(.horizontal, 8)
                 .padding(.bottom, 4)
-                
+
                 ForEach(0..<3, id: \.self) { index in
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
@@ -622,7 +622,7 @@ struct LunchMenuSkeletonView: View {
                     .offset(y: animateItems ? 0 : 10)
                     .animation(
                         .spring(response: 0.5, dampingFraction: 0.8)
-                        .delay(Double(index) * 0.07),
+                            .delay(Double(index) * 0.07),
                         value: animateItems
                     )
                 }

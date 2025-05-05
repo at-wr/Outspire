@@ -21,7 +21,7 @@ struct OutspireApp: App {
 
     // Add gradient manager
     @StateObject private var gradientManager = GradientManager()
-    
+
     // Add connectivity manager
     @StateObject private var connectivityManager = ConnectivityManager.shared
 
@@ -46,11 +46,11 @@ struct OutspireApp: App {
         }
 
         // Register the Live Activity widget
-#if !targetEnvironment(macCatalyst)
+        #if !targetEnvironment(macCatalyst)
         if #available(iOS 16.1, *) {
             LiveActivityRegistration.registerLiveActivities()
         }
-#endif
+        #endif
     }
 
     var body: some Scene {
@@ -79,7 +79,7 @@ struct OutspireApp: App {
                     if newPhase == .active {
                         // Check connectivity when app becomes active
                         connectivityManager.checkConnectivity()
-                        
+
                         // Also refresh session status if needed
                         if sessionService.isAuthenticated && sessionService.userInfo == nil {
                             sessionService.fetchUserInfo { _, _ in }
@@ -245,12 +245,12 @@ class OutspireAppDelegate: NSObject, UIApplicationDelegate {
     }
 
     func applicationWillTerminate(_ application: UIApplication) {
-#if !targetEnvironment(macCatalyst)
+        #if !targetEnvironment(macCatalyst)
         // Clean up Live Activities
         if #available(iOS 16.1, *) {
             ClassActivityManager.shared.cleanup()
         }
-#endif
+        #endif
     }
 
     // Handle URL scheme when app is launched from a URL

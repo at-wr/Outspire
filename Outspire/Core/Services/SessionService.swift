@@ -30,7 +30,7 @@ class SessionService: ObservableObject {
         // Don't clear user info to keep the UI consistent
     }
 
-    // Update the loginUser method    
+    // Update the loginUser method
     func loginUser(username: String, password: String, captcha: String, completion: @escaping (Bool, String?, Bool) -> Void) {
         guard let sessionId = self.sessionId, !sessionId.isEmpty else {
             completion(false, "Please refresh the captcha.", true) // Mark as captcha error to trigger retry
@@ -116,7 +116,7 @@ class SessionService: ObservableObject {
                 HTTPCookieStorage.shared.deleteCookie(cookie)
             }
         }
-        
+
         // Reset the network session
         URLSession.shared.reset { }
 
@@ -130,7 +130,7 @@ class SessionService: ObservableObject {
 
         // Cancel all notifications when user logs out
         NotificationManager.shared.cancelAllNotifications()
-        
+
         // Post notification that authentication has changed
         NotificationCenter.default.post(
             name: Notification.Name.authenticationStatusChanged,

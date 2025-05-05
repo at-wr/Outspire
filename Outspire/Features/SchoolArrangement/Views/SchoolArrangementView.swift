@@ -31,7 +31,7 @@ struct SchoolArrangementView: View {
             return viewModel.arrangementGroups.compactMap { group in
                 let filteredItems = group.items.filter { item in
                     item.title.localizedCaseInsensitiveContains(searchText) ||
-                    item.weekNumbers.contains(where: { String($0).contains(searchText) })
+                        item.weekNumbers.contains(where: { String($0).contains(searchText) })
                 }
 
                 if filteredItems.isEmpty {
@@ -51,7 +51,7 @@ struct SchoolArrangementView: View {
         NavigationStack {
             ZStack {
                 // Background: ColorfulX for iOS, native gradient for Mac Catalyst
-#if !targetEnvironment(macCatalyst)
+                #if !targetEnvironment(macCatalyst)
                 ColorfulView(
                     color: $gradientManager.gradientColors,
                     speed: $gradientManager.gradientSpeed,
@@ -60,10 +60,10 @@ struct SchoolArrangementView: View {
                 )
                 .ignoresSafeArea()
                 .opacity(colorScheme == .dark ? 0.15 : 0.3)
-#else
+                #else
                 Color(.systemBackground)
                     .ignoresSafeArea()
-#endif
+                #endif
 
                 // Semi-transparent background for better contrast
                 Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
@@ -295,15 +295,15 @@ struct SchoolArrangementView: View {
 
     // Add method to update gradient for school arrangements
     private func updateGradientForSchoolArrangements() {
-#if !targetEnvironment(macCatalyst)
+        #if !targetEnvironment(macCatalyst)
         gradientManager.updateGradientForView(.schoolArrangements, colorScheme: colorScheme)
-#else
+        #else
         gradientManager.updateGradient(
             colors: [Color(.systemBackground)],
             speed: 0.0,
             noise: 0.0
         )
-#endif
+        #endif
     }
 }
 

@@ -112,27 +112,27 @@ struct OutspireWidgetEntryView: View {
 
     private var loadingView: some View {
         VStack(spacing: 10) {
-                // Skeleton for class name
-                Rectangle()
-                    .fill(Color.gray.opacity(0.3))
-                    .frame(height: 20)
-                    .cornerRadius(4)
-                    .padding(.horizontal, 12)
+            // Skeleton for class name
+            Rectangle()
+                .fill(Color.gray.opacity(0.3))
+                .frame(height: 20)
+                .cornerRadius(4)
+                .padding(.horizontal, 12)
 
-                // Skeleton for teacher name
-                Rectangle()
-                    .fill(Color.gray.opacity(0.3))
-                    .frame(height: 15)
-                    .cornerRadius(4)
-                    .padding(.horizontal, 12)
+            // Skeleton for teacher name
+            Rectangle()
+                .fill(Color.gray.opacity(0.3))
+                .frame(height: 15)
+                .cornerRadius(4)
+                .padding(.horizontal, 12)
 
-                // Skeleton for room number
-                Rectangle()
-                    .fill(Color.gray.opacity(0.3))
-                    .frame(height: 15)
-                    .cornerRadius(4)
-                    .padding(.horizontal, 12)
-            }
+            // Skeleton for room number
+            Rectangle()
+                .fill(Color.gray.opacity(0.3))
+                .frame(height: 15)
+                .cornerRadius(4)
+                .padding(.horizontal, 12)
+        }
     }
 
     private var weekendView: some View {

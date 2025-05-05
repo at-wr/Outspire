@@ -10,7 +10,7 @@ struct SchoolArrangementSkeletonView: View {
                 // Add spacing at the top to account for the search bar
                 Spacer()
                     .frame(height: 16)
-                
+
                 ForEach(0..<3, id: \.self) { sectionIndex in
                     // Section header skeleton
                     HStack {

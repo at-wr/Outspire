@@ -112,8 +112,8 @@ struct AccountView: View {
                             .font(.system(size: 24))
                         let baseText = "For account issues, contact school faculty. All data will only be stored on this device and the TSIMS server. "
                         let connectionStatus = Configuration.useSSL ?
-                        "Your connection with Relay Server is end-to-end encrypted." :
-                        "Your connection can be easily discovered by other users. Relay Encryption is strongly recommended if you're using a public network."
+                            "Your connection with Relay Server is end-to-end encrypted." :
+                            "Your connection can be easily discovered by other users. Relay Encryption is strongly recommended if you're using a public network."
 
                         Text(baseText + connectionStatus)
                             .font(.caption)
@@ -243,8 +243,8 @@ struct AccountView: View {
 
         // Create icon for the toast
         let icon = isError ?
-        Image(systemName: "exclamationmark.triangle").foregroundColor(.red) :
-        Image(systemName: "checkmark.circle").foregroundColor(.green)
+            Image(systemName: "exclamationmark.triangle").foregroundColor(.red) :
+            Image(systemName: "checkmark.circle").foregroundColor(.green)
 
         // Create toast value
         let toast = ToastValue(icon: icon, message: message)

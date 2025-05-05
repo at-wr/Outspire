@@ -59,7 +59,7 @@ class NotificationManager: ObservableObject {
             let calendar = Calendar.current
             let hour = calendar.component(.hour, from: notificationTime)
             let minute = calendar.component(.minute, from: notificationTime)
-            
+
             // Create a calendar trigger for the custom time on weekdays (Monday=2 to Friday=6)
             var dateComponents = DateComponents()
             dateComponents.hour = hour

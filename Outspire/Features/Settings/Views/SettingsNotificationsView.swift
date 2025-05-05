@@ -9,7 +9,7 @@ struct SettingsNotificationsView: View {
     @State private var isRequestingPermission = false
     @State private var permissionDenied = false
     @State private var notificationStatus: UNAuthorizationStatus = .notDetermined
-    
+
     var body: some View {
         List {
             Section {
@@ -20,7 +20,7 @@ struct SettingsNotificationsView: View {
                     Text(notificationStatusText)
                         .foregroundColor(notificationStatusColor)
                 }
-                
+
                 if notificationStatus == .denied {
                     Button(action: openSettings) {
                         Label("Open System Settings", systemImage: "gear")
@@ -34,7 +34,7 @@ struct SettingsNotificationsView: View {
                     .font(.footnote)
                     .foregroundColor(.secondary)
             }
-            
+
             Section {
                 Toggle(isOn: $departureNotificationsEnabled) {
                     Label("Departure Reminder", systemImage: "car")
@@ -59,7 +59,7 @@ struct SettingsNotificationsView: View {
                     }
                 }
                 .disabled(notificationStatus == .denied)
-                
+
                 if departureNotificationsEnabled && notificationStatus == .authorized {
                     HStack {
                         Label("Notification Time", systemImage: "clock")
@@ -78,7 +78,7 @@ struct SettingsNotificationsView: View {
                         }
                     }
                 }
-                
+
                 if isRequestingPermission {
                     ProgressView("Requesting Notification Permission…")
                 }
@@ -123,21 +123,21 @@ struct SettingsNotificationsView: View {
             checkNotificationPermission()
         }
     }
-    
+
     // Check the current notification permission status
     private func checkNotificationPermission() {
         NotificationManager.shared.checkAuthorizationStatus { status in
             self.notificationStatus = status
         }
     }
-    
+
     // Helper to open the app's settings in iOS Settings
     private func openSettings() {
         if let url = URL(string: UIApplication.openSettingsURLString) {
             UIApplication.shared.open(url)
         }
     }
-    
+
     // Format the notification status as text
     private var notificationStatusText: String {
         switch notificationStatus {
@@ -155,7 +155,7 @@ struct SettingsNotificationsView: View {
             return "Unknown"
         }
     }
-    
+
     // Color coding for the permission status
     private var notificationStatusColor: Color {
         switch notificationStatus {

@@ -120,7 +120,7 @@ class ClubInfoViewModel: ObservableObject {
                     print("Keeping current selection due to URL navigation")
                     return
                 } else if let previousId = previousSelection,
-                         let previousGroup = groups.first(where: { $0.C_GroupsID == previousId }) {
+                          let previousGroup = groups.first(where: { $0.C_GroupsID == previousId }) {
                     self.selectedGroup = previousGroup
                     self.fetchGroupInfo(for: previousGroup)
                     return
@@ -477,7 +477,7 @@ class ClubInfoViewModel: ObservableObject {
                     }
                 case .failure(let error):
                     print("Failed to load groups for category: \(error.localizedDescription)")
-                    // Don't set error message here as we already have the club info displayed
+                // Don't set error message here as we already have the club info displayed
                 }
             }
         }

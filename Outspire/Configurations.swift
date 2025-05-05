@@ -1,10 +1,13 @@
 import Foundation
 
 struct Configuration {
+    // For LLM Service
+    // Go to Configuration.local.swift
+
     static var departureNotificationsEnabled: Bool {
         get {
             if UserDefaults.standard.object(forKey: "departureNotificationsEnabled") == nil {
-                return false // Default: disabled
+                return false  // Default: disabled
             }
             return UserDefaults.standard.bool(forKey: "departureNotificationsEnabled")
         }
@@ -12,10 +15,11 @@ struct Configuration {
             UserDefaults.standard.set(newValue, forKey: "departureNotificationsEnabled")
         }
     }
-    
+
     static var departureNotificationTime: Date {
         get {
-            if let storedTime = UserDefaults.standard.object(forKey: "departureNotificationTime") as? Date {
+            if let storedTime = UserDefaults.standard.object(forKey: "departureNotificationTime")
+                as? Date {
                 return storedTime
             } else {
                 // Default time: 6:55 AM
@@ -59,7 +63,8 @@ struct Configuration {
 
     static var showSecondsInLongCountdown: Bool {
         get {
-            return UserDefaults.standard.object(forKey: "showSecondsInLongCountdown") as? Bool ?? false
+            return UserDefaults.standard.object(forKey: "showSecondsInLongCountdown") as? Bool
+                ?? false
         }
         set {
             UserDefaults.standard.set(newValue, forKey: "showSecondsInLongCountdown")
@@ -68,7 +73,8 @@ struct Configuration {
 
     static var showCountdownForFutureClasses: Bool {
         get {
-            return UserDefaults.standard.object(forKey: "showCountdownForFutureClasses") as? Bool ?? false
+            return UserDefaults.standard.object(forKey: "showCountdownForFutureClasses") as? Bool
+                ?? false
         }
         set {
             UserDefaults.standard.set(newValue, forKey: "showCountdownForFutureClasses")
@@ -134,7 +140,8 @@ struct Configuration {
 
     static var holidayEndDate: Date {
         get {
-            return UserDefaults.standard.object(forKey: "holidayEndDate") as? Date ?? Date().addingTimeInterval(86400)
+            return UserDefaults.standard.object(forKey: "holidayEndDate") as? Date
+                ?? Date().addingTimeInterval(86400)
         }
         set {
             UserDefaults.standard.set(newValue, forKey: "holidayEndDate")
@@ -163,10 +170,15 @@ struct Configuration {
     static var automaticallyStartLiveActivities: Bool {
         get {
             if UserDefaults.standard.object(forKey: "automaticallyStartLiveActivities") == nil {
-                return true // Default: enabled
+                return true  // Default: enabled
             }
             return UserDefaults.standard.bool(forKey: "automaticallyStartLiveActivities")
         }
         set { UserDefaults.standard.set(newValue, forKey: "automaticallyStartLiveActivities") }
     }
+
+    //// Add setting for AI suggestion disclaimer flags
+    // static func resetAIDisclaimers() {
+    //    DisclaimerManager.shared.resetDisclaimers()
+    // }
 }
