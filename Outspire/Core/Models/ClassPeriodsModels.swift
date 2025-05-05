@@ -62,8 +62,9 @@ public class ClassPeriodsManager {
     }
 
     public func getCurrentOrNextPeriod(useEffectiveDate: Bool = false, effectiveDate: Date? = nil) -> (period: ClassPeriod?, isCurrentlyActive: Bool) {
+        let calendar = Calendar.current
+        
         if useEffectiveDate, let effectiveDate = effectiveDate {
-            let calendar = Calendar.current
             let effectiveTime = calendar.dateComponents([.hour, .minute, .second], from: Date())
             let effectiveDay = calendar.dateComponents([.year, .month, .day], from: effectiveDate)
 
@@ -90,12 +91,16 @@ public class ClassPeriodsManager {
 
             let futurePeriods = classPeriods.filter {
                 createAdjustedTime(from: $0.startTime, onDate: effectiveDate) > effectiveNow
-            }
-            if let nextPeriod = futurePeriods.min(by: {
+            }.sorted {
                 createAdjustedTime(from: $0.startTime, onDate: effectiveDate) <
-                    createAdjustedTime(from: $1.startTime, onDate: effectiveDate)
-            }) {
-                return (nextPeriod, false)
+                createAdjustedTime(from: $1.startTime, onDate: effectiveDate)
+            }
+
+            for potentialNextPeriod in futurePeriods {
+                let weekday = calendar.component(.weekday, from: effectiveDate)
+                if !(potentialNextPeriod.number == 9 && (weekday == 2 || weekday == 6)) {
+                    return (potentialNextPeriod, false)
+                }
             }
 
             return (nil, false)
@@ -104,9 +109,12 @@ public class ClassPeriodsManager {
             if let activePeriod = classPeriods.first(where: { $0.isCurrentlyActive() }) {
                 return (activePeriod, true)
             }
-            let futurePeriods = classPeriods.filter { $0.startTime > now }
-            if let nextPeriod = futurePeriods.min(by: { $0.startTime < $1.startTime }) {
-                return (nextPeriod, false)
+            let futurePeriods = classPeriods.filter { $0.startTime > now }.sorted { $0.startTime < $1.startTime }
+            for potentialNextPeriod in futurePeriods {
+                let weekday = calendar.component(.weekday, from: now)
+                if !(potentialNextPeriod.number == 9 && (weekday == 2 || weekday == 6)) {
+                    return (potentialNextPeriod, false)
+                }
             }
             return (nil, false)
         }
@@ -114,11 +122,11 @@ public class ClassPeriodsManager {
 
     public func getMaxPeriodsByWeekday(_ weekday: Int) -> Int {
         switch weekday {
-        case 2: return 9  // Monday
+        case 2: return 8  // Monday
         case 3: return 9  // Tuesday
         case 4: return 9  // Wednesday
         case 5: return 9  // Thursday
-        case 6: return 9  // Friday
+        case 6: return 8  // Friday
         default: return 0 // Weekend
         }
     }
