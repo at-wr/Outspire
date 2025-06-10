@@ -43,26 +43,34 @@ struct ClubActivitiesView: View {
         // .toolbarBackground(Color(UIColor.systemBackground))
         .contentMargins(.vertical, 10.0)
         .toolbar {
-            ToolbarItem(id: "loadingIndicator", placement: .navigationBarTrailing) {
-                if viewModel.isLoadingActivities || viewModel.isLoadingGroups {
-                    ProgressView()
-                        .controlSize(.small)
-                }
-            }
+//            ToolbarItem(id: "loadingIndicator", placement: .navigationBarTrailing) {
+//                if viewModel.isLoadingActivities || viewModel.isLoadingGroups {
+//                    ProgressView()
+//                        .controlSize(.small)
+//                }
+//            }
 
             ToolbarItem(id: "refreshButton", placement: .navigationBarTrailing) {
                 Button(action: handleRefreshAction) {
-                    Image(systemName: "arrow.clockwise")
-                        .rotationEffect(.degrees(refreshButtonRotation))
+                    Label {
+                        Text("Refresh")
+                    } icon: {
+                        Image(systemName: "arrow.clockwise")
+                            .rotationEffect(.degrees(refreshButtonRotation))
+                    }
                 }
-                .disabled(viewModel.isLoadingActivities || viewModel.isLoadingGroups)
+//                .disabled(viewModel.isLoadingActivities || viewModel.isLoadingGroups)
             }
 
             ToolbarItem(id: "addButton", placement: .navigationBarTrailing) {
                 Button(action: { showingAddRecordSheet.toggle() }) {
-                    Image(systemName: "square.and.pencil")
+                    Label {
+                        Text("Compose")
+                    } icon: {
+                        Image(systemName: "square.and.pencil")
+                    }
                 }
-                .disabled(viewModel.isLoadingGroups || viewModel.isLoadingActivities || sessionService.userInfo == nil)
+//                .disabled(viewModel.isLoadingGroups || viewModel.isLoadingActivities || sessionService.userInfo == nil)
             }
         }
         .sheet(isPresented: $showingAddRecordSheet) {

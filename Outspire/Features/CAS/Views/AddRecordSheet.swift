@@ -120,7 +120,7 @@ struct AddRecordSheet: View {
                     }
                 }
 
-                ToolbarItem(id: "llmSuggest", placement: .navigationBarTrailing) {
+                ToolbarItem(id: "llmSuggest", placement: .primaryAction) {
                     Menu {
                         Button {
                             viewModel.fetchLLMSuggestion()
@@ -148,8 +148,12 @@ struct AddRecordSheet: View {
                     }
                     .disabled(viewModel.isFetchingSuggestion)
                 }
+                
+                if #available(iOS 26.0, *) {
+                    ToolbarSpacer(.fixed, placement: .primaryAction)
+                }
 
-                ToolbarItem(id: "saveButton", placement: .navigationBarTrailing) {
+                ToolbarItem(id: "saveButton", placement: .primaryAction) {
                     Button("Save") {
                         viewModel.saveRecord()
                         if let errorMessage = viewModel.errorMessage {

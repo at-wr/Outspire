@@ -61,14 +61,14 @@ struct ClubInfoView: View {
                 // .toolbarBackground(Color(UIColor.systemBackground))
                 .toolbar {
                     // Replace individual toolbar content with inline implementation
-                    ToolbarItem(id: "progressView", placement: .navigationBarTrailing) {
-                        if viewModel.isLoading {
-                            ProgressView()
-                                .controlSize(.small)
-                        }
-                    }
+//                    ToolbarItem(id: "progressView", placement: .navigationBarTrailing) {
+//                        if viewModel.isLoading {
+//                            ProgressView()
+//                                .controlSize(.small)
+//                        }
+//                    }
 
-                    ToolbarItem(id: "clubAction", placement: .navigationBarTrailing) {
+                    ToolbarItem(id: "clubAction", placement: .primaryAction) {
                         if sessionService.isAuthenticated,
                            !viewModel.isLoading,
                            viewModel.selectedGroup != nil {
@@ -141,17 +141,23 @@ struct ClubInfoView: View {
                                     }
                                 }
                             } label: {
-                                Image(systemName: viewModel.isUserMember ? "person.crop.circle.fill.badge.checkmark" : "person.crop.circle.badge.plus")
-                                    .symbolRenderingMode(.hierarchical)
-                                    .foregroundStyle(viewModel.isUserMember ? .green : .cyan)
-                                    .opacity(viewModel.isJoiningClub || viewModel.isExitingClub ? 0.5 : 1.0)
-                                    .overlay {
-                                        if viewModel.isJoiningClub || viewModel.isExitingClub {
-                                            ProgressView()
-                                                .controlSize(.mini)
-                                        }
-                                    }
+                                Label {
+                                    Text(viewModel.isUserMember ? "Already a member of the Club" : "Join Club")
+                                } icon: {
+                                    Image(systemName: viewModel.isUserMember ? "checkmark" : "plus")
+//                                        .symbolRenderingMode(.hierarchical)
+//                                        .foregroundStyle(viewModel.isUserMember ? .green : .cyan)
+//                                        .opacity(viewModel.isJoiningClub || viewModel.isExitingClub ? 0.8 : 1.0)
+                                }
+//                                .overlay {
+//                                    if viewModel.isJoiningClub || viewModel.isExitingClub {
+//                                        ProgressView()
+//                                            .controlSize(.mini)
+//                                    }
+//                                }
                             }
+                            .buttonStyle(.borderedProminent) // Only available on Button, fix this later
+                            .tint(viewModel.isUserMember ? .pink : .cyan)
                             .disabled(viewModel.isJoiningClub || viewModel.isExitingClub)
                             .onChange(of: viewModel.isUserMember) { _, newValue in
                                 if initialMembershipCheckComplete {
@@ -167,19 +173,31 @@ struct ClubInfoView: View {
                             #endif
                         }
                     }
-
+                    
+                    if #available(iOS 26.0, *) {
+                        ToolbarSpacer(.fixed, placement: .primaryAction)
+                    }
+                    
                     // Share button
-                    ToolbarItem(id: "shareButton", placement: .navigationBarTrailing) {
+                    ToolbarItem(id: "shareButton", placement: .primaryAction) {
                         if let groupInfo = viewModel.groupInfo {
                             Button(action: {
                                 shareClub(groupInfo: groupInfo)
                             }) {
-                                Image(systemName: "square.and.arrow.up")
+                                Label {
+                                    Text("Share")
+                                } icon: {
+                                    Image(systemName: "square.and.arrow.up")
+                                }
                             }
                         }
                     }
+                    
+                    if #available(iOS 26.0, *) {
+                        ToolbarSpacer(.fixed, placement: .primaryAction)
+                    }
 
-                    ToolbarItem(id: "refreshButton", placement: .navigationBarTrailing) {
+                    ToolbarItem(id: "refreshButton", placement: .primaryAction) {
                         Button(action: {
                             withAnimation {
                                 refreshButtonRotation += 360
@@ -203,9 +221,15 @@ struct ClubInfoView: View {
                                 preservedGroupId = id
                             }
                         }) {
-                            Image(systemName: "arrow.clockwise")
-                                .rotationEffect(.degrees(refreshButtonRotation))
-                                .animation(.spring(response: 0.6, dampingFraction: 0.5), value: refreshButtonRotation)
+                            Label {
+                                Text("Refresh")
+                            } icon: {
+                                Image(systemName: "arrow.clockwise")
+                            }
+                            .rotationEffect(.degrees(refreshButtonRotation))
+                            .animation(
+                                .spring(response: 0.6, dampingFraction: 0.5),
+                                value: refreshButtonRotation)
                         }
                     }
                 }

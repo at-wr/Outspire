@@ -131,7 +131,7 @@ struct AddReflectionSheet: View {
                         presentationMode.wrappedValue.dismiss()
                     }
                 }
-                ToolbarItem(id: "llmSuggest", placement: .navigationBarTrailing) {
+                ToolbarItem(id: "llmSuggest", placement: .primaryAction) {
                     Menu {
                         Button {
                             viewModel.fetchLLMSuggestion()
@@ -163,14 +163,19 @@ struct AddReflectionSheet: View {
                     }
                     .disabled(viewModel.isFetchingSuggestion)
                 }
-                ToolbarItem(id: "learningOutcomesInfo", placement: .navigationBarTrailing) {
+                ToolbarItem(id: "learningOutcomesInfo", placement: .primaryAction) {
                     Button(action: { showingLearningOutcomesSheet.toggle() }) {
                         Image(systemName: "info.circle")
                     }
                     .help("Help")
                 }
+                
+                if #available(iOS 26.0, *) {
+                    ToolbarSpacer(.fixed, placement: .primaryAction)
+                }
 
-                ToolbarItem(placement: .navigationBarTrailing) {
+
+                ToolbarItem(placement: .primaryAction) {
                     Button("Save") {
                         viewModel.save()
                         if viewModel.errorMessage == nil {

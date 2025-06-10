@@ -97,14 +97,14 @@ struct SchoolArrangementView: View {
                 prompt: "Search by week number or title"
             )
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    if viewModel.isLoadingDetail {
-                        ProgressView()
-                            .controlSize(.small)
-                    } else {
-                        LoadingIndicator(isLoading: viewModel.isLoading)
-                    }
-                }
+//                ToolbarItem(placement: .navigationBarTrailing) {
+//                    if viewModel.isLoadingDetail {
+//                        ProgressView()
+//                            .controlSize(.small)
+//                    } else {
+//                        LoadingIndicator(isLoading: viewModel.isLoading)
+//                    }
+//                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     RefreshButton(isLoading: viewModel.isLoading, rotation: $refreshButtonRotation, action: {
                         withAnimation {

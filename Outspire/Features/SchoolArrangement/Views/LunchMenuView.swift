@@ -97,13 +97,13 @@ struct LunchMenuView: View {
             .navigationBarTitleDisplayMode(.large)
             .searchable(
                 text: $searchText,
-                placement: .navigationBarDrawer(displayMode: .always),
+//                placement: .navigationBarDrawer(displayMode: .always),
                 prompt: "Search menus by title"
             )
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    LoadingIndicator(isLoading: viewModel.isLoading)
-                }
+//                ToolbarItem(placement: .navigationBarTrailing) {
+//                    LoadingIndicator(isLoading: viewModel.isLoading)
+//                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     RefreshButton(isLoading: viewModel.isLoading, rotation: $refreshButtonRotation, action: {
                         withAnimation {

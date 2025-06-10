@@ -93,7 +93,11 @@ struct NavSplitView: View {
                         Button(action: {
                             settingsManager.showSettingsSheet.toggle()
                         }) {
-                            Image(systemName: "gear")
+                            Label {
+                                Text("Settings")
+                            } icon: {
+                                Image(systemName: "gear")
+                            }
                         }
 
                     }

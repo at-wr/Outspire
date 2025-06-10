@@ -91,8 +91,8 @@ struct SettingsView: View {
                         .cornerRadius(6)
                         .foregroundStyle(.primary)
                     #else
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.title2)
+                    Image(systemName: "xmark")
+                        //.font(.title2)
                         .foregroundStyle(.secondary)
                     #endif
                 }

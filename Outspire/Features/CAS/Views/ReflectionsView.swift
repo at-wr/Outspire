@@ -38,24 +38,32 @@ struct ReflectionsView: View {
         .navigationTitle("Reflections")
         .contentMargins(.vertical, 10.0)
         .toolbar {
-            ToolbarItem(id: "loadingIndicator", placement: .navigationBarTrailing) {
-                if viewModel.isLoadingGroups || viewModel.isLoadingReflections {
-                    ProgressView()
-                        .controlSize(.small)
-                }
-            }
+//            ToolbarItem(id: "loadingIndicator", placement: .navigationBarTrailing) {
+//                if viewModel.isLoadingGroups || viewModel.isLoadingReflections {
+//                    ProgressView()
+//                        .controlSize(.small)
+//                }
+//            }
             ToolbarItem(id: "refreshButton", placement: .navigationBarTrailing) {
                 Button(action: handleRefreshAction) {
-                    Image(systemName: "arrow.clockwise")
-                        .rotationEffect(.degrees(refreshButtonRotation))
+                    Label {
+                        Text("Refresh")
+                    } icon: {
+                        Image(systemName: "arrow.clockwise")
+                            .rotationEffect(.degrees(refreshButtonRotation))
+                    }
                 }
-                .disabled(viewModel.isLoadingGroups || viewModel.isLoadingReflections)
+//                .disabled(viewModel.isLoadingGroups || viewModel.isLoadingReflections)
             }
             ToolbarItem(id: "addButton", placement: .navigationBarTrailing) {
                 Button(action: { showingAddSheet.toggle() }) {
-                    Image(systemName: "square.and.pencil")
+                    Label {
+                        Text("Compose")
+                    } icon: {
+                        Image(systemName: "square.and.pencil")
+                    }
                 }
-                .disabled(viewModel.isLoadingGroups || viewModel.isLoadingReflections || sessionService.userInfo == nil)
+//                .disabled(viewModel.isLoadingGroups || viewModel.isLoadingReflections || sessionService.userInfo == nil)
             }
         }
         .sheet(isPresented: $showingAddSheet) {

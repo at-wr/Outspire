@@ -425,14 +425,7 @@ struct ScoreView: View {
 
     private var toolbarItems: some ToolbarContent {
         Group {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                if viewModel.isLoading || viewModel.isLoadingTerms {
-                    ProgressView()
-                        .controlSize(.small)
-                }
-            }
-
-            ToolbarItem(placement: .navigationBarTrailing) {
+            ToolbarItem(placement: .primaryAction) {
                 Button(action: {
                     withAnimation {
                         refreshButtonRotation += 360
@@ -455,11 +448,15 @@ struct ScoreView: View {
                         }
                     }
                 }) {
-                    Image(systemName: "arrow.clockwise")
-                        .rotationEffect(.degrees(refreshButtonRotation))
-                        .animation(
-                            .spring(response: 0.6, dampingFraction: 0.5),
-                            value: refreshButtonRotation)
+                    Label {
+                        Text("Refresh")
+                    } icon: {
+                        Image(systemName: "arrow.clockwise")
+                    }
+                    .rotationEffect(.degrees(refreshButtonRotation))
+                    .animation(
+                        .spring(response: 0.6, dampingFraction: 0.5),
+                        value: refreshButtonRotation)
                 }
                 .disabled(
                     !sessionService.isAuthenticated || viewModel.isLoading
