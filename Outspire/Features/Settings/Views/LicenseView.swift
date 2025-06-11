@@ -1,14 +1,14 @@
 import SwiftUI
 
 struct LicenseView: View {
-    @State private var licenseText: String = "Loading licenses..."
+    @State private var licenseText: String = "Loading Licenses..."
 
     private func loadLicenses() {
         if let url = Bundle.main.url(forResource: "ThirdPartyLicenses", withExtension: "txt"),
            let content = try? String(contentsOf: url) {
             licenseText = content
         } else {
-            licenseText = "License file not found."
+            licenseText = "License currently unavailable."
         }
     }
 

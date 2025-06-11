@@ -10,7 +10,7 @@ struct MenuItemView: View {
         case .notifications:
             Label("Notifications", systemImage: "bell.badge")
         case .gradients:
-            Label("Display", systemImage: "paintpalette")
+            Label("Visual", systemImage: "sun.max")
         case .license:
             Label("Open Source Licenses", systemImage: "doc.text")
         case .about:

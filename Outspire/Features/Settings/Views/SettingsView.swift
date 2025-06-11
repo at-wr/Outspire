@@ -50,12 +50,12 @@ struct SettingsView: View {
                         item: URL(string: "https://apps.apple.com/us/app/outspire/id6743143348")!,
                         message: Text("\nCheck out Outspire, an app that makes your WFLA life easier!\nWidgets, Class countdowns, CAS... \n\nDownload now on the App Store.")
                     ) {
-                        Label("Spread the Love", systemImage: "square.and.arrow.up")
+                        Label("Share Outspire", systemImage: "square.and.arrow.up")
                             .foregroundStyle(.primary)
                     }
 
                     Link(destination: URL(string: "https://outspire.wrye.dev")!) {
-                        Label("Visit our Website", systemImage: "globe")
+                        Label("Website", systemImage: "globe")
                             .foregroundStyle(.primary)
                     }
 
