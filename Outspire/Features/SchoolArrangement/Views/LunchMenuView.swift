@@ -97,8 +97,8 @@ struct LunchMenuView: View {
             .navigationBarTitleDisplayMode(.large)
             .searchable(
                 text: $searchText,
-//                placement: .navigationBarDrawer(displayMode: .always),
-                prompt: "Search menus by title"
+                placement: .navigationBarDrawer(displayMode: .always),
+                prompt: "Search by week number or title"
             )
             .toolbar {
 //                ToolbarItem(placement: .navigationBarTrailing) {
