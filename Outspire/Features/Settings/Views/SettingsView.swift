@@ -14,7 +14,9 @@ struct SettingsView: View {
         case gradients
         case about
         case license
-
+        #if DEBUG
+            case cache
+        #endif
     }
 
     var body: some View {
@@ -72,12 +74,17 @@ struct SettingsView: View {
                 }
 
                 #if DEBUG
-                    Section {
+                    Section("Debug Tools") {
                         Button("View Onboarding") {
                             HapticManager.shared.playButtonTap()
                             showOnboardingSheet = true
                         }
                         .foregroundStyle(.blue)
+
+                        NavigationLink(value: SettingsMenu.cache) {
+                            Label("Cache Status", systemImage: "externaldrive")
+                                .foregroundStyle(.primary)
+                        }
                     }
                 #endif
             }
@@ -141,7 +148,10 @@ struct SettingsView: View {
             AboutView()
         case .license:
             LicenseView()
-
+        #if DEBUG
+            case .cache:
+                CacheStatusView()
+        #endif
         }
     }
 }

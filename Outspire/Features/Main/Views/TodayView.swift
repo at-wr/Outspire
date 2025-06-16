@@ -451,8 +451,15 @@ struct TodayView: View {
             sessionService.fetchUserInfo { _, _ in }
         }
         if sessionService.isAuthenticated {
-            isLoading = true
-            classtableViewModel.fetchYears()
+            // Check if we have valid cached data first
+            let cacheStatus = classtableViewModel.getCacheStatus()
+            if !cacheStatus.hasValidYearsCache || !cacheStatus.hasValidTimetableCache {
+                isLoading = true
+                classtableViewModel.fetchYears()
+            } else {
+                // Use cached data, no loading needed
+                isLoading = false
+            }
         }
 
         // Setup location services and region check - only once on appear
@@ -631,10 +638,13 @@ struct TodayView: View {
 
     private func handleYearsChange(_ years: [Year]) {
         if !years.isEmpty && !classtableViewModel.selectedYearId.isEmpty {
-            classtableViewModel.fetchTimetable()
+            // Check if we need to fetch or if we have valid cache
+            let cacheStatus = classtableViewModel.getCacheStatus()
+            if !cacheStatus.hasValidTimetableCache {
+                classtableViewModel.fetchTimetable()
+            }
         } else if !years.isEmpty {
-            classtableViewModel.selectedYearId = years.first!.W_YearID
-            classtableViewModel.fetchTimetable()
+            classtableViewModel.selectYear(years.first!.W_YearID)
         }
     }
 

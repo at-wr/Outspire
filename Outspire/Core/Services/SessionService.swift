@@ -1,5 +1,5 @@
-import SwiftUI
 import Combine
+import SwiftUI
 
 class SessionService: ObservableObject {
     @Published var sessionId: String?
@@ -7,7 +7,7 @@ class SessionService: ObservableObject {
     @Published var isAuthenticated: Bool = false {
         didSet {
             // Notify about authentication changes
-            NotificationCenter.default.post(name: Notification.Name.authStateDidChange, object: nil)
+            NotificationCenter.default.post(name: .authStateDidChange, object: nil)
         }
     }
 
@@ -18,7 +18,8 @@ class SessionService: ObservableObject {
         self.sessionId = userDefaults.string(forKey: "sessionId")
 
         if let storedUserInfo = userDefaults.data(forKey: "userInfo"),
-           let user = try? JSONDecoder().decode(UserInfo.self, from: storedUserInfo) {
+            let user = try? JSONDecoder().decode(UserInfo.self, from: storedUserInfo)
+        {
             self.userInfo = user
             self.isAuthenticated = sessionId != nil
         }
@@ -31,16 +32,19 @@ class SessionService: ObservableObject {
     }
 
     // Update the loginUser method
-    func loginUser(username: String, password: String, captcha: String, completion: @escaping (Bool, String?, Bool) -> Void) {
+    func loginUser(
+        username: String, password: String, captcha: String,
+        completion: @escaping (Bool, String?, Bool) -> Void
+    ) {
         guard let sessionId = self.sessionId, !sessionId.isEmpty else {
-            completion(false, "Please refresh the captcha.", true) // Mark as captcha error to trigger retry
+            completion(false, "Please refresh the captcha.", true)  // Mark as captcha error to trigger retry
             return
         }
 
         let parameters = [
             "username": username,
             "password": password,
-            "code": captcha
+            "code": captcha,
         ]
 
         NetworkService.shared.request(
@@ -52,7 +56,7 @@ class SessionService: ObservableObject {
             case .success(let response):
                 // Check for Chinese error message about captcha (scenario 3)
                 if response.status.contains("验证码") || response.status.contains("错") {
-                    completion(false, "Invalid captcha code. Retrying...", true) // Mark as captcha error
+                    completion(false, "Invalid captcha code. Retrying...", true)  // Mark as captcha error
                     return
                 }
 
@@ -118,7 +122,7 @@ class SessionService: ObservableObject {
         }
 
         // Reset the network session
-        URLSession.shared.reset { }
+        URLSession.shared.reset {}
 
         // Clear user defaults
         userDefaults.removeObject(forKey: "sessionId")
@@ -133,7 +137,7 @@ class SessionService: ObservableObject {
 
         // Post notification that authentication has changed
         NotificationCenter.default.post(
-            name: Notification.Name.authenticationStatusChanged,
+            name: .authenticationStatusChanged,
             object: nil,
             userInfo: ["action": "logout"]
         )

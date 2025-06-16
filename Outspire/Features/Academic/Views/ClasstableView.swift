@@ -1,7 +1,8 @@
-#if !targetEnvironment(macCatalyst)
-import ColorfulX
-#endif
 import SwiftUI
+
+#if !targetEnvironment(macCatalyst)
+    import ColorfulX
+#endif
 
 struct ClasstableView: View {
     @StateObject private var viewModel = ClasstableViewModel()
@@ -11,6 +12,7 @@ struct ClasstableView: View {
     @State private var currentTime = Date()
     @State private var timer: Timer?
     @State private var orientation = UIDevice.current.orientation
+    @State private var refreshButtonRotation = 0.0
     @EnvironmentObject private var sessionService: SessionService
     @EnvironmentObject private var gradientManager: GradientManager
 
@@ -25,7 +27,7 @@ struct ClasstableView: View {
         .brown.opacity(0.8): ["Economics", "Econ"],
         .cyan.opacity(0.8): ["Arts", "Art", "TOK"],
         .indigo.opacity(0.8): ["Chinese", "Mandarin", "语文"],
-        .gray.opacity(0.8): ["History", "历史", "Geography", "Geo", "政治"]
+        .gray.opacity(0.8): ["History", "历史", "Geography", "Geo", "政治"],
     ]
 
     static func getSubjectColor(from subjectName: String) -> Color {
@@ -40,7 +42,7 @@ struct ClasstableView: View {
             .brown.opacity(0.8): ["Economics", "Econ"],
             .cyan.opacity(0.8): ["Arts", "Art", "TOK"],
             .indigo.opacity(0.8): ["Chinese", "Mandarin", "语文"],
-            .gray.opacity(0.8): ["History", "历史", "Geography", "Geo", "政治"]
+            .gray.opacity(0.8): ["History", "历史", "Geography", "Geo", "政治"],
         ]
 
         let subject = subjectName.lowercased()
@@ -102,7 +104,7 @@ struct ClasstableView: View {
             ClassPeriod(
                 number: 9,
                 startTime: calendar.date(bySettingHour: 15, minute: 50, second: 0, of: today)!,
-                endTime: calendar.date(bySettingHour: 16, minute: 30, second: 0, of: today)!)
+                endTime: calendar.date(bySettingHour: 16, minute: 30, second: 0, of: today)!),
         ]
     }
 
@@ -130,18 +132,18 @@ struct ClasstableView: View {
     var body: some View {
         ZStack {
             #if !targetEnvironment(macCatalyst)
-            // ColorfulX as background with higher opacity
-            ColorfulView(
-                color: $gradientManager.gradientColors,
-                speed: $gradientManager.gradientSpeed,
-                noise: $gradientManager.gradientNoise,
-                transitionSpeed: $gradientManager.gradientTransitionSpeed
-            )
-            .ignoresSafeArea()
-            .opacity(colorScheme == .dark ? 0.07 : 0.3)
-
-            Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
+                // ColorfulX as background with higher opacity
+                ColorfulView(
+                    color: $gradientManager.gradientColors,
+                    speed: $gradientManager.gradientSpeed,
+                    noise: $gradientManager.gradientNoise,
+                    transitionSpeed: $gradientManager.gradientTransitionSpeed
+                )
                 .ignoresSafeArea()
+                .opacity(colorScheme == .dark ? 0.07 : 0.3)
+
+                Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
+                    .ignoresSafeArea()
             #endif
 
             VStack(spacing: 0) {
@@ -187,23 +189,58 @@ struct ClasstableView: View {
                                         description: Text(
                                             "No timetable available for the selected year."))
                                 } else {
-                                    VStack(spacing: 0) {
-                                        ForEach(1..<viewModel.timetable.count, id: \.self) { row in
-                                            periodRow(row: row)
-                                                .padding(.vertical, 4)
-                                                .opacity(animateIn ? 1 : 0)
-                                                .offset(y: animateIn ? 0 : 20)
-                                                .animation(
-                                                    .spring(response: 0.5, dampingFraction: 0.7)
-                                                        .delay(Double(row) * 0.05), value: animateIn
-                                                )
+                                    ScrollView {
+                                        VStack(spacing: 0) {
+                                            ForEach(1..<viewModel.timetable.count, id: \.self) {
+                                                row in
+                                                periodRow(row: row)
+                                                    .padding(.vertical, 4)
+                                                    .opacity(animateIn ? 1 : 0)
+                                                    .offset(y: animateIn ? 0 : 20)
+                                                    .animation(
+                                                        .spring(response: 0.5, dampingFraction: 0.7)
+                                                            .delay(Double(row) * 0.05),
+                                                        value: animateIn
+                                                    )
 
-                                            if row == 4 {
-                                                lunchBreakView.padding(.vertical, 12)
+                                                if row == 4 {
+                                                    lunchBreakView.padding(.vertical, 12)
+                                                }
+                                            }
+
+                                            // Add cache status info at bottom
+                                            if !viewModel.formattedLastUpdateTime.isEmpty {
+                                                VStack(spacing: 4) {
+                                                    Divider()
+                                                        .padding(.horizontal, 32)
+                                                        .padding(.top, 24)
+                                                        .padding(.bottom, 8)
+
+                                                    Text(viewModel.formattedLastUpdateTime)
+                                                        .font(.caption)
+                                                        .foregroundColor(.secondary)
+                                                        .padding(.bottom, 24)
+                                                }
+                                                .opacity(animateIn ? 0.7 : 0)
+                                                .animation(.easeIn.delay(0.5), value: animateIn)
+                                            }
+                                        }
+                                        .padding(.bottom, 24)
+                                    }
+                                    .refreshable {
+                                        // Pull to refresh functionality
+                                        animateIn = false
+                                        viewModel.refreshData()
+
+                                        // Restart animations after refresh
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                            withAnimation(
+                                                .spring(response: 0.6, dampingFraction: 0.7)
+                                            ) {
+                                                animateIn = true
                                             }
                                         }
                                     }
-                                    .padding(.bottom, 24)
                                     .id(viewModel.selectedYearId)
                                 }
 
@@ -222,13 +259,50 @@ struct ClasstableView: View {
                         .navigationTitle("Classtable")
                         .navigationBarTitleDisplayMode(.large)
                         .toolbar {
+                            #if DEBUG
+                                ToolbarItem(placement: .topBarLeading) {
+                                    Button(action: {
+                                        HapticManager.shared.playRefresh()
+                                        withAnimation {
+                                            refreshButtonRotation += 360
+                                        }
+
+                                        // Reset animation
+                                        animateIn = false
+
+                                        viewModel.refreshData()
+
+                                        // Restart animations after refresh
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                            withAnimation(
+                                                .spring(response: 0.6, dampingFraction: 0.7)
+                                            ) {
+                                                animateIn = true
+                                            }
+                                        }
+                                    }) {
+                                        Label {
+                                            Text("Refresh")
+                                        } icon: {
+                                            Image(systemName: "arrow.clockwise")
+                                        }
+                                        .rotationEffect(.degrees(refreshButtonRotation))
+                                        .animation(
+                                            .spring(response: 0.6, dampingFraction: 0.5),
+                                            value: refreshButtonRotation)
+                                    }
+                                    .disabled(
+                                        !sessionService.isAuthenticated || viewModel.isLoadingYears
+                                            || viewModel.isLoadingTimetable)
+                                }
+                            #endif
+
                             ToolbarItem(placement: .topBarTrailing) {
                                 if !viewModel.years.isEmpty {
                                     Menu {
                                         ForEach(viewModel.years) { year in
                                             Button(year.W_Year) {
-                                                viewModel.selectedYearId = year.W_YearID
-                                                viewModel.fetchTimetable()
+                                                viewModel.selectYear(year.W_YearID)
                                                 withAnimation(.easeOut(duration: 0.3)) {
                                                     animateIn = false
                                                 }
@@ -291,12 +365,19 @@ struct ClasstableView: View {
             }
         }
         .onAppear {
-            viewModel.fetchYears()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
-                    animateIn = true
+            // Only fetch if we don't have cached data or it's expired
+            let cacheStatus = viewModel.getCacheStatus()
+            if !cacheStatus.hasValidYearsCache {
+                viewModel.fetchYears()
+            } else {
+                // Use cached data, animate immediately
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
+                        animateIn = true
+                    }
                 }
             }
+
             timer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { _ in
                 currentTime = Date()
             }
@@ -305,6 +386,14 @@ struct ClasstableView: View {
             ) { _ in
                 orientation = UIDevice.current.orientation
             }
+
+            // Listen for cache refresh notifications
+            NotificationCenter.default.addObserver(
+                forName: .refreshClasstableCache, object: nil, queue: .main
+            ) { _ in
+                viewModel.refreshData()
+            }
+
             updateGradientForClasstable()
         }
         .onDisappear {
@@ -312,6 +401,8 @@ struct ClasstableView: View {
             timer = nil
             NotificationCenter.default.removeObserver(
                 self, name: UIDevice.orientationDidChangeNotification, object: nil)
+            NotificationCenter.default.removeObserver(
+                self, name: .refreshClasstableCache, object: nil)
         }
         .onChange(of: viewModel.isLoadingTimetable) { _, isLoading in
             if !isLoading && !viewModel.timetable.isEmpty {

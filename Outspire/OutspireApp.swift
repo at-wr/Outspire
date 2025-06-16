@@ -74,6 +74,8 @@ struct OutspireApp: App {
                     URLSchemeHandler.shared.setAppReady()
                     // Start connectivity monitoring
                     connectivityManager.startMonitoring()
+                    // Schedule automatic cache cleanup
+                    CacheManager.scheduleAutomaticCleanup()
                 }
                 .onChange(of: scenePhase) { _, newPhase in
                     if newPhase == .active {
@@ -193,7 +195,7 @@ struct OutspireApp: App {
     // Update the method to share club to include universal links
     private func shareClub(groupInfo: GroupInfo) {
         // Create both URLs for better sharing compatibility
-        let urlSchemeString = "outspire://club/\(groupInfo.C_GroupsID)"
+        let _ = "outspire://club/\(groupInfo.C_GroupsID)"
         let universalLinkString = "https://outspire.wrye.dev/app/club/\(groupInfo.C_GroupsID)"
 
         // Use the universal link for sharing, as it works for non-app users too
