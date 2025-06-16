@@ -174,9 +174,10 @@ struct ClubInfoView: View {
                         }
                     }
                     
-                    if #available(iOS 26.0, *) {
-                        ToolbarSpacer(.fixed, placement: .primaryAction)
-                    }
+                    // Un-comment this after Xcode 26
+//                    if #available(iOS 26.0, *) {
+//                        ToolbarSpacer(.fixed, placement: .primaryAction)
+//                    }
                     
                     // Share button
                     ToolbarItem(id: "shareButton", placement: .primaryAction) {
@@ -193,9 +194,10 @@ struct ClubInfoView: View {
                         }
                     }
                     
-                    if #available(iOS 26.0, *) {
-                        ToolbarSpacer(.fixed, placement: .primaryAction)
-                    }
+                    // Un-comment this after Xcode 26
+//                    if #available(iOS 26.0, *) {
+//                        ToolbarSpacer(.fixed, placement: .primaryAction)
+//                    }
 
                     ToolbarItem(id: "refreshButton", placement: .primaryAction) {
                         Button(action: {

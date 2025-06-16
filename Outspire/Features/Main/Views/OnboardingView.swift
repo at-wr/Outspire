@@ -1,5 +1,5 @@
-import SwiftUI
 import CoreLocation
+import SwiftUI
 
 struct OnboardingView: View {
     @Binding var isPresented: Bool
@@ -22,46 +22,60 @@ struct OnboardingView: View {
     private let pages: [OnboardingPage] = [
         OnboardingPage(
             title: "Welcome to Outspire",
-            description: "This is your all-in-one companion for your school life in WFLA. \nHere's all you need!",
+            description:
+                "Your ultimate companion for WFLA school life! Everything you need, all in one place. \nLet's get started!",
             imageName: "sparkles.rectangle.stack",
             imageColor: .blue,
             pageType: .information
         ),
         OnboardingPage(
             title: "Schedule & Widgets",
-            description: "View your class schedule, check upcoming classes, and never miss a deadline.",
+            description:
+                "Stay on top of your classes and deadlines with smart scheduling. Never miss what matters most.",
             imageName: "calendar",
             imageColor: .orange,
             pageType: .information
         ),
         OnboardingPage(
-            title: "Talking about CAS",
-            description: "Keep track of your club memberships, activities, informations, stats, etc.",
+            title: "CAS Made Simple",
+            description:
+                "Track your clubs, activities, and achievements effortlessly. Complete with artificial intelligent insights to help you succeed.",
             imageName: "person.2.circle",
             imageColor: .green,
             pageType: .information
         ),
         OnboardingPage(
             title: "Academic Performance",
-            description: "Monitor your grades and academic progress securely and privately.",
+            description:
+                "Track your grades and progress with complete privacy. Your data stays secure and belongs to you.",
             imageName: "lock.document",
             imageColor: .purple,
             pageType: .information
         ),
         OnboardingPage(
-            title: "Estimate Travel Time",
-            description: "Enable location to calculate your travel time to school and receive timely reminders.",
+            title: "Smart Reminders",
+            description:
+                "Get personalized travel time calculations and never be late again. We'll help you plan your perfect morning routine.",
             imageName: "location.circle.fill",
             imageColor: .blue,
             pageType: .locationPermission
         ),
         OnboardingPage(
-            title: "Notifications",
-            description: "Stay informed with morning travel time updates and important school alerts.",
+            title: "Stay Connected",
+            description:
+                "Receive timely updates about your commute and important school news. Stay ahead of what's happening.",
             imageName: "bell.badge.fill",
             imageColor: .red,
             pageType: .notificationPermission
-        )
+        ),
+        OnboardingPage(
+            title: "You're All Set!",
+            description:
+                "Welcome to your enhanced school experience! Everything is ready for you to explore and succeed.",
+            imageName: "checkmark.circle.fill",
+            imageColor: .green,
+            pageType: .information
+        ),
     ]
 
     var body: some View {
@@ -77,17 +91,17 @@ struct OnboardingView: View {
                         }
                     }) {
                         #if targetEnvironment(macCatalyst)
-                        Text("Close")
-                            .font(.system(size: 14, weight: .medium))
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 5)
-                            .background(Color(.tertiarySystemFill))
-                            .cornerRadius(6)
-                            .foregroundStyle(.primary)
+                            Text("Close")
+                                .font(.system(size: 14, weight: .medium))
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 5)
+                                .background(Color(.tertiarySystemFill))
+                                .cornerRadius(6)
+                                .foregroundStyle(.primary)
                         #else
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.title2)
-                            .foregroundStyle(.secondary)
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.title2)
+                                .foregroundStyle(.secondary)
                         #endif
                     }
                     .keyboardShortcut(.escape, modifiers: [])
@@ -115,7 +129,8 @@ struct OnboardingView: View {
                     ForEach(0..<pages.count, id: \.self) { index in
                         Circle()
                             .frame(width: 8, height: 8)
-                            .foregroundColor(index == currentPage ? .accentColor : .gray.opacity(0.3))
+                            .foregroundColor(
+                                index == currentPage ? .accentColor : .gray.opacity(0.3))
                     }
                 }
                 .padding(.vertical, 20)
@@ -133,10 +148,10 @@ struct OnboardingView: View {
                                 Text("Previous")
                             }
                             #if targetEnvironment(macCatalyst)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 8)
-                            .background(Color(.quaternarySystemFill))
-                            .cornerRadius(8)
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 8)
+                                .background(Color(.quaternarySystemFill))
+                                .cornerRadius(8)
                             #endif
                             .foregroundStyle(.secondary)
                         }
@@ -151,18 +166,20 @@ struct OnboardingView: View {
                     }) {
                         HStack {
                             Text(currentPage < pages.count - 1 ? "Next" : "Get Started")
-                            Image(systemName: currentPage < pages.count - 1 ? "chevron.right" : "checkmark.circle")
+                            Image(
+                                systemName: currentPage < pages.count - 1
+                                    ? "chevron.right" : "checkmark.circle")
                         }
                         .padding(.horizontal, 16)
                         .padding(.vertical, 10)
                         #if targetEnvironment(macCatalyst)
-                        .background(
-                            Capsule().fill(Color.accentColor.opacity(0.8))
-                        )
+                            .background(
+                                Capsule().fill(Color.accentColor.opacity(0.8))
+                            )
                         #else
-                        .background(
-                        Capsule().fill(Color.accentColor)
-                        )
+                            .background(
+                                Capsule().fill(Color.accentColor)
+                            )
                         #endif
                         .foregroundStyle(.white)
                     }
@@ -175,9 +192,8 @@ struct OnboardingView: View {
                 .padding(.bottom, 30)
             }
             .background(
-                colorScheme == .dark ?
-                    Color(UIColor.systemBackground) :
-                    Color(UIColor.secondarySystemBackground)
+                colorScheme == .dark
+                    ? Color(UIColor.systemBackground) : Color(UIColor.secondarySystemBackground)
             )
         }
         .onAppear {
@@ -236,7 +252,8 @@ struct OnboardingView: View {
         // Check location permission
         permissionManager.checkLocationPermission { status in
             DispatchQueue.main.async {
-                locationPermissionGranted = (status == .authorizedWhenInUse || status == .authorizedAlways)
+                locationPermissionGranted =
+                    (status == .authorizedWhenInUse || status == .authorizedAlways)
             }
         }
 
@@ -254,23 +271,55 @@ struct OnboardingView: View {
 
         switch currentPageInfo.pageType {
         case .information:
-            // For regular information pages, just go to next page
-            withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-                currentPage += 1
+            // For regular information pages
+            if currentPage == pages.count - 1 {
+                // This is the final page, complete onboarding
+                let impactFeedback = UIImpactFeedbackGenerator(style: .heavy)
+                impactFeedback.prepare()
+                impactFeedback.impactOccurred()
+
+                markOnboardingComplete()
+                isPresented = false
+            } else {
+                // Move to next page
+                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                impactFeedback.prepare()
+                impactFeedback.impactOccurred()
+
+                withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                    currentPage += 1
+                }
             }
 
         case .locationPermission:
             // For location permission page
             if locationPermissionGranted {
                 // Already granted, move to next page
+                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                impactFeedback.prepare()
+                impactFeedback.impactOccurred()
+
                 withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
                     currentPage += 1
                 }
             } else {
                 // Request permission then move to next page
+                let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+                impactFeedback.prepare()
+                impactFeedback.impactOccurred()
+
                 permissionManager.requestLocationPermission { granted in
                     DispatchQueue.main.async {
                         locationPermissionGranted = granted
+
+                        // Haptic feedback for permission result
+                        let resultFeedback = UINotificationFeedbackGenerator()
+                        if granted {
+                            resultFeedback.notificationOccurred(.success)
+                        } else {
+                            resultFeedback.notificationOccurred(.warning)
+                        }
+
                         withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
                             currentPage += 1
                         }
@@ -281,23 +330,39 @@ struct OnboardingView: View {
         case .notificationPermission:
             // For notification permission page
             if notificationPermissionGranted {
-                // Already granted, finish onboarding
-                markOnboardingComplete()
-                isPresented = false
+                // Already granted, move to final page
+                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                impactFeedback.prepare()
+                impactFeedback.impactOccurred()
+
+                withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                    currentPage += 1
+                }
             } else {
-                // Request permission then finish onboarding
+                // Request permission then move to final page
+                let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+                impactFeedback.prepare()
+                impactFeedback.impactOccurred()
+
                 permissionManager.requestNotificationPermission { granted in
                     DispatchQueue.main.async {
                         notificationPermissionGranted = granted
 
-                        // Schedule notifications if permission granted
+                        // Use centralized notification management
+                        NotificationManager.shared.handleNotificationSettingsChange()
+
+                        // Haptic feedback for permission result
+                        let resultFeedback = UINotificationFeedbackGenerator()
                         if granted {
-                            NotificationManager.shared.scheduleMorningETANotification()
+                            resultFeedback.notificationOccurred(.success)
+                        } else {
+                            resultFeedback.notificationOccurred(.warning)
                         }
 
-                        // Complete onboarding regardless of choice
-                        markOnboardingComplete()
-                        isPresented = false
+                        // Move to final page regardless of permission choice
+                        withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                            currentPage += 1
+                        }
                     }
                 }
             }
@@ -314,14 +379,16 @@ struct OnboardingView: View {
                 for: page,
                 isGranted: locationPermissionGranted,
                 grantedText: "Thank you! This helps calculate your travel time to school.",
-                deniedText: "Remember, we never store your privacy!\nThis helps us show your travel time to school and provide timely morning notifications."
+                deniedText:
+                    "Remember, we never store your privacy!\nThis helps us show your travel time to school and provide timely morning notifications."
             )
         case .notificationPermission:
             permissionPageView(
                 for: page,
                 isGranted: notificationPermissionGranted,
                 grantedText: "Great! You'll receive helpful morning travel notifications.",
-                deniedText: "I'll never spam you!\nNotifications help you arrive at school on time with morning travel alerts."
+                deniedText:
+                    "I'll never spam you!\nNotifications help you arrive at school on time with morning travel alerts."
             )
         }
     }
@@ -338,7 +405,8 @@ struct OnboardingView: View {
                         .fill(page.imageColor.opacity(0.1))
                         .frame(width: 140, height: 140)
                 )
-                .scaleEffect(currentPage == pages.firstIndex(where: { $0.title == page.title }) ? 1.0 : 0.8)
+                .scaleEffect(
+                    currentPage == pages.firstIndex(where: { $0.title == page.title }) ? 1.0 : 0.8)
 
             Text(page.title)
                 .font(.largeTitle)
@@ -360,7 +428,9 @@ struct OnboardingView: View {
     }
 
     @ViewBuilder
-    func permissionPageView(for page: OnboardingPage, isGranted: Bool, grantedText: String, deniedText: String) -> some View {
+    func permissionPageView(
+        for page: OnboardingPage, isGranted: Bool, grantedText: String, deniedText: String
+    ) -> some View {
         VStack(spacing: 30) {
             // Icon with permission status indicator
             ZStack {
@@ -434,7 +504,10 @@ struct OnboardingPage {
     let pageType: OnboardingPageType
 
     // Default to information type for backward compatibility
-    init(title: String, description: String, imageName: String, imageColor: Color, pageType: OnboardingPageType = .information) {
+    init(
+        title: String, description: String, imageName: String, imageColor: Color,
+        pageType: OnboardingPageType = .information
+    ) {
         self.title = title
         self.description = description
         self.imageName = imageName

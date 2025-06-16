@@ -1,7 +1,7 @@
+import Combine
+import CoreLocation
 import Foundation
 import UserNotifications
-import CoreLocation
-import Combine
 
 class NotificationManager: ObservableObject {
     static let shared = NotificationManager()
@@ -16,7 +16,8 @@ class NotificationManager: ObservableObject {
 
     // Request notification permissions
     func requestAuthorization(completion: @escaping (Bool) -> Void) {
-        notificationCenter.requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+        notificationCenter.requestAuthorization(options: [.alert, .sound, .badge]) {
+            granted, error in
             DispatchQueue.main.async {
                 if let error = error {
                     print("Notification authorization request error: \(error.localizedDescription)")
@@ -39,13 +40,22 @@ class NotificationManager: ObservableObject {
 
     // Schedule morning ETA notification for weekdays at the user-configured time
     func scheduleMorningETANotification() {
-        // Remove any existing ETA notifications first
+        // Always remove existing notifications first
         cancelNotification(of: .morningETA)
+
+        // Check if departure notifications are enabled in user settings
+        guard Configuration.departureNotificationsEnabled else {
+            print("Departure notifications are disabled in settings - not scheduling")
+            return
+        }
 
         // Check authorization before scheduling
         checkAuthorizationStatus { status in
             // Only schedule if authorized
-            guard status == .authorized else { return }
+            guard status == .authorized else {
+                print("Notification authorization not granted - not scheduling")
+                return
+            }
 
             // Create notification content
             let content = UNMutableNotificationContent()
@@ -68,7 +78,8 @@ class NotificationManager: ObservableObject {
             // Set up a trigger for each weekday
             for weekday in 2...6 {
                 dateComponents.weekday = weekday
-                let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: true)
+                let trigger = UNCalendarNotificationTrigger(
+                    dateMatching: dateComponents, repeats: true)
 
                 // Create the request with a unique identifier per weekday
                 let request = UNNotificationRequest(
@@ -80,9 +91,13 @@ class NotificationManager: ObservableObject {
                 // Add the notification request
                 self.notificationCenter.add(request) { error in
                     if let error = error {
-                        print("Error scheduling morning ETA notification for weekday \(weekday): \(error)")
+                        print(
+                            "Error scheduling morning ETA notification for weekday \(weekday): \(error)"
+                        )
                     } else {
-                        print("Scheduled morning ETA notification for weekday \(weekday) at \(hour):\(minute)")
+                        print(
+                            "Scheduled morning ETA notification for weekday \(weekday) at \(hour):\(minute)"
+                        )
                     }
                 }
             }
@@ -92,11 +107,19 @@ class NotificationManager: ObservableObject {
     // Cancel notifications of a specific type
     func cancelNotification(of type: NotificationType) {
         notificationCenter.getPendingNotificationRequests { requests in
-            let identifiersToRemove = requests
+            let identifiersToRemove =
+                requests
                 .filter { $0.identifier.hasPrefix(type.rawValue) }
                 .map { $0.identifier }
 
-            self.notificationCenter.removePendingNotificationRequests(withIdentifiers: identifiersToRemove)
+            self.notificationCenter.removePendingNotificationRequests(
+                withIdentifiers: identifiersToRemove)
+
+            if !identifiersToRemove.isEmpty {
+                print(
+                    "Cancelled \(identifiersToRemove.count) notifications of type: \(type.rawValue)"
+                )
+            }
         }
     }
 
@@ -124,7 +147,8 @@ class NotificationManager: ObservableObject {
 
         // Create a more informative and actionable message
         if let leaveBy = leaveByTime {
-            updatedContent.body = "Distance: \(distanceKm) km. You should leave by \(leaveBy) to arrive \(arrivalTimeString)."
+            updatedContent.body =
+                "Distance: \(distanceKm) km. You should leave by \(leaveBy) to arrive \(arrivalTimeString)."
         } else {
             updatedContent.body = "Distance: \(distanceKm) km. Leave soon to arrive on time!"
         }
@@ -176,9 +200,9 @@ class NotificationManager: ObservableObject {
     private func getSchoolArrivalTime(for weekday: Int) -> String {
         // Weekday is 1-7 where 1 is Sunday
         switch weekday {
-        case 2: return "before 7:45" // Monday
-        case 3, 4, 5, 6: return "before 7:55" // Tuesday-Friday
-        default: return "on time" // Weekend or error case
+        case 2: return "before 7:45"  // Monday
+        case 3, 4, 5, 6: return "before 7:55"  // Tuesday-Friday
+        default: return "on time"  // Weekend or error case
         }
     }
 
@@ -198,9 +222,9 @@ class NotificationManager: ObservableObject {
 
         // Determine target arrival time based on weekday
         let arrivalHour = 7  // Changed from 'var' to 'let' as it's never mutated
-        var arrivalMinute = 55 // Default for Tue-Fri
+        var arrivalMinute = 55  // Default for Tue-Fri
 
-        if weekday == 2 { // Monday
+        if weekday == 2 {  // Monday
             arrivalMinute = 45
         }
 
@@ -255,5 +279,33 @@ class NotificationManager: ObservableObject {
 
         // Register the notification categories
         UNUserNotificationCenter.current().setNotificationCategories([etaCategory])
+    }
+
+    // MARK: - Centralized Notification Management
+
+    /// Updates notification scheduling based on current user preferences and authorization status
+    /// This should be called whenever settings change or app becomes active
+    func updateNotificationScheduling() {
+        checkAuthorizationStatus { status in
+            if status == .authorized && Configuration.departureNotificationsEnabled {
+                self.scheduleMorningETANotification()
+            } else {
+                self.cancelNotification(of: .morningETA)
+            }
+        }
+    }
+
+    /// Handles notification settings changes - call this when user toggles notification settings
+    func handleNotificationSettingsChange() {
+        updateNotificationScheduling()
+    }
+
+    /// Handles app becoming active - ensures notifications are properly scheduled
+    func handleAppBecameActive() {
+        // Only update if onboarding is completed
+        let hasCompletedOnboarding = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
+        if hasCompletedOnboarding {
+            updateNotificationScheduling()
+        }
     }
 }

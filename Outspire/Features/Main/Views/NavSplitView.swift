@@ -89,7 +89,7 @@ struct NavSplitView: View {
                 .background(Color.clear) // Make the background transparent
                 .modifier(NavigationColumnWidthModifier()) // Apply column width correctly
                 .toolbar {
-                    ToolbarItem(placement: .topBarLeading) {
+                    ToolbarItem(placement: .topBarTrailing) {
                         Button(action: {
                             settingsManager.showSettingsSheet.toggle()
                         }) {

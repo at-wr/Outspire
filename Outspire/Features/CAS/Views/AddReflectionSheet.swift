@@ -170,9 +170,10 @@ struct AddReflectionSheet: View {
                     .help("Help")
                 }
                 
-                if #available(iOS 26.0, *) {
-                    ToolbarSpacer(.fixed, placement: .primaryAction)
-                }
+                // Un-comment this after Xcode 26
+//                if #available(iOS 26.0, *) {
+//                    ToolbarSpacer(.fixed, placement: .primaryAction)
+//                }
 
 
                 ToolbarItem(placement: .primaryAction) {

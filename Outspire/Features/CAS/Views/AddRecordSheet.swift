@@ -149,9 +149,10 @@ struct AddRecordSheet: View {
                     .disabled(viewModel.isFetchingSuggestion)
                 }
                 
-                if #available(iOS 26.0, *) {
-                    ToolbarSpacer(.fixed, placement: .primaryAction)
-                }
+                // Un-comment this after Xcode 26
+//                if #available(iOS 26.0, *) {
+//                    ToolbarSpacer(.fixed, placement: .primaryAction)
+//                }
 
                 ToolbarItem(id: "saveButton", placement: .primaryAction) {
                     Button("Save") {

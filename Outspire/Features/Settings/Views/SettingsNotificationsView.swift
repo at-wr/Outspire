@@ -47,15 +47,15 @@ struct SettingsNotificationsView: View {
                             DispatchQueue.main.async {
                                 isRequestingPermission = false
                                 permissionDenied = !granted
-                                if granted {
-                                    NotificationManager.shared.scheduleMorningETANotification()
-                                }
+                                // Use centralized notification management
+                                NotificationManager.shared.handleNotificationSettingsChange()
                                 // Refresh permission status after request
                                 checkNotificationPermission()
                             }
                         }
                     } else {
-                        NotificationManager.shared.cancelNotification(of: .morningETA)
+                        // Use centralized notification management
+                        NotificationManager.shared.handleNotificationSettingsChange()
                     }
                 }
                 .disabled(notificationStatus == .denied)
@@ -72,9 +72,8 @@ struct SettingsNotificationsView: View {
                         .labelsHidden()
                         .onChange(of: departureNotificationTime) { _, newValue in
                             Configuration.departureNotificationTime = newValue
-                            if departureNotificationsEnabled {
-                                NotificationManager.shared.scheduleMorningETANotification()
-                            }
+                            // Use centralized notification management
+                            NotificationManager.shared.handleNotificationSettingsChange()
                         }
                     }
                 }
