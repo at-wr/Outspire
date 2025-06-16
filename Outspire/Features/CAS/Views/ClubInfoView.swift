@@ -1,8 +1,9 @@
 import SwiftUI
-#if !targetEnvironment(macCatalyst)
-import ColorfulX
-#endif
 import Toasts
+
+#if !targetEnvironment(macCatalyst)
+    import ColorfulX
+#endif
 
 struct ClubInfoView: View {
     @StateObject private var viewModel = ClubInfoViewModel()
@@ -15,24 +16,24 @@ struct ClubInfoView: View {
     @State private var preservedGroupId: String?
     @State private var initialMembershipCheckComplete = false
     @EnvironmentObject var urlSchemeHandler: URLSchemeHandler
-    @EnvironmentObject var gradientManager: GradientManager // Add gradient manager
-    @Environment(\.colorScheme) private var colorScheme // Add colorScheme environment
+    @EnvironmentObject var gradientManager: GradientManager  // Add gradient manager
+    @Environment(\.colorScheme) private var colorScheme  // Add colorScheme environment
 
     var body: some View {
         ZStack {
             // Background: ColorfulX for iOS, native gradient for Mac Catalyst
             #if !targetEnvironment(macCatalyst)
-            ColorfulView(
-                color: $gradientManager.gradientColors,
-                speed: $gradientManager.gradientSpeed,
-                noise: $gradientManager.gradientNoise,
-                transitionSpeed: $gradientManager.gradientTransitionSpeed
-            )
-            .ignoresSafeArea()
-            .opacity(colorScheme == .dark ? 0.1 : 0.3)
-            #else
-            Color(.systemBackground)
+                ColorfulView(
+                    color: $gradientManager.gradientColors,
+                    speed: $gradientManager.gradientSpeed,
+                    noise: $gradientManager.gradientNoise,
+                    transitionSpeed: $gradientManager.gradientTransitionSpeed
+                )
                 .ignoresSafeArea()
+                .opacity(colorScheme == .dark ? 0.1 : 0.3)
+            #else
+                Color(.systemBackground)
+                    .ignoresSafeArea()
             #endif
 
             // Semi-transparent background with reduced opacity for better contrast with gradient
@@ -47,7 +48,8 @@ struct ClubInfoView: View {
 
                     errorMessageView
 
-                    if viewModel.isLoading && (viewModel.groupInfo == nil || !viewModel.refreshing) {
+                    if viewModel.isLoading && (viewModel.groupInfo == nil || !viewModel.refreshing)
+                    {
                         loadingSection
                     } else if let groupInfo = viewModel.groupInfo {
                         clubInfoSection(groupInfo: groupInfo)
@@ -61,128 +63,148 @@ struct ClubInfoView: View {
                 // .toolbarBackground(Color(UIColor.systemBackground))
                 .toolbar {
                     // Replace individual toolbar content with inline implementation
-//                    ToolbarItem(id: "progressView", placement: .navigationBarTrailing) {
-//                        if viewModel.isLoading {
-//                            ProgressView()
-//                                .controlSize(.small)
-//                        }
-//                    }
+                    //                    ToolbarItem(id: "progressView", placement: .navigationBarTrailing) {
+                    //                        if viewModel.isLoading {
+                    //                            ProgressView()
+                    //                                .controlSize(.small)
+                    //                        }
+                    //                    }
 
                     ToolbarItem(id: "clubAction", placement: .primaryAction) {
                         if sessionService.isAuthenticated,
-                           !viewModel.isLoading,
-                           viewModel.selectedGroup != nil {
+                            !viewModel.isLoading,
+                            viewModel.selectedGroup != nil
+                        {
                             #if targetEnvironment(macCatalyst)
-                            // Use a menu approach for Mac Catalyst
-                            Menu {
-                                if viewModel.isUserMember {
-                                    Button(role: .destructive, action: {
-                                        showingExitConfirmation = true
-                                    }) {
-                                        Label("Exit Club", systemImage: "rectangle.portrait.and.arrow.right")
-                                    }
-                                } else {
-                                    Button(action: {
-                                        viewModel.joinClub(asProject: false)
-                                    }) {
-                                        Label("Join Club", systemImage: "person.badge.plus")
-                                    }
+                                // Use a menu approach for Mac Catalyst
+                                Menu {
+                                    if viewModel.isUserMember {
+                                        Button(
+                                            role: .destructive,
+                                            action: {
+                                                showingExitConfirmation = true
+                                            }
+                                        ) {
+                                            Label(
+                                                "Exit Club",
+                                                systemImage: "rectangle.portrait.and.arrow.right")
+                                        }
+                                    } else {
+                                        Button(action: {
+                                            viewModel.joinClub(asProject: false)
+                                        }) {
+                                            Label("Join Club", systemImage: "person.badge.plus")
+                                        }
 
-                                    Button(action: {
-                                        viewModel.joinClub(asProject: true)
-                                    }) {
-                                        Label("Join as Project", systemImage: "star.circle")
+                                        Button(action: {
+                                            viewModel.joinClub(asProject: true)
+                                        }) {
+                                            Label("Join as Project", systemImage: "star.circle")
+                                        }
                                     }
-                                }
-                            } label: {
-                                HStack {
-                                    Image(systemName: viewModel.isUserMember ? "person.crop.circle.fill.badge.checkmark" : "person.crop.circle.badge.plus")
+                                } label: {
+                                    HStack {
+                                        Image(
+                                            systemName: viewModel.isUserMember
+                                                ? "person.crop.circle.fill.badge.checkmark"
+                                                : "person.crop.circle.badge.plus"
+                                        )
                                         .symbolRenderingMode(.hierarchical)
                                         .foregroundStyle(viewModel.isUserMember ? .green : .cyan)
-                                    if viewModel.isJoiningClub || viewModel.isExitingClub {
-                                        ProgressView()
-                                            .controlSize(.mini)
-                                            .scaleEffect(0.7)
+                                        if viewModel.isJoiningClub || viewModel.isExitingClub {
+                                            ProgressView()
+                                                .controlSize(.mini)
+                                                .scaleEffect(0.7)
+                                        }
                                     }
                                 }
-                            }
-                            .disabled(viewModel.isJoiningClub || viewModel.isExitingClub)
-                            .onChange(of: viewModel.isUserMember) { _, newValue in
-                                if initialMembershipCheckComplete {
-                                    if newValue {
-                                        presentSuccessToast(message: "Successfully joined club")
+                                .disabled(viewModel.isJoiningClub || viewModel.isExitingClub)
+                                .onChange(of: viewModel.isUserMember) { _, newValue in
+                                    if initialMembershipCheckComplete {
+                                        if newValue {
+                                            presentSuccessToast(message: "Successfully joined club")
+                                        } else {
+                                            presentSuccessToast(message: "Successfully exited club")
+                                        }
                                     } else {
-                                        presentSuccessToast(message: "Successfully exited club")
+                                        initialMembershipCheckComplete = true
                                     }
-                                } else {
-                                    initialMembershipCheckComplete = true
                                 }
-                            }
-                            .help(viewModel.isUserMember ? "Exit Club" : "Join Club")
+                                .help(viewModel.isUserMember ? "Exit Club" : "Join Club")
                             #else
-                            Menu {
-                                if viewModel.isUserMember {
-                                    Button(role: .destructive, action: {
-                                        showingExitConfirmation = true
-                                    }) {
-                                        Label("Exit Club", systemImage: "rectangle.portrait.and.arrow.right")
-                                    }
-                                } else {
-                                    Button(action: {
-                                        viewModel.joinClub(asProject: false)
-                                    }) {
-                                        Label("Join Club", systemImage: "person.badge.plus")
-                                    }
-
-                                    Button(action: {
-                                        viewModel.joinClub(asProject: true)
-                                    }) {
-                                        Label("Join as Project", systemImage: "star.circle")
-                                    }
-                                }
-                            } label: {
-                                Label {
-                                    Text(viewModel.isUserMember ? "Already a member of the Club" : "Join Club")
-                                } icon: {
-                                    Image(systemName: viewModel.isUserMember ? "checkmark" : "plus")
-//                                        .symbolRenderingMode(.hierarchical)
-//                                        .foregroundStyle(viewModel.isUserMember ? .green : .cyan)
-//                                        .opacity(viewModel.isJoiningClub || viewModel.isExitingClub ? 0.8 : 1.0)
-                                }
-//                                .overlay {
-//                                    if viewModel.isJoiningClub || viewModel.isExitingClub {
-//                                        ProgressView()
-//                                            .controlSize(.mini)
-//                                    }
-//                                }
-                            }
-                            .buttonStyle(.borderedProminent) // Only available on Button, fix this later
-                            .tint(viewModel.isUserMember ? .pink : .cyan)
-                            .disabled(viewModel.isJoiningClub || viewModel.isExitingClub)
-                            .onChange(of: viewModel.isUserMember) { _, newValue in
-                                if initialMembershipCheckComplete {
-                                    if newValue {
-                                        presentSuccessToast(message: "Successfully joined club")
+                                Menu {
+                                    if viewModel.isUserMember {
+                                        Button(
+                                            role: .destructive,
+                                            action: {
+                                                showingExitConfirmation = true
+                                            }
+                                        ) {
+                                            Label(
+                                                "Exit Club",
+                                                systemImage: "rectangle.portrait.and.arrow.right")
+                                        }
                                     } else {
-                                        presentSuccessToast(message: "Successfully exited club")
+                                        Button(action: {
+                                            viewModel.joinClub(asProject: false)
+                                        }) {
+                                            Label("Join Club", systemImage: "person.badge.plus")
+                                        }
+
+                                        Button(action: {
+                                            viewModel.joinClub(asProject: true)
+                                        }) {
+                                            Label("Join as Project", systemImage: "star.circle")
+                                        }
                                     }
-                                } else {
-                                    initialMembershipCheckComplete = true
+                                } label: {
+                                    Label {
+                                        Text(
+                                            viewModel.isUserMember
+                                                ? "Already a member of the Club" : "Join Club")
+                                    } icon: {
+                                        Image(
+                                            systemName: viewModel.isUserMember
+                                                ? "checkmark" : "plus")
+                                        //                                        .symbolRenderingMode(.hierarchical)
+                                        //                                        .foregroundStyle(viewModel.isUserMember ? .green : .cyan)
+                                        //                                        .opacity(viewModel.isJoiningClub || viewModel.isExitingClub ? 0.8 : 1.0)
+                                    }
+                                    //                                .overlay {
+                                    //                                    if viewModel.isJoiningClub || viewModel.isExitingClub {
+                                    //                                        ProgressView()
+                                    //                                            .controlSize(.mini)
+                                    //                                    }
+                                    //                                }
                                 }
-                            }
+                                .buttonStyle(.borderedProminent)  // Only available on Button, fix this later
+                                .tint(viewModel.isUserMember ? .pink : .cyan)
+                                .disabled(viewModel.isJoiningClub || viewModel.isExitingClub)
+                                .onChange(of: viewModel.isUserMember) { _, newValue in
+                                    if initialMembershipCheckComplete {
+                                        if newValue {
+                                            presentSuccessToast(message: "Successfully joined club")
+                                        } else {
+                                            presentSuccessToast(message: "Successfully exited club")
+                                        }
+                                    } else {
+                                        initialMembershipCheckComplete = true
+                                    }
+                                }
                             #endif
                         }
                     }
-                    
+
                     // Un-comment this after Xcode 26
-//                    if #available(iOS 26.0, *) {
-//                        ToolbarSpacer(.fixed, placement: .primaryAction)
-//                    }
-                    
+                    //                    if #available(iOS 26.0, *) {
+                    //                        ToolbarSpacer(.fixed, placement: .primaryAction)
+                    //                    }
+
                     // Share button
                     ToolbarItem(id: "shareButton", placement: .primaryAction) {
                         if let groupInfo = viewModel.groupInfo {
                             Button(action: {
+                                HapticManager.shared.playButtonTap()
                                 shareClub(groupInfo: groupInfo)
                             }) {
                                 Label {
@@ -193,14 +215,15 @@ struct ClubInfoView: View {
                             }
                         }
                     }
-                    
+
                     // Un-comment this after Xcode 26
-//                    if #available(iOS 26.0, *) {
-//                        ToolbarSpacer(.fixed, placement: .primaryAction)
-//                    }
+                    //                    if #available(iOS 26.0, *) {
+                    //                        ToolbarSpacer(.fixed, placement: .primaryAction)
+                    //                    }
 
                     ToolbarItem(id: "refreshButton", placement: .primaryAction) {
                         Button(action: {
+                            HapticManager.shared.playRefresh()
                             withAnimation {
                                 refreshButtonRotation += 360
                             }
@@ -279,7 +302,7 @@ struct ClubInfoView: View {
                 }
                 .onChange(of: viewModel.isLoading) { _, newValue in
                     handleLoadingChange(newValue)
-                } // use this to fix the stupid iOS 17 deprecation warning
+                }  // use this to fix the stupid iOS 17 deprecation warning
                 .animation(.spring(response: 0.4), value: viewModel.isLoading)
                 .onChange(of: viewModel.selectedCategory) { _, _ in
                     // Store current group ID when category changes
@@ -290,7 +313,8 @@ struct ClubInfoView: View {
                 .onChange(of: viewModel.groups) { _, newGroups in
                     // Try to restore the previously selected group when groups list changes
                     if let id = preservedGroupId,
-                       let previousGroup = newGroups.first(where: { $0.C_GroupsID == id }) {
+                        let previousGroup = newGroups.first(where: { $0.C_GroupsID == id })
+                    {
                         viewModel.selectedGroup = previousGroup
                     }
                 }
@@ -326,64 +350,76 @@ struct ClubInfoView: View {
     private var clubActionButton: some ToolbarContent {
         ToolbarItem(placement: .navigationBarTrailing) {
             if sessionService.isAuthenticated,
-               !viewModel.isLoading,
-               viewModel.selectedGroup != nil {
+                !viewModel.isLoading,
+                viewModel.selectedGroup != nil
+            {
                 #if targetEnvironment(macCatalyst)
-                // Use a more compatible approach for Mac Catalyst
-                Button(action: {
-                    if viewModel.isUserMember {
-                        showingExitConfirmation = true
-                    } else {
-                        viewModel.joinClub(asProject: false)
-                    }
-                }) {
-                    HStack {
-                        Image(systemName: viewModel.isUserMember ? "person.fill.checkmark" : "person.crop.circle.badge.plus")
+                    // Use a more compatible approach for Mac Catalyst
+                    Button(action: {
+                        HapticManager.shared.playButtonTap()
+                        if viewModel.isUserMember {
+                            showingExitConfirmation = true
+                        } else {
+                            viewModel.joinClub(asProject: false)
+                        }
+                    }) {
+                        HStack {
+                            Image(
+                                systemName: viewModel.isUserMember
+                                    ? "person.fill.checkmark" : "person.crop.circle.badge.plus"
+                            )
                             .symbolRenderingMode(.hierarchical)
                             .foregroundStyle(viewModel.isUserMember ? .green : .blue)
-                        if viewModel.isJoiningClub || viewModel.isExitingClub {
-                            ProgressView()
-                                .controlSize(.mini)
-                                .scaleEffect(0.7)
+                            if viewModel.isJoiningClub || viewModel.isExitingClub {
+                                ProgressView()
+                                    .controlSize(.mini)
+                                    .scaleEffect(0.7)
+                            }
                         }
                     }
-                }
-                .disabled(viewModel.isJoiningClub || viewModel.isExitingClub)
-                .onChange(of: viewModel.isUserMember) { _, newValue in
-                    if initialMembershipCheckComplete {
-                        if newValue {
-                            presentSuccessToast(message: "Successfully joined club")
+                    .disabled(viewModel.isJoiningClub || viewModel.isExitingClub)
+                    .onChange(of: viewModel.isUserMember) { _, newValue in
+                        if initialMembershipCheckComplete {
+                            if newValue {
+                                presentSuccessToast(message: "Successfully joined club")
+                            } else {
+                                presentSuccessToast(message: "Successfully exited club")
+                            }
                         } else {
-                            presentSuccessToast(message: "Successfully exited club")
+                            initialMembershipCheckComplete = true
                         }
-                    } else {
-                        initialMembershipCheckComplete = true
                     }
-                }
-                .help(viewModel.isUserMember ? "Exit Club" : "Join Club")
+                    .help(viewModel.isUserMember ? "Exit Club" : "Join Club")
                 #else
-                Menu {
-                    if viewModel.isUserMember {
-                        Button(role: .destructive, action: {
-                            showingExitConfirmation = true
-                        }) {
-                            Label("Exit Club", systemImage: "rectangle.portrait.and.arrow.right")
-                        }
-                    } else {
-                        Button(action: {
-                            viewModel.joinClub(asProject: false)
-                        }) {
-                            Label("Join Club", systemImage: "person.badge.plus")
-                        }
+                    Menu {
+                        if viewModel.isUserMember {
+                            Button(
+                                role: .destructive,
+                                action: {
+                                    showingExitConfirmation = true
+                                }
+                            ) {
+                                Label(
+                                    "Exit Club", systemImage: "rectangle.portrait.and.arrow.right")
+                            }
+                        } else {
+                            Button(action: {
+                                viewModel.joinClub(asProject: false)
+                            }) {
+                                Label("Join Club", systemImage: "person.badge.plus")
+                            }
 
-                        Button(action: {
-                            viewModel.joinClub(asProject: true)
-                        }) {
-                            Label("Join as Project", systemImage: "star.circle")
+                            Button(action: {
+                                viewModel.joinClub(asProject: true)
+                            }) {
+                                Label("Join as Project", systemImage: "star.circle")
+                            }
                         }
-                    }
-                } label: {
-                    Image(systemName: viewModel.isUserMember ? "person.fill.checkmark" : "person.crop.circle.badge.plus")
+                    } label: {
+                        Image(
+                            systemName: viewModel.isUserMember
+                                ? "person.fill.checkmark" : "person.crop.circle.badge.plus"
+                        )
                         .symbolRenderingMode(.hierarchical)
                         .foregroundStyle(viewModel.isUserMember ? .green : .blue)
                         .opacity(viewModel.isJoiningClub || viewModel.isExitingClub ? 0.5 : 1.0)
@@ -393,19 +429,19 @@ struct ClubInfoView: View {
                                     .controlSize(.mini)
                             }
                         }
-                }
-                .disabled(viewModel.isJoiningClub || viewModel.isExitingClub)
-                .onChange(of: viewModel.isUserMember) { _, newValue in
-                    if initialMembershipCheckComplete {
-                        if newValue {
-                            presentSuccessToast(message: "Successfully joined club")
-                        } else {
-                            presentSuccessToast(message: "Successfully exited club")
-                        }
-                    } else {
-                        initialMembershipCheckComplete = true
                     }
-                }
+                    .disabled(viewModel.isJoiningClub || viewModel.isExitingClub)
+                    .onChange(of: viewModel.isUserMember) { _, newValue in
+                        if initialMembershipCheckComplete {
+                            if newValue {
+                                presentSuccessToast(message: "Successfully joined club")
+                            } else {
+                                presentSuccessToast(message: "Successfully exited club")
+                            }
+                        } else {
+                            initialMembershipCheckComplete = true
+                        }
+                    }
                 #endif
             }
         }
@@ -425,20 +461,20 @@ struct ClubInfoView: View {
         Section {
             Picker("Category", selection: $viewModel.selectedCategory) {
                 #if targetEnvironment(macCatalyst)
-                if viewModel.categories.isEmpty {
-                    Text("Loading...").tag(nil as Category?)
-                } else {
+                    if viewModel.categories.isEmpty {
+                        Text("Loading...").tag(nil as Category?)
+                    } else {
+                        ForEach(viewModel.categories) { category in
+                            Text(category.C_Category).tag(category as Category?)
+                        }
+                    }
+                #else
+                    if viewModel.selectedCategory == nil {
+                        Text("Unavailable").tag(nil as Category?)
+                    }
                     ForEach(viewModel.categories) { category in
                         Text(category.C_Category).tag(category as Category?)
                     }
-                }
-                #else
-                if viewModel.selectedCategory == nil {
-                    Text("Unavailable").tag(nil as Category?)
-                }
-                ForEach(viewModel.categories) { category in
-                    Text(category.C_Category).tag(category as Category?)
-                }
                 #endif
             }
             .pickerStyle(MenuPickerStyle())
@@ -451,20 +487,20 @@ struct ClubInfoView: View {
 
             Picker("Club", selection: $viewModel.selectedGroup) {
                 #if targetEnvironment(macCatalyst)
-                if viewModel.groups.isEmpty {
-                    Text("Loading...").tag(nil as ClubGroup?)
-                } else {
+                    if viewModel.groups.isEmpty {
+                        Text("Loading...").tag(nil as ClubGroup?)
+                    } else {
+                        ForEach(viewModel.groups) { group in
+                            Text(group.C_NameC).tag(group as ClubGroup?)
+                        }
+                    }
+                #else
+                    if viewModel.selectedGroup == nil {
+                        Text("Unavailable").tag(nil as ClubGroup?)
+                    }
                     ForEach(viewModel.groups) { group in
                         Text(group.C_NameC).tag(group as ClubGroup?)
                     }
-                }
-                #else
-                if viewModel.selectedGroup == nil {
-                    Text("Unavailable").tag(nil as ClubGroup?)
-                }
-                ForEach(viewModel.groups) { group in
-                    Text(group.C_NameC).tag(group as ClubGroup?)
-                }
                 #endif
             }
             .pickerStyle(MenuPickerStyle())
@@ -479,7 +515,9 @@ struct ClubInfoView: View {
         Group {
             if viewModel.categories.isEmpty && !viewModel.isLoading {
                 emptyCategoriesView
-            } else if viewModel.groups.isEmpty && viewModel.selectedCategory != nil && !viewModel.isLoading {
+            } else if viewModel.groups.isEmpty && viewModel.selectedCategory != nil
+                && !viewModel.isLoading
+            {
                 emptyGroupsView
             }
         }
@@ -599,6 +637,7 @@ struct ClubInfoView: View {
     private var refreshButton: some ToolbarContent {
         ToolbarItem(placement: .navigationBarTrailing) {
             Button(action: {
+                HapticManager.shared.playRefresh()
                 withAnimation {
                     refreshButtonRotation += 360
                 }
@@ -628,7 +667,8 @@ struct ClubInfoView: View {
             }) {
                 Image(systemName: "arrow.clockwise")
                     .rotationEffect(.degrees(refreshButtonRotation))
-                    .animation(.spring(response: 0.6, dampingFraction: 0.5), value: refreshButtonRotation)
+                    .animation(
+                        .spring(response: 0.6, dampingFraction: 0.5), value: refreshButtonRotation)
             }
         }
     }
@@ -646,12 +686,12 @@ struct ClubInfoView: View {
         }
 
         #if targetEnvironment(macCatalyst)
-        // Force a refresh on Mac Catalyst to avoid the "Unavailable" issue
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            if let category = viewModel.selectedCategory, viewModel.selectedGroup == nil {
-                viewModel.fetchGroups(for: category)
+            // Force a refresh on Mac Catalyst to avoid the "Unavailable" issue
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                if let category = viewModel.selectedCategory, viewModel.selectedGroup == nil {
+                    viewModel.fetchGroups(for: category)
+                }
             }
-        }
         #endif
     }
 
@@ -737,11 +777,15 @@ struct ClubInfoView: View {
 
         // Present the share sheet
         if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-           let rootViewController = windowScene.windows.first?.rootViewController {
+            let rootViewController = windowScene.windows.first?.rootViewController
+        {
             // On iPad, set the popover presentation controller's source
             if UIDevice.current.userInterfaceIdiom == .pad {
-                activityViewController.popoverPresentationController?.sourceView = rootViewController.view
-                activityViewController.popoverPresentationController?.sourceRect = CGRect(x: UIScreen.main.bounds.width / 2, y: UIScreen.main.bounds.height / 2, width: 0, height: 0)
+                activityViewController.popoverPresentationController?.sourceView =
+                    rootViewController.view
+                activityViewController.popoverPresentationController?.sourceRect = CGRect(
+                    x: UIScreen.main.bounds.width / 2, y: UIScreen.main.bounds.height / 2, width: 0,
+                    height: 0)
                 activityViewController.popoverPresentationController?.permittedArrowDirections = []
             }
             rootViewController.present(activityViewController, animated: true)
@@ -751,13 +795,13 @@ struct ClubInfoView: View {
     // Add method to update gradient for club info
     private func updateGradientForClubInfo() {
         #if !targetEnvironment(macCatalyst)
-        gradientManager.updateGradientForView(.clubInfo, colorScheme: colorScheme)
+            gradientManager.updateGradientForView(.clubInfo, colorScheme: colorScheme)
         #else
-        gradientManager.updateGradient(
-            colors: [Color(.systemBackground)],
-            speed: 0.0,
-            noise: 0.0
-        )
+            gradientManager.updateGradient(
+                colors: [Color(.systemBackground)],
+                speed: 0.0,
+                noise: 0.0
+            )
         #endif
     }
 }
@@ -774,14 +818,16 @@ struct ClubDetailView: View {
             LabeledContent("Title", value: groupInfo.C_NameC)
                 .offset(y: animateList ? 0 : 20)
                 .opacity(animateList ? 1 : 0)
-                .animation(.spring(response: 0.4, dampingFraction: 0.7).delay(0.1), value: animateList)
+                .animation(
+                    .spring(response: 0.4, dampingFraction: 0.7).delay(0.1), value: animateList)
 
             Divider()
 
             LabeledContent("No", value: "\(groupInfo.C_GroupNo) (\(groupInfo.C_GroupsID))")
                 .offset(y: animateList ? 0 : 20)
                 .opacity(animateList ? 1 : 0)
-                .animation(.spring(response: 0.4, dampingFraction: 0.7).delay(0.2), value: animateList)
+                .animation(
+                    .spring(response: 0.4, dampingFraction: 0.7).delay(0.2), value: animateList)
 
             if groupInfo.C_FoundTime != "0000-00-00 00:00:00" {
                 Divider()
@@ -789,7 +835,8 @@ struct ClubDetailView: View {
                 LabeledContent("Founded", value: groupInfo.C_FoundTime)
                     .offset(y: animateList ? 0 : 20)
                     .opacity(animateList ? 1 : 0)
-                    .animation(.spring(response: 0.4, dampingFraction: 0.7).delay(0.3), value: animateList)
+                    .animation(
+                        .spring(response: 0.4, dampingFraction: 0.7).delay(0.3), value: animateList)
             }
 
             descriptionView
@@ -800,18 +847,21 @@ struct ClubDetailView: View {
     private var descriptionView: some View {
         Group {
             if let descriptionC = extractText(groupInfo.C_DescriptionC),
-               !descriptionC.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                !descriptionC.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            {
                 Divider()
 
                 Text("\(descriptionC)")
                     .padding(.vertical, 5)
                     .offset(y: animateList ? 0 : 20)
                     .opacity(animateList ? 1 : 0)
-                    .animation(.spring(response: 0.4, dampingFraction: 0.7).delay(0.4), value: animateList)
+                    .animation(
+                        .spring(response: 0.4, dampingFraction: 0.7).delay(0.4), value: animateList)
             }
 
             if let descriptionE = extractText(groupInfo.C_DescriptionE),
-               !descriptionE.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                !descriptionE.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            {
                 if extractText(groupInfo.C_DescriptionC) != nil {
                     Divider()
                 }
@@ -820,7 +870,8 @@ struct ClubDetailView: View {
                     .padding(.vertical, 5)
                     .offset(y: animateList ? 0 : 20)
                     .opacity(animateList ? 1 : 0)
-                    .animation(.spring(response: 0.4, dampingFraction: 0.7).delay(0.5), value: animateList)
+                    .animation(
+                        .spring(response: 0.4, dampingFraction: 0.7).delay(0.5), value: animateList)
             }
         }
     }
@@ -940,7 +991,9 @@ struct MemberInfo: View {
                 // Member name
                 Text(member.S_Name)
                     .font(.body)
-                    .fontWeight(member.LeaderYes == "2" || member.LeaderYes == "1" ? .medium : .regular)
+                    .fontWeight(
+                        member.LeaderYes == "2" || member.LeaderYes == "1" ? .medium : .regular
+                    )
                     .foregroundStyle(isCurrentUser ? .blue : .primary)
 
                 // Nickname if available

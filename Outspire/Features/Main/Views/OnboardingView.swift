@@ -85,6 +85,7 @@ struct OnboardingView: View {
                 HStack {
                     Spacer()
                     Button(action: {
+                        HapticManager.shared.playButtonTap()
                         withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
                             markOnboardingComplete()
                             isPresented = false
@@ -139,6 +140,7 @@ struct OnboardingView: View {
                 HStack(spacing: 20) {
                     if currentPage > 0 {
                         Button(action: {
+                            HapticManager.shared.playButtonTap()
                             withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
                                 currentPage -= 1
                             }
@@ -162,6 +164,7 @@ struct OnboardingView: View {
                     Spacer()
 
                     Button(action: {
+                        HapticManager.shared.playButtonTap()
                         handleNextAction()
                     }) {
                         HStack {

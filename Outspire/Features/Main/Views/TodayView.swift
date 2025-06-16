@@ -249,11 +249,11 @@ struct TodayView: View {
 
     private var scheduleButton: some View {
         Button {
+            HapticManager.shared.playButtonTap()
             isSettingsSheetPresented = true
         } label: {
             Image(systemName: "calendar.badge.clock")
                 .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(selectedDayOverride != nil || isHolidayMode ? .blue : .primary)
         }
         .disabled(!sessionService.isAuthenticated)
         .opacity(sessionService.isAuthenticated ? 1.0 : 0.5)

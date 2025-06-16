@@ -2,7 +2,7 @@ import LocalAuthentication
 import SwiftUI
 
 #if !targetEnvironment(macCatalyst)
-import ColorfulX
+    import ColorfulX
 #endif
 
 struct ScoreView: View {
@@ -17,17 +17,17 @@ struct ScoreView: View {
     var body: some View {
         ZStack {
             #if !targetEnvironment(macCatalyst)
-            ColorfulView(
-                color: $gradientManager.gradientColors,
-                speed: $gradientManager.gradientSpeed,
-                noise: $gradientManager.gradientNoise,
-                transitionSpeed: $gradientManager.gradientTransitionSpeed
-            )
-            .ignoresSafeArea()
-            .opacity(colorScheme == .dark ? 0.15 : 0.3)
-
-            Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
+                ColorfulView(
+                    color: $gradientManager.gradientColors,
+                    speed: $gradientManager.gradientSpeed,
+                    noise: $gradientManager.gradientNoise,
+                    transitionSpeed: $gradientManager.gradientTransitionSpeed
+                )
                 .ignoresSafeArea()
+                .opacity(colorScheme == .dark ? 0.15 : 0.3)
+
+                Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
+                    .ignoresSafeArea()
             #endif
 
             // Main content
@@ -155,7 +155,8 @@ struct ScoreView: View {
                                                 viewModel.selectedTermId = term.W_YearID
 
                                                 // Save the selected term ID to make this choice persistent
-                                                UserDefaults.standard.set(term.W_YearID, forKey: "selectedTermId")
+                                                UserDefaults.standard.set(
+                                                    term.W_YearID, forKey: "selectedTermId")
 
                                                 // Scroll to make selected term visible
                                                 withAnimation {
@@ -292,7 +293,7 @@ struct ScoreView: View {
                             }
                             .opacity(animateIn ? 0.7 : 0)
                             .animation(.easeIn.delay(0.5), value: animateIn)
-                            .id(viewModel.lastUpdateTime) // This ensures the view updates when the time changes
+                            .id(viewModel.lastUpdateTime)  // This ensures the view updates when the time changes
                         }
                     }
                     .padding(.top)
@@ -318,7 +319,8 @@ struct ScoreView: View {
             // Error toast overlay - for network errors only, not for empty terms
             // Only show the overlay for actual errors, not for informational messages
             if let errorMessage = viewModel.errorMessage,
-               errorMessage.starts(with: "Failed") {
+                errorMessage.starts(with: "Failed")
+            {
                 VStack {
                     Spacer()  // Push error to bottom
 
@@ -367,7 +369,8 @@ struct ScoreView: View {
 
             // Check if there's stale data that needs refreshing
             if !viewModel.scores.isEmpty && !viewModel.isLoading
-                && !viewModel.isCacheValid(for: "scoresCacheTimestamp-\(viewModel.selectedTermId)") {
+                && !viewModel.isCacheValid(for: "scoresCacheTimestamp-\(viewModel.selectedTermId)")
+            {
                 // Silently refresh data if cache is stale
                 viewModel.fetchScores(forceRefresh: true)
             }
@@ -427,6 +430,7 @@ struct ScoreView: View {
         Group {
             ToolbarItem(placement: .primaryAction) {
                 Button(action: {
+                    HapticManager.shared.playRefresh()
                     withAnimation {
                         refreshButtonRotation += 360
                     }
@@ -478,7 +482,10 @@ struct TermButton: View {
     let hasData: Bool  // We'll keep this parameter but not use it visually
 
     var body: some View {
-        Button(action: action) {
+        Button(action: {
+            HapticManager.shared.playSelectionFeedback()
+            action()
+        }) {
             VStack(spacing: 4) {
                 Text(term.W_Year)
                     .font(.system(size: 15, weight: isSelected ? .semibold : .regular))

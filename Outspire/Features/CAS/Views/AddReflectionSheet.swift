@@ -88,27 +88,42 @@ struct AddReflectionSheet: View {
                     Toggle(isOn: $viewModel.lo1) {
                         Label("Awareness", systemImage: "brain.head.profile")
                     }
+                    .onChange(of: viewModel.lo1) { _ in HapticManager.shared.playToggle() }
+
                     Toggle(isOn: $viewModel.lo2) {
                         Label("Challenge", systemImage: "figure.walk.motion")
                     }
+                    .onChange(of: viewModel.lo2) { _ in HapticManager.shared.playToggle() }
+
                     Toggle(isOn: $viewModel.lo3) {
                         Label("Initiative", systemImage: "lightbulb")
                     }
+                    .onChange(of: viewModel.lo3) { _ in HapticManager.shared.playToggle() }
+
                     Toggle(isOn: $viewModel.lo4) {
                         Label("Collaboration", systemImage: "person.2")
                     }
+                    .onChange(of: viewModel.lo4) { _ in HapticManager.shared.playToggle() }
+
                     Toggle(isOn: $viewModel.lo5) {
                         Label("Commitment", systemImage: "checkmark.seal")
                     }
+                    .onChange(of: viewModel.lo5) { _ in HapticManager.shared.playToggle() }
+
                     Toggle(isOn: $viewModel.lo6) {
                         Label("Global Value", systemImage: "globe.americas")
                     }
+                    .onChange(of: viewModel.lo6) { _ in HapticManager.shared.playToggle() }
+
                     Toggle(isOn: $viewModel.lo7) {
                         Label("Ethics", systemImage: "shield.lefthalf.filled")
                     }
+                    .onChange(of: viewModel.lo7) { _ in HapticManager.shared.playToggle() }
+
                     Toggle(isOn: $viewModel.lo8) {
                         Label("New Skills", systemImage: "wrench.and.screwdriver")
                     }
+                    .onChange(of: viewModel.lo8) { _ in HapticManager.shared.playToggle() }
                 }
 
                 // Learning Outcomes Explanation moved to a sheet shown via toolbar
@@ -128,23 +143,27 @@ struct AddReflectionSheet: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {
+                        HapticManager.shared.playButtonTap()
                         presentationMode.wrappedValue.dismiss()
                     }
                 }
                 ToolbarItem(id: "llmSuggest", placement: .primaryAction) {
                     Menu {
                         Button {
+                            HapticManager.shared.playButtonTap()
                             viewModel.fetchLLMSuggestion()
                         } label: {
                             Label("Suggest", systemImage: "pencil.and.scribble")
                         }
                         Button {
+                            HapticManager.shared.playButtonTap()
                             viewModel.revertSuggestion()
                         } label: {
                             Label("Revert", systemImage: "arrow.uturn.backward")
                         }
                         .disabled(!viewModel.canRevertSuggestion)
                         Button(role: .destructive) {
+                            HapticManager.shared.playDelete()
                             viewModel.clearForm()
                             let toast = ToastValue(
                                 icon: Image(systemName: "trash").foregroundStyle(.red),
@@ -164,22 +183,26 @@ struct AddReflectionSheet: View {
                     .disabled(viewModel.isFetchingSuggestion)
                 }
                 ToolbarItem(id: "learningOutcomesInfo", placement: .primaryAction) {
-                    Button(action: { showingLearningOutcomesSheet.toggle() }) {
+                    Button(action: {
+                        HapticManager.shared.playButtonTap()
+                        showingLearningOutcomesSheet.toggle()
+                    }) {
                         Image(systemName: "info.circle")
                     }
                     .help("Help")
                 }
-                
-                // Un-comment this after Xcode 26
-//                if #available(iOS 26.0, *) {
-//                    ToolbarSpacer(.fixed, placement: .primaryAction)
-//                }
 
+                // Un-comment this after Xcode 26
+                //                if #available(iOS 26.0, *) {
+                //                    ToolbarSpacer(.fixed, placement: .primaryAction)
+                //                }
 
                 ToolbarItem(placement: .primaryAction) {
                     Button("Save") {
+                        HapticManager.shared.playFormSubmission()
                         viewModel.save()
                         if viewModel.errorMessage == nil {
+                            HapticManager.shared.playSuccessfulSave()
                             let toast = ToastValue(
                                 icon: Image(systemName: "checkmark.circle").foregroundStyle(.green),
                                 message: "Reflection saved successfully"
@@ -237,6 +260,7 @@ struct AddReflectionSheet: View {
                 .toolbar {
                     ToolbarItem(placement: .navigationBarTrailing) {
                         Button("Done") {
+                            HapticManager.shared.playButtonTap()
                             showingLearningOutcomesSheet = false
                         }
                     }
@@ -258,6 +282,7 @@ struct AddReflectionSheet: View {
             isPresented: $viewModel.showCompletedSuggestionAlert
         ) {
             Button("Agree", role: .cancel) {
+                HapticManager.shared.playSuccessFeedback()
                 viewModel.dismissCompletedSuggestionAlert()
             }
         } message: {

@@ -22,7 +22,10 @@ struct ErrorView: View {
                 .padding(.horizontal)
 
             if let retryAction = retryAction {
-                Button(action: retryAction) {
+                Button(action: {
+                    HapticManager.shared.playButtonTap()
+                    retryAction()
+                }) {
                     Label("Try Again", systemImage: "arrow.clockwise")
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)

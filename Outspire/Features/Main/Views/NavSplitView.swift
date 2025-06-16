@@ -1,38 +1,39 @@
 import SwiftUI
+
 #if !targetEnvironment(macCatalyst)
-import ColorfulX
+    import ColorfulX
 #endif
 
 struct NavSplitView: View {
     @EnvironmentObject var sessionService: SessionService
     @EnvironmentObject var settingsManager: SettingsManager
     @EnvironmentObject var urlSchemeHandler: URLSchemeHandler
-    @EnvironmentObject var gradientManager: GradientManager // Add gradient manager
+    @EnvironmentObject var gradientManager: GradientManager  // Add gradient manager
     @State private var selectedLink: String? = "today"
     @State private var refreshID = UUID()
     @State private var showOnboardingSheet = false
     @State private var hasCheckedOnboarding = false
     @AppStorage("lastVersionRun") private var lastVersionRun: String?
     @State private var onboardingCompleted = false
-    @Environment(\.colorScheme) private var colorScheme // Add colorScheme
+    @Environment(\.colorScheme) private var colorScheme  // Add colorScheme
 
     var body: some View {
         NavigationSplitView {
             ZStack {
                 #if !targetEnvironment(macCatalyst)
-                // Add ColorfulX as background
-                ColorfulView(
-                    color: $gradientManager.gradientColors,
-                    speed: $gradientManager.gradientSpeed,
-                    noise: $gradientManager.gradientNoise,
-                    transitionSpeed: $gradientManager.gradientTransitionSpeed
-                )
-                .ignoresSafeArea()
-                .opacity(colorScheme == .dark ? 0.15 : 0.3) // Reduce opacity more in dark mode
-
-                // Semi-transparent background for better contrast
-                Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
+                    // Add ColorfulX as background
+                    ColorfulView(
+                        color: $gradientManager.gradientColors,
+                        speed: $gradientManager.gradientSpeed,
+                        noise: $gradientManager.gradientNoise,
+                        transitionSpeed: $gradientManager.gradientTransitionSpeed
+                    )
                     .ignoresSafeArea()
+                    .opacity(colorScheme == .dark ? 0.15 : 0.3)  // Reduce opacity more in dark mode
+
+                    // Semi-transparent background for better contrast
+                    Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
+                        .ignoresSafeArea()
                 #endif
 
                 // Existing list content with better background
@@ -77,20 +78,21 @@ struct NavSplitView: View {
                             Label("Dining Menus", systemImage: "fork.knife")
                         }
                         #if DEBUG
-                        NavigationLink(value: "help") {
-                            Label("Help", systemImage: "questionmark.circle.dashed")
-                        }
+                            NavigationLink(value: "help") {
+                                Label("Help", systemImage: "questionmark.circle.dashed")
+                            }
                         #endif
                     } header: {
                         Text("Miscellaneous")
                     }
                 }
-                .scrollContentBackground(.hidden) // Hide the default List background
-                .background(Color.clear) // Make the background transparent
-                .modifier(NavigationColumnWidthModifier()) // Apply column width correctly
+                .scrollContentBackground(.hidden)  // Hide the default List background
+                .background(Color.clear)  // Make the background transparent
+                .modifier(NavigationColumnWidthModifier())  // Apply column width correctly
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button(action: {
+                            HapticManager.shared.playButtonTap()
                             settingsManager.showSettingsSheet.toggle()
                         }) {
                             Label {
@@ -167,7 +169,9 @@ struct NavSplitView: View {
             // Initialize gradient based on current view
             updateGradientForSelectedLink(selectedLink)
         }
-        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+        .onReceive(
+            NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)
+        ) { _ in
             // Ensure onboarding sheet reappears if not completed
             if !UserDefaults.standard.bool(forKey: "hasCompletedOnboarding") {
                 showOnboardingSheet = true
@@ -181,7 +185,7 @@ struct NavSplitView: View {
         switch selectedLink {
         case "today":
             NavigationStack {
-                TodayView() // Removed explicit id to enable default transition animations
+                TodayView()  // Removed explicit id to enable default transition animations
             }
         case "classtable":
             NavigationStack {
@@ -240,7 +244,9 @@ struct NavSplitView: View {
         let currentVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
         let thresholdVersion = "0.5.1"
 
-        if shouldShowOnboardingForVersion(lastVersionRun: lastVersionRun, thresholdVersion: thresholdVersion) {
+        if shouldShowOnboardingForVersion(
+            lastVersionRun: lastVersionRun, thresholdVersion: thresholdVersion)
+        {
             showOnboardingSheet = true
             lastVersionRun = currentVersion
             print("Showing onboarding due to version check.")
@@ -257,7 +263,9 @@ struct NavSplitView: View {
         }
     }
 
-    private func shouldShowOnboardingForVersion(lastVersionRun: String?, thresholdVersion: String) -> Bool {
+    private func shouldShowOnboardingForVersion(lastVersionRun: String?, thresholdVersion: String)
+        -> Bool
+    {
         guard let lastVersion = lastVersionRun else {
             return true
         }
@@ -279,11 +287,14 @@ struct NavSplitView: View {
             let isHoliday = Configuration.isHolidayMode
 
             if !sessionService.isAuthenticated {
-                gradientManager.updateGradientForContext(context: .notSignedIn, colorScheme: colorScheme)
+                gradientManager.updateGradientForContext(
+                    context: .notSignedIn, colorScheme: colorScheme)
             } else if isHoliday {
-                gradientManager.updateGradientForContext(context: .holiday, colorScheme: colorScheme)
+                gradientManager.updateGradientForContext(
+                    context: .holiday, colorScheme: colorScheme)
             } else if isWeekend {
-                gradientManager.updateGradientForContext(context: .weekend, colorScheme: colorScheme)
+                gradientManager.updateGradientForContext(
+                    context: .weekend, colorScheme: colorScheme)
             } else {
                 // Let the Today view handle this in its own onAppear
                 gradientManager.updateGradientForContext(context: .normal, colorScheme: colorScheme)
@@ -292,10 +303,12 @@ struct NavSplitView: View {
             // For other views, check if we have an active context
             if gradientManager.currentContext.isSpecialContext {
                 // Keep the current context colors but update animation settings
-                gradientManager.updateGradientForView(ViewType(fromLink: link) ?? .today, colorScheme: colorScheme)
+                gradientManager.updateGradientForView(
+                    ViewType(fromLink: link) ?? .today, colorScheme: colorScheme)
             } else {
                 // No special context, use regular view settings
-                gradientManager.updateGradientForView(ViewType(fromLink: link) ?? .today, colorScheme: colorScheme)
+                gradientManager.updateGradientForView(
+                    ViewType(fromLink: link) ?? .today, colorScheme: colorScheme)
             }
         }
     }
@@ -307,32 +320,35 @@ struct NavigationColumnWidthModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         #if targetEnvironment(macCatalyst)
-        // Use NavigationSplitViewVisibility instead of width for more consistent behavior
-        content
-            .navigationSplitViewColumnWidth(min: 180, ideal: 180, max: 300)
-            .onAppear {
-                // Apply AppKit-specific customizations for Mac Catalyst
-                if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
-                    windowScene.titlebar?.titleVisibility = .visible
-                    windowScene.titlebar?.toolbar?.isVisible = true
+            // Use NavigationSplitViewVisibility instead of width for more consistent behavior
+            content
+                .navigationSplitViewColumnWidth(min: 180, ideal: 180, max: 300)
+                .onAppear {
+                    // Apply AppKit-specific customizations for Mac Catalyst
+                    if let windowScene = UIApplication.shared.connectedScenes.first
+                        as? UIWindowScene
+                    {
+                        windowScene.titlebar?.titleVisibility = .visible
+                        windowScene.titlebar?.toolbar?.isVisible = true
 
-                    // Override Mac Catalyst settings for better appearance
-                    let sidebarAppearance = UINavigationBar.appearance(whenContainedInInstancesOf: [UISplitViewController.self])
-                    sidebarAppearance.scrollEdgeAppearance = UINavigationBarAppearance()
-                    sidebarAppearance.compactAppearance = UINavigationBarAppearance()
-                    sidebarAppearance.standardAppearance = UINavigationBarAppearance()
+                        // Override Mac Catalyst settings for better appearance
+                        let sidebarAppearance = UINavigationBar.appearance(
+                            whenContainedInInstancesOf: [UISplitViewController.self])
+                        sidebarAppearance.scrollEdgeAppearance = UINavigationBarAppearance()
+                        sidebarAppearance.compactAppearance = UINavigationBarAppearance()
+                        sidebarAppearance.standardAppearance = UINavigationBarAppearance()
 
-                    // Set sidebar background to clear
-                    UITableView.appearance().backgroundColor = .clear
+                        // Set sidebar background to clear
+                        UITableView.appearance().backgroundColor = .clear
+                    }
                 }
-            }
         #else
-        // On iOS/iPadOS, use regular settings
-        content
-            .if(horizontalSizeClass == .regular) { view in
-                // Only on iPad, set default width
-                view.navigationSplitViewColumnWidth(250)
-            }
+            // On iOS/iPadOS, use regular settings
+            content
+                .if(horizontalSizeClass == .regular) { view in
+                    // Only on iPad, set default width
+                    view.navigationSplitViewColumnWidth(250)
+                }
         #endif
     }
 }

@@ -1,7 +1,8 @@
 import SwiftUI
 import Toasts
+
 #if !targetEnvironment(macCatalyst)
-import ColorfulX
+    import ColorfulX
 #endif
 
 struct ReflectionsView: View {
@@ -17,17 +18,17 @@ struct ReflectionsView: View {
     var body: some View {
         ZStack {
             #if !targetEnvironment(macCatalyst)
-            ColorfulView(
-                color: $gradientManager.gradientColors,
-                speed: $gradientManager.gradientSpeed,
-                noise: $gradientManager.gradientNoise,
-                transitionSpeed: $gradientManager.gradientTransitionSpeed
-            )
-            .ignoresSafeArea()
-            .opacity(colorScheme == .dark ? 0.1 : 0.3)
-            #else
-            Color(.systemBackground)
+                ColorfulView(
+                    color: $gradientManager.gradientColors,
+                    speed: $gradientManager.gradientSpeed,
+                    noise: $gradientManager.gradientNoise,
+                    transitionSpeed: $gradientManager.gradientTransitionSpeed
+                )
                 .ignoresSafeArea()
+                .opacity(colorScheme == .dark ? 0.1 : 0.3)
+            #else
+                Color(.systemBackground)
+                    .ignoresSafeArea()
             #endif
 
             Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
@@ -38,12 +39,12 @@ struct ReflectionsView: View {
         .navigationTitle("Reflections")
         .contentMargins(.vertical, 10.0)
         .toolbar {
-//            ToolbarItem(id: "loadingIndicator", placement: .navigationBarTrailing) {
-//                if viewModel.isLoadingGroups || viewModel.isLoadingReflections {
-//                    ProgressView()
-//                        .controlSize(.small)
-//                }
-//            }
+            //            ToolbarItem(id: "loadingIndicator", placement: .navigationBarTrailing) {
+            //                if viewModel.isLoadingGroups || viewModel.isLoadingReflections {
+            //                    ProgressView()
+            //                        .controlSize(.small)
+            //                }
+            //            }
             ToolbarItem(id: "refreshButton", placement: .navigationBarTrailing) {
                 Button(action: handleRefreshAction) {
                     Label {
@@ -53,17 +54,20 @@ struct ReflectionsView: View {
                             .rotationEffect(.degrees(refreshButtonRotation))
                     }
                 }
-//                .disabled(viewModel.isLoadingGroups || viewModel.isLoadingReflections)
+                //                .disabled(viewModel.isLoadingGroups || viewModel.isLoadingReflections)
             }
             ToolbarItem(id: "addButton", placement: .navigationBarTrailing) {
-                Button(action: { showingAddSheet.toggle() }) {
+                Button(action: {
+                    HapticManager.shared.playButtonTap()
+                    showingAddSheet.toggle()
+                }) {
                     Label {
                         Text("Compose")
                     } icon: {
                         Image(systemName: "square.and.pencil")
                     }
                 }
-//                .disabled(viewModel.isLoadingGroups || viewModel.isLoadingReflections || sessionService.userInfo == nil)
+                //                .disabled(viewModel.isLoadingGroups || viewModel.isLoadingReflections || sessionService.userInfo == nil)
             }
         }
         .sheet(isPresented: $showingAddSheet) {
@@ -85,8 +89,10 @@ struct ReflectionsView: View {
         }
         .onChange(of: viewModel.errorMessage) { errorMessage in
             if let errorMessage = errorMessage {
-                let icon = errorMessage.contains("copied") ?
-                    "checkmark.circle.fill" : "exclamationmark.circle.fill"
+                HapticManager.shared.playError()
+                let icon =
+                    errorMessage.contains("copied")
+                    ? "checkmark.circle.fill" : "exclamationmark.circle.fill"
                 let toast = ToastValue(
                     icon: Image(systemName: icon).foregroundStyle(.red),
                     message: errorMessage
@@ -140,6 +146,7 @@ struct ReflectionsView: View {
         Group {
             Button("Delete", role: .destructive) {
                 if let reflection = viewModel.reflectionToDelete {
+                    HapticManager.shared.playDelete()
                     viewModel.confirmDelete()
                     let toast = ToastValue(
                         icon: Image(systemName: "trash.fill").foregroundStyle(.red),
@@ -148,7 +155,9 @@ struct ReflectionsView: View {
                     presentToast(toast)
                 }
             }
-            Button("Cancel", role: .cancel) {}
+            Button("Cancel", role: .cancel) {
+                HapticManager.shared.playButtonTap()
+            }
         }
     }
 
@@ -175,6 +184,7 @@ struct ReflectionsView: View {
     }
 
     private func handleRefreshAction() {
+        HapticManager.shared.playRefresh()
         withAnimation {
             refreshButtonRotation += 360
         }
@@ -198,13 +208,13 @@ struct ReflectionsView: View {
 
     private func updateGradientForReflections() {
         #if !targetEnvironment(macCatalyst)
-        gradientManager.updateGradientForView(.clubActivities, colorScheme: colorScheme)
+            gradientManager.updateGradientForView(.clubActivities, colorScheme: colorScheme)
         #else
-        gradientManager.updateGradient(
-            colors: [Color(.systemBackground)],
-            speed: 0.0,
-            noise: 0.0
-        )
+            gradientManager.updateGradient(
+                colors: [Color(.systemBackground)],
+                speed: 0.0,
+                noise: 0.0
+            )
         #endif
     }
 }
@@ -221,6 +231,7 @@ struct ReflectionGroupSelectorSection: View {
                     }
                 }
                 .onChange(of: viewModel.selectedGroupId) { _ in
+                    HapticManager.shared.playSelectionFeedback()
                     withAnimation(.easeInOut(duration: 0.3)) {
                         viewModel.fetchReflections(forceRefresh: true)
                     }
@@ -250,6 +261,7 @@ struct ReflectionsSection: View {
                         ErrorView(
                             errorMessage: "No clubs available. Try joining some to continue?",
                             retryAction: {
+                                HapticManager.shared.playRefresh()
                                 viewModel.fetchGroups(forceRefresh: true)
                                 let toast = ToastValue(
                                     icon: Image(systemName: "arrow.clockwise"),
@@ -315,6 +327,7 @@ struct ReflectionsList: View {
             ReflectionCardView(
                 reflection: reflection,
                 onDelete: {
+                    HapticManager.shared.playDelete()
                     viewModel.deleteReflection(reflection)
                 }
             )
@@ -350,7 +363,10 @@ struct ReflectionEmptyStateView: View {
                 .foregroundStyle(.tertiary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
-            Button(action: action) {
+            Button(action: {
+                HapticManager.shared.playButtonTap()
+                action()
+            }) {
                 Label("Add New Reflection", systemImage: "plus.circle")
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
@@ -365,8 +381,8 @@ struct ReflectionEmptyStateView: View {
     }
 }
 
-private extension Optional where Wrapped == String {
-    var isNilOrEmpty: Bool {
+extension Optional where Wrapped == String {
+    fileprivate var isNilOrEmpty: Bool {
         self?.isEmpty ?? true
     }
 }

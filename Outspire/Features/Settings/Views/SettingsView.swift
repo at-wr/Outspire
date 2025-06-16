@@ -48,7 +48,9 @@ struct SettingsView: View {
                 Section {
                     ShareLink(
                         item: URL(string: "https://apps.apple.com/us/app/outspire/id6743143348")!,
-                        message: Text("\nCheck out Outspire, an app that makes your WFLA life easier!\nWidgets, Class countdowns, CAS... \n\nDownload now on the App Store.")
+                        message: Text(
+                            "\nCheck out Outspire, an app that makes your WFLA life easier!\nWidgets, Class countdowns, CAS... \n\nDownload now on the App Store."
+                        )
                     ) {
                         Label("Share Outspire", systemImage: "square.and.arrow.up")
                             .foregroundStyle(.primary)
@@ -59,7 +61,10 @@ struct SettingsView: View {
                             .foregroundStyle(.primary)
                     }
 
-                    Link(destination: URL(string: "https://github.com/at-wr/Outspire/issues/new/choose")!) {
+                    Link(
+                        destination: URL(
+                            string: "https://github.com/at-wr/Outspire/issues/new/choose")!
+                    ) {
                         Label("Report an Issue", systemImage: "exclamationmark.bubble")
                             .foregroundStyle(.primary)
                     }
@@ -67,12 +72,13 @@ struct SettingsView: View {
                 }
 
                 #if DEBUG
-                Section {
-                    Button("View Onboarding") {
-                        showOnboardingSheet = true
+                    Section {
+                        Button("View Onboarding") {
+                            HapticManager.shared.playButtonTap()
+                            showOnboardingSheet = true
+                        }
+                        .foregroundStyle(.blue)
                     }
-                    .foregroundStyle(.blue)
-                }
                 #endif
             }
             .id(viewRefreshID)
@@ -80,27 +86,31 @@ struct SettingsView: View {
             .toolbarBackground(Color(UIColor.secondarySystemBackground))
             .toolbar {
                 Button(action: {
+                    HapticManager.shared.playButtonTap()
                     showSettingsSheet = false
                 }) {
                     #if targetEnvironment(macCatalyst)
-                    Text("Close")
-                        .font(.system(size: 14, weight: .medium))
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(Color(.tertiarySystemFill))
-                        .cornerRadius(6)
-                        .foregroundStyle(.primary)
+                        Text("Close")
+                            .font(.system(size: 14, weight: .medium))
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(Color(.tertiarySystemFill))
+                            .cornerRadius(6)
+                            .foregroundStyle(.primary)
                     #else
-                    Image(systemName: "xmark")
-                        //.font(.title2)
-                        .foregroundStyle(.secondary)
+                        Image(systemName: "xmark")
+                            //.font(.title2)
+                            .foregroundStyle(.secondary)
                     #endif
                 }
             }
             .navigationDestination(for: SettingsMenu.self) { destination in
                 destinationView(for: destination)
             }
-            .onReceive(NotificationCenter.default.publisher(for: Notification.Name.authenticationStatusChanged)) { notification in
+            .onReceive(
+                NotificationCenter.default.publisher(
+                    for: Notification.Name.authenticationStatusChanged)
+            ) { notification in
                 DispatchQueue.main.async {
                     viewRefreshID = UUID()
                     if let action = notification.userInfo?["action"] as? String {

@@ -43,8 +43,10 @@ struct AddRecordSheet: View {
                     Stepper(
                         "C: \(viewModel.durationC) hours", value: $viewModel.durationC, in: 0...10,
                         onEditingChanged: { _ in
+                            HapticManager.shared.playStepperChange()
                             viewModel.validateDuration()
                             if let errorMessage = viewModel.errorMessage {
+                                HapticManager.shared.playError()
                                 let toast = ToastValue(
                                     icon: Image(systemName: "exclamationmark.triangle")
                                         .foregroundStyle(.red),
@@ -56,8 +58,10 @@ struct AddRecordSheet: View {
                     Stepper(
                         "A: \(viewModel.durationA) hours", value: $viewModel.durationA, in: 0...10,
                         onEditingChanged: { _ in
+                            HapticManager.shared.playStepperChange()
                             viewModel.validateDuration()
                             if let errorMessage = viewModel.errorMessage {
+                                HapticManager.shared.playError()
                                 let toast = ToastValue(
                                     icon: Image(systemName: "exclamationmark.triangle")
                                         .foregroundStyle(.red),
@@ -69,8 +73,10 @@ struct AddRecordSheet: View {
                     Stepper(
                         "S: \(viewModel.durationS) hours", value: $viewModel.durationS, in: 0...10,
                         onEditingChanged: { _ in
+                            HapticManager.shared.playStepperChange()
                             viewModel.validateDuration()
                             if let errorMessage = viewModel.errorMessage {
+                                HapticManager.shared.playError()
                                 let toast = ToastValue(
                                     icon: Image(systemName: "exclamationmark.triangle")
                                         .foregroundStyle(.red),
@@ -115,6 +121,7 @@ struct AddRecordSheet: View {
             .toolbar {
                 ToolbarItem(id: "cancelButton", placement: .navigationBarLeading) {
                     Button("Cancel") {
+                        HapticManager.shared.playButtonTap()
                         viewModel.cacheFormData()  // Cache data when cancelling
                         presentationMode.wrappedValue.dismiss()
                     }
@@ -123,17 +130,20 @@ struct AddRecordSheet: View {
                 ToolbarItem(id: "llmSuggest", placement: .primaryAction) {
                     Menu {
                         Button {
+                            HapticManager.shared.playButtonTap()
                             viewModel.fetchLLMSuggestion()
                         } label: {
                             Label("Suggest", systemImage: "pencil.and.scribble")
                         }
                         Button {
+                            HapticManager.shared.playButtonTap()
                             viewModel.revertSuggestion()
                         } label: {
                             Label("Revert", systemImage: "arrow.uturn.backward")
                         }
                         .disabled(!viewModel.canRevertSuggestion)
                         Button(role: .destructive) {
+                            HapticManager.shared.playDelete()
                             viewModel.clearForm()
                         } label: {
                             Label("Clear All", systemImage: "trash")
@@ -148,16 +158,18 @@ struct AddRecordSheet: View {
                     }
                     .disabled(viewModel.isFetchingSuggestion)
                 }
-                
+
                 // Un-comment this after Xcode 26
-//                if #available(iOS 26.0, *) {
-//                    ToolbarSpacer(.fixed, placement: .primaryAction)
-//                }
+                //                if #available(iOS 26.0, *) {
+                //                    ToolbarSpacer(.fixed, placement: .primaryAction)
+                //                }
 
                 ToolbarItem(id: "saveButton", placement: .primaryAction) {
                     Button("Save") {
+                        HapticManager.shared.playFormSubmission()
                         viewModel.saveRecord()
                         if let errorMessage = viewModel.errorMessage {
+                            HapticManager.shared.playError()
                             let toast = ToastValue(
                                 icon: Image(systemName: "exclamationmark.triangle").foregroundStyle(
                                     .red),
@@ -165,6 +177,7 @@ struct AddRecordSheet: View {
                             )
                             presentToast(toast)
                         } else {
+                            HapticManager.shared.playSuccessfulSave()
                             let toast = ToastValue(
                                 icon: Image(systemName: "checkmark.circle").foregroundStyle(.green),
                                 message: "Record saved successfully"
@@ -190,6 +203,7 @@ struct AddRecordSheet: View {
                     title: Text("Suggestion Error"),
                     message: Text(viewModel.suggestionError ?? ""),
                     dismissButton: .default(Text("OK")) {
+                        HapticManager.shared.playButtonTap()
                         viewModel.suggestionError = nil
                     }
                 )
@@ -199,6 +213,7 @@ struct AddRecordSheet: View {
                 isPresented: $viewModel.showFirstTimeSuggestionAlert
             ) {
                 Button("Agree & Proceed", role: .cancel) {
+                    HapticManager.shared.playButtonTap()
                     viewModel.dismissFirstTimeSuggestionAlert()
                 }
             } message: {
@@ -209,6 +224,7 @@ struct AddRecordSheet: View {
                 isPresented: $viewModel.showCompletedSuggestionAlert
             ) {
                 Button("Agree", role: .cancel) {
+                    HapticManager.shared.playSuccessFeedback()
                     viewModel.dismissCompletedSuggestionAlert()
                 }
             } message: {
