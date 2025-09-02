@@ -157,7 +157,6 @@ struct SettingsView: View {
 }
 
 struct AccountWithNavigation: View {
-    @StateObject private var viewModel = AccountViewModel()
     @EnvironmentObject var sessionService: SessionService
 
     var body: some View {

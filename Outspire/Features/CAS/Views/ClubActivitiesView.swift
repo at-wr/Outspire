@@ -335,37 +335,7 @@ struct ActivitiesSection: View {
     }
 }
 
-struct CALoadingIndicator: View {
-    let isLoadingActivities: Bool
-    let isLoadingGroups: Bool
-
-    var body: some View {
-        if isLoadingActivities || isLoadingGroups {
-            ProgressView()
-                .controlSize(.small)
-                .transition(.opacity.combined(with: .scale))
-        }
-    }
-}
-
-// now moved to SchoolArrangement/Views/Components/UIComponents
-// need to use :3
-struct CARefreshButton: View {
-    let isLoadingActivities: Bool
-    let isLoadingGroups: Bool
-    let groupsEmpty: Bool
-    @Binding var rotation: Double
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Image(systemName: "arrow.clockwise")
-                .rotationEffect(.degrees(rotation))
-                .animation(.spring(response: 0.6, dampingFraction: 0.5), value: rotation)
-        }
-        .disabled(isLoadingActivities || isLoadingGroups)
-    }
-}
+// Use shared refresh/loading in SchoolArrangement/Views/Components/UIComponents.swift
 
 struct ClubEmptyStateView: View {
     let action: () -> Void

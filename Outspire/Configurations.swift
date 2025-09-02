@@ -142,6 +142,13 @@ struct Configuration {
         "Content-Type": "application/x-www-form-urlencoded"
     ]
 
+    // MARK: - Connectivity probes (centralized)
+    static var directServerProbeURL: String { "http://101.230.1.173:6300/php/login_key.php" }
+    static var relayServerProbeURL: String { "https://tsimsproxy.wrye.dev/php/login_key.php" }
+
+    // MARK: - LLM configuration
+    static var llmModel: String { "grok/grok-3-latest" }
+
     static var isHolidayMode: Bool {
         get {
             return UserDefaults.standard.bool(forKey: "isHolidayMode")

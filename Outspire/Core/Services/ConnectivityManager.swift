@@ -26,9 +26,9 @@ class ConnectivityManager: ObservableObject {
     private var directCheckCompleted = false
     private var relayCheckCompleted = false
 
-    // Configuration
-    private let directServerURL = "http://101.230.1.173:6300/php/login_key.php"
-    private let relayServerURL = "https://tsimsproxy.wrye.dev/php/login_key.php"
+    // Configuration (centralized in Configuration)
+    private let directServerURL = Configuration.directServerProbeURL
+    private let relayServerURL = Configuration.relayServerProbeURL
     private let checkInterval: TimeInterval = 300 // 5 minutes
     private let timeoutInterval: TimeInterval = 5.0 // 5 seconds timeout
 

@@ -261,26 +261,6 @@ class NotificationManager: ObservableObject {
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
     }
 
-    // Set up notification categories
-    func setupNotificationCategories() {
-        // Create ETA notification category with actions
-        let viewETAAction = UNNotificationAction(
-            identifier: "VIEW_ETA",
-            title: "View ETA",
-            options: .foreground
-        )
-
-        let etaCategory = UNNotificationCategory(
-            identifier: "MORNING_ETA",
-            actions: [viewETAAction],
-            intentIdentifiers: [],
-            options: []
-        )
-
-        // Register the notification categories
-        UNUserNotificationCenter.current().setNotificationCategories([etaCategory])
-    }
-
     // MARK: - Centralized Notification Management
 
     /// Updates notification scheduling based on current user preferences and authorization status

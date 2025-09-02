@@ -2,7 +2,7 @@ import SwiftUI
 
 struct AccountDetailsView: View {
     @EnvironmentObject var sessionService: SessionService
-    @StateObject private var viewModel = AccountViewModel()
+    // Legacy AccountViewModel removed; V2 view is used exclusively
 
     var body: some View {
         Group {

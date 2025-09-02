@@ -215,24 +215,7 @@ class ClubActivitiesViewModel: ObservableObject {
         }
     }
 
-    private func performDeleteRequest(parameters: [String: String]) {
-        NetworkService.shared.request(
-            endpoint: "cas_delete_record_info.php",
-            parameters: parameters,
-            sessionId: sessionService.sessionId
-        ) { [weak self] (result: Result<[String: String], NetworkError>) in
-            self?.handleDeleteResponse(result, recordId: parameters["recordid"] ?? "")
-        }
-    }
-
-    private func handleDeleteResponse(_ result: Result<[String: String], NetworkError>, recordId: String) {
-        switch result {
-        case .success(let response):
-            processDeleteSuccess(response, recordId: recordId)
-        case .failure(let error):
-            self.errorMessage = "\(error.localizedDescription)"
-        }
-    }
+    // Legacy PHP deletion path removed in favor of TSIMS V2 API
 
     private func processDeleteSuccess(_ response: [String: String], recordId: String) {
         if response["status"] == "ok" {
