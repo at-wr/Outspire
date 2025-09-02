@@ -14,6 +14,7 @@ struct ClasstableView: View {
     @State private var orientation = UIDevice.current.orientation
     @State private var refreshButtonRotation = 0.0
     @EnvironmentObject private var sessionService: SessionService
+    @ObservedObject private var authV2 = AuthServiceV2.shared
     @EnvironmentObject private var gradientManager: GradientManager
 
     private let subjectColors: [Color: [String]] = [
@@ -147,7 +148,7 @@ struct ClasstableView: View {
             #endif
 
             VStack(spacing: 0) {
-                if !sessionService.isAuthenticated {
+                if !isAuthenticated {
                     notLoggedInView
                 } else {
                     GeometryReader { geometry in
@@ -292,7 +293,7 @@ struct ClasstableView: View {
                                             value: refreshButtonRotation)
                                     }
                                     .disabled(
-                                        !sessionService.isAuthenticated || viewModel.isLoadingYears
+                                        !isAuthenticated || viewModel.isLoadingYears
                                             || viewModel.isLoadingTimetable)
                                 }
                             #endif
@@ -498,6 +499,13 @@ struct ClasstableView: View {
         .padding(.horizontal, 24)
         .opacity(animateIn ? 1 : 0)
         .animation(.easeIn.delay(0.3), value: animateIn)
+    }
+}
+
+// Class cell component
+extension ClasstableView {
+    private var isAuthenticated: Bool {
+        return authV2.isAuthenticated
     }
 }
 

@@ -415,7 +415,7 @@ struct DailyScheduleCard: View {
         .onAppear {
             checkIfClassesOver()
         }
-        .onChange(of: dayIndex) { _ in
+        .onChange(of: dayIndex) { _, _ in
             checkIfClassesOver()
         }
     }

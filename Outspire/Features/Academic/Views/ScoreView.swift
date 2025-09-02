@@ -11,6 +11,7 @@ struct ScoreView: View {
     @State private var animateIn = false
     @State private var refreshButtonRotation = 0.0
     @EnvironmentObject private var sessionService: SessionService
+    @ObservedObject private var authV2 = AuthServiceV2.shared
     @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject var gradientManager: GradientManager
 
@@ -31,7 +32,7 @@ struct ScoreView: View {
             #endif
 
             // Main content
-            if !sessionService.isAuthenticated {
+            if !isAuthenticated {
                 ContentUnavailableView(
                     "Authentication Required",
                     systemImage: "person.crop.circle.badge.exclamationmark",
@@ -55,13 +56,13 @@ struct ScoreView: View {
             updateGradientForScoreView()
 
             // Force a reset to the most recent term when the view appears
-            if sessionService.isAuthenticated && viewModel.isUnlocked {
+            if isAuthenticated && viewModel.isUnlocked {
                 viewModel.selectMostRecentTerm()
             }
         }
         .task {
             // This ensures initialization happens correctly when switching tabs
-            if sessionService.isAuthenticated {
+            if isAuthenticated {
                 if !viewModel.isUnlocked {
                     viewModel.authenticate()
                 } else if viewModel.terms.isEmpty {
@@ -78,7 +79,7 @@ struct ScoreView: View {
             }
         }
         // Using a unique ID ensures the view is properly recreated when switching tabs
-        .id("scoreView-\(sessionService.isAuthenticated)-\(viewModel.isUnlocked)")
+        .id("scoreView-\(isAuthenticated)-\(viewModel.isUnlocked)")
     }
 
     private var notLoggedInView: some View {
@@ -463,8 +464,7 @@ struct ScoreView: View {
                         value: refreshButtonRotation)
                 }
                 .disabled(
-                    !sessionService.isAuthenticated || viewModel.isLoading
-                        || viewModel.isLoadingTerms)
+                    !isAuthenticated || viewModel.isLoading || viewModel.isLoadingTerms)
             }
         }
     }
@@ -472,6 +472,12 @@ struct ScoreView: View {
     // Add method to update gradient for score view
     private func updateGradientForScoreView() {
         gradientManager.updateGradientForView(.score, colorScheme: colorScheme)
+    }
+}
+
+extension ScoreView {
+    private var isAuthenticated: Bool {
+        return authV2.isAuthenticated
     }
 }
 

@@ -20,6 +20,8 @@ class AddReflectionViewModel: ObservableObject {
     @Published var lo8 = false
 
     @Published var errorMessage: String?
+    @Published var isSaving: Bool = false
+    @Published var saveSucceeded: Bool = false
 
     // Dependencies
     let availableGroups: [ReflectionGroup]
@@ -102,7 +104,7 @@ class AddReflectionViewModel: ObservableObject {
             forName: Notification.Name("ClearCachedFormData"),
             object: nil,
             queue: .main
-        ) { [weak self] _ in
+        ) { _ in
             // Clear the cached form data
             Self.cachedFormData = nil
         }
@@ -178,12 +180,8 @@ class AddReflectionViewModel: ObservableObject {
     }
 
     // MARK: - Computed word counts
-    var summaryWordCount: Int {
-        summary.split(separator: " ").count
-    }
-    var contentWordCount: Int {
-        content.split(separator: " ").count
-    }
+    var summaryWordCount: Int { summary.trimmingCharacters(in: .whitespacesAndNewlines).count }
+    var contentWordCount: Int { content.trimmingCharacters(in: .whitespacesAndNewlines).count }
 
     // Current limits based on group
     var summaryLimit: Int {
@@ -206,22 +204,22 @@ class AddReflectionViewModel: ObservableObject {
               !summary.trimmingCharacters(in: .whitespaces).isEmpty,
               !content.trimmingCharacters(in: .whitespaces).isEmpty
         else {
-            errorMessage = "All fields are required."
+            errorMessage = "Fill all fields"
             return false
         }
-        // Summary word limit
+        // Summary length limit (chars)
         if summaryWordCount > summaryLimit {
-            errorMessage = "Summary cannot exceed \(summaryLimit) words."
+            errorMessage = "Summary ≤ \(summaryLimit) chars"
             return false
         }
-        // Content minimum
+        // Content minimum (chars)
         if contentWordCount < contentMin {
-            errorMessage = "Reflection must be at least \(contentMin) words."
+            errorMessage = "Content ≥ \(contentMin) chars"
             return false
         }
         // At least one LO selected
         if !hasAnyLearningOutcome() {
-            errorMessage = "Select at least one outcome"
+            errorMessage = "Select ≥1 outcome"
             return false
         }
         errorMessage = nil
@@ -231,8 +229,9 @@ class AddReflectionViewModel: ObservableObject {
     // MARK: - Save
     func save() {
         guard validate() else { return }
-        guard sessionService.isAuthenticated else {
-            errorMessage = "Session expired."
+        // Accept either legacy session or V2 auth cookies
+        if !(AuthServiceV2.shared.isAuthenticated || sessionService.isAuthenticated) {
+            errorMessage = "Sign in required"
             return
         }
 
@@ -259,20 +258,58 @@ class AddReflectionViewModel: ObservableObject {
             params["c_lo\(idx)"] = loValues[idx - 1]
         }
 
-        NetworkService.shared.saveReflection(parameters: params) { [weak self] result in
+        // New TSIMS expects consolidated fields; map to V2 payload
+        // Resolve GroupId to numeric (server expects numeric id)
+        resolveNumericGroupId(selectedGroupId) { mappedId in
+        var v2Form: [String: String] = [
+            "id": "0",
+            "GroupId": mappedId,
+            "Title": self.title,
+            "Summary": self.summary,
+            "Content": self.content,
+        ]
+        // Map selected learning outcomes to first selected numeric code (1..8)
+        if let outcomeCode = self.getSelectedOutcomeCode() {
+            v2Form["outcome"] = outcomeCode
+        }
+
+        self.isSaving = true
+        self.saveSucceeded = false
+
+        TSIMSClientV2.shared.postForm(path: "/Stu/Cas/SaveReflection", form: v2Form) { [weak self] (result: Result<ApiResponse<String>, NetworkError>) in
             DispatchQueue.main.async {
                 switch result {
-                case .success(let status):
-                    if status.status == "ok" {
-                        // Clear cache on successful save
+                case .success(let env):
+                    if env.isSuccess {
                         self?.clearCache()
                         self?.onSave()
+                        self?.saveSucceeded = true
+                        self?.isSaving = false
                     } else {
-                        self?.errorMessage = status.status
+                        self?.errorMessage = "Save failed"
+                        self?.isSaving = false
                     }
                 case .failure(let error):
-                    self?.errorMessage = error.localizedDescription
+                    _ = error
+                    self?.errorMessage = "Network error"
+                    self?.isSaving = false
                 }
+            }
+        }
+        }
+    }
+
+    // Map GroupNo -> numeric Id using cached group list; prime cache if needed
+    private func resolveNumericGroupId(_ idOrNo: String, completion: @escaping (String) -> Void) {
+        guard !idOrNo.isEmpty else { completion(""); return }
+        if let detail = CASServiceV2.shared.getCachedGroupDetails(idOrNo: idOrNo), let nid = detail.Id {
+            completion(String(nid)); return
+        }
+        CASServiceV2.shared.fetchGroupList(pageIndex: 1, pageSize: 200, categoryId: nil) { _ in
+            if let detail = CASServiceV2.shared.getCachedGroupDetails(idOrNo: idOrNo), let nid = detail.Id {
+                completion(String(nid))
+            } else {
+                completion(idOrNo)
             }
         }
     }
@@ -350,6 +387,19 @@ class AddReflectionViewModel: ObservableObject {
         ].compactMap { $0 }.joined(separator: ", ")
     }
 
+    /// Map first selected outcome to server numeric code (1..8)
+    private func getSelectedOutcomeCode() -> String? {
+        if lo1 { return "1" }
+        if lo2 { return "2" }
+        if lo3 { return "3" }
+        if lo4 { return "4" }
+        if lo5 { return "5" }
+        if lo6 { return "6" }
+        if lo7 { return "7" }
+        if lo8 { return "8" }
+        return nil
+    }
+
     /// Get the club name from the selected group
     private func getClubName() -> String {
         if let group = availableGroups.first(where: { $0.id == selectedGroupId }) {
@@ -368,7 +418,7 @@ class AddReflectionViewModel: ObservableObject {
 
         // Now proceed with the suggestion
         Task { @MainActor in
-            await fetchLLMSuggestion()
+            fetchLLMSuggestion()
         }
     }
 

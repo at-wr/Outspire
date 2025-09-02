@@ -101,9 +101,7 @@ struct AddRecordSheet: View {
                         .frame(minHeight: 100)
                         .overlay(alignment: .topLeading) {
                             if viewModel.activityDescription == "" {
-                                Text(
-                                    "Here goes your reflection of at least 80 characters...\nAutosave enabled, no worries!"
-                                )
+                                Text("Write your reflection (min 80 words)...\nAutosave enabled, no worries!")
                                 .foregroundStyle(Color(UIColor.tertiaryLabel))
                                 .padding(.top, 8)
                                 .padding(.leading, 3)
@@ -168,30 +166,35 @@ struct AddRecordSheet: View {
                     Button("Save") {
                         HapticManager.shared.playFormSubmission()
                         viewModel.saveRecord()
-                        if let errorMessage = viewModel.errorMessage {
-                            HapticManager.shared.playError()
-                            let toast = ToastValue(
-                                icon: Image(systemName: "exclamationmark.triangle").foregroundStyle(
-                                    .red),
-                                message: errorMessage
-                            )
-                            presentToast(toast)
-                        } else {
-                            HapticManager.shared.playSuccessfulSave()
-                            let toast = ToastValue(
-                                icon: Image(systemName: "checkmark.circle").foregroundStyle(.green),
-                                message: "Record saved successfully"
-                            )
-                            presentToast(toast)
-                            presentationMode.wrappedValue.dismiss()
-                        }
                     }
+                    .disabled(viewModel.isSaving)
                 }
             }
             .interactiveDismissDisabled(true)  // Force user to use buttons
             .onDisappear {
                 // This is a backup in case the form is dismissed in other ways
                 viewModel.cacheFormData()
+            }
+            .onChange(of: viewModel.errorMessage) { _, err in
+                if let msg = err {
+                    HapticManager.shared.playError()
+                    let toast = ToastValue(
+                        icon: Image(systemName: "exclamationmark.triangle").foregroundStyle(.red),
+                        message: msg
+                    )
+                    presentToast(toast)
+                }
+            }
+            .onChange(of: viewModel.saveSucceeded) { _, ok in
+                if ok {
+                    HapticManager.shared.playSuccessfulSave()
+                    let toast = ToastValue(
+                        icon: Image(systemName: "checkmark.circle").foregroundStyle(.green),
+                        message: "Record saved successfully"
+                    )
+                    presentToast(toast)
+                    presentationMode.wrappedValue.dismiss()
+                }
             }
             .alert(
                 isPresented: Binding<Bool>(

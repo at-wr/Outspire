@@ -88,42 +88,42 @@ struct AddReflectionSheet: View {
                     Toggle(isOn: $viewModel.lo1) {
                         Label("Awareness", systemImage: "brain.head.profile")
                     }
-                    .onChange(of: viewModel.lo1) { _ in HapticManager.shared.playToggle() }
+                    .onChange(of: viewModel.lo1) { HapticManager.shared.playToggle() }
 
                     Toggle(isOn: $viewModel.lo2) {
                         Label("Challenge", systemImage: "figure.walk.motion")
                     }
-                    .onChange(of: viewModel.lo2) { _ in HapticManager.shared.playToggle() }
+                    .onChange(of: viewModel.lo2) { HapticManager.shared.playToggle() }
 
                     Toggle(isOn: $viewModel.lo3) {
                         Label("Initiative", systemImage: "lightbulb")
                     }
-                    .onChange(of: viewModel.lo3) { _ in HapticManager.shared.playToggle() }
+                    .onChange(of: viewModel.lo3) { HapticManager.shared.playToggle() }
 
                     Toggle(isOn: $viewModel.lo4) {
                         Label("Collaboration", systemImage: "person.2")
                     }
-                    .onChange(of: viewModel.lo4) { _ in HapticManager.shared.playToggle() }
+                    .onChange(of: viewModel.lo4) { HapticManager.shared.playToggle() }
 
                     Toggle(isOn: $viewModel.lo5) {
                         Label("Commitment", systemImage: "checkmark.seal")
                     }
-                    .onChange(of: viewModel.lo5) { _ in HapticManager.shared.playToggle() }
+                    .onChange(of: viewModel.lo5) { HapticManager.shared.playToggle() }
 
                     Toggle(isOn: $viewModel.lo6) {
                         Label("Global Value", systemImage: "globe.americas")
                     }
-                    .onChange(of: viewModel.lo6) { _ in HapticManager.shared.playToggle() }
+                    .onChange(of: viewModel.lo6) { HapticManager.shared.playToggle() }
 
                     Toggle(isOn: $viewModel.lo7) {
                         Label("Ethics", systemImage: "shield.lefthalf.filled")
                     }
-                    .onChange(of: viewModel.lo7) { _ in HapticManager.shared.playToggle() }
+                    .onChange(of: viewModel.lo7) { HapticManager.shared.playToggle() }
 
                     Toggle(isOn: $viewModel.lo8) {
                         Label("New Skills", systemImage: "wrench.and.screwdriver")
                     }
-                    .onChange(of: viewModel.lo8) { _ in HapticManager.shared.playToggle() }
+                    .onChange(of: viewModel.lo8) { HapticManager.shared.playToggle() }
                 }
 
                 // Learning Outcomes Explanation moved to a sheet shown via toolbar
@@ -201,20 +201,33 @@ struct AddReflectionSheet: View {
                     Button("Save") {
                         HapticManager.shared.playFormSubmission()
                         viewModel.save()
-                        if viewModel.errorMessage == nil {
-                            HapticManager.shared.playSuccessfulSave()
-                            let toast = ToastValue(
-                                icon: Image(systemName: "checkmark.circle").foregroundStyle(.green),
-                                message: "Reflection saved successfully"
-                            )
-                            presentToast(toast)
-                            presentationMode.wrappedValue.dismiss()
-                        }
                     }
+                    .disabled(viewModel.isSaving)
                 }
             }
         }
         .interactiveDismissDisabled(true)  // Force user to use buttons
+        .onChange(of: viewModel.errorMessage) { _, err in
+            if let msg = err {
+                HapticManager.shared.playError()
+                let toast = ToastValue(
+                    icon: Image(systemName: "exclamationmark.triangle").foregroundStyle(.red),
+                    message: msg
+                )
+                presentToast(toast)
+            }
+        }
+        .onChange(of: viewModel.saveSucceeded) { _, ok in
+            if ok {
+                HapticManager.shared.playSuccessfulSave()
+                let toast = ToastValue(
+                    icon: Image(systemName: "checkmark.circle").foregroundStyle(.green),
+                    message: "Reflection saved successfully"
+                )
+                presentToast(toast)
+                presentationMode.wrappedValue.dismiss()
+            }
+        }
         .sheet(isPresented: $showingLearningOutcomesSheet) {
             NavigationView {
                 VStack(alignment: .leading, spacing: 16) {

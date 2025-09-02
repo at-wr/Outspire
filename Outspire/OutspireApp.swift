@@ -68,6 +68,8 @@ struct OutspireApp: App {
                 .environmentObject(widgetDataManager)
                 .withConnectivityAlerts()  // Add the connectivity alerts
                 .onAppear {
+                    // One-time auth migration for v0.7+ (forces re-sign-in for pre-0.7 users)
+                    MigrationManager.shared.performAuthMigrationIfNeeded()
                     // Setup widget data sharing
                     setupWidgetDataSharing()
                     // Setup URL Scheme Handler
@@ -132,8 +134,10 @@ struct OutspireApp: App {
             return
         }
 
-        // Share authentication state with widgets
-        widgetDataManager.updateAuthenticationState(isAuthenticated: sessionService.isAuthenticated)
+        // Share authentication state with widgets (prefer new TSIMS auth)
+        widgetDataManager.updateAuthenticationState(
+            isAuthenticated: AuthServiceV2.shared.isAuthenticated || sessionService.isAuthenticated
+        )
 
         // Share holiday mode settings with widgets
         widgetDataManager.updateHolidayMode(
@@ -147,7 +151,13 @@ struct OutspireApp: App {
             forName: .authStateDidChange, object: nil, queue: .main
         ) { _ in
             self.widgetDataManager.updateAuthenticationState(
-                isAuthenticated: self.sessionService.isAuthenticated)
+                isAuthenticated: AuthServiceV2.shared.isAuthenticated || self.sessionService.isAuthenticated)
+        }
+        NotificationCenter.default.addObserver(
+            forName: .authenticationStatusChanged, object: nil, queue: .main
+        ) { _ in
+            self.widgetDataManager.updateAuthenticationState(
+                isAuthenticated: AuthServiceV2.shared.isAuthenticated || self.sessionService.isAuthenticated)
         }
 
         // Observe holiday mode changes
@@ -178,7 +188,7 @@ struct OutspireApp: App {
 
         // Only process URLs when the user is authenticated
         // or if the URL is for a screen that doesn't require authentication
-        if sessionService.isAuthenticated || url.host == "today" {
+        if AuthServiceV2.shared.isAuthenticated || sessionService.isAuthenticated || url.host == "today" {
             _ = urlSchemeHandler.handleURL(url)
         } else {
             // Show login required message
@@ -310,6 +320,8 @@ extension Notification.Name {
     static let holidayModeDidChange = Notification.Name("holidayModeDidChange")
     static let timetableDataDidChange = Notification.Name("timetableDataDidChange")
     static let authenticationStatusChanged = Notification.Name("authenticationStatusChanged")
+    static let tsimsV2Unauthorized = Notification.Name("tsimsV2Unauthorized")
+    static let tsimsV2ReauthFailed = Notification.Name("tsimsV2ReauthFailed")
 }
 
 /// Helper class to register Live Activities

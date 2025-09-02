@@ -11,6 +11,7 @@ struct TodayView: View {
     // MARK: - Environment & State
     @EnvironmentObject var sessionService: SessionService
     @StateObject private var classtableViewModel = ClasstableViewModel()
+    @ObservedObject private var authV2 = AuthServiceV2.shared
     @ObservedObject private var locationManager = LocationManager.shared
     @ObservedObject private var regionChecker = RegionChecker.shared
     @EnvironmentObject var urlSchemeHandler: URLSchemeHandler
@@ -120,7 +121,10 @@ struct TodayView: View {
         .onChange(of: sessionService.isAuthenticated) { _, isAuthenticated in
             handleAuthChange(isAuthenticated)
             updateGradientColors()  // Update gradient when authentication changes
-
+        }
+        .onChange(of: authV2.isAuthenticated) { _, isAuthenticated in
+            handleAuthChange(isAuthenticated)
+            updateGradientColors()
         }
         .onChange(of: selectedDayOverride) { _, newValue in
             Configuration.selectedDayOverride = newValue
@@ -165,7 +169,7 @@ struct TodayView: View {
     // MARK: - Gradient Methods
 
     private func updateGradientColors() {
-        if !sessionService.isAuthenticated {
+        if !isAuthenticated {
             gradientManager.updateGradientForContext(
                 context: .notSignedIn, colorScheme: colorScheme)
             return
@@ -255,8 +259,8 @@ struct TodayView: View {
             Image(systemName: "calendar.badge.clock")
                 .symbolRenderingMode(.hierarchical)
         }
-        .disabled(!sessionService.isAuthenticated)
-        .opacity(sessionService.isAuthenticated ? 1.0 : 0.5)
+        .disabled(!isAuthenticated)
+        .opacity(isAuthenticated ? 1.0 : 0.5)
 
     }
 
@@ -293,7 +297,7 @@ struct TodayView: View {
 
     private var mainContentView: some View {
         MainContentView(
-            isAuthenticated: sessionService.isAuthenticated,
+            isAuthenticated: isAuthenticated,
             isHolidayActive: isHolidayActive(),
             isLoading: isLoading,
             upcomingClassInfo: upcomingClassInfo,
@@ -346,6 +350,10 @@ struct TodayView: View {
             let weekday = calendar.component(.weekday, from: currentTime)
             return (weekday == 1 || weekday == 7) ? -1 : weekday - 2
         }
+    }
+
+    private var isAuthenticated: Bool {
+        return AuthServiceV2.shared.isAuthenticated
     }
 
     private var assemblyTime: String {
@@ -450,7 +458,8 @@ struct TodayView: View {
         if sessionService.isAuthenticated && sessionService.userInfo == nil {
             sessionService.fetchUserInfo { _, _ in }
         }
-        if sessionService.isAuthenticated {
+        let isTSIMSAuthed = AuthServiceV2.shared.isAuthenticated || sessionService.isAuthenticated
+        if isTSIMSAuthed {
             // Check if we have valid cached data first
             let cacheStatus = classtableViewModel.getCacheStatus()
             if !cacheStatus.hasValidYearsCache || !cacheStatus.hasValidTimetableCache {
@@ -720,20 +729,48 @@ struct TodayView: View {
         _ periodInfo: (period: ClassPeriod?, isCurrentlyActive: Bool),
         dayIndex: Int, isForToday: Bool
     ) -> (period: ClassPeriod, classData: String, dayIndex: Int, isForToday: Bool)? {
-        guard let period = periodInfo.period,
-            period.number < classtableViewModel.timetable.count,
-            dayIndex + 1 < classtableViewModel.timetable[period.number].count
-        else { return nil }
-
-        var classData = classtableViewModel.timetable[period.number][dayIndex + 1]
-        let isSelfStudy = classData.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-
-        // If it's self-study, provide a placeholder
-        if isSelfStudy {
-            classData = "You\nSelf-Study"
+        guard let startPeriod = periodInfo.period else { return nil }
+        // Helper to check bounds and get data
+        func dataFor(periodNumber: Int) -> String? {
+            guard periodNumber < classtableViewModel.timetable.count,
+                  dayIndex + 1 < classtableViewModel.timetable[periodNumber].count else { return nil }
+            return classtableViewModel.timetable[periodNumber][dayIndex + 1]
         }
 
-        return (period: period, classData: classData, dayIndex: dayIndex, isForToday: isForToday)
+        // If today: if current period is active and empty, show Self-Study for that period.
+        // Otherwise (not currently active), look ahead to the next non-empty class.
+        if isForToday {
+            if periodInfo.isCurrentlyActive {
+                if let raw = dataFor(periodNumber: startPeriod.number) {
+                    let isEmpty = raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    let classData = isEmpty ? "You\nSelf-Study" : raw
+                    return (period: startPeriod, classData: classData, dayIndex: dayIndex, isForToday: isForToday)
+                } else {
+                    return (period: startPeriod, classData: "You\nSelf-Study", dayIndex: dayIndex, isForToday: isForToday)
+                }
+            } else {
+                // Find first non-empty future class at or after suggested period
+                let allPeriods = ClassPeriodsManager.shared.classPeriods.map { $0.number }
+                for p in allPeriods where p >= startPeriod.number {
+                    if let raw = dataFor(periodNumber: p) {
+                        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if !trimmed.isEmpty {
+                            if let periodObj = ClassPeriodsManager.shared.classPeriods.first(where: { $0.number == p }) {
+                                return (period: periodObj, classData: raw, dayIndex: dayIndex, isForToday: isForToday)
+                            }
+                        }
+                    }
+                }
+                // No more classes today
+                return nil
+            }
+        }
+
+        // Preview/other day: show even self-study with placeholder
+        guard let raw = dataFor(periodNumber: startPeriod.number) else { return nil }
+        let isSelfStudy = raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        let classData = isSelfStudy ? "You\nSelf-Study" : raw
+        return (period: startPeriod, classData: classData, dayIndex: dayIndex, isForToday: isForToday)
     }
 
     private func isCurrentDateWeekend() -> Bool {
@@ -767,7 +804,7 @@ struct TodayView: View {
         }
 
         // Reload data if needed
-        if sessionService.isAuthenticated {
+        if AuthServiceV2.shared.isAuthenticated || sessionService.isAuthenticated {
             classtableViewModel.fetchTimetable()
         }
 

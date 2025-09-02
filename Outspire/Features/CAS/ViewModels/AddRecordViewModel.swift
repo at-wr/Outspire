@@ -11,6 +11,8 @@ class AddRecordViewModel: ObservableObject {
     @Published var durationS: Int = 0
     @Published var activityDescription: String = ""
     @Published var errorMessage: String?
+    @Published var isSaving: Bool = false
+    @Published var saveSucceeded: Bool = false
 
     // LLM Suggestion State
     @Published var isFetchingSuggestion: Bool = false
@@ -49,9 +51,9 @@ class AddRecordViewModel: ObservableObject {
         durationC + durationA + durationS
     }
 
-    // Calculate word count for the description
+    // Calculate word count for the description (TSIMS requires words)
     var descriptionWordCount: Int {
-        activityDescription.isEmpty ? 0 : activityDescription.split(separator: " ").count
+        activityDescription.split(whereSeparator: { $0.isWhitespace }).count
     }
 
     init(
@@ -88,7 +90,7 @@ class AddRecordViewModel: ObservableObject {
         NotificationCenter.default.addObserver(
             forName: Notification.Name("ClearCachedFormData"),
             object: nil,
-            queue: .main) { [weak self] _ in
+            queue: .main) { _ in
             // Clear the cached form data
             Self.cachedFormData = nil
         }
@@ -174,7 +176,7 @@ class AddRecordViewModel: ObservableObject {
 
     func validateDuration() {
         if totalDuration > 10 {
-            errorMessage = "Total CAS duration cannot exceed 10 hours."
+            errorMessage = "Max 10h total"
             durationC = 0
             durationA = 0
             durationS = 0
@@ -227,51 +229,62 @@ class AddRecordViewModel: ObservableObject {
               !activityDescription.isEmpty,
               descriptionWordCount >= 80,
               totalDuration > 0 else {
-            errorMessage = "All fields are required."
+            errorMessage = "Fill all fields; ≥80 words"
             return
         }
 
-        guard let sessionId = sessionService.sessionId else {
-            errorMessage = "Wow, you have flexible fingers 😉"
-            return
-        }
+        isSaving = true
+        saveSucceeded = false
 
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd"
         let activityDateString = dateFormatter.string(from: activityDate)
 
-        let parameters = [
-            "groupid": selectedGroupId,
-            "studentid": loggedInStudentId,
-            "actdate": activityDateString,
-            "acttitle": activityTitle,
-            "durationC": String(durationC),
-            "durationA": String(durationA),
-            "durationS": String(durationS),
-            "actdesc": activityDescription,
-            "groupy": "0",
-            "joiny": "0"
+
+        // Map GroupNo -> numeric Id if needed before save
+        resolveNumericGroupId(selectedGroupId) { mappedId in
+        let form: [String: String] = [
+            "id": "0",
+            "GroupId": mappedId,
+            "ActivityDate": activityDateString,
+            "Theme": self.activityTitle,
+            "CDuration": String(self.durationC),
+            "ADuration": String(self.durationA),
+            "SDuration": String(self.durationS),
+            "Reflection": self.activityDescription
         ]
-
-        NetworkService.shared.request(
-            endpoint: "cas_save_record.php",
-            parameters: parameters,
-            sessionId: sessionId
-        ) { [weak self] (result: Result<[String: String], NetworkError>) in
+        TSIMSClientV2.shared.postForm(path: "/Stu/Cas/SaveRecord", form: form) { [weak self] (result: Result<ApiResponse<String>, NetworkError>) in
             guard let self = self else { return }
-
             switch result {
-            case .success(let response):
-                if response["status"] == "ok" {
-                    self.clearCache() // Clear cache only on successful submission
+            case .success(let env):
+                if env.isSuccess {
+                    self.clearCache()
                     self.onSave()
+                    self.saveSucceeded = true
+                    self.isSaving = false
                 } else {
-                    self.errorMessage = response["status"] ?? "Unknown error occurred"
-                    // Cache is automatically maintained
+                    self.errorMessage = "Save failed"
+                    self.isSaving = false
                 }
-            case .failure(let error):
-                self.errorMessage = "Unable to save record: \(error.localizedDescription)"
-            // Cache is automatically maintained
+            case .failure(let err):
+                _ = err // swallow long message
+                self.errorMessage = "Network error"
+                self.isSaving = false
+            }
+        }
+        }
+    }
+
+    private func resolveNumericGroupId(_ idOrNo: String, completion: @escaping (String) -> Void) {
+        guard !idOrNo.isEmpty else { completion(""); return }
+        if let detail = CASServiceV2.shared.getCachedGroupDetails(idOrNo: idOrNo), let nid = detail.Id {
+            completion(String(nid)); return
+        }
+        CASServiceV2.shared.fetchGroupList(pageIndex: 1, pageSize: 200, categoryId: nil) { _ in
+            if let detail = CASServiceV2.shared.getCachedGroupDetails(idOrNo: idOrNo), let nid = detail.Id {
+                completion(String(nid))
+            } else {
+                completion(idOrNo)
             }
         }
     }
@@ -284,7 +297,7 @@ class AddRecordViewModel: ObservableObject {
 
         // Now proceed with the suggestion
         Task { @MainActor in
-            await fetchLLMSuggestion()
+            fetchLLMSuggestion()
         }
     }
 

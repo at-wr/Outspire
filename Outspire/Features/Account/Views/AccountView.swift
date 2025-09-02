@@ -111,7 +111,7 @@ struct AccountView: View {
                             .foregroundStyle(.secondary)
                             .font(.system(size: 24))
                         let baseText = "For account issues, contact school faculty. All data will only be stored on this device and the TSIMS server. "
-                        let connectionStatus = Configuration.useSSL ?
+                        let connectionStatus = Configuration.isHttpsProxyEnabled ?
                             "Your connection with Relay Server is end-to-end encrypted." :
                             "Your connection can be easily discovered by other users. Relay Encryption is strongly recommended if you're using a public network."
 

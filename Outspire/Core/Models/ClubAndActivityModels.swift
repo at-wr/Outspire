@@ -97,6 +97,8 @@ struct ActivityRecord: Codable, Identifiable {
     var C_DurationA: String
     var C_DurationS: String
     var C_Reflection: String
+    var C_IsConfirm: Int?
+    var C_IsConfirmStr: String?
 }
 
 struct Reflection: Codable, Identifiable {

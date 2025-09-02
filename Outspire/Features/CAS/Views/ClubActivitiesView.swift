@@ -74,7 +74,7 @@ struct ClubActivitiesView: View {
                         Image(systemName: "square.and.pencil")
                     }
                 }
-                //                .disabled(viewModel.isLoadingGroups || viewModel.isLoadingActivities || sessionService.userInfo == nil)
+                .disabled(viewModel.isLoadingGroups || viewModel.groups.isEmpty)
             }
         }
         .sheet(isPresented: $showingAddRecordSheet) {
@@ -102,10 +102,10 @@ struct ClubActivitiesView: View {
                 }
             }
         })
-        .onChange(of: viewModel.isLoadingActivities) { _ in
+        .onChange(of: viewModel.isLoadingActivities) {
             handleLoadingChange()
         }
-        .onChange(of: viewModel.errorMessage) { errorMessage in
+        .onChange(of: viewModel.errorMessage) { _, errorMessage in
             if let errorMessage = errorMessage {
                 HapticManager.shared.playError()
                 let icon =
@@ -118,7 +118,7 @@ struct ClubActivitiesView: View {
                 presentToast(toast)
             }
         }
-        .onChange(of: urlSchemeHandler.closeAllSheets) { newValue in
+        .onChange(of: urlSchemeHandler.closeAllSheets) { _, newValue in
             if newValue {
                 // Close the add record sheet if it's open
                 showingAddRecordSheet = false
@@ -148,25 +148,12 @@ struct ClubActivitiesView: View {
 
     @ViewBuilder
     private var addRecordSheet: some View {
-        if let userId = sessionService.userInfo?.studentid {
-            AddRecordSheet(
-                availableGroups: viewModel.groups,
-                loggedInStudentId: userId,
-                onSave: { viewModel.fetchActivityRecords(forceRefresh: true) },
-                clubActivitiesViewModel: viewModel
-            )
-        } else {
-            VStack(spacing: 10) {
-                Text(">_<")
-                    .foregroundStyle(.primary)
-                    .font(.title2)
-                Text("Maybe you haven't logged in yet?")
-                    .foregroundStyle(.primary)
-                Text("Unable to retrieve user ID.")
-                    .foregroundStyle(.secondary)
-            }
-            .padding()
-        }
+        AddRecordSheet(
+            availableGroups: viewModel.groups,
+            loggedInStudentId: sessionService.userInfo?.studentid ?? "",
+            onSave: { viewModel.fetchActivityRecords(forceRefresh: true) },
+            clubActivitiesViewModel: viewModel
+        )
     }
 
     private var deleteConfirmationActions: some View {
@@ -263,10 +250,10 @@ struct GroupSelectorSection: View {
                         Text(group.C_NameE).tag(group.C_GroupsID)
                     }
                 }
-                .onChange(of: viewModel.selectedGroupId) { _ in
+                .onChange(of: viewModel.selectedGroupId) {
                     HapticManager.shared.playSelectionFeedback()
                     withAnimation(.easeInOut(duration: 0.3)) {
-                        viewModel.fetchActivityRecords()
+                        viewModel.fetchActivityRecords(forceRefresh: true)
                     }
                 }
                 .disabled(viewModel.isLoadingActivities)
@@ -290,12 +277,12 @@ struct ActivitiesSection: View {
         Section {
             if viewModel.groups.isEmpty && !viewModel.isLoadingGroups {
                 Group {
-                    if sessionService.userInfo != nil {
+                    let isAuthed = AuthServiceV2.shared.isAuthenticated || sessionService.isAuthenticated
+                    if isAuthed {
                         ErrorView(
-                            errorMessage: "No clubs available. Try joining some to continue?",
+                            errorMessage: "No clubs available. Join a club to continue.",
                             retryAction: {
                                 viewModel.fetchGroups(forceRefresh: true)
-
                                 let toast = ToastValue(
                                     icon: Image(systemName: "arrow.clockwise"),
                                     message: "Refreshing clubs..."
@@ -339,7 +326,7 @@ struct ActivitiesSection: View {
                     .opacity(viewModel.isLoadingActivities ? 0.7 : 1.0)
             }
         }
-        .onChange(of: viewModel.isLoadingActivities) { isLoading in
+        .onChange(of: viewModel.isLoadingActivities) { _, isLoading in
             // After loading completes, mark initial load as complete
             if !isLoading {
                 hasCompletedInitialLoad = true
@@ -445,9 +432,18 @@ struct ActivityCardView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             VStack(alignment: .leading, spacing: 6) {
-                Text(activity.C_Theme)
-                    .font(.headline)
-                    .lineLimit(1)
+                HStack(alignment: .center, spacing: 8) {
+                    Text(activity.C_Theme)
+                        .font(.headline)
+                        .lineLimit(1)
+                    Spacer()
+                    if let status = activity.C_IsConfirm, status == 1 {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                            .font(.caption)
+                            .accessibilityLabel("Confirmed")
+                    }
+                }
                 Text("Date: \(formatDate(activity.C_Date))")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)

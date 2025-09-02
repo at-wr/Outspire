@@ -49,27 +49,27 @@ class ReflectionsViewModel: ObservableObject {
         isLoadingGroups = true
         errorMessage = nil
 
-        NetworkService.shared.request(
-            endpoint: "cas_add_mygroups_dropdown.php",
-            sessionId: sessionService.sessionId
-        ) { [weak self] (result: Result<GroupDropdownResponse, NetworkError>) in
+        // Use CASServiceV2 groups to align with new TSIMS
+        CASServiceV2.shared.fetchMyGroups { [weak self] result in
             DispatchQueue.main.async {
                 self?.isLoadingGroups = false
                 switch result {
-                case .success(let response):
-                    var combined: [ReflectionGroup] = []
-                    if let nogroups = response.nogroups {
-                        combined.append(contentsOf: nogroups.map { .noGroup($0) })
-                    }
-                    combined.append(contentsOf: response.groups.map { .club($0) })
+                case .success(let groups):
+                    let combined: [ReflectionGroup] = groups.map { .club($0) }
                     self?.groups = combined
-                    if self?.selectedGroupId.isEmpty == true,
-                       let first = combined.first {
+                    if self?.selectedGroupId.isEmpty == true, let first = combined.first {
                         self?.selectedGroupId = first.id
+                        self?.fetchReflections()
+                    } else if combined.isEmpty {
+                        // No groups; fetch all reflections as fallback
+                        self?.selectedGroupId = ""
                         self?.fetchReflections()
                     }
                 case .failure(let error):
-                    self?.errorMessage = error.localizedDescription
+                    switch error {
+                    case .unauthorized: self?.errorMessage = "Session expired"
+                    default: self?.errorMessage = error.localizedDescription
+                    }
                 }
             }
         }
@@ -77,23 +77,39 @@ class ReflectionsViewModel: ObservableObject {
 
     // MARK: - Fetch Reflections
     func fetchReflections(forceRefresh: Bool = false) {
-        guard !selectedGroupId.isEmpty else {
-            errorMessage = "Please select a group."
-            return
-        }
         if isLoadingReflections && !forceRefresh { return }
         isLoadingReflections = true
         errorMessage = nil
 
-        NetworkService.shared.fetchReflections(groupID: selectedGroupId) { [weak self] result in
+        // Map GroupNo to numeric Id, then fetch
+        let currentGroup = selectedGroupId
+        resolveNumericGroupId(currentGroup) { mappedId in
+        CASServiceV2.shared.fetchReflections(groupId: mappedId) { [weak self] result in
             DispatchQueue.main.async {
                 self?.isLoadingReflections = false
                 switch result {
-                case .success(let response):
-                    self?.reflections = response.reflection
+                case .success(let reflections):
+                    // Show exactly the filtered result; do not auto-fallback to "all"
+                    self?.reflections = reflections
                 case .failure(let error):
                     self?.errorMessage = error.localizedDescription
                 }
+            }
+        }
+        }
+    }
+
+    // Map GroupNo -> numeric Id using cached group list; prime cache if needed
+    private func resolveNumericGroupId(_ idOrNo: String, completion: @escaping (String) -> Void) {
+        guard !idOrNo.isEmpty else { completion(""); return }
+        if let detail = CASServiceV2.shared.getCachedGroupDetails(idOrNo: idOrNo), let nid = detail.Id {
+            completion(String(nid)); return
+        }
+        CASServiceV2.shared.fetchGroupList(pageIndex: 1, pageSize: 200, categoryId: nil) { _ in
+            if let detail = CASServiceV2.shared.getCachedGroupDetails(idOrNo: idOrNo), let nid = detail.Id {
+                completion(String(nid))
+            } else {
+                completion(idOrNo)
             }
         }
     }
@@ -109,17 +125,17 @@ class ReflectionsViewModel: ObservableObject {
         isLoadingReflections = true
         errorMessage = nil
 
-        NetworkService.shared.deleteReflection(reflectionID: reflection.C_RefID) { [weak self] result in
+        CASServiceV2.shared.deleteReflection(id: reflection.C_RefID) { [weak self] result in
             DispatchQueue.main.async {
                 self?.isLoadingReflections = false
                 self?.showingDeleteConfirmation = false
 
                 switch result {
-                case .success(let status):
-                    if status.status == "ok" {
+                case .success(let ok):
+                    if ok {
                         self?.reflections.removeAll { $0.C_RefID == reflection.C_RefID }
                     } else {
-                        self?.errorMessage = status.status
+                        self?.errorMessage = "Delete failed"
                     }
                 case .failure(let error):
                     self?.errorMessage = error.localizedDescription

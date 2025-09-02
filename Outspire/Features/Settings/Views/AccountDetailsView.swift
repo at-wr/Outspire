@@ -5,12 +5,9 @@ struct AccountDetailsView: View {
     @StateObject private var viewModel = AccountViewModel()
 
     var body: some View {
-        AccountView(viewModel: viewModel)
-            .navigationTitle(sessionService.isAuthenticated ? "Account Details" : "Account")
-            .onAppear {
-                if !sessionService.isAuthenticated && viewModel.captchaImageData == nil {
-                    viewModel.fetchCaptchaImage()
-                }
-            }
+        Group {
+            AccountV2View()
+        }
+        .navigationTitle("Account")
     }
 }

@@ -63,8 +63,8 @@ struct MapView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .onAppear(perform: setupMap)
-            .onChange(of: position) { _ in handlePositionChange() }
-            .onChange(of: regionChecker.regionCode) { _ in updateRegionForChina() }
+            .onChange(of: position) { _, _ in handlePositionChange() }
+            .onChange(of: regionChecker.regionCode) { _, _ in updateRegionForChina() }
         }
     }
 

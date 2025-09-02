@@ -135,6 +135,12 @@ class SessionService: ObservableObject {
         // Cancel all notifications when user logs out
         NotificationManager.shared.cancelAllNotifications()
 
+        // Clear all cached data to prevent leakage across accounts
+        CacheManager.clearAllCache()
+
+        // Clear URLCache to remove any cached responses
+        URLCache.shared.removeAllCachedResponses()
+
         // Post notification that authentication has changed
         NotificationCenter.default.post(
             name: .authenticationStatusChanged,

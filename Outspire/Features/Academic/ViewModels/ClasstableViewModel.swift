@@ -25,6 +25,7 @@ import SwiftUI
 /// - Provides offline-like experience with cached data
 /// - Smooth user experience with background updates
 class ClasstableViewModel: ObservableObject {
+    private let timetableCacheVersion = 3
     @Published var years: [Year] = []
     @Published var selectedYearId: String = ""
     @Published var timetable: [[String]] = [] {
@@ -38,7 +39,6 @@ class ClasstableViewModel: ObservableObject {
     @Published var lastUpdateTime: Date = Date()
     @Published var formattedLastUpdateTime: String = ""
 
-    private let sessionService = SessionService.shared
     private let cacheDuration: TimeInterval = 86400  // 1 day in seconds
 
     init() {
@@ -82,11 +82,13 @@ class ClasstableViewModel: ObservableObject {
 
         let cacheKey = "cachedTimetable-\(yearId)"
         let timestampKey = "timetableCacheTimestamp-\(yearId)"
+        let versionKey = "timetableCacheVersion-\(yearId)"
 
         if let cachedTimetableData = UserDefaults.standard.data(forKey: cacheKey),
             let decodedTimetable = try? JSONDecoder().decode(
                 [[String]].self, from: cachedTimetableData),
-            isCacheValid(for: timestampKey)
+            isCacheValid(for: timestampKey),
+            UserDefaults.standard.integer(forKey: versionKey) == timetableCacheVersion
         {
             self.timetable = decodedTimetable
 
@@ -111,10 +113,12 @@ class ClasstableViewModel: ObservableObject {
     private func cacheTimetable(_ timetable: [[String]], for yearId: String) {
         let cacheKey = "cachedTimetable-\(yearId)"
         let timestampKey = "timetableCacheTimestamp-\(yearId)"
+        let versionKey = "timetableCacheVersion-\(yearId)"
 
         if let encodedData = try? JSONEncoder().encode(timetable) {
             UserDefaults.standard.set(encodedData, forKey: cacheKey)
             UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: timestampKey)
+            UserDefaults.standard.set(timetableCacheVersion, forKey: versionKey)
             self.lastUpdateTime = Date()
             updateFormattedTimestamp()
         }
@@ -127,39 +131,28 @@ class ClasstableViewModel: ObservableObject {
     }
 
     func fetchYears(forceRefresh: Bool = false) {
-        // Check if we should use cached data
         if !forceRefresh && !years.isEmpty && isCacheValid(for: "yearsCacheTimestamp") {
-            // Use cached data, but still fetch timetable if needed
-            if timetable.isEmpty && !selectedYearId.isEmpty {
-                fetchTimetable(forceRefresh: forceRefresh)
-            }
+            if timetable.isEmpty && !selectedYearId.isEmpty { fetchTimetable(forceRefresh: forceRefresh) }
             return
         }
 
         isLoadingYears = true
         errorMessage = nil
 
-        NetworkService.shared.request(
-            endpoint: "init_year_dropdown.php",
-            sessionId: sessionService.sessionId
-        ) { [weak self] (result: Result<[Year], NetworkError>) in
+        TimetableServiceV2.shared.fetchYearOptions { [weak self] result in
             guard let self = self else { return }
-
             DispatchQueue.main.async {
                 self.isLoadingYears = false
-
                 switch result {
-                case .success(let years):
-                    self.years = years
-                    self.cacheYears(years)
-
-                    // Select the most recent year (usually the first one)
-                    if let firstYear = years.first {
-                        self.selectedYearId = firstYear.W_YearID
-                        UserDefaults.standard.set(firstYear.W_YearID, forKey: "selectedYearId")
+                case .success(let options):
+                    let mapped: [Year] = options.map { Year(W_YearID: $0.id, W_Year: $0.name) }
+                    self.years = mapped
+                    self.cacheYears(mapped)
+                    if let first = mapped.first {
+                        self.selectedYearId = first.W_YearID
+                        UserDefaults.standard.set(first.W_YearID, forKey: "selectedYearId")
                         self.fetchTimetable(forceRefresh: forceRefresh)
                     }
-
                 case .failure(let error):
                     self.errorMessage = "Failed to load years: \(error.localizedDescription)"
                 }
@@ -173,45 +166,83 @@ class ClasstableViewModel: ObservableObject {
             return
         }
 
-        // Check if we should use cached data
         let timestampKey = "timetableCacheTimestamp-\(selectedYearId)"
-        if !forceRefresh && !timetable.isEmpty && isCacheValid(for: timestampKey) {
-            return
-        }
+        if !forceRefresh && !timetable.isEmpty && isCacheValid(for: timestampKey) { return }
 
         isLoadingTimetable = true
         errorMessage = nil
 
-        let parameters = [
-            "timetableType": "teachertb",
-            "yearID": selectedYearId,
-        ]
-
-        NetworkService.shared.request(
-            endpoint: "school_student_timetable.php",
-            parameters: parameters,
-            sessionId: sessionService.sessionId
-        ) { [weak self] (result: Result<[[String]], NetworkError>) in
+        // studentId is optional on server; prefer session user id if available
+        var sid = AuthServiceV2.shared.user?.userId.map(String.init)
+        if sid == nil {
+            // Try to resolve user id from profile before fetching
+            AuthServiceV2.shared.ensureProfile { _ in
+                sid = AuthServiceV2.shared.user?.userId.map(String.init)
+                TimetableServiceV2.shared.fetchTimetable(yearId: self.selectedYearId, studentId: sid) { [weak self] result in
+                    guard let self = self else { return }
+                    DispatchQueue.main.async {
+                        self.isLoadingTimetable = false
+                        switch result {
+                        case .success(let items):
+                            let grid = Self.buildGrid(from: items)
+                            self.timetable = grid
+                            self.cacheTimetable(grid, for: self.selectedYearId)
+                        case .failure(let error):
+                            self.errorMessage = "Failed to load timetable: \(error.localizedDescription)"
+                        }
+                    }
+                }
+            }
+            return
+        }
+        TimetableServiceV2.shared.fetchTimetable(yearId: selectedYearId, studentId: sid) { [weak self] result in
             guard let self = self else { return }
-
             DispatchQueue.main.async {
                 self.isLoadingTimetable = false
-
                 switch result {
-                case .success(var timetable):
-                    // Ensure the header row is properly formatted
-                    if !timetable.isEmpty {
-                        timetable[0] = ["", "Mon", "Tue", "Wed", "Thu", "Fri"]
-                    }
-
-                    self.timetable = timetable
-                    self.cacheTimetable(timetable, for: self.selectedYearId)
-
+                case .success(let items):
+                    let grid = Self.buildGrid(from: items)
+                    self.timetable = grid
+                    self.cacheTimetable(grid, for: self.selectedYearId)
                 case .failure(let error):
                     self.errorMessage = "Failed to load timetable: \(error.localizedDescription)"
                 }
             }
         }
+    }
+
+    // Build legacy 2D grid from v2 timetable items
+    // IMPORTANT: Row index must match period number so TodayView can index timetable[period.number]
+    private static func buildGrid(from items: [V2TimetableItem]) -> [[String]] {
+        let days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+        let header = [""] + ["Mon", "Tue", "Wed", "Thu", "Fri"]
+        var dayIndex: [String: Int] = [:]
+        for (i, d) in days.enumerated() { dayIndex[d] = i + 1 }
+
+        // Determine maximum period count from configured periods (fallback to items)
+        let configuredMax = ClassPeriodsManager.shared.classPeriods.map { $0.number }.max() ?? 9
+        let itemsMax = items.map { $0.period }.max() ?? configuredMax
+        let maxPeriod = max(configuredMax, itemsMax)
+
+        var grid: [[String]] = []
+        grid.append(header)
+
+        // Create a row for every period index so missing classes stay empty (self-study)
+        for p in 1...maxPeriod {
+            var row = Array(repeating: "", count: header.count)
+            row[0] = String(p)
+            for it in items where it.period == p {
+                guard let col = dayIndex[it.day] else { continue }
+                let subject = it.course ?? ""
+                let room = it.room ?? ""
+                let teacher = it.teacher ?? ""
+                // UI expects order: Teacher (top), Subject (pill), Room (bottom)
+                let display = [teacher, subject, room].filter { !$0.isEmpty }.joined(separator: "\n")
+                row[col] = display
+            }
+            grid.append(row)
+        }
+        return grid
     }
 
     func refreshData() {

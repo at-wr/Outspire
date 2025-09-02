@@ -72,7 +72,7 @@ class NetworkService {
         }
 
         // Track if we're using SSL for this request (to check connection if it fails)
-        let isUsingSSL = Configuration.useSSL
+        let isUsingSSL = Configuration.isHttpsProxyEnabled
 
         var request = URLRequest(url: url)
         request.httpMethod = method.rawValue

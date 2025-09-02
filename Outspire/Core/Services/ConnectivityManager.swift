@@ -128,9 +128,11 @@ class ConnectivityManager: ObservableObject {
     func userSelectedRelay() {
         // User explicitly chose to use relay
         DispatchQueue.main.async {
-            if !Configuration.useSSL {
-                Configuration.useSSL = true
-                self.isUsingTemporaryRelay = true
+            if Configuration.httpsProxyFeatureEnabled {
+                if !Configuration.isHttpsProxyEnabled {
+                    Configuration.useSSL = true
+                    self.isUsingTemporaryRelay = true
+                }
             }
             self.showRelayAlert = false
             self.hasSuggestedRelay = true
@@ -148,7 +150,7 @@ class ConnectivityManager: ObservableObject {
     func userSelectedDirect() {
         // User explicitly chose to use direct connection
         DispatchQueue.main.async {
-            if Configuration.useSSL {
+            if Configuration.isHttpsProxyEnabled {
                 Configuration.useSSL = false
                 self.isUsingTemporaryRelay = false
             }
@@ -168,7 +170,12 @@ class ConnectivityManager: ObservableObject {
     func userToggledRelay(isEnabled: Bool) {
         // User manually toggled the setting
         DispatchQueue.main.async {
-            Configuration.useSSL = isEnabled
+            if Configuration.httpsProxyFeatureEnabled {
+                Configuration.useSSL = isEnabled
+            } else {
+                // Force off when feature disabled
+                Configuration.useSSL = false
+            }
             self.isUsingTemporaryRelay = false  // Clear temporary flag since this was manual
             self.hasSuggestedRelay = false      // Reset suggestion flags
             self.hasSuggestedDirect = false
@@ -280,7 +287,7 @@ class ConnectivityManager: ObservableObject {
 
     private func evaluateConnectivityStatus() {
         // We now know both checks are complete, so log connectivity status
-        print("Connectivity check complete: Direct=\(directServerAccessible), Relay=\(relayServerAccessible), UsingSSL=\(Configuration.useSSL), UsingTemporaryRelay=\(isUsingTemporaryRelay)")
+        print("Connectivity check complete: Direct=\(directServerAccessible), Relay=\(relayServerAccessible), UsingSSL=\(Configuration.isHttpsProxyEnabled), UsingTemporaryRelay=\(isUsingTemporaryRelay)")
 
         // First check if we have internet connectivity at all
         if !isInternetAvailable {
@@ -310,7 +317,7 @@ class ConnectivityManager: ObservableObject {
             }
         } else if !directServerAccessible && relayServerAccessible {
             // Only relay is accessible
-            if !Configuration.useSSL && !hasSuggestedRelay {
+            if Configuration.httpsProxyFeatureEnabled && !Configuration.isHttpsProxyEnabled && !hasSuggestedRelay {
                 // We're not using relay but direct is inaccessible - suggest switching to relay
                 print("Suggesting switch to relay connection")
                 if !isOnboardingActive {
@@ -321,7 +328,7 @@ class ConnectivityManager: ObservableObject {
             }
         } else if directServerAccessible && !relayServerAccessible {
             // Only direct is accessible
-            if Configuration.useSSL && isUsingTemporaryRelay {
+            if Configuration.isHttpsProxyEnabled && isUsingTemporaryRelay {
                 // We're using temporary relay but it's not accessible and direct is - switch back
                 print("Automatically switching back to direct connection")
                 DispatchQueue.main.async {
@@ -359,7 +366,7 @@ class ConnectivityManager: ObservableObject {
     func handleNetworkRequestFailure(wasUsingSSL: Bool) {
         // If a request fails and we're using the same connection type that was used for the request,
         // check connectivity to see if we should switch
-        if wasUsingSSL == Configuration.useSSL {
+        if wasUsingSSL == Configuration.isHttpsProxyEnabled {
             checkConnectivity(forceCheck: true)
         }
     }

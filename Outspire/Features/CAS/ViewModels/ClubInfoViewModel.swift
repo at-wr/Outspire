@@ -8,6 +8,7 @@ class ClubInfoViewModel: ObservableObject {
     @Published var groups: [ClubGroup] = []
     @Published var groupInfo: GroupInfo?
     @Published var members: [Member] = []
+    @Published var instructorName: String?
     @Published var errorMessage: String?
     @Published var isLoading: Bool = false
     @Published var refreshing: Bool = false
@@ -18,39 +19,27 @@ class ClubInfoViewModel: ObservableObject {
     @Published var isFromURLNavigation: Bool = false
 
     private let sessionService = SessionService.shared
+    private let authV2 = AuthServiceV2.shared
 
     func fetchCategories() {
+        // New TSIMS: static category map
         isLoading = true
         errorMessage = nil
-
-        NetworkService.shared.request(
-            endpoint: "cas_init_category_dropdown.php",
-            method: .get
-        ) { [weak self] (result: Result<[Category], NetworkError>) in
-            guard let self = self else { return }
-            self.isLoading = false
-
-            switch result {
-            case .success(let categories):
-                self.categories = categories
-
-                // Auto-select first category if none selected
-                if self.categories.count > 0 && self.selectedCategory == nil {
-                    #if targetEnvironment(macCatalyst)
-                    // In Mac Catalyst, select with a slight delay to allow UI update
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        self.selectedCategory = categories[1]
-                        self.fetchGroups(for: categories[1])
-                    }
-                    #else
-                    self.selectedCategory = categories[1]
-                    self.fetchGroups(for: categories[1])
-                    #endif
-                }
-
-            case .failure(let error):
-                self.errorMessage = "Unable to load categories: \(error.localizedDescription)"
-            }
+        let mapped: [Category] = [
+            Category(C_CategoryID: "0", C_Category: "All"),
+            Category(C_CategoryID: "1", C_Category: "Sports"),
+            Category(C_CategoryID: "2", C_Category: "Service"),
+            Category(C_CategoryID: "3", C_Category: "Arts"),
+            Category(C_CategoryID: "4", C_Category: "Life"),
+            Category(C_CategoryID: "5", C_Category: "Academic"),
+            Category(C_CategoryID: "6", C_Category: "Personal")
+        ]
+        self.categories = mapped
+        self.isLoading = false
+        // Default to All to allow browsing without selecting a category
+        if self.selectedCategory == nil, let def = mapped.first(where: { $0.C_CategoryID == "0" }) {
+            self.selectedCategory = def
+            self.fetchGroups(for: def)
         }
     }
 
@@ -64,13 +53,8 @@ class ClubInfoViewModel: ObservableObject {
         // Track if we're in the middle of a URL navigation
         let isNavigatingFromURL = pendingClubId != nil || isFromURLNavigation
 
-        let parameters = ["categoryid": category.C_CategoryID]
-
-        NetworkService.shared.request(
-            endpoint: "cas_init_groups_dropdown.php",
-            parameters: parameters,
-            sessionId: sessionService.sessionId
-        ) { [weak self] (result: Result<[ClubGroup], NetworkError>) in
+        let cat = (category.C_CategoryID == "0" || category.C_CategoryID.isEmpty) ? nil : category.C_CategoryID
+        CASServiceV2.shared.fetchGroupList(pageIndex: 1, pageSize: 200, categoryId: cat) { [weak self] result in
             guard let self = self else { return }
             self.isLoading = false
 
@@ -133,8 +117,9 @@ class ClubInfoViewModel: ObservableObject {
                     if self.selectedGroup == nil && !groups.isEmpty {
                         // Use main queue to ensure proper UI update
                         DispatchQueue.main.async {
-                            self.selectedGroup = groups[0]
-                            self.fetchGroupInfo(for: groups[0])
+                            let pick = groups.randomElement() ?? groups[0]
+                            self.selectedGroup = pick
+                            self.fetchGroupInfo(for: pick)
                         }
                     }
                     #else
@@ -145,8 +130,9 @@ class ClubInfoViewModel: ObservableObject {
                     if !groups.isEmpty {
                         // Use a small delay to ensure UI updates properly
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                            self.selectedGroup = groups[0]
-                            self.fetchGroupInfo(for: groups[0])
+                            let pick = groups.randomElement() ?? groups[0]
+                            self.selectedGroup = pick
+                            self.fetchGroupInfo(for: pick)
                         }
                     }
                     #endif
@@ -162,74 +148,43 @@ class ClubInfoViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
 
-        let parameters = ["groupid": group.C_GroupsID]
+        // New TSIMS: enrich detail from cached group list item
+        let detail = CASServiceV2.shared.getCachedGroupDetails(idOrNo: group.C_GroupsID) ??
+                     CASServiceV2.shared.getCachedGroupDetails(idOrNo: group.C_GroupNo)
 
-        NetworkService.shared.request(
-            endpoint: "cas_add_group_info.php",
-            parameters: parameters,
-            sessionId: sessionService.sessionId
-        ) { [weak self] (result: Result<GroupInfoResponse, NetworkError>) in
+        let info = GroupInfo(
+            C_GroupsID: group.C_GroupsID,
+            C_GroupNo: group.C_GroupNo,
+            C_NameC: group.C_NameC,
+            C_NameE: group.C_NameE,
+            C_Category: selectedCategory?.C_Category ?? "",
+            C_CategoryID: selectedCategory?.C_CategoryID ?? "",
+            // Use YearName as founded; fallback to empty
+            C_FoundTime: detail?.YearName ?? "",
+            C_DescriptionC: detail?.DescriptionC ?? "",
+            C_DescriptionE: detail?.DescriptionE ?? ""
+        )
+        self.groupInfo = info
+        self.instructorName = detail?.TeacherName
+        // Determine membership by checking MyGroups (match by Id or GroupNo)
+        CASServiceV2.shared.fetchMyGroups { [weak self] res in
             guard let self = self else { return }
-
-            // Add a small delay to ensure UI transitions feel natural
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                 self.isLoading = false
-                self.isFromURLNavigation = false  // Reset navigation flag when fetch completes
-
-                switch result {
-                case .success(let response):
-                    if let fetchedGroup = response.groups.first {
-                        self.groupInfo = fetchedGroup
-                        self.members = response.gmember
-
-                        // Check if the current user is a member of this club
-                        self.checkUserMembership()
-
-                        // Debug logging for member data
-                        print("Loaded \(response.gmember.count) members for group \(group.C_NameC)")
-                        if response.gmember.isEmpty {
-                            print("Member list is empty from API response")
-
-                            // Retry with session ID if members list is empty
-                            // This is a workaround for possible session/auth issues
-                            if let sessionId = self.sessionService.sessionId {
-                                print("Retrying with session ID: \(sessionId)")
-                                self.retryFetchWithSession(parameters: parameters)
-                            }
-                        }
-                    } else {
-                        self.errorMessage = "Group info not found in response."
-                    }
-                case .failure(let error):
-                    self.errorMessage = "Unable to load group info: \(error.localizedDescription)"
+                self.isFromURLNavigation = false
+                switch res {
+                case .success(let myGroups):
+                    let targetKeys = Set([group.C_GroupsID, group.C_GroupNo].filter { !$0.isEmpty })
+                    let myKeys = Set(myGroups.flatMap { [$0.C_GroupsID, $0.C_GroupNo] }.filter { !$0.isEmpty })
+                    self.isUserMember = !targetKeys.isDisjoint(with: myKeys)
+                case .failure:
+                    self.isUserMember = false
                 }
             }
         }
     }
 
-    private func retryFetchWithSession(parameters: [String: String]) {
-        print("Retrying fetch with explicit session...")
-
-        NetworkService.shared.request(
-            endpoint: "cas_add_group_info.php",
-            parameters: parameters,
-            sessionId: sessionService.sessionId
-        ) { [weak self] (result: Result<GroupInfoResponse, NetworkError>) in
-            guard let self = self else { return }
-
-            switch result {
-            case .success(let response):
-                if response.gmember.count > 0 {
-                    print("Retry successful, got \(response.gmember.count) members")
-                    self.members = response.gmember
-                } else {
-                    print("Retry failed, still no members")
-                }
-            case .failure(let error):
-                print("Retry failed with error: \(error.localizedDescription)")
-            }
-        }
-    }
+    private func retryFetchWithSession(parameters: [String: String]) { /* no-op in V2 */ }
 
     // Check if current user is a member of this club
     private func checkUserMembership() {
@@ -250,7 +205,7 @@ class ClubInfoViewModel: ObservableObject {
     }
 
     func joinClub(asProject: Bool) {
-        guard sessionService.isAuthenticated,
+        guard (authV2.isAuthenticated || sessionService.isAuthenticated),
               let currentGroup = selectedGroup else {
             errorMessage = "You need to be signed in and have a club selected"
             return
@@ -258,24 +213,15 @@ class ClubInfoViewModel: ObservableObject {
 
         isJoiningClub = true
 
-        let parameters = [
-            "groupid": currentGroup.C_GroupsID,
-            "projYes": asProject ? "1" : "0"
-        ]
-
-        NetworkService.shared.request(
-            endpoint: "cas_save_member_info.php",
-            parameters: parameters,
-            sessionId: sessionService.sessionId
-        ) { [weak self] (result: Result<[String: String], NetworkError>) in
+        CASServiceV2.shared.joinGroup(groupId: currentGroup.C_GroupsID, isProject: asProject) { [weak self] result in
             guard let self = self else { return }
 
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 self.isJoiningClub = false
 
                 switch result {
-                case .success(let response):
-                    if response["status"] == "ok" || response["status"] == nil {
+                case .success(let ok):
+                    if ok {
                         // Refresh club info to update membership status
                         if let currentGroup = self.selectedGroup {
                             self.fetchGroupInfo(for: currentGroup)
@@ -284,7 +230,7 @@ class ClubInfoViewModel: ObservableObject {
                         // Clear club activities cache to ensure fresh data on next view
                         CacheManager.clearClubActivitiesCache()
                     } else {
-                        self.errorMessage = response["status"] ?? "Failed to join club"
+                        self.errorMessage = "Failed to join club"
                     }
                 case .failure(let error):
                     self.errorMessage = "Failed to join club: \(error.localizedDescription)"
@@ -294,7 +240,7 @@ class ClubInfoViewModel: ObservableObject {
     }
 
     func exitClub() {
-        guard sessionService.isAuthenticated,
+        guard (authV2.isAuthenticated || sessionService.isAuthenticated),
               let currentGroup = selectedGroup else {
             errorMessage = "You need to be signed in and have a club selected"
             return
@@ -302,21 +248,15 @@ class ClubInfoViewModel: ObservableObject {
 
         isExitingClub = true
 
-        let parameters = ["groupid": currentGroup.C_GroupsID]
-
-        NetworkService.shared.request(
-            endpoint: "cas_delete_member_info.php",
-            parameters: parameters,
-            sessionId: sessionService.sessionId
-        ) { [weak self] (result: Result<[String: String], NetworkError>) in
+        CASServiceV2.shared.exitGroup(groupId: currentGroup.C_GroupsID) { [weak self] result in
             guard let self = self else { return }
 
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 self.isExitingClub = false
 
                 switch result {
-                case .success(let response):
-                    if response["status"] == "ok" || response["status"] == nil {
+                case .success(let ok):
+                    if ok {
                         // Refresh club info to update membership status
                         if let currentGroup = self.selectedGroup {
                             self.fetchGroupInfo(for: currentGroup)
@@ -325,7 +265,7 @@ class ClubInfoViewModel: ObservableObject {
                         // Clear club activities cache to ensure fresh data on next view
                         CacheManager.clearClubActivitiesCache()
                     } else {
-                        self.errorMessage = response["status"] ?? "Failed to exit club"
+                        self.errorMessage = "Failed to exit club"
                     }
                 case .failure(let error):
                     self.errorMessage = "Failed to exit club: \(error.localizedDescription)"
@@ -368,8 +308,23 @@ class ClubInfoViewModel: ObservableObject {
         // Set URL navigation flags
         isFromURLNavigation = true
 
-        // Direct API approach first - most robust method
-        fetchGroupInfoById(clubId)
+        // Use V2 group list to find the group quickly
+        CASServiceV2.shared.fetchGroupList(pageIndex: 1, pageSize: 200, categoryId: nil) { [weak self] res in
+            guard let self = self else { return }
+            DispatchQueue.main.async {
+                switch res {
+                case .success(let list):
+                    if let group = list.first(where: { $0.C_GroupsID == clubId || $0.C_GroupNo == clubId }) {
+                        self.selectedGroup = group
+                        self.fetchGroupInfo(for: group)
+                    } else {
+                        self.errorMessage = "Club not found"
+                    }
+                case .failure(let err):
+                    self.errorMessage = err.localizedDescription
+                }
+            }
+        }
     }
 
     // Add a new method to directly fetch club info by ID
@@ -454,13 +409,7 @@ class ClubInfoViewModel: ObservableObject {
 
     // Helper method to fetch groups for a category with a preselected club
     private func fetchGroupsForCategory(_ category: Category, preselectedGroupId: String) {
-        let parameters = ["categoryid": category.C_CategoryID]
-
-        NetworkService.shared.request(
-            endpoint: "cas_init_groups_dropdown.php",
-            parameters: parameters,
-            sessionId: sessionService.sessionId
-        ) { [weak self] (result: Result<[ClubGroup], NetworkError>) in
+        CASServiceV2.shared.fetchGroupList(pageIndex: 1, pageSize: 200, categoryId: category.C_CategoryID) { [weak self] result in
             guard let self = self else { return }
 
             DispatchQueue.main.async {
@@ -485,28 +434,19 @@ class ClubInfoViewModel: ObservableObject {
 
     // Helper to fetch categories with a preselection
     private func fetchCategoriesWithPreselection(clubId: String, categoryId: String?) {
-        NetworkService.shared.request(
-            endpoint: "cas_init_category_dropdown.php",
-            method: .get
-        ) { [weak self] (result: Result<[Category], NetworkError>) in
-            guard let self = self else { return }
-
-            DispatchQueue.main.async {
-                switch result {
-                case .success(let categories):
-                    self.categories = categories
-
-                    // Select the right category if we know it
-                    if let categoryId = categoryId,
-                       let category = categories.first(where: { $0.C_CategoryID == categoryId }) {
-                        self.selectedCategory = category
-                        self.fetchGroupsForCategory(category, preselectedGroupId: clubId)
-                    }
-                case .failure:
-                    // Don't update error - we already have the club info displayed
-                    print("Failed to load categories after direct club fetch")
-                }
-            }
+        // In V2, categories are static
+        self.categories = [
+            Category(C_CategoryID: "1", C_Category: "Sports"),
+            Category(C_CategoryID: "2", C_Category: "Service"),
+            Category(C_CategoryID: "3", C_Category: "Arts"),
+            Category(C_CategoryID: "4", C_Category: "Life"),
+            Category(C_CategoryID: "5", C_Category: "Academic"),
+            Category(C_CategoryID: "6", C_Category: "Personal")
+        ]
+        if let categoryId = categoryId,
+           let category = self.categories.first(where: { $0.C_CategoryID == categoryId }) {
+            self.selectedCategory = category
+            self.fetchGroupsForCategory(category, preselectedGroupId: clubId)
         }
     }
 

@@ -156,20 +156,16 @@ struct SettingsView: View {
     }
 }
 
-// AccountWithNavigation remains unchanged
 struct AccountWithNavigation: View {
     @StateObject private var viewModel = AccountViewModel()
     @EnvironmentObject var sessionService: SessionService
 
     var body: some View {
-        AccountView(viewModel: viewModel)
-            .navigationTitle(sessionService.isAuthenticated ? "Account" : "Sign In")
-            .navigationBarTitleDisplayMode(.large)
-            .toolbarBackground(Color(UIColor.secondarySystemBackground))
-            .onAppear {
-                if !sessionService.isAuthenticated && viewModel.captchaImageData == nil {
-                    viewModel.fetchCaptchaImage()
-                }
-            }
+        Group {
+            AccountV2View()
+        }
+        .navigationTitle("Account")
+        .navigationBarTitleDisplayMode(.large)
+        .toolbarBackground(Color(UIColor.secondarySystemBackground))
     }
 }

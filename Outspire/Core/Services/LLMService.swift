@@ -12,7 +12,7 @@ final class LLMService {
 
     private let apiKey: String
     private let baseURL: String
-    private let model: String = "openai/gpt-4.1"
+    private let model: String = "grok/grok-3-latest"
     private let service: OpenAIService
 
     /// System prompt for CAS reflection outline generation

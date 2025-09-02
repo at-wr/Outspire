@@ -71,10 +71,7 @@ struct ClubInfoView: View {
                     //                    }
 
                     ToolbarItem(id: "clubAction", placement: .primaryAction) {
-                        if sessionService.isAuthenticated,
-                            !viewModel.isLoading,
-                            viewModel.selectedGroup != nil
-                        {
+                        if viewModel.selectedGroup != nil {
                             #if targetEnvironment(macCatalyst)
                                 // Use a menu approach for Mac Catalyst
                                 Menu {
@@ -122,9 +119,7 @@ struct ClubInfoView: View {
                                 .onChange(of: viewModel.isUserMember) { _, newValue in
                                     if initialMembershipCheckComplete {
                                         if newValue {
-                                            presentSuccessToast(message: "Successfully joined club")
-                                        } else {
-                                            presentSuccessToast(message: "Successfully exited club")
+                                            presentSuccessToast(message: "Joined successfully")
                                         }
                                     } else {
                                         initialMembershipCheckComplete = true
@@ -183,9 +178,7 @@ struct ClubInfoView: View {
                                 .onChange(of: viewModel.isUserMember) { _, newValue in
                                     if initialMembershipCheckComplete {
                                         if newValue {
-                                            presentSuccessToast(message: "Successfully joined club")
-                                        } else {
-                                            presentSuccessToast(message: "Successfully exited club")
+                                            presentSuccessToast(message: "Joined successfully")
                                         }
                                     } else {
                                         initialMembershipCheckComplete = true
@@ -318,7 +311,7 @@ struct ClubInfoView: View {
                         viewModel.selectedGroup = previousGroup
                     }
                 }
-                .onChange(of: urlSchemeHandler.closeAllSheets) { newValue in
+                .onChange(of: urlSchemeHandler.closeAllSheets) { _, newValue in
                     if newValue {
                         // Close any active sheets
                         showingJoinOptions = false
@@ -330,6 +323,12 @@ struct ClubInfoView: View {
                     isPresented: $showingExitConfirmation,
                     actions: {
                         Button("Exit Club", role: .destructive) {
+                            HapticManager.shared.playButtonTap()
+                            let toast = ToastValue(
+                                icon: Image(systemName: "clock").foregroundStyle(.orange),
+                                message: "Exit pending review"
+                            )
+                            presentToast(toast)
                             viewModel.exitClub()
                         }
                         Button("Cancel", role: .cancel) {}
@@ -349,10 +348,7 @@ struct ClubInfoView: View {
 
     private var clubActionButton: some ToolbarContent {
         ToolbarItem(placement: .navigationBarTrailing) {
-            if sessionService.isAuthenticated,
-                !viewModel.isLoading,
-                viewModel.selectedGroup != nil
-            {
+            if viewModel.selectedGroup != nil {
                 #if targetEnvironment(macCatalyst)
                     // Use a more compatible approach for Mac Catalyst
                     Button(action: {
@@ -381,9 +377,7 @@ struct ClubInfoView: View {
                     .onChange(of: viewModel.isUserMember) { _, newValue in
                         if initialMembershipCheckComplete {
                             if newValue {
-                                presentSuccessToast(message: "Successfully joined club")
-                            } else {
-                                presentSuccessToast(message: "Successfully exited club")
+                                presentSuccessToast(message: "Joined successfully")
                             }
                         } else {
                             initialMembershipCheckComplete = true
@@ -434,9 +428,7 @@ struct ClubInfoView: View {
                     .onChange(of: viewModel.isUserMember) { _, newValue in
                         if initialMembershipCheckComplete {
                             if newValue {
-                                presentSuccessToast(message: "Successfully joined club")
-                            } else {
-                                presentSuccessToast(message: "Successfully exited club")
+                                presentSuccessToast(message: "Joined successfully")
                             }
                         } else {
                             initialMembershipCheckComplete = true
@@ -491,15 +483,18 @@ struct ClubInfoView: View {
                         Text("Loading...").tag(nil as ClubGroup?)
                     } else {
                         ForEach(viewModel.groups) { group in
-                            Text(group.C_NameC).tag(group as ClubGroup?)
+                            Text(group.C_NameE.isEmpty ? group.C_NameC : group.C_NameE)
+                                .tag(group as ClubGroup?)
                         }
                     }
                 #else
-                    if viewModel.selectedGroup == nil {
-                        Text("Unavailable").tag(nil as ClubGroup?)
+                    if viewModel.groups.isEmpty || viewModel.selectedGroup == nil {
+                        Text(viewModel.groups.isEmpty ? "Loading..." : "Select a club")
+                            .tag(nil as ClubGroup?)
                     }
                     ForEach(viewModel.groups) { group in
-                        Text(group.C_NameC).tag(group as ClubGroup?)
+                        Text(group.C_NameE.isEmpty ? group.C_NameC : group.C_NameE)
+                            .tag(group as ClubGroup?)
                     }
                 #endif
             }
@@ -589,6 +584,7 @@ struct ClubInfoView: View {
         Section(header: Text("About \(groupInfo.C_NameE)")) {
             ClubDetailView(
                 groupInfo: groupInfo,
+                instructorName: viewModel.instructorName,
                 extractText: viewModel.extractText,
                 animateList: animateList
             )
@@ -810,6 +806,7 @@ struct ClubInfoView: View {
 
 struct ClubDetailView: View {
     let groupInfo: GroupInfo
+    let instructorName: String?
     let extractText: (String) -> String?
     let animateList: Bool
 
@@ -829,15 +826,17 @@ struct ClubDetailView: View {
                 .animation(
                     .spring(response: 0.4, dampingFraction: 0.7).delay(0.2), value: animateList)
 
-            if groupInfo.C_FoundTime != "0000-00-00 00:00:00" {
+            // Instructor (teacher) from new TSIMS payload
+            if let instructor = instructorName, !instructor.trimmingCharacters(in: .whitespaces).isEmpty {
                 Divider()
-
-                LabeledContent("Founded", value: groupInfo.C_FoundTime)
+                LabeledContent("Instructor", value: instructor)
                     .offset(y: animateList ? 0 : 20)
                     .opacity(animateList ? 1 : 0)
                     .animation(
                         .spring(response: 0.4, dampingFraction: 0.7).delay(0.3), value: animateList)
             }
+
+            // Founded omitted: YearName is not accurate
 
             descriptionView
         }
@@ -919,17 +918,11 @@ struct MembersListView: View {
     }
 
     private var emptyMembersView: some View {
-        if sessionService.isAuthenticated {
-            Text("No members available, possibily dissolved.")
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .center)
-                .padding(.vertical, 8)
-        } else {
-            Text("Available after signed in.")
-                .foregroundStyle(.red)
-                .frame(maxWidth: .infinity, alignment: .center)
-                .padding(.vertical, 8)
-        }
+        // New TSIMS: MemberList is not provided in this view; show a neutral placeholder regardless of auth
+        Text("No members listed for this club.")
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, alignment: .center)
+            .padding(.vertical, 8)
     }
 
     private var membersList: some View {

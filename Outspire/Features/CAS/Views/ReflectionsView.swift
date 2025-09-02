@@ -67,7 +67,7 @@ struct ReflectionsView: View {
                         Image(systemName: "square.and.pencil")
                     }
                 }
-                //                .disabled(viewModel.isLoadingGroups || viewModel.isLoadingReflections || sessionService.userInfo == nil)
+                .disabled(viewModel.isLoadingGroups || viewModel.groups.isEmpty)
             }
         }
         .sheet(isPresented: $showingAddSheet) {
@@ -84,10 +84,10 @@ struct ReflectionsView: View {
             handleOnAppear()
             updateGradientForReflections()
         })
-        .onChange(of: viewModel.isLoadingReflections) { _ in
+        .onChange(of: viewModel.isLoadingReflections) {
             handleLoadingChange()
         }
-        .onChange(of: viewModel.errorMessage) { errorMessage in
+        .onChange(of: viewModel.errorMessage) { _, errorMessage in
             if let errorMessage = errorMessage {
                 HapticManager.shared.playError()
                 let icon =
@@ -121,31 +121,18 @@ struct ReflectionsView: View {
 
     @ViewBuilder
     private var addReflectionSheet: some View {
-        if let studentId = sessionService.userInfo?.studentid {
-            AddReflectionSheet(
-                availableGroups: viewModel.groups,
-                studentId: studentId
-            ) {
-                viewModel.fetchReflections(forceRefresh: true)
-            }
-        } else {
-            VStack(spacing: 10) {
-                Text(">_<")
-                    .foregroundStyle(.primary)
-                    .font(.title2)
-                Text("Maybe you haven't logged in yet?")
-                    .foregroundStyle(.primary)
-                Text("Unable to retrieve user ID.")
-                    .foregroundStyle(.secondary)
-            }
-            .padding()
+        AddReflectionSheet(
+            availableGroups: viewModel.groups,
+            studentId: sessionService.userInfo?.studentid ?? ""
+        ) {
+            viewModel.fetchReflections(forceRefresh: true)
         }
     }
 
     private var deleteConfirmationActions: some View {
         Group {
             Button("Delete", role: .destructive) {
-                if let reflection = viewModel.reflectionToDelete {
+                if viewModel.reflectionToDelete != nil {
                     HapticManager.shared.playDelete()
                     viewModel.confirmDelete()
                     let toast = ToastValue(
@@ -230,7 +217,7 @@ struct ReflectionGroupSelectorSection: View {
                         Text(group.displayName).tag(group.id)
                     }
                 }
-                .onChange(of: viewModel.selectedGroupId) { _ in
+                .onChange(of: viewModel.selectedGroupId) {
                     HapticManager.shared.playSelectionFeedback()
                     withAnimation(.easeInOut(duration: 0.3)) {
                         viewModel.fetchReflections(forceRefresh: true)
@@ -257,9 +244,10 @@ struct ReflectionsSection: View {
         Section {
             if viewModel.groups.isEmpty && !viewModel.isLoadingGroups {
                 Group {
-                    if sessionService.userInfo != nil {
+                    let isAuthed = AuthServiceV2.shared.isAuthenticated || sessionService.isAuthenticated
+                    if isAuthed {
                         ErrorView(
-                            errorMessage: "No clubs available. Try joining some to continue?",
+                            errorMessage: "No clubs available. Join a club to continue.",
                             retryAction: {
                                 HapticManager.shared.playRefresh()
                                 viewModel.fetchGroups(forceRefresh: true)
@@ -310,7 +298,7 @@ struct ReflectionsSection: View {
                     .opacity(viewModel.isLoadingReflections ? 0.7 : 1.0)
             }
         }
-        .onChange(of: viewModel.isLoadingReflections) { isLoading in
+        .onChange(of: viewModel.isLoadingReflections) { _, isLoading in
             if !isLoading {
                 hasCompletedInitialLoad = true
             }

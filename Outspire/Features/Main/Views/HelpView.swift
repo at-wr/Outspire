@@ -36,7 +36,8 @@ struct HelpView: View {
         .navigationTitle("Help & About")
         .navigationBarTitleDisplayMode(.large)
         .sheet(isPresented: $showPreview) {
-            if let url = previewURL {
+            if previewURL != nil {
+                // Intentionally left empty for now; replace with QuickLookPreview when implemented.
             }
         }
         .onAppear {
