@@ -1,173 +1,109 @@
 import SwiftUI
 
-#if !targetEnvironment(macCatalyst)
-    import ColorfulX
-#endif
+// Removed ColorfulX usage in favor of system materials
 
 struct NavSplitView: View {
     @EnvironmentObject var sessionService: SessionService
     @EnvironmentObject var settingsManager: SettingsManager
     @EnvironmentObject var urlSchemeHandler: URLSchemeHandler
     @EnvironmentObject var gradientManager: GradientManager  // Add gradient manager
-    @State private var selectedLink: String? = "today"
+    @State private var selectedView: ViewType? = .today
     @State private var refreshID = UUID()
     @State private var showOnboardingSheet = false
     @State private var hasCheckedOnboarding = false
     @AppStorage("lastVersionRun") private var lastVersionRun: String?
     @State private var onboardingCompleted = false
     @Environment(\.colorScheme) private var colorScheme  // Add colorScheme
+    @State private var splitSearch: String = ""
 
     var body: some View {
         NavigationSplitView {
-            ZStack {
-                #if !targetEnvironment(macCatalyst)
-                    // Add ColorfulX as background
-                    ColorfulView(
-                        color: $gradientManager.gradientColors,
-                        speed: $gradientManager.gradientSpeed,
-                        noise: $gradientManager.gradientNoise,
-                        transitionSpeed: $gradientManager.gradientTransitionSpeed
-                    )
-                    .ignoresSafeArea()
-                    .opacity(colorScheme == .dark ? 0.15 : 0.3)  // Reduce opacity more in dark mode
+            // Sidebar list content; use system background/materials
+            List(selection: $selectedView) {
+                NavigationLink(value: ViewType.today) {
+                    Label("Today", systemImage: "text.rectangle.page")
+                }
 
-                    // Semi-transparent background for better contrast
-                    Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
-                        .ignoresSafeArea()
-                #endif
+                NavigationLink(value: ViewType.classtable) {
+                    Label("Class Schedule", systemImage: "clock.badge.questionmark")
+                }
 
-                // Existing list content with better background
-                List(selection: $selectedLink) {
-                    NavigationLink(value: "today") {
-                        Label("Today", systemImage: "text.rectangle.page")
-
-                    }
-
-                    NavigationLink(value: "classtable") {
-                        Label("Classtable", systemImage: "clock.badge.questionmark")
-                    }
-
-                    if !Configuration.hideAcademicScore {
-                        NavigationLink(value: "score") {
-                            Label("Academic Grades", systemImage: "pencil.and.list.clipboard")
-                        }
-                    }
-
-                    Section {
-                        NavigationLink(value: "club-info") {
-                            Label("Hall of Clubs", systemImage: "person.2.circle")
-                        }
-                        NavigationLink(value: "club-activity") {
-                            Label("Activity Records", systemImage: "checklist")
-                        }
-                        NavigationLink(value: "club-reflection") {
-                            Label("Reflections", systemImage: "pencil.and.list.clipboard")
-                        }
-                    } header: {
-                        Text("Activities")
-                    }
-
-                    Section {
-                        NavigationLink(value: "map") {
-                            Label("Campus Map", systemImage: "map")
-                        }
-                        NavigationLink(value: "school-arrangement") {
-                            Label("School Arrangements", systemImage: "calendar.badge.clock")
-                        }
-                        NavigationLink(value: "lunch-menu") {
-                            Label("Dining Menus", systemImage: "fork.knife")
-                        }
-                        #if DEBUG
-                            NavigationLink(value: "help") {
-                                Label("Help", systemImage: "questionmark.circle.dashed")
-                            }
-                        #endif
-                    } header: {
-                        Text("Miscellaneous")
+                if !Configuration.hideAcademicScore {
+                    NavigationLink(value: ViewType.score) {
+                        Label("Academic Grades", systemImage: "pencil.and.list.clipboard")
                     }
                 }
-                .scrollContentBackground(.hidden)  // Hide the default List background
-                .background(Color.clear)  // Make the background transparent
-                .modifier(NavigationColumnWidthModifier())  // Apply column width correctly
-                .toolbar {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button(action: {
-                            HapticManager.shared.playButtonTap()
-                            settingsManager.showSettingsSheet.toggle()
-                        }) {
-                            Label {
-                                Text("Settings")
-                            } icon: {
-                                Image(systemName: "gear")
-                            }
-                        }
 
+                Section {
+                    NavigationLink(value: ViewType.clubInfo) {
+                        Label("Hall of Clubs", systemImage: "person.2.circle")
                     }
+                    NavigationLink(value: ViewType.clubActivities) {
+                        Label("Activity Records", systemImage: "checklist")
+                    }
+                    NavigationLink(value: ViewType.clubReflections) {
+                        Label("Reflections", systemImage: "pencil.and.list.clipboard")
+                    }
+                } header: {
+                    Text("Activities")
                 }
-                .navigationTitle("Outspire")
-                .toolbarBackground(Color(UIColor.secondarySystemBackground))
-                .contentMargins(.vertical, 10)
-                .sheet(isPresented: $settingsManager.showSettingsSheet) {
-                    SettingsView(showSettingsSheet: $settingsManager.showSettingsSheet)
-                        .onDisappear {
-                            refreshID = UUID()
+
+                Section {
+                    NavigationLink(value: ViewType.map) {
+                        Label("Campus Map", systemImage: "map")
+                    }
+                    NavigationLink(value: ViewType.schoolArrangements) {
+                        Label("School Arrangements", systemImage: "calendar.badge.clock")
+                    }
+                    NavigationLink(value: ViewType.lunchMenu) {
+                        Label("Dining Menus", systemImage: "fork.knife")
+                    }
+                    #if DEBUG
+                        NavigationLink(value: ViewType.help) {
+                            Label("Help", systemImage: "questionmark.circle.dashed")
                         }
+                    #endif
+                } header: {
+                    Text("Miscellaneous")
                 }
-                .sheet(isPresented: $showOnboardingSheet) {
-                    OnboardingView(isPresented: $showOnboardingSheet)
-                        .onDisappear {
-                            checkOnboardingStatus()
-                        }
-                }
-                .onChange(of: showOnboardingSheet) { _, newValue in
-                    // Pause or resume connectivity monitoring during onboarding
-                    ConnectivityManager.shared.setOnboardingActive(newValue)
-                }
+            }
+            // Keep default list background to align with Liquid Glass behavior
+            .modifier(NavigationColumnWidthModifier())  // Apply column width correctly
+            .navigationTitle("Outspire")
+            .contentMargins(.vertical, 10)
+            // Settings is now available under Search; remove sidebar sheet presentation
+            .sheet(isPresented: $showOnboardingSheet) {
+                OnboardingView(isPresented: $showOnboardingSheet)
+                    .onDisappear { checkOnboardingStatus() }
+            }
+            .onChange(of: showOnboardingSheet) { _, newValue in
+                ConnectivityManager.shared.setOnboardingActive(newValue)
             }
         } detail: {
             detailView
         }
+        .searchable(text: $splitSearch, prompt: "Search")
         .onChange(of: Configuration.hideAcademicScore) { _, newValue in
-            if newValue && selectedLink == "score" {
-                selectedLink = "today"
-            }
+            if newValue && selectedView == .score { selectedView = .today }
             refreshID = UUID()
         }
         // Add URL scheme handling changes
-        .onChange(of: urlSchemeHandler.navigateToToday) { _, newValue in
-            if newValue {
-                selectedLink = "today"
-            }
-        }
-        .onChange(of: urlSchemeHandler.navigateToClassTable) { _, newValue in
-            if newValue {
-                selectedLink = "classtable"
-            }
-        }
-        .onChange(of: urlSchemeHandler.navigateToClub) { _, clubId in
-            if clubId != nil {
-                selectedLink = "club-info"
-            }
-        }
-        .onChange(of: urlSchemeHandler.navigateToAddActivity) { _, clubId in
-            if clubId != nil {
-                selectedLink = "club-activity"
-            }
-        }
-        .onChange(of: urlSchemeHandler.navigateToReflection) { _, _ in
-            selectedLink = "club-reflection"
-        }
+        .onChange(of: urlSchemeHandler.navigateToToday) { _, newValue in if newValue { selectedView = .today } }
+        .onChange(of: urlSchemeHandler.navigateToClassTable) { _, newValue in if newValue { selectedView = .classtable } }
+        .onChange(of: urlSchemeHandler.navigateToClub) { _, clubId in if clubId != nil { selectedView = .clubInfo } }
+        .onChange(of: urlSchemeHandler.navigateToAddActivity) { _, clubId in if clubId != nil { selectedView = .clubActivities } }
+        .onChange(of: urlSchemeHandler.navigateToReflection) { _, _ in selectedView = .clubReflections }
         .id(refreshID)
         .task {
             checkOnboardingStatus()
         }
-        .onChange(of: selectedLink) { _, newLink in
+        .onChange(of: selectedView) { _, newView in
             // Update gradient when the selected view changes
-            updateGradientForSelectedLink(newLink)
+            updateGradient(for: newView)
         }
         .onAppear {
             // Initialize gradient based on current view
-            updateGradientForSelectedLink(selectedLink)
+            updateGradient(for: selectedView)
         }
         .onReceive(
             NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)
@@ -182,52 +118,52 @@ struct NavSplitView: View {
     @ViewBuilder
     private var detailView: some View {
         // Use a NavigationStack wrapper for each view type
-        switch selectedLink {
-        case "today":
+        switch selectedView {
+        case .today:
             NavigationStack {
                 TodayView()  // Removed explicit id to enable default transition animations
             }
-        case "classtable":
+        case .classtable:
             NavigationStack {
                 ClasstableView()
                     .id("classtable-nav-content")
             }
-        case "score":
+        case .score:
             NavigationStack {
                 ScoreView()
                     .id("score-nav-content")
             }
-        case "club-info":
+        case .clubInfo:
             NavigationStack {
                 ClubInfoView()
                     .id("club-info-nav-content")
             }
-        case "club-activity":
+        case .clubActivities:
             NavigationStack {
                 ClubActivitiesView()
                     .id("club-activity-nav-content")
             }
-        case "club-reflection":
+        case .clubReflections:
             NavigationStack {
                 ReflectionsView()
                     .id("club-reflection-nav-content")
             }
-        case "school-arrangement":
+        case .schoolArrangements:
             NavigationStack {
                 SchoolArrangementView()
                     .id("school-arrangement-nav-content")
             }
-        case "lunch-menu":
+        case .lunchMenu:
             NavigationStack {
                 LunchMenuView()
                     .id("lunch-menu-nav-content")
             }
-        case "help":
+        case .help:
             NavigationStack {
                 HelpView()
                     .id("help-nav-content")
             }
-        case "map":
+        case .map:
             NavigationStack {
                 MapView()
                     .id("map-nav-content")
@@ -249,15 +185,15 @@ struct NavSplitView: View {
         {
             showOnboardingSheet = true
             lastVersionRun = currentVersion
-            print("Showing onboarding due to version check.")
+            Log.app.info("Showing onboarding due to version check.")
         } else if !hasCheckedOnboarding {
             hasCheckedOnboarding = true
 
             if !UserDefaults.standard.bool(forKey: "hasCompletedOnboarding") {
                 showOnboardingSheet = true
-                print("Showing onboarding because 'hasCompletedOnboarding' is false.")
+                Log.app.info("Showing onboarding because 'hasCompletedOnboarding' is false.")
             } else {
-                print("'hasCompletedOnboarding' is already true. Onboarding will not be shown.")
+                Log.app.info("'hasCompletedOnboarding' is already true. Onboarding will not be shown.")
 
             }
         }
@@ -272,16 +208,16 @@ struct NavSplitView: View {
         return lastVersion.compare(thresholdVersion, options: .numeric) == .orderedAscending
     }
 
-    // Update the method to update gradient based on selected link
-    private func updateGradientForSelectedLink(_ link: String?) {
-        guard let link = link else {
+    // Update the method to update gradient based on selected view
+    private func updateGradient(for view: ViewType?) {
+        guard let view = view else {
             // Default to today view gradient
             gradientManager.updateGradientForView(.today, colorScheme: colorScheme)
             return
         }
 
         // For Today view, we need to check the actual context
-        if link == "today" {
+        if view == .today {
             // Today view handles context-specific gradients in its own view
             let isWeekend = TodayViewHelpers.isCurrentDateWeekend()
             let isHoliday = Configuration.isHolidayMode
@@ -303,12 +239,10 @@ struct NavSplitView: View {
             // For other views, check if we have an active context
             if gradientManager.currentContext.isSpecialContext {
                 // Keep the current context colors but update animation settings
-                gradientManager.updateGradientForView(
-                    ViewType(fromLink: link) ?? .today, colorScheme: colorScheme)
+                gradientManager.updateGradientForView(view, colorScheme: colorScheme)
             } else {
                 // No special context, use regular view settings
-                gradientManager.updateGradientForView(
-                    ViewType(fromLink: link) ?? .today, colorScheme: colorScheme)
+                gradientManager.updateGradientForView(view, colorScheme: colorScheme)
             }
         }
     }

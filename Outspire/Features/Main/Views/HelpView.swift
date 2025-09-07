@@ -1,7 +1,5 @@
 import SwiftUI
-#if !targetEnvironment(macCatalyst)
-import ColorfulX
-#endif
+// Removed ColorfulX usage in favor of system materials
 import QuickLook
 
 struct HelpView: View {
@@ -11,27 +9,8 @@ struct HelpView: View {
     @State private var showPreview = false
 
     var body: some View {
-        ZStack {
-            #if !targetEnvironment(macCatalyst)
-            ColorfulView(
-                color: $gradientManager.gradientColors,
-                speed: $gradientManager.gradientSpeed,
-                noise: $gradientManager.gradientNoise,
-                transitionSpeed: $gradientManager.gradientTransitionSpeed
-            )
-            .ignoresSafeArea()
-            .opacity(colorScheme == .dark ? 0.15 : 0.3)
-            #else
-            Color(.systemBackground)
-                .ignoresSafeArea()
-            #endif
-
-            Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
-                .ignoresSafeArea()
-
-            // Main help content
-            VStack {
-            }
+        // Main help content, rely on system background
+        VStack {
         }
         .navigationTitle("Help & About")
         .navigationBarTitleDisplayMode(.large)
@@ -46,19 +25,7 @@ struct HelpView: View {
     }
 
     private func updateGradientForHelpView() {
-        #if !targetEnvironment(macCatalyst)
-        gradientManager.updateGradient(
-            colors: ColorfulPreset.ocean.swiftUIColors,
-            speed: 0.3,
-            noise: colorScheme == .dark ? 15.0 : 20.0
-        )
-        #else
-        gradientManager.updateGradient(
-            colors: [Color(.systemBackground)],
-            speed: 0.0,
-            noise: 0.0
-        )
-        #endif
+        // No-op for backgrounds; retain default system appearance
     }
 
 }

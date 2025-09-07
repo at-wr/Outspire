@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftSoup
 
+@MainActor
 class ClubInfoViewModel: ObservableObject {
     @Published var selectedCategory: Category?
     @Published var selectedGroup: ClubGroup?
@@ -327,81 +328,26 @@ class ClubInfoViewModel: ObservableObject {
         }
     }
 
-    // Add a new method to directly fetch club info by ID
+    // v2-only: fetch club info by ID using v2 group list + detail mapping
     func fetchGroupInfoById(_ clubId: String) {
         isLoading = true
         errorMessage = nil
 
-        let parameters = ["groupid": clubId]
-
-        NetworkService.shared.request(
-            endpoint: "cas_add_group_info.php",
-            parameters: parameters,
-            sessionId: sessionService.sessionId
-        ) { [weak self] (result: Result<GroupInfoResponse, NetworkError>) in
+        CASServiceV2.shared.fetchGroupList(pageIndex: 1, pageSize: 200, categoryId: nil) { [weak self] res in
             guard let self = self else { return }
-
             DispatchQueue.main.async {
-                switch result {
-                case .success(let response):
-                    if let fetchedGroup = response.groups.first {
-                        // We found the club directly! Set its info
-                        self.groupInfo = fetchedGroup
-                        self.members = response.gmember
-
-                        // Create a ClubGroup from the GroupInfo for selection
-                        let group = ClubGroup(
-                            C_GroupsID: fetchedGroup.C_GroupsID,
-                            C_GroupNo: fetchedGroup.C_GroupNo,
-                            C_NameC: fetchedGroup.C_NameC,
-                            C_NameE: fetchedGroup.C_NameE
-                        )
-
-                        // Find and select the correct category
-                        if !fetchedGroup.C_CategoryID.isEmpty,
-                           let category = self.categories.first(where: { $0.C_CategoryID == fetchedGroup.C_CategoryID }) {
-                            self.selectedCategory = category
-
-                            // Fetch all groups in this category to populate the dropdown
-                            // but don't wait for this to display club info
-                            self.fetchGroupsForCategory(category, preselectedGroupId: clubId)
-                        } else if self.categories.isEmpty {
-                            // Categories not loaded yet, fetch them
-                            self.fetchCategoriesWithPreselection(clubId: clubId, categoryId: fetchedGroup.C_CategoryID)
-                        }
-
-                        // Set the club as selected even before we have the full groups list
+                switch res {
+                case .success(let list):
+                    if let group = list.first(where: { $0.C_GroupsID == clubId || $0.C_GroupNo == clubId }) {
                         self.selectedGroup = group
-
-                        // Check membership status
-                        self.checkUserMembership()
-
-                        // Clear pending navigation flags
-                        self.pendingClubId = nil
-                        self.isFromURLNavigation = false
-                        self.isLoading = false
+                        self.fetchGroupInfo(for: group)
                     } else {
-                        // The API returned success but no club data
+                        self.errorMessage = "Club not found"
                         self.isLoading = false
-                        self.errorMessage = "Club information not available"
-                        self.pendingClubId = nil
-                        self.isFromURLNavigation = false
                     }
-                case .failure(let error):
-                    // API request failed
+                case .failure(let err):
+                    self.errorMessage = err.localizedDescription
                     self.isLoading = false
-                    self.errorMessage = "Failed to load club: \(error.localizedDescription)"
-
-                    // If we have categories, try the fallback search approach
-                    if !self.categories.isEmpty {
-                        print("Direct club fetch failed, trying category search as fallback")
-                        self.pendingClubId = clubId
-                        self.searchClubInCategories(clubId: clubId)
-                    } else {
-                        // Load categories first, then will try search
-                        self.pendingClubId = clubId
-                        self.fetchCategories()
-                    }
                 }
             }
         }

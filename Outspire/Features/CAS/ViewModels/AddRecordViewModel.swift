@@ -2,6 +2,7 @@ import SwiftUI
 import Combine
 import Foundation
 
+@MainActor
 class AddRecordViewModel: ObservableObject {
     @Published var selectedGroupId: String = ""
     @Published var activityDate = Date()

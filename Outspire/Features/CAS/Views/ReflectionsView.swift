@@ -1,9 +1,7 @@
 import SwiftUI
 import Toasts
 
-#if !targetEnvironment(macCatalyst)
-    import ColorfulX
-#endif
+// Removed ColorfulX usage in favor of system materials
 
 struct ReflectionsView: View {
     @EnvironmentObject var sessionService: SessionService
@@ -14,26 +12,10 @@ struct ReflectionsView: View {
     @Environment(\.presentToast) var presentToast
     @EnvironmentObject var gradientManager: GradientManager
     @Environment(\.colorScheme) private var colorScheme
+    @State private var sortDescending: Bool = true
 
     var body: some View {
         ZStack {
-            #if !targetEnvironment(macCatalyst)
-                ColorfulView(
-                    color: $gradientManager.gradientColors,
-                    speed: $gradientManager.gradientSpeed,
-                    noise: $gradientManager.gradientNoise,
-                    transitionSpeed: $gradientManager.gradientTransitionSpeed
-                )
-                .ignoresSafeArea()
-                .opacity(colorScheme == .dark ? 0.1 : 0.3)
-            #else
-                Color(.systemBackground)
-                    .ignoresSafeArea()
-            #endif
-
-            Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
-                .ignoresSafeArea()
-
             contentView
         }
         .navigationTitle("Reflections")
@@ -113,9 +95,7 @@ struct ReflectionsView: View {
             )
         }
         .scrollContentBackground(.hidden)
-        .animation(.spring(response: 0.4), value: viewModel.isLoadingReflections)
-        .animation(.spring(response: 0.4), value: viewModel.reflections.isEmpty)
-        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: viewModel.errorMessage)
+        // Avoid custom animations; keep native behavior
         .refreshable(action: handleRefresh)
     }
 
@@ -239,6 +219,8 @@ struct ReflectionsSection: View {
     @State private var hasCompletedInitialLoad = false
     @State private var loadAttempted = false
     @Environment(\.presentToast) var presentToast
+    @State private var searchText: String = ""
+    @State private var sortDescending: Bool = true
 
     var body: some View {
         Section {
@@ -270,14 +252,13 @@ struct ReflectionsSection: View {
                         RoundedRectangle(cornerRadius: 12)
                             .fill(Color.gray.opacity(0.15))
                             .frame(height: 80)
-                            .shimmering()
+                            .redacted(reason: .placeholder)
                             .padding(.horizontal)
                     }
                 }
                 .listRowInsets(EdgeInsets())
                 .listRowBackground(Color.clear)
-                .transition(.opacity)
-                .animation(.easeInOut(duration: 0.5), value: viewModel.isLoadingReflections)
+                // Keep implicit transitions
                 .onAppear {
                     if !loadAttempted {
                         loadAttempted = true
@@ -292,12 +273,13 @@ struct ReflectionsSection: View {
                 ReflectionEmptyStateView(action: { showingAddSheet.toggle() })
                     .transition(.scale.combined(with: .opacity))
             } else {
-                ReflectionsList(viewModel: viewModel, animateList: animateList)
+                ReflectionsList(viewModel: viewModel, animateList: animateList, searchText: searchText, sortDescending: sortDescending)
                     .transition(.opacity)
                     .blur(radius: viewModel.isLoadingReflections ? 1.0 : 0)
                     .opacity(viewModel.isLoadingReflections ? 0.7 : 1.0)
             }
         }
+        .searchable(text: $searchText, prompt: "Search reflections")
         .onChange(of: viewModel.isLoadingReflections) { _, isLoading in
             if !isLoading {
                 hasCompletedInitialLoad = true
@@ -309,9 +291,27 @@ struct ReflectionsSection: View {
 struct ReflectionsList: View {
     @ObservedObject var viewModel: ReflectionsViewModel
     let animateList: Bool
+    let searchText: String
+    let sortDescending: Bool
 
     var body: some View {
-        ForEach(Array(viewModel.reflections.enumerated()), id: \.element.id) { index, reflection in
+        // Apply simple client-side search and optional date sort
+        let list: [Reflection] = (
+            searchText.isEmpty
+                ? viewModel.reflections
+                : viewModel.reflections.filter { r in
+                    r.C_Title.localizedCaseInsensitiveContains(searchText)
+                        || r.C_Summary.localizedCaseInsensitiveContains(searchText)
+                        || r.C_Content.localizedCaseInsensitiveContains(searchText)
+                }
+        ).sorted { a, b in
+            let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd HH:mm:ss"
+            let g = DateFormatter(); g.dateFormat = "yyyy-MM-dd"
+            let da = f.date(from: a.C_Date) ?? g.date(from: a.C_Date) ?? Date.distantPast
+            let db = f.date(from: b.C_Date) ?? g.date(from: b.C_Date) ?? Date.distantPast
+            return sortDescending ? (da > db) : (da < db)
+        }
+        ForEach(Array(list.enumerated()), id: \.element.id) { index, reflection in
             ReflectionCardView(
                 reflection: reflection,
                 onDelete: {
@@ -322,14 +322,7 @@ struct ReflectionsList: View {
             .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
-            .offset(x: animateList ? 0 : 100)
-            .opacity(animateList ? 1 : 0)
-            .animation(
-                .spring(response: 0.4, dampingFraction: 0.7)
-                    .delay(Double(index) * 0.05),
-                value: animateList
-            )
-            .contentTransition(.opacity)
+            .contentTransition(.identity)
         }
     }
 }

@@ -256,11 +256,13 @@ class GradientManager: ObservableObject {
         case .clubInfo: return AppGradients.holiday
         case .clubActivities: return AppGradients.weekend
         case .schoolArrangements: return AppGradients.holiday
+        case .clubReflections: return AppGradients.afterSchool
         case .lunchMenu: return AppGradients.afterSchool
         case .map: return AppGradients.defaultGradient
         case .notSignedIn: return AppGradients.notSignedIn
         case .weekend: return AppGradients.weekend
         case .holiday: return AppGradients.holiday
+        case .help: return AppGradients.defaultGradient
         }
     }
 

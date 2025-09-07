@@ -1,67 +1,6 @@
 import SwiftUI
 import CoreLocation
 
-// Create a reusable card background modifier for consistent style
-struct GlassmorphicCard: ViewModifier {
-    var isDimmed: Bool = false
-    @Environment(\.colorScheme) private var colorScheme
-
-    func body(content: Content) -> some View {
-        content
-            .background(
-                ZStack {
-                    // Base blur layer
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(.ultraThinMaterial)
-                        .opacity(colorScheme == .dark ? 0.8 : 0.97) // Increased opacity in light mode from 0.92 to 0.97
-
-                    // Subtle gradient overlay for depth
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    Color.white.opacity(colorScheme == .dark ? 0.05 : 0.4), // Increased from 0.3 to 0.4
-                                    Color.white.opacity(colorScheme == .dark ? 0.02 : 0.15) // Increased from 0.1 to 0.15
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .opacity(isDimmed ? 0.5 : 1.0)
-
-                    // Very subtle border - matched to EnhancedClassCard
-                    RoundedRectangle(cornerRadius: 16)
-                        .strokeBorder(
-                            LinearGradient(
-                                colors: [
-                                    Color.white.opacity(colorScheme == .dark ? 0.15 : 0.5),
-                                    Color.white.opacity(colorScheme == .dark ? 0.05 : 0.2)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 0.5
-                        )
-                        .opacity(isDimmed ? 0.5 : 1.0)
-                }
-                .shadow(
-                    color: Color.black.opacity(colorScheme == .dark ? 0.12 : 0.08),
-                    radius: 15,
-                    x: 0,
-                    y: 5
-                )
-            )
-            .opacity(isDimmed ? 0.85 : 1.0)
-    }
-}
-
-// Extension to apply the modifier easily
-extension View {
-    func glassmorphicCard(isDimmed: Bool = false) -> some View {
-        self.modifier(GlassmorphicCard(isDimmed: isDimmed))
-    }
-}
-
 // No upcoming class card
 struct NoClassCard: View {
     let isDimmed: Bool
@@ -83,10 +22,10 @@ struct NoClassCard: View {
 
             VStack(spacing: 5) {
                 Text("No Classes Scheduled Today")
-                    .font(.headline)
+                    .font(AppText.title)
 
                 Text("Enjoy your free time!")
-                    .font(.subheadline)
+                    .font(AppText.meta)
                     .foregroundStyle(.secondary)
             }
         }
@@ -111,10 +50,10 @@ struct WeekendCard: View {
 
             VStack(spacing: 5) {
                 Text("It's the Weekend!")
-                    .font(.headline)
+                    .font(AppText.title)
 
                 Text("Relax and have a great weekend.")
-                    .font(.subheadline)
+                    .font(AppText.meta)
                     .foregroundStyle(.secondary)
             }
         }
@@ -148,15 +87,15 @@ struct HolidayModeCard: View {
 
             VStack(spacing: 5) {
                 Text("Holiday Mode")
-                    .font(.headline)
+                    .font(AppText.title)
 
                 Text("Enjoy your time off from classes!")
-                    .font(.subheadline)
+                    .font(AppText.meta)
                     .foregroundStyle(.secondary)
 
                 if hasEndDate {
                     Text("Until \(formattedEndDate)")
-                        .font(.caption)
+                        .font(AppText.meta)
                         .foregroundStyle(.orange)
                         .padding(.top, 4)
                 }
@@ -214,10 +153,7 @@ struct SchoolInfoCard: View {
                         distance: distance
                     )
                     .id("travel-\(significantChange)")
-                    .transition(.asymmetric(
-                        insertion: .scale.combined(with: .opacity),
-                        removal: .opacity
-                    ))
+                    // Use native transitions and avoid custom animated timings
                 }
             }
 
@@ -232,12 +168,7 @@ struct SchoolInfoCard: View {
         }
         .padding(16)
         .paddedGlassmorphicCard(horizontalPadding: 0, verticalPadding: 0)
-        .onAppear {
-            // Delay showing travel info to ensure smooth card animation
-            withAnimation(.easeIn.delay(0.3)) {
-                isTravelInfoVisible = true
-            }
-        }
+        .onAppear { isTravelInfoVisible = true }
     }
 }
 
@@ -338,7 +269,7 @@ struct DailyScheduleCard: View {
                     let selfStudyCount = scheduledClassesForToday.filter { $0.isSelfStudy }.count
 
                     Text("\(regularClassCount) Classes, \(selfStudyCount) Self-Study")
-                        .font(.subheadline)
+                        .font(AppText.meta)
                         .foregroundStyle(.secondary)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 2)
@@ -360,22 +291,14 @@ struct DailyScheduleCard: View {
 
                     ForEach(visibleClasses) { item in
                         if let period = ClassPeriodsManager.shared.classPeriods.first(where: { $0.number == item.period }) {
-                            // Get components - handle both regular classes and self-study
-                            let components = item.data
-                                .replacingOccurrences(of: "<br>", with: "\n")
-                                .components(separatedBy: "\n")
-                                .filter { !$0.isEmpty }
-
-                            if !components.isEmpty {
-                                ScheduleRow(
-                                    period: item.period,
-                                    time: period.timeRangeFormatted,
-                                    subject: components.count > 1 ? components[1] : "Class",
-                                    room: components.count > 2 ? components[2] : "",
-                                    isSelfStudy: item.isSelfStudy
-                                )
-                                .transition(.opacity.combined(with: .move(edge: .top)))
-                            }
+                            let info = ClassInfoParser.parse(item.data)
+                            ScheduleRow(
+                                period: item.period,
+                                time: period.timeRangeFormatted,
+                                subject: info.subject ?? "Class",
+                                room: info.room ?? "",
+                                isSelfStudy: item.isSelfStudy
+                            )
                         }
                     }
 
@@ -410,8 +333,6 @@ struct DailyScheduleCard: View {
         }
         .padding(16)
         .paddedGlassmorphicCard(isDimmed: isClassesOver, horizontalPadding: 0, verticalPadding: 0)
-        .animation(.easeInOut(duration: 0.3), value: scheduledClassesForToday)
-        .animation(.easeInOut(duration: 0.5), value: isClassesOver)
         .onAppear {
             checkIfClassesOver()
         }
@@ -423,8 +344,6 @@ struct DailyScheduleCard: View {
 
 // Sign in prompt card
 struct SignInPromptCard: View {
-    @EnvironmentObject var settingsManager: SettingsManager
-
     var body: some View {
         VStack(spacing: 15) {
             Spacer()
@@ -448,10 +367,8 @@ struct SignInPromptCard: View {
                 .multilineTextAlignment(.center)
                 .padding(.bottom, 10)
 
-            // Sign-in button
-            Button(action: {
-                settingsManager.showSettingsSheet = true
-            }) {
+            // Sign-in link to Settings (Account)
+            NavigationLink(destination: SettingsView(showSettingsSheet: .constant(false), isModal: false)) {
                 HStack {
                     Image(systemName: "person.fill.viewfinder")
                     Text("Sign In with TSIMS")
@@ -465,11 +382,54 @@ struct SignInPromptCard: View {
                 .shadow(color: Color.black.opacity(0.1), radius: 2, x: 0, y: 2)
             }
             .padding(.top, 10)
-            .buttonStyle(ScaleButtonStyle())
+            .buttonStyle(.plain)
 
             Spacer()
         }
         .padding()
+    }
+}
+
+// Quick links card for Today
+struct QuickLinksCard: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label("Quick Access", systemImage: "bolt.fill")
+                .font(.headline)
+                .foregroundStyle(.primary)
+            HStack(spacing: 12) {
+                QuickLink(destination: ClubInfoView(), title: "Clubs", systemImage: "folder.badge.person.crop")
+                QuickLink(destination: LunchMenuView(), title: "Dining", systemImage: "fork.knife")
+                QuickLink(destination: ClubActivitiesView(), title: "Activities", systemImage: "checklist")
+                QuickLink(destination: ReflectionsView(), title: "Reflect", systemImage: "square.and.pencil")
+            }
+        }
+        .padding(16)
+        .glassmorphicCard()
+    }
+}
+
+private struct QuickLink<Dest: View>: View {
+    let destination: Dest
+    let title: String
+    let systemImage: String
+
+    var body: some View {
+        NavigationLink(destination: destination) {
+            VStack(spacing: 6) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 18, weight: .semibold))
+                    .frame(width: 36, height: 36)
+                    .background(Circle().fill(Color.secondary.opacity(0.12)))
+                Text(title)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(8)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 }
 
@@ -507,15 +467,15 @@ struct SelfStudyPeriodCard: View {
 
             VStack(spacing: 5) {
                 Text("Self-Study Period")
-                    .font(.headline)
+                    .font(AppText.title)
 
                 Text("Period \(currentPeriod)\(isLastPeriodOfDay ? " (Last Period)" : "")")
-                    .font(.subheadline)
+                    .font(AppText.meta)
                     .foregroundStyle(.secondary)
 
                 if let nextClassPeriod = nextClassPeriod, let nextClassName = nextClassName {
                     Text("Next class: Period \(nextClassPeriod) - \(nextClassName)")
-                        .font(.caption)
+                        .font(AppText.meta)
                         .foregroundStyle(.purple)
                         .padding(.top, 4)
                 }
@@ -556,10 +516,10 @@ struct LunchBreakCard: View {
 
             VStack(spacing: 5) {
                 Text("Lunch Break")
-                    .font(.headline)
+                    .font(AppText.title)
 
                 Text("Time remaining: \(timeRemaining)")
-                    .font(.subheadline)
+                    .font(AppText.meta)
                     .foregroundStyle(.secondary)
 
                 if let nextClassPeriod = nextClassPeriod, let nextClassName = nextClassName {
@@ -567,7 +527,7 @@ struct LunchBreakCard: View {
                     let subjectName = components.count > 1 ? components[1] : nextClassName
 
                     Text("Next class: Period \(nextClassPeriod) - \(subjectName)")
-                        .font(.caption)
+                        .font(AppText.meta)
                         .foregroundStyle(.orange)
                         .padding(.top, 4)
                 }

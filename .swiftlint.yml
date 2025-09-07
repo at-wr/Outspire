@@ -1,0 +1,37 @@
+disabled_rules:
+  - trailing_whitespace
+  - vertical_whitespace
+
+opt_in_rules:
+  - empty_count
+  - force_unwrapping
+  - closure_end_indentation
+  - explicit_init
+  - redundant_nil_coalescing
+
+included:
+  - Outspire
+  - OutspireWidget
+
+line_length:
+  warning: 120
+  error: 140
+
+identifier_name:
+  min_length: 2
+  max_length: 40
+
+type_body_length:
+  warning: 1200
+  error: 1500
+
+file_length:
+  warning: 1200
+  error: 2000
+
+cyclomatic_complexity:
+  warning: 12
+  error: 20
+
+force_cast: error
+force_try: warning

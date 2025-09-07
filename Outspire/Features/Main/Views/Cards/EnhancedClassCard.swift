@@ -1,7 +1,4 @@
 import SwiftUI
-#if !targetEnvironment(macCatalyst)
-import ColorfulX
-#endif
 
 struct EnhancedClassCard: View {
     let day: String
@@ -27,15 +24,11 @@ struct EnhancedClassCard: View {
 
     var showCountdown: Bool = true
 
-    private var components: [String] {
-        classData.replacingOccurrences(of: "<br>", with: "\n")
-            .components(separatedBy: "\n")
-            .filter { !$0.isEmpty }
-    }
+    private var classInfo: ClassInfo { ClassInfoParser.parse(classData) }
 
     // Check if this is a self-study period
     private var isSelfStudy: Bool {
-        return classData.contains("Self-Study")
+        return classInfo.isSelfStudy
     }
 
     // Dynamic color based on class type and status
@@ -46,8 +39,8 @@ struct EnhancedClassCard: View {
             return .orange
         } else {
             // Use subject-specific color if we can determine it
-            if components.count > 1 {
-                return ClasstableView.getSubjectColor(from: components[1])
+            if let subject = classInfo.subject {
+                return ClasstableView.getSubjectColor(from: subject)
             }
             return .blue
         }
@@ -111,26 +104,23 @@ struct EnhancedClassCard: View {
                 VStack(alignment: .leading, spacing: 2) {
                     if isForToday {
                         Text(isCurrentClass ? "Current Class" : "Upcoming Class")
-                            .font(.headline)
-                            .fontWeight(.semibold)
+                            .font(AppText.title)
                             .foregroundStyle(statusTextColor)
                     } else {
                         Text("Scheduled Class")
-                            .font(.headline)
-                            .fontWeight(.semibold)
+                            .font(AppText.title)
                             .foregroundStyle(statusTextColor)
                     }
 
                     Text("\(day) • Period \(period.number)")
-                        .font(.subheadline)
+                        .font(AppText.meta)
                         .foregroundStyle(secondaryTextColor)
                 }
 
                 Spacer()
 
                 Text(period.timeRangeFormatted)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
+                    .font(AppText.meta)
                     .padding(8)
                     .background(
                         RoundedRectangle(cornerRadius: 8)
@@ -142,30 +132,29 @@ struct EnhancedClassCard: View {
 
             // Class details
             VStack(alignment: .leading, spacing: 12) {
-                if components.count > 1 {
-                    Text(components[1])
-                        .font(.system(.title3, design: .rounded))
-                        .fontWeight(.semibold)
+                    if let subject = classInfo.subject {
+                    Text(subject)
+                        .font(AppText.body.weight(.bold))
 
                     HStack(alignment: .top, spacing: 24) {
                         Label {
-                            Text(components[0])
+                            Text(classInfo.teacher ?? "")
                                 .lineLimit(1)
                         } icon: {
                             Image(systemName: "person.fill")
                                 .foregroundStyle(secondaryTextColor)
                         }
-                        .font(.subheadline)
+                        .font(AppText.meta)
 
-                        if components.count > 2 {
+                        if let room = classInfo.room, !room.isEmpty {
                             Label {
-                                Text(components[2])
+                                Text(room)
                                     .lineLimit(1)
                             } icon: {
                                 Image(systemName: "mappin.circle.fill")
                                     .foregroundStyle(secondaryTextColor)
                             }
-                            .font(.subheadline)
+                            .font(AppText.meta)
                         }
                     }
                     .foregroundStyle(secondaryTextColor)
@@ -196,13 +185,11 @@ struct EnhancedClassCard: View {
 
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(isCurrentClass ? "Class ends in" : "Class starts in")
-                                    .font(.caption)
-                                    .fontWeight(.medium)
+                                    .font(AppText.meta)
                                     .foregroundStyle(secondaryTextColor)
 
                                 Text(formattedCountdown)
-                                    .font(.system(.title3, design: .rounded))
-                                    .fontWeight(.bold)
+                                    .font(AppText.body.weight(.bold))
                                     .foregroundStyle(statusTextColor)
                                     .monospacedDigit()
                                     .fixedSize(horizontal: true, vertical: false)
@@ -632,7 +619,7 @@ private struct EnhancedCircularProgressView: View {
 
             // Percentage text with better contrast
             Text("\(Int(progress * 100))%")
-                .font(.system(.caption2, design: .rounded))
+                .font(AppText.meta)
                 .fontWeight(.bold)
                 .foregroundStyle(colorScheme == .dark ? .white.opacity(0.8) : .secondary)
         }

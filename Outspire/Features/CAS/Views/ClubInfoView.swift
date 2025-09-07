@@ -1,9 +1,7 @@
 import SwiftUI
 import Toasts
 
-#if !targetEnvironment(macCatalyst)
-    import ColorfulX
-#endif
+// Removed ColorfulX usage in favor of system materials
 
 struct ClubInfoView: View {
     @StateObject private var viewModel = ClubInfoViewModel()
@@ -21,25 +19,6 @@ struct ClubInfoView: View {
 
     var body: some View {
         ZStack {
-            // Background: ColorfulX for iOS, native gradient for Mac Catalyst
-            #if !targetEnvironment(macCatalyst)
-                ColorfulView(
-                    color: $gradientManager.gradientColors,
-                    speed: $gradientManager.gradientSpeed,
-                    noise: $gradientManager.gradientNoise,
-                    transitionSpeed: $gradientManager.gradientTransitionSpeed
-                )
-                .ignoresSafeArea()
-                .opacity(colorScheme == .dark ? 0.1 : 0.3)
-            #else
-                Color(.systemBackground)
-                    .ignoresSafeArea()
-            #endif
-
-            // Semi-transparent background with reduced opacity for better contrast with gradient
-            Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
-                .ignoresSafeArea()
-
             VStack {
                 Form {
                     selectionSection
@@ -729,7 +708,7 @@ struct ClubInfoView: View {
 
         // If we have a specific club open, refresh it directly
         if let groupId = currentGroupId {
-            // Use the direct method for more reliable refresh
+            // Use v2 group list to refetch current club
             viewModel.fetchGroupInfoById(groupId)
         } else {
             // Otherwise, refresh the current view state
@@ -914,7 +893,6 @@ struct MembersListView: View {
             .padding(.vertical, 4)
         }
         .redacted(reason: .placeholder)
-        .shimmering()
     }
 
     private var emptyMembersView: some View {
@@ -962,13 +940,6 @@ struct MemberRow: View {
             }
         }
         .contentShape(Rectangle())
-        .offset(x: animateList ? 0 : 60)
-        .opacity(animateList ? 1 : 0)
-        .animation(
-            .spring(response: 0.35, dampingFraction: 0.8)
-                .delay(Double(index) * 0.04),
-            value: animateList
-        )
         .padding(.vertical, 4)
     }
 }
@@ -1105,7 +1076,6 @@ struct ClubSkeletonView: View {
             .padding([.vertical], 8)
         }
         .redacted(reason: .placeholder)
-        .shimmering()
         .padding([.vertical], 8)
     }
 }

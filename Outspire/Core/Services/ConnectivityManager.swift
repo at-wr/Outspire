@@ -1,7 +1,9 @@
 import Foundation
 import Network
 import SwiftUI
+import OSLog
 
+@MainActor
 class ConnectivityManager: ObservableObject {
     static let shared = ConnectivityManager()
 
@@ -50,7 +52,13 @@ class ConnectivityManager: ObservableObject {
     }
 
     deinit {
-        stopMonitoring()
+        // Avoid cross-actor calls in deinit; explicitly cancel resources
+        networkMonitor?.cancel()
+        networkMonitor = nil
+        directServerMonitor?.invalidate()
+        directServerMonitor = nil
+        relayServerMonitor?.invalidate()
+        relayServerMonitor = nil
     }
 
     // MARK: - Onboarding Management
@@ -214,7 +222,7 @@ class ConnectivityManager: ObservableObject {
 
         // Schedule periodic checks
         directServerMonitor = Timer.scheduledTimer(withTimeInterval: checkInterval, repeats: true) { [weak self] _ in
-            self?.checkConnectivity()
+            DispatchQueue.main.async { self?.checkConnectivity() }
         }
 
         // Perform an initial check
@@ -235,7 +243,7 @@ class ConnectivityManager: ObservableObject {
 
     private func checkServerAccess(urlString: String, completion: @escaping (Bool) -> Void) {
         guard let url = URL(string: urlString) else {
-            print("Invalid URL: \(urlString)")
+            Log.net.error("Invalid URL: \(urlString, privacy: .public)")
             completion(false)
             return
         }
@@ -245,32 +253,23 @@ class ConnectivityManager: ObservableObject {
         request.httpMethod = "HEAD"  // Just check headers, no need for full response
         request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
 
-        // Add a backup timeout to ensure we don't get stuck if no response
-        let backupTimer = Timer.scheduledTimer(withTimeInterval: timeoutInterval + 1.0, repeats: false) { _ in
-            print("Backup timeout triggered for \(urlString)")
-            completion(false)
-        }
-
         let task = URLSession.shared.dataTask(with: request) { _, response, error in
-            // Cancel the backup timer as we got a response
-            backupTimer.invalidate()
-
             DispatchQueue.main.async {
                 if let error = error {
-                    print("Server access check failed: \(urlString), error: \(error.localizedDescription)")
+                    Log.net.error("Server access check failed: \(urlString, privacy: .public), error: \(error.localizedDescription, privacy: .public)")
                     completion(false)
                     return
                 }
 
                 guard let httpResponse = response as? HTTPURLResponse else {
-                    print("Invalid response from: \(urlString)")
+                    Log.net.error("Invalid response from: \(urlString, privacy: .public)")
                     completion(false)
                     return
                 }
 
                 // Consider any response (even 4xx or 5xx) as accessible
                 // We just want to know if the server is reachable
-                print("Server \(urlString) responded with code: \(httpResponse.statusCode)")
+                Log.net.debug("Server \(urlString, privacy: .public) responded with code: \(httpResponse.statusCode)")
                 completion(true)
             }
         }
@@ -287,11 +286,11 @@ class ConnectivityManager: ObservableObject {
 
     private func evaluateConnectivityStatus() {
         // We now know both checks are complete, so log connectivity status
-        print("Connectivity check complete: Direct=\(directServerAccessible), Relay=\(relayServerAccessible), UsingSSL=\(Configuration.isHttpsProxyEnabled), UsingTemporaryRelay=\(isUsingTemporaryRelay)")
+        Log.net.info("Connectivity check complete: Direct=\(self.directServerAccessible) Relay=\(self.relayServerAccessible) UsingSSL=\(Configuration.isHttpsProxyEnabled) TempRelay=\(self.isUsingTemporaryRelay)")
 
         // First check if we have internet connectivity at all
         if !isInternetAvailable {
-            print("No internet connection detected")
+            Log.net.warning("No internet connection detected")
             if !isOnboardingActive {
                 DispatchQueue.main.async {
                     self.showNoInternetAlert = true
@@ -308,7 +307,7 @@ class ConnectivityManager: ObservableObject {
             // Both servers are accessible
             if isUsingTemporaryRelay && !hasSuggestedDirect {
                 // We're using temporary relay but direct is available - suggest switching back
-                print("Suggesting switch back to direct connection")
+                Log.net.info("Suggesting switch back to direct connection")
                 if !isOnboardingActive {
                     DispatchQueue.main.async {
                         self.showDirectAlert = true
@@ -319,7 +318,7 @@ class ConnectivityManager: ObservableObject {
             // Only relay is accessible
             if Configuration.httpsProxyFeatureEnabled && !Configuration.isHttpsProxyEnabled && !hasSuggestedRelay {
                 // We're not using relay but direct is inaccessible - suggest switching to relay
-                print("Suggesting switch to relay connection")
+                Log.net.info("Suggesting switch to relay connection")
                 if !isOnboardingActive {
                     DispatchQueue.main.async {
                         self.showRelayAlert = true
@@ -330,7 +329,7 @@ class ConnectivityManager: ObservableObject {
             // Only direct is accessible
             if Configuration.isHttpsProxyEnabled && isUsingTemporaryRelay {
                 // We're using temporary relay but it's not accessible and direct is - switch back
-                print("Automatically switching back to direct connection")
+                Log.net.info("Automatically switching back to direct connection")
                 DispatchQueue.main.async {
                     Configuration.useSSL = false
                     self.isUsingTemporaryRelay = false
@@ -338,14 +337,14 @@ class ConnectivityManager: ObservableObject {
             }
         } else {
             // Neither server is accessible
-            print("Both connections are inaccessible")
+            Log.net.warning("Both connections are inaccessible")
             // Show no internet alert if neither server is accessible
             if isInternetAvailable {
                 // We have internet but can't reach either server
-                print("Internet available but can't reach either server")
+                Log.net.warning("Internet available but can't reach either server")
             } else {
                 // No internet connection
-                print("No internet connection")
+                Log.net.warning("No internet connection")
                 if !isOnboardingActive {
                     DispatchQueue.main.async {
                         self.showNoInternetAlert = true

@@ -4,6 +4,7 @@ import SwiftUI
 import Toasts
 
 /// ViewModel for the Add Reflection sheet.
+@MainActor
 class AddReflectionViewModel: ObservableObject {
     // MARK: - Published form fields
     @Published var selectedGroupId: String

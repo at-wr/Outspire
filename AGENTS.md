@@ -34,5 +34,13 @@
 - Common lookups: SwiftUI availability across iOS/macOS, widget/Live Activity best practices, deprecation replacements, and sample code references.
 - Prefer MCP-sourced answers over generic web results to ensure accuracy and correct OS-version context.
 
+## UI Design Guidelines
+- Backgrounds: No full-screen custom gradients. Prefer system bars/sheets and Materials; adopt Liquid Glass (iOS 18+) sparingly with fallbacks.
+- Cards: Use the shared glass card (`.ultraThinMaterial`-based) from `UI/Components/GlassmorphicComponents.swift`.
+- Motion: No entrance fly-ins or scale pops. Use small, purposeful transitions; respect `accessibilityReduceMotion`.
+- Typography: Use `.body` and `.footnote` via `AppText` (title = `.body.bold()`). Avoid `.system(size:)` for text.
+- Navigation: Keep default toolbars and scroll-edge behaviors; avoid hiding toolbar backgrounds.
+- Consistency: No duplicate component modifiers. Centralize shared UI in `UI/Components` and reuse.
+
 ## Security & Configuration Tips
 - Never commit secrets. Use `Configurations.local.swift` for local keys and app settings. Review `*.entitlements` and App Group usage (`group.dev.wrye.Outspire`) when changing widgets/Live Activities.

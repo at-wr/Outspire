@@ -21,9 +21,23 @@ jobs:
     # - name: Run tests
     #   run: swift test --package-path Outspire.swiftpm
     
+    - name: Install SwiftLint and SwiftFormat
+      run: |
+        brew bundle --version || true
+        brew install swiftlint swiftformat
+    - name: Run SwiftFormat (lint only)
+      run: swiftformat --lint .
+    - name: Run SwiftLint
+      run: swiftlint
     - name: Set up Xcode
       run: sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
-    - name: Build with Xcode
-      # run: xcodebuild -scheme "Outspire" -destination 'platform=iOS' build
-      run: xcodebuild -workspace Outspire.swiftpm -scheme "Outspire" -destination 'platform=iOS' build
-
+    - name: List available simulators
+      run: xcrun simctl list devices
+    - name: Build & Test (Simulator)
+      run: |
+        xcodebuild \
+          -project Outspire.xcodeproj \
+          -scheme "Outspire" \
+          -destination 'platform=iOS Simulator,name=iPhone 16 Pro' \
+          -enableCodeCoverage YES \
+          clean test

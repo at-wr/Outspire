@@ -2,8 +2,9 @@ import SwiftUI
 
 struct SettingsView: View {
     @Binding var showSettingsSheet: Bool
+    // When presented modally, show a close button. Default false for normal navigation.
+    var isModal: Bool = false
     @EnvironmentObject var sessionService: SessionService
-    @State private var navigationPath = NavigationPath()
     @State private var viewRefreshID = UUID()
     @State private var showOnboardingSheet = false
 
@@ -20,29 +21,30 @@ struct SettingsView: View {
     }
 
     var body: some View {
-        NavigationStack(path: $navigationPath) {
-            List {
+        List {
                 // Account section
                 Section {
-                    NavigationLink(value: SettingsMenu.account) {
+                    NavigationLink(destination: destinationView(for: .account)) {
                         ProfileHeaderView()
                     }
                 }
 
                 // General settings section
                 Section {
-                    NavigationLink(value: SettingsMenu.general) {
+                    NavigationLink(destination: destinationView(for: .general)) {
                         MenuItemView(item: .general)
                     }
-                    NavigationLink(value: SettingsMenu.notifications) {
+                    NavigationLink(destination: destinationView(for: .notifications)) {
                         MenuItemView(item: .notifications)
                     }
-                    ForEach(SettingsMenu.allCases, id: \.self) { item in
-                        if item != .account && item != .general && item != .notifications {
-                            NavigationLink(value: item) {
-                                MenuItemView(item: item)
-                            }
-                        }
+                    NavigationLink(destination: destinationView(for: .gradients)) {
+                        MenuItemView(item: .gradients)
+                    }
+                    NavigationLink(destination: destinationView(for: .about)) {
+                        MenuItemView(item: .about)
+                    }
+                    NavigationLink(destination: destinationView(for: .license)) {
+                        MenuItemView(item: .license)
                     }
                 }
 
@@ -81,17 +83,19 @@ struct SettingsView: View {
                         }
                         .foregroundStyle(.blue)
 
-                        NavigationLink(value: SettingsMenu.cache) {
+                        NavigationLink(destination: CacheStatusView()) {
                             Label("Cache Status", systemImage: "externaldrive")
                                 .foregroundStyle(.primary)
                         }
                     }
                 #endif
-            }
-            .id(viewRefreshID)
-            .navigationTitle("Settings")
-            .toolbarBackground(Color(UIColor.secondarySystemBackground))
-            .toolbar {
+        }
+        .id(viewRefreshID)
+        .navigationTitle("Settings")
+        .navigationBarTitleDisplayMode(.large)
+        .toolbarBackground(Color(UIColor.secondarySystemBackground))
+        .toolbar {
+            if isModal {
                 Button(action: {
                     HapticManager.shared.playButtonTap()
                     showSettingsSheet = false
@@ -106,30 +110,19 @@ struct SettingsView: View {
                             .foregroundStyle(.primary)
                     #else
                         Image(systemName: "xmark")
-                            //.font(.title2)
                             .foregroundStyle(.secondary)
                     #endif
                 }
             }
-            .navigationDestination(for: SettingsMenu.self) { destination in
-                destinationView(for: destination)
-            }
-            .onReceive(
-                NotificationCenter.default.publisher(
-                    for: Notification.Name.authenticationStatusChanged)
-            ) { notification in
-                DispatchQueue.main.async {
-                    viewRefreshID = UUID()
-                    if let action = notification.userInfo?["action"] as? String {
-                        if action == "logout" || action == "signedin" {
-                            navigationPath = NavigationPath()
-                        }
-                    }
-                }
-            }
-            .sheet(isPresented: $showOnboardingSheet) {
-                OnboardingView(isPresented: $showOnboardingSheet)
-            }
+        }
+        .onReceive(
+            NotificationCenter.default.publisher(
+                for: Notification.Name.authenticationStatusChanged)
+        ) { _ in
+            DispatchQueue.main.async { viewRefreshID = UUID() }
+        }
+        .sheet(isPresented: $showOnboardingSheet) {
+            OnboardingView(isPresented: $showOnboardingSheet)
         }
     }
 
@@ -164,7 +157,7 @@ struct AccountWithNavigation: View {
             AccountV2View()
         }
         .navigationTitle("Account")
-        .navigationBarTitleDisplayMode(.large)
+        .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(Color(UIColor.secondarySystemBackground))
     }
 }

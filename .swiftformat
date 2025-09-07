@@ -1,0 +1,12 @@
+--allman false
+--indent 4
+--self remove
+--stripunusedargs closure-only
+--wraparguments before-first
+--wrapcollections before-first
+--maxwidth 120
+--hexliteralcase uppercase
+--exponentcase lowercase
+--commas inline
+--disable redundantSelf,sortedImports
+

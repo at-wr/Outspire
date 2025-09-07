@@ -3,9 +3,7 @@ import Foundation
 import SwiftUI
 import WeatherKit
 
-#if !targetEnvironment(macCatalyst)
-    import ColorfulX
-#endif
+// Removed ColorfulX usage in favor of system materials
 
 struct TodayView: View {
     // MARK: - Environment & State
@@ -44,33 +42,23 @@ struct TodayView: View {
 
     // MARK: - Body
     var body: some View {
-        ZStack {
-            #if !targetEnvironment(macCatalyst)
-                // Use the shared ColorfulX view
-                ColorfulView(
-                    color: $gradientManager.gradientColors,
-                    speed: $gradientManager.gradientSpeed,
-                    noise: $gradientManager.gradientNoise,
-                    transitionSpeed: $gradientManager.gradientTransitionSpeed
-                )
-                .ignoresSafeArea()
-                .opacity(0.2)  // Reduce opacity to make content readable
-
-                Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
-                    .ignoresSafeArea()
-            #endif
-
-            ScrollView {
-                contentView
-            }
+        ScrollView {
+            contentView
         }
-        .navigationTitle("Today @ WFLA")
-        .navigationBarTitleDisplayMode(.large)
-        .toolbarBackground(.hidden, for: .navigationBar)
-        .scrollIndicators(.hidden)
-
+        // Use inline title and a custom principal area to show a subtitle date
+        .navigationBarTitleDisplayMode(.inline)
+        // Use default toolbar background and scroll indicators per HIG
         .toolbar {
-            ToolbarItemGroup(placement: .topBarTrailing) {
+            ToolbarItem(placement: .principal) {
+                VStack(spacing: 0) {
+                    Text(greeting)
+                        .font(AppText.body.weight(.bold))
+                    Text(formattedDate)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            ToolbarItem(placement: .topBarTrailing) {
                 scheduleButton
             }
         }
@@ -86,7 +74,6 @@ struct TodayView: View {
         }
         .onAppear {
             setupOnAppear()
-            customizeNavigationBarAppearance()
             updateGradientColors()
 
             if let location = locationManager.userLocation {
@@ -214,25 +201,7 @@ struct TodayView: View {
             gradientManager.updateGradientForContext(
                 context: .afterSchool, colorScheme: colorScheme)
         }
-    }
-
-    private func customizeNavigationBarAppearance() {
-        let transparentAppearance = UINavigationBarAppearance()
-        transparentAppearance.configureWithTransparentBackground()
-        transparentAppearance.backgroundColor = .clear
-        transparentAppearance.shadowColor = .clear
-
-        let solidAppearance = UINavigationBarAppearance()
-        solidAppearance.configureWithDefaultBackground()
-        solidAppearance.backgroundColor = UIColor.secondarySystemBackground
-        solidAppearance.shadowColor = .clear
-
-        UINavigationBar.appearance().scrollEdgeAppearance = transparentAppearance
-        UINavigationBar.appearance().standardAppearance = solidAppearance
-        UINavigationBar.appearance().compactAppearance = solidAppearance
-        UINavigationBar.appearance().compactScrollEdgeAppearance = solidAppearance
-    }
-
+    }    // Removed custom navigation bar appearance to align with Liquid Glass defaults\n
     private func saveSettings() {
         Configuration.selectedDayOverride = selectedDayOverride
         Configuration.setAsToday = setAsToday
@@ -256,7 +225,7 @@ struct TodayView: View {
             HapticManager.shared.playButtonTap()
             isSettingsSheetPresented = true
         } label: {
-            Image(systemName: "calendar.badge.clock")
+            Image(systemName: "ellipsis")
                 .symbolRenderingMode(.hierarchical)
         }
         .disabled(!isAuthenticated)
@@ -278,25 +247,22 @@ struct TodayView: View {
 
     // MARK: - Subviews
     private var headerView: some View {
-        HeaderView(
-            weatherManager: weatherManager,
+        TodayHeaderView(
             greeting: greeting,
             formattedDate: formattedDate,
+            showDateInHeader: false,
             nickname: sessionService.userInfo?.nickname,
             selectedDayOverride: selectedDayOverride,
             isHolidayActive: isHolidayActive(),
             holidayHasEndDate: holidayHasEndDate,
             holidayEndDateString: holidayEndDateString,
             isHolidayMode: isHolidayMode,
-            animateCards: animateCards,
-            weatherSymbol: weatherManager.conditionSymbol,
-            weatherTemperature: weatherManager.currentTemperature,
-            isWeatherLoading: isWeatherLoading
+            animateCards: animateCards
         )
     }
 
     private var mainContentView: some View {
-        MainContentView(
+        TodayMainContentView(
             isAuthenticated: isAuthenticated,
             isHolidayActive: isHolidayActive(),
             isLoading: isLoading,
@@ -468,6 +434,24 @@ struct TodayView: View {
             } else {
                 // Use cached data, no loading needed
                 isLoading = false
+            }
+        } else {
+            // Attempt to restore TSIMS v2 session on cold start to avoid flashing signed-out UI
+            isLoading = true
+            AuthServiceV2.shared.refreshSessionDetailed { result in
+                let authed: Bool
+                switch result {
+                case .valid, .reauthed: authed = true
+                default: authed = false
+                }
+                if authed {
+                    // Proceed with timetable loading if needed
+                    let cacheStatus = self.classtableViewModel.getCacheStatus()
+                    if !cacheStatus.hasValidYearsCache || !cacheStatus.hasValidTimetableCache {
+                        self.classtableViewModel.fetchYears()
+                    }
+                }
+                self.isLoading = false
             }
         }
 
@@ -949,366 +933,5 @@ struct TodayView: View {
             let generator = UIImpactFeedbackGenerator(style: .medium)
             generator.impactOccurred(intensity: isActive ? 0.7 : 1.0)
         #endif
-    }
-}
-
-// MARK: - Supporting Views
-struct HeaderView: View {
-    @ObservedObject var weatherManager: WeatherManager
-
-    let greeting: String
-    let formattedDate: String
-    let nickname: String?
-    let selectedDayOverride: Int?
-    let isHolidayActive: Bool
-    let holidayHasEndDate: Bool
-    let holidayEndDateString: String
-    let isHolidayMode: Bool
-    let animateCards: Bool
-    let weatherSymbol: String
-    let weatherTemperature: String
-    let isWeatherLoading: Bool
-
-    var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 5) {
-                if let nickname = nickname {
-                    Text("\(greeting), \(nickname)")
-                        .font(.title2)
-                        .fontWeight(.bold)
-                } else {
-                    Text("\(greeting)")
-                        .font(.title2)
-                        .fontWeight(.bold)
-                }
-                Text(formattedDate)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                additionalHeaderText
-                    .padding(.top, 2)
-            }
-            Spacer()
-            HStack(spacing: 4) {
-                // Always present to stabilize layout
-                WeatherIconView(conditionSymbol: weatherSymbol)
-                    .font(.subheadline)
-                    .opacity(isWeatherLoading ? 0 : 1)
-                Text(weatherTemperature)
-                    .font(.caption)
-                    .monospacedDigit()
-                    .foregroundStyle(.secondary)
-                    .opacity(isWeatherLoading ? 0 : 1)
-            }
-            .frame(minWidth: 50, alignment: .trailing)
-            .padding(6)
-            .animation(.easeInOut(duration: 0.3), value: isWeatherLoading)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal)
-        .padding(.leading, 3)
-        .offset(y: animateCards ? 0 : 20)
-        .opacity(animateCards ? 1 : 0)
-        .animation(
-            .spring(response: 0.7, dampingFraction: 0.8),
-            value: animateCards
-        )
-    }
-
-    @ViewBuilder
-    private var additionalHeaderText: some View {
-        if let override = selectedDayOverride {
-            HStack {
-                Image(systemName: "calendar.badge.exclamationmark")
-                    .foregroundStyle(.blue)
-                Text("Viewing \(TodayViewHelpers.weekdayName(for: override + 1))'s schedule")
-                    .font(.caption)
-                    .foregroundStyle(.blue)
-            }
-        } else if isHolidayActive && holidayHasEndDate {
-            HStack {
-                Image(systemName: "sun.max.fill")
-                    .foregroundStyle(.orange)
-                Text("Holiday Mode Until \(holidayEndDateString)")
-                    .font(.caption)
-                    .foregroundStyle(.orange)
-            }
-        } else if isHolidayMode {
-            HStack {
-                Image(systemName: "sun.max.fill")
-                    .foregroundStyle(.orange)
-                Text("Holiday Mode Enabled")
-                    .font(.caption)
-                    .foregroundStyle(.orange)
-            }
-        } else {
-            EmptyView()
-        }
-    }
-}
-
-struct MainContentView: View {
-    let isAuthenticated: Bool
-    let isHolidayActive: Bool
-    let isLoading: Bool
-    let upcomingClassInfo:
-        (period: ClassPeriod, classData: String, dayIndex: Int, isForToday: Bool)?
-    let assemblyTime: String
-    let arrivalTime: String
-    let isCurrentDateWeekend: Bool
-    let isHolidayMode: Bool
-    let holidayHasEndDate: Bool
-    let holidayEndDate: Date
-    let classtableViewModel: ClasstableViewModel
-    let effectiveDayIndex: Int
-    let currentTime: Date
-    let setAsToday: Bool
-    let selectedDayOverride: Int?
-    let animateCards: Bool
-    let effectiveDate: Date?
-    let locationManager: LocationManager
-    let isInChinaRegion: Bool
-    let showMapView: Bool
-    let travelTimeToSchool: TimeInterval?
-    let travelDistance: CLLocationDistance?
-    let activeClassLiveActivities: [String: Bool]
-    let toggleLiveActivity: () -> Void
-
-    // Add state to track travel time updates for animations
-    @State private var travelInfoKey = UUID()
-
-    var body: some View {
-        if isAuthenticated {
-            authenticatedContent
-        } else {
-            notAuthenticatedContent
-        }
-    }
-
-    private func animatedCard<Content: View>(
-        delay: Double, @ViewBuilder content: @escaping () -> Content
-    ) -> some View {
-        content()
-            .padding(.horizontal)
-            .offset(y: animateCards ? 0 : 30)
-            .opacity(animateCards ? 1 : 0)
-            .animation(
-                .spring(response: 0.7, dampingFraction: 0.8)
-                    .delay(delay),
-                value: animateCards
-            )
-    }
-
-    @ViewBuilder
-    private var authenticatedContent: some View {
-        // Fixed-size VStack with spacing to prevent jittering
-        VStack(spacing: 20) {
-            // Main class card with fixed height to prevent layout shifts
-            ZStack {
-                if isHolidayActive {
-                    HolidayModeCard(hasEndDate: holidayHasEndDate, endDate: holidayEndDate)
-                        .transition(
-                            .asymmetric(
-                                insertion: .opacity.combined(with: .scale(scale: 0.95)).animation(
-                                    .spring(response: 0.5, dampingFraction: 0.7)),
-                                removal: .opacity.animation(.easeOut(duration: 0.2))
-                            )
-                        )
-                } else if isLoading {
-                    UpcomingClassSkeletonView()
-                        .transition(
-                            .asymmetric(
-                                insertion: .opacity.animation(.easeIn(duration: 0.3)),
-                                removal: .opacity.animation(.easeOut(duration: 0.2))
-                            )
-                        )
-                } else if let upcoming = upcomingClassInfo {
-                    EnhancedClassCard(
-                        day: TodayViewHelpers.weekdayName(for: upcoming.dayIndex + 1),
-                        period: upcoming.period,
-                        classData: upcoming.classData,
-                        currentTime: currentTime,
-                        isForToday: upcoming.isForToday,
-                        setAsToday: setAsToday && selectedDayOverride != nil,
-                        effectiveDate: setAsToday && selectedDayOverride != nil
-                            ? effectiveDate : nil,
-                        hasActiveActivity: activeClassLiveActivities[
-                            "\(upcoming.period.number)_\(upcoming.classData)"] == true,
-                        toggleLiveActivity: toggleLiveActivity
-                    )
-                    .transition(
-                        .asymmetric(
-                            insertion: .opacity.combined(with: .scale(scale: 0.97)).animation(
-                                .spring(response: 0.5, dampingFraction: 0.7)),
-                            removal: .opacity.animation(.easeOut(duration: 0.25))
-                        )
-                    )
-                } else if isCurrentDateWeekend {
-                    WeekendCard()
-                        .transition(
-                            .asymmetric(
-                                insertion: .opacity.combined(with: .scale(scale: 0.97)).animation(
-                                    .spring(response: 0.5, dampingFraction: 0.7)),
-                                removal: .opacity.animation(.easeOut(duration: 0.25))
-                            )
-                        )
-                } else if areClassesOverForToday() {
-                    NoClassCard(isDimmed: true)
-                        .transition(
-                            .asymmetric(
-                                insertion: .opacity.combined(with: .scale(scale: 0.97)).animation(
-                                    .spring(response: 0.5, dampingFraction: 0.7)),
-                                removal: .opacity.animation(.easeOut(duration: 0.25))
-                            )
-                        )
-                } else {
-                    NoClassCard()
-                        .transition(
-                            .asymmetric(
-                                insertion: .opacity.combined(with: .scale(scale: 0.97)).animation(
-                                    .spring(response: 0.5, dampingFraction: 0.7)),
-                                removal: .opacity.animation(.easeOut(duration: 0.25))
-                            )
-                        )
-                }
-            }
-            .padding(.horizontal)
-            .id("ClassCardContainer")  // Fixed ID to help with animations
-            .offset(y: animateCards ? 0 : 30)
-            .opacity(animateCards ? 1 : 0)
-            .animation(
-                .spring(response: 0.7, dampingFraction: 0.8)
-                    .delay(0.1),
-                value: animateCards
-            )
-
-            // Conditionally show map view with user location
-            if showMapView {
-                SchoolMapView(
-                    userLocation: locationManager.userLocation?.coordinate,
-                    isInChina: isInChinaRegion
-                )
-                .padding(.horizontal)
-                .offset(y: animateCards ? 0 : 30)
-                .opacity(animateCards ? 1 : 0)
-                .animation(
-                    .spring(response: 0.7, dampingFraction: 0.8)
-                        .delay(0.15),
-                    value: animateCards
-                )
-            }
-
-            // Always show these cards
-            SchoolInfoCard(
-                assemblyTime: assemblyTime,
-                arrivalTime: arrivalTime,
-                travelInfo: shouldShowTravelInfo()
-                    ? (travelTime: travelTimeToSchool, distance: travelDistance) : nil,
-                isInChina: isInChinaRegion
-            )
-            .padding(.horizontal)
-            .offset(y: animateCards ? 0 : 30)
-            .opacity(animateCards ? 1 : 0)
-            .animation(
-                .spring(response: 0.7, dampingFraction: 0.8)
-                    .delay(0.2),
-                value: animateCards
-            )
-            .id(travelInfoKey)  // Force view recreation when travel info significantly changes
-
-            // Show the schedule card
-            DailyScheduleCard(
-                viewModel: classtableViewModel,  // Changed parameter name from classtableViewModel to viewModel
-                dayIndex: effectiveDayIndex
-            )
-            .padding(.horizontal)
-            .offset(y: animateCards ? 0 : 30)
-            .opacity(animateCards ? 1 : 0)
-            .animation(
-                .spring(response: 0.7, dampingFraction: 0.8)
-                    .delay(0.3),
-                value: animateCards
-            )
-        }
-    }
-
-    @ViewBuilder
-    private var notAuthenticatedContent: some View {
-        SignInPromptCard()
-            .padding(.horizontal)
-            .offset(y: animateCards ? 0 : 30)
-            .opacity(animateCards ? 1 : 0)
-            .animation(
-                .spring(response: 0.7, dampingFraction: 0.8)
-                    .delay(0.1),
-                value: animateCards
-            )
-    }
-
-    private func shouldShowTravelInfo() -> Bool {
-        // Show travel info if user is not near school and we have travel data
-        guard locationManager.userLocation != nil,
-            locationManager.authorizationStatus == .authorizedWhenInUse
-                || locationManager.authorizationStatus == .authorizedAlways,
-            travelTimeToSchool != nil,
-            travelDistance != nil
-        else {
-            return false
-        }
-        return !locationManager.isNearSchool()
-    }
-
-    // Method to check if all classes for today are over
-    private func areClassesOverForToday() -> Bool {
-        // Only check this for weekdays
-        guard !isCurrentDateWeekend, !isHolidayActive, effectiveDayIndex >= 0,
-            effectiveDayIndex <= 4
-        else {
-            return false
-        }
-
-        let now = Date()
-
-        // Get the last period of the day
-        if let lastClassPeriod = ClassPeriodsManager.shared.classPeriods.last?.number,
-            let timetable = classtableViewModel.timetable.isEmpty
-                ? nil : classtableViewModel.timetable,
-            !timetable.isEmpty
-        {
-            // Check if there's any class data for this day
-            if effectiveDayIndex + 1 < timetable[min(lastClassPeriod, timetable.count - 1)].count {
-                // Check if we have any scheduled classes
-                let classes = getScheduledClassesForDay(effectiveDayIndex)
-                if !classes.isEmpty, let lastPeriodNumber = classes.map({ $0.0 }).max(),
-                    let lastPeriod = ClassPeriodsManager.shared.classPeriods.first(where: {
-                        $0.number == lastPeriodNumber
-                    })
-                {
-                    // If current time is after the end time of the last class, all classes are over
-                    return now > lastPeriod.endTime
-                }
-            }
-        }
-
-        return false
-    }
-
-    // Helper to get scheduled classes for a day
-    private func getScheduledClassesForDay(_ dayIndex: Int) -> [(Int, String)] {
-        var classes: [(Int, String)] = []
-        guard !classtableViewModel.timetable.isEmpty, dayIndex >= 0, dayIndex < 5 else {
-            return classes
-        }
-
-        for row in 1..<classtableViewModel.timetable.count {
-            if row < classtableViewModel.timetable.count
-                && dayIndex + 1 < classtableViewModel.timetable[row].count
-            {
-                let classData = classtableViewModel.timetable[row][dayIndex + 1]
-                if !classData.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    classes.append((row, classData))
-                }
-            }
-        }
-        return classes
     }
 }

@@ -189,3 +189,107 @@ class MockUNNotificationSettings: UNNotificationSettings {
         return _authorizationStatus
     }
 }
+
+// MARK: - Additional Unit Tests (NetworkService, SecureStore)
+
+private class MockURLProtocol: URLProtocol {
+    static var responseData: Data?
+    static var statusCode: Int = 200
+    static var responseHeaders: [String: String]? = ["Content-Type": "application/json"]
+    static var error: Error?
+
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+
+    override func startLoading() {
+        if let error = MockURLProtocol.error {
+            client?.urlProtocol(self, didFailWithError: error)
+            return
+        }
+        let url = request.url ?? URL(string: "https://example.com")!
+        let response = HTTPURLResponse(
+            url: url,
+            statusCode: MockURLProtocol.statusCode,
+            httpVersion: nil,
+            headerFields: MockURLProtocol.responseHeaders
+        )!
+        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        if let data = MockURLProtocol.responseData {
+            client?.urlProtocol(self, didLoad: data)
+        }
+        client?.urlProtocolDidFinishLoading(self)
+    }
+
+    override func stopLoading() {}
+}
+
+struct TestDecodable: Codable, Equatable { let message: String }
+
+extension NotificationManagerTests {
+    func testSecureStore_set_get_remove() {
+        let key = "test.keychain.key"
+        let value = "secret-value"
+
+        SecureStore.set(value, for: key)
+        let fetched = SecureStore.get(key)
+        XCTAssertEqual(fetched, value)
+
+        SecureStore.remove(key)
+        let removed = SecureStore.get(key)
+        XCTAssertNil(removed)
+    }
+
+    func testNetworkService_async_success() async throws {
+        guard #available(iOS 15.0, *) else { return }
+
+        // Prepare mocked session
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [MockURLProtocol.self]
+        let session = URLSession(configuration: config)
+        #if DEBUG
+        NetworkService.shared.setSession(session)
+        #endif
+
+        let payload = TestDecodable(message: "ok")
+        let data = try JSONEncoder().encode(payload)
+        MockURLProtocol.responseData = data
+        MockURLProtocol.statusCode = 200
+        MockURLProtocol.error = nil
+
+        let result: TestDecodable = try await NetworkService.shared.requestAsync(
+            endpoint: "test_endpoint.php",
+            method: .post,
+            parameters: ["a": "b"],
+            sessionId: "mockSession"
+        )
+
+        XCTAssertEqual(result, payload)
+    }
+
+    func testNetworkService_async_serverError() async {
+        guard #available(iOS 15.0, *) else { return }
+
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [MockURLProtocol.self]
+        let session = URLSession(configuration: config)
+        #if DEBUG
+        NetworkService.shared.setSession(session)
+        #endif
+
+        MockURLProtocol.responseData = Data("{}".utf8)
+        MockURLProtocol.statusCode = 500
+        MockURLProtocol.error = nil
+
+        do {
+            let _: TestDecodable = try await NetworkService.shared.requestAsync(
+                endpoint: "test_endpoint.php"
+            )
+            XCTFail("Expected to throw NetworkError.serverError")
+        } catch {
+            guard case NetworkError.serverError(let code) = error else {
+                return XCTFail("Unexpected error: \(error)")
+            }
+            XCTAssertEqual(code, 500)
+        }
+    }
+}

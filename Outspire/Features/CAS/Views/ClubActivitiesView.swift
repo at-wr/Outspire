@@ -1,9 +1,7 @@
 import SwiftUI
 import Toasts
 
-#if !targetEnvironment(macCatalyst)
-    import ColorfulX
-#endif
+// Removed ColorfulX usage in favor of system materials
 
 struct ClubActivitiesView: View {
     @EnvironmentObject var sessionService: SessionService
@@ -15,29 +13,11 @@ struct ClubActivitiesView: View {
     @Environment(\.presentToast) var presentToast
     @EnvironmentObject var gradientManager: GradientManager  // Add gradient manager
     @Environment(\.colorScheme) private var colorScheme  // Add color scheme
+    @State private var activitySearch: String = ""
 
     var body: some View {
         // Remove the nested NavigationView
         ZStack {
-            // Background: ColorfulX for iOS, native gradient for Mac Catalyst
-            #if !targetEnvironment(macCatalyst)
-                ColorfulView(
-                    color: $gradientManager.gradientColors,
-                    speed: $gradientManager.gradientSpeed,
-                    noise: $gradientManager.gradientNoise,
-                    transitionSpeed: $gradientManager.gradientTransitionSpeed
-                )
-                .ignoresSafeArea()
-                .opacity(colorScheme == .dark ? 0.1 : 0.3)
-            #else
-                Color(.systemBackground)
-                    .ignoresSafeArea()
-            #endif
-
-            // Semi-transparent background with reduced opacity for better contrast with gradient
-            Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
-                .ignoresSafeArea()
-
             contentView
         }
         .navigationTitle("Activity Records")
@@ -136,13 +116,13 @@ struct ClubActivitiesView: View {
                 viewModel: viewModel,
                 sessionService: sessionService,
                 showingAddRecordSheet: $showingAddRecordSheet,
-                animateList: animateList
+                animateList: animateList,
+                searchText: activitySearch
             )
         }
         .scrollContentBackground(.hidden)
-        .animation(.spring(response: 0.4), value: viewModel.isLoadingActivities)
-        .animation(.spring(response: 0.4), value: viewModel.activities.isEmpty)
-        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: viewModel.errorMessage)
+        // Avoid custom animations; rely on native behavior
+        .searchable(text: $activitySearch, prompt: "Search activities")
         .refreshable(action: handleRefresh)  // Fixed refreshable syntax
     }
 
@@ -269,6 +249,7 @@ struct ActivitiesSection: View {
     let sessionService: SessionService
     @Binding var showingAddRecordSheet: Bool
     let animateList: Bool
+    let searchText: String
     @State private var hasCompletedInitialLoad = false
     @State private var loadAttempted = false
     @Environment(\.presentToast) var presentToast
@@ -320,7 +301,7 @@ struct ActivitiesSection: View {
                 ClubEmptyStateView(action: { showingAddRecordSheet.toggle() })
                     .transition(.scale.combined(with: .opacity))
             } else {
-                ActivitiesList(viewModel: viewModel, animateList: animateList)
+                ActivitiesList(viewModel: viewModel, animateList: animateList, searchText: searchText)
                     .transition(.opacity)
                     .blur(radius: viewModel.isLoadingActivities ? 1.0 : 0)
                     .opacity(viewModel.isLoadingActivities ? 0.7 : 1.0)
@@ -375,21 +356,19 @@ struct ClubEmptyStateView: View {
 struct ActivitiesList: View {
     @ObservedObject var viewModel: ClubActivitiesViewModel
     let animateList: Bool
+    let searchText: String
 
     var body: some View {
-        ForEach(Array(viewModel.activities.enumerated()), id: \.element.id) { index, activity in
+        let filtered = searchText.isEmpty ? viewModel.activities : viewModel.activities.filter { a in
+            a.C_Theme.localizedCaseInsensitiveContains(searchText) ||
+            a.C_Reflection.localizedCaseInsensitiveContains(searchText)
+        }
+        ForEach(Array(filtered.enumerated()), id: \.element.id) { index, activity in
             ActivityCardView(activity: activity, viewModel: viewModel)
                 .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
-                .offset(x: animateList ? 0 : 100)
-                .opacity(animateList ? 1 : 0)
-                .animation(
-                    .spring(response: 0.4, dampingFraction: 0.7)
-                        .delay(Double(index) * 0.05),
-                    value: animateList
-                )
-                .contentTransition(.opacity)
+                .contentTransition(.identity)
         }
     }
 }

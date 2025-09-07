@@ -1,7 +1,5 @@
 import SwiftUI
-#if !targetEnvironment(macCatalyst)
-import ColorfulX
-#endif
+// Removed ColorfulX usage in favor of system materials
 import Toasts
 import QuickLook
 
@@ -49,24 +47,7 @@ struct LunchMenuView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                // Background: ColorfulX for iOS, native gradient for Mac Catalyst
-                #if !targetEnvironment(macCatalyst)
-                ColorfulView(
-                    color: $gradientManager.gradientColors,
-                    speed: $gradientManager.gradientSpeed,
-                    noise: $gradientManager.gradientNoise,
-                    transitionSpeed: $gradientManager.gradientTransitionSpeed
-                )
-                .ignoresSafeArea()
-                .opacity(colorScheme == .dark ? 0.15 : 0.3)
-                #else
-                Color(.systemBackground)
-                    .ignoresSafeArea()
-                #endif
-
-                // Semi-transparent background for better contrast
-                Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
-                    .ignoresSafeArea()
+                // Use system backgrounds/materials
 
                 // Original background - keep for additional system background coloring
                 //                Color(UIColor.systemGroupedBackground)

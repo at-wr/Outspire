@@ -4,6 +4,7 @@ import SwiftUI
 /// Handles one-time migrations that impact authentication state across versions.
 /// For v0.7 and later, force users upgrading from older versions to re-sign in
 /// by clearing legacy PHP sessions and TSIMS v2 credentials/cookies.
+@MainActor
 final class MigrationManager {
     static let shared = MigrationManager()
     private init() {}

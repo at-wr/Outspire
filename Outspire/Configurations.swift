@@ -58,7 +58,12 @@ struct Configuration {
 
     // Toggle: use new TSIMS (v2) server (ASP.NET) instead of legacy PHP backend
     static var useNewTSIMS: Bool {
-        get { UserDefaults.standard.bool(forKey: "useNewTSIMS") }
+        get {
+            // Default to true if not set to move users to the new server by default
+            let defaults = UserDefaults.standard
+            if defaults.object(forKey: "useNewTSIMS") == nil { return true }
+            return defaults.bool(forKey: "useNewTSIMS")
+        }
         set { UserDefaults.standard.set(newValue, forKey: "useNewTSIMS") }
     }
 

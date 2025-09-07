@@ -1,9 +1,7 @@
 import LocalAuthentication
 import SwiftUI
 
-#if !targetEnvironment(macCatalyst)
-    import ColorfulX
-#endif
+// Removed ColorfulX usage in favor of system materials
 
 struct ScoreView: View {
     @StateObject private var viewModel = ScoreViewModel()
@@ -17,20 +15,6 @@ struct ScoreView: View {
 
     var body: some View {
         ZStack {
-            #if !targetEnvironment(macCatalyst)
-                ColorfulView(
-                    color: $gradientManager.gradientColors,
-                    speed: $gradientManager.gradientSpeed,
-                    noise: $gradientManager.gradientNoise,
-                    transitionSpeed: $gradientManager.gradientTransitionSpeed
-                )
-                .ignoresSafeArea()
-                .opacity(colorScheme == .dark ? 0.15 : 0.3)
-
-                Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
-                    .ignoresSafeArea()
-            #endif
-
             // Main content
             if !isAuthenticated {
                 ContentUnavailableView(

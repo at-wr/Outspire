@@ -1,8 +1,6 @@
 import SwiftUI
 
-#if !targetEnvironment(macCatalyst)
-    import ColorfulX
-#endif
+// Removed ColorfulX usage in favor of system materials
 
 struct ClasstableView: View {
     @StateObject private var viewModel = ClasstableViewModel()
@@ -132,21 +130,6 @@ struct ClasstableView: View {
 
     var body: some View {
         ZStack {
-            #if !targetEnvironment(macCatalyst)
-                // ColorfulX as background with higher opacity
-                ColorfulView(
-                    color: $gradientManager.gradientColors,
-                    speed: $gradientManager.gradientSpeed,
-                    noise: $gradientManager.gradientNoise,
-                    transitionSpeed: $gradientManager.gradientTransitionSpeed
-                )
-                .ignoresSafeArea()
-                .opacity(colorScheme == .dark ? 0.07 : 0.3)
-
-                Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
-                    .ignoresSafeArea()
-            #endif
-
             VStack(spacing: 0) {
                 if !isAuthenticated {
                     notLoggedInView
@@ -454,7 +437,8 @@ struct ClasstableView: View {
             HStack(alignment: .top, spacing: 8) {
                 Text("\(row)")
                     .font(.system(size: 14, weight: .semibold))
-                    .frame(width: 25, height: 25)
+                    .monospacedDigit()
+                    .frame(width: 30, height: 30)
                     .padding(.top, 15)
                 if row < viewModel.timetable.count {
                     ForEach(1..<min(viewModel.timetable[row].count, 6), id: \.self) { col in
@@ -465,7 +449,7 @@ struct ClasstableView: View {
             }
             if let period = currentPeriod {
                 HStack(spacing: 8) {
-                    Rectangle().fill(Color.clear).frame(width: 25)
+                    Rectangle().fill(Color.clear).frame(width: 30)
                     Rectangle()
                         .fill(Color.red)
                         .frame(height: 2)

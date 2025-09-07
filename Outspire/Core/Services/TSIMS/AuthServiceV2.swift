@@ -34,6 +34,23 @@ final class AuthServiceV2: ObservableObject {
     private let keyUsername = "v2.username"
     private let keyPassword = "v2.password"
 
+    // Public: Called when app becomes active to proactively refresh session
+    func onAppForegrounded(completion: ((Bool) -> Void)? = nil) {
+        refreshSessionIfNeeded { ok in
+            if ok { self.startKeepAlive() }
+            completion?(ok)
+        }
+    }
+
+    // Classification for detailed refresh outcomes
+    enum RefreshResult {
+        case valid
+        case reauthed
+        case credentialsMissing
+        case wrongCredentials(reason: String)
+        case serverUnavailable(reason: String)
+    }
+
     func login(code: String, password: String, completion: @escaping (Bool, String?) -> Void) {
         // Step 1: Seed ASP.NET session by visiting the login page (sets .AspNetCore.Session)
         guard let loginURL = URL(string: Configuration.tsimsV2BaseURL + "/Home/Login?ReturnUrl=%2F") else {
@@ -238,6 +255,81 @@ final class AuthServiceV2: ObservableObject {
                     self.isAuthenticated = false
                     let reason = message ?? "Re-login failed"
                     NotificationCenter.default.post(name: .tsimsV2ReauthFailed, object: nil, userInfo: ["reason": reason])
+                }
+            }
+        }
+    }
+
+    // Public: Ensure we have a valid session; will try reauth once if needed
+    func refreshSessionIfNeeded(completion: @escaping (Bool) -> Void) {
+        verifySession { ok in
+            if ok {
+                DispatchQueue.main.async {
+                    self.isAuthenticated = true
+                    completion(true)
+                }
+                return
+            }
+            // Attempt reauth using stored credentials
+            guard let code = SecureStore.get(self.keyUsername), let pwd = SecureStore.get(self.keyPassword), !code.isEmpty, !pwd.isEmpty else {
+                DispatchQueue.main.async {
+                    self.isAuthenticated = false
+                    NotificationCenter.default.post(name: .tsimsV2ReauthFailed, object: nil, userInfo: ["reason": "Credentials missing"])
+                    completion(false)
+                }
+                return
+            }
+            self.login(code: code, password: pwd) { ok, _ in
+                DispatchQueue.main.async {
+                    self.isAuthenticated = ok
+                    completion(ok)
+                }
+            }
+        }
+    }
+
+    // Public: Ensure we have a valid session with reasoned outcome (for deep links/UI decisions)
+    func refreshSessionDetailed(completion: @escaping (RefreshResult) -> Void) {
+        verifySession { ok in
+            if ok {
+                DispatchQueue.main.async { completion(.valid) }
+                return
+            }
+            guard let code = SecureStore.get(self.keyUsername), let pwd = SecureStore.get(self.keyPassword), !code.isEmpty, !pwd.isEmpty else {
+                DispatchQueue.main.async { completion(.credentialsMissing) }
+                return
+            }
+
+            // Try login directly to capture wrong-credentials vs server errors
+            TSIMSClientV2.shared.postForm(path: "/Home/Login", form: ["code": code, "password": pwd]) { (result: Result<ApiResponse<V2User>, NetworkError>) in
+                switch result {
+                case .success(let envelope):
+                    if envelope.isSuccess {
+                        // Verify JSON endpoint after login to ensure cookies are set
+                        self.verifySession { ok2 in
+                            DispatchQueue.main.async {
+                                if ok2 {
+                                    self.isAuthenticated = true
+                                    self.startKeepAlive()
+                                    completion(.reauthed)
+                                } else {
+                                    self.isAuthenticated = false
+                                    completion(.serverUnavailable(reason: "Session could not be verified after login"))
+                                }
+                            }
+                        }
+                    } else {
+                        let reason = envelope.message ?? "Invalid username or password"
+                        DispatchQueue.main.async {
+                            self.isAuthenticated = false
+                            completion(.wrongCredentials(reason: reason))
+                        }
+                    }
+                case .failure(let error):
+                    DispatchQueue.main.async {
+                        self.isAuthenticated = false
+                        completion(.serverUnavailable(reason: error.localizedDescription))
+                    }
                 }
             }
         }

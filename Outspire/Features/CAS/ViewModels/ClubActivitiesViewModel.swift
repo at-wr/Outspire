@@ -1,5 +1,6 @@
 import SwiftUI
 
+@MainActor
 class ClubActivitiesViewModel: ObservableObject {
     // MARK: - Published Properties
     @Published var groups: [ClubGroup] = []

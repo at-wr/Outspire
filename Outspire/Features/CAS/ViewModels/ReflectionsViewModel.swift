@@ -30,6 +30,7 @@ enum ReflectionGroup: Identifiable, Hashable {
     }
 }
 
+@MainActor
 class ReflectionsViewModel: ObservableObject {
     // MARK: - Published Properties
     @Published var groups: [ReflectionGroup] = []

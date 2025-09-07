@@ -37,38 +37,36 @@ struct ReflectionCardView: View {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(reflection.C_Title)
-                        .font(.headline)
-                        .foregroundColor(.primary)
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(.primary)
                     Text(formatDate(reflection.C_Date))
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
                 }
                 Spacer()
                 HStack(spacing: 8) {
-                    ForEach(learningOutcomeIcons.indices, id: \.self) { idx in
-                        learningOutcomeIcons[idx]
+                    ForEach(Array(learningOutcomeIcons.enumerated()), id: \.offset) { _, icon in
+                        icon
                             .foregroundColor(.accentColor)
                             .imageScale(.medium)
                     }
                 }
             }
             Text(reflection.C_Summary)
-                .font(.subheadline)
-                .foregroundColor(.secondary)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
                 .lineLimit(2)
         }
         .padding()
         .background(
             RoundedRectangle(cornerRadius: 14)
-                .fill(Color(UIColor.systemBackground))
-                .shadow(color: Color.black.opacity(0.04), radius: 4, x: 0, y: 2)
+                .fill(Color(UIColor.tertiarySystemBackground))
+                .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
         )
         .buttonStyle(PlainButtonStyle())
         .onTapGesture {
             HapticManager.shared.playFeedback(.light)
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                showingDetailSheet = true
-            }
+            showingDetailSheet = true
         }
         .sheet(isPresented: $showingDetailSheet) {
             ReflectionDetailView(reflection: reflection)

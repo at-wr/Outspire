@@ -3,6 +3,7 @@ import SwiftUI
 import Toasts
 import UIKit
 import UserNotifications
+import OSLog
 
 // Create an environment object to manage settings state globally
 class SettingsManager: ObservableObject {
@@ -55,7 +56,7 @@ struct OutspireApp: App {
 
     var body: some Scene {
         WindowGroup {
-            NavSplitView()
+            RootTabView()
                 .environmentObject(sessionService)
                 .environmentObject(locationManager)
                 .environmentObject(regionChecker)
@@ -86,6 +87,9 @@ struct OutspireApp: App {
 
                         // Handle notification scheduling when app becomes active
                         NotificationManager.shared.handleAppBecameActive()
+
+                        // Proactively refresh TSIMS v2 session and restart keep-alive
+                        AuthServiceV2.shared.onAppForegrounded()
 
                         // Also refresh session status if needed
                         if sessionService.isAuthenticated && sessionService.userInfo == nil {
@@ -130,7 +134,7 @@ struct OutspireApp: App {
     private func setupWidgetDataSharing() {
         // Ensure app group container exists
         guard UserDefaults(suiteName: "group.dev.wrye.Outspire") != nil else {
-            print("Failed to access app group container")
+            Log.widget.error("Failed to access app group container")
             return
         }
 
@@ -186,19 +190,36 @@ struct OutspireApp: App {
         // Signal that sheets should be closed
         urlSchemeHandler.closeAllSheets = true
 
-        // Only process URLs when the user is authenticated
-        // or if the URL is for a screen that doesn't require authentication
-        if AuthServiceV2.shared.isAuthenticated || sessionService.isAuthenticated || url.host == "today" {
+        // Always allow Today deep link without auth
+        if url.host == "today" {
             _ = urlSchemeHandler.handleURL(url)
-        } else {
-            // Show login required message
-            urlSchemeHandler.errorMessage = "You need to be signed in to access this feature"
-            urlSchemeHandler.showErrorAlert = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { self.urlSchemeHandler.closeAllSheets = false }
+            return
         }
 
-        // Reset closeAllSheets after a delay
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            self.urlSchemeHandler.closeAllSheets = false
+        // If already authenticated in either system, proceed immediately
+        if AuthServiceV2.shared.isAuthenticated || sessionService.isAuthenticated {
+            _ = urlSchemeHandler.handleURL(url)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { self.urlSchemeHandler.closeAllSheets = false }
+            return
+        }
+
+        // Otherwise, verify/reauth TSIMS v2 before deciding
+        AuthServiceV2.shared.refreshSessionDetailed { result in
+            switch result {
+            case .valid, .reauthed:
+                _ = self.urlSchemeHandler.handleURL(url)
+            case .credentialsMissing:
+                self.urlSchemeHandler.errorMessage = "You need to be signed in to access this feature"
+                self.urlSchemeHandler.showErrorAlert = true
+            case .wrongCredentials(let reason):
+                self.urlSchemeHandler.errorMessage = reason
+                self.urlSchemeHandler.showErrorAlert = true
+            case .serverUnavailable(let reason):
+                self.urlSchemeHandler.errorMessage = "Server unavailable: \(reason)"
+                self.urlSchemeHandler.showErrorAlert = true
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { self.urlSchemeHandler.closeAllSheets = false }
         }
     }
 

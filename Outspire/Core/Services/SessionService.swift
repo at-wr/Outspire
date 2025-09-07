@@ -1,6 +1,7 @@
 import Combine
 import SwiftUI
 
+@MainActor
 class SessionService: ObservableObject {
     @Published var sessionId: String?
     @Published var userInfo: UserInfo?
@@ -15,7 +16,19 @@ class SessionService: ObservableObject {
     static let shared = SessionService()
 
     private init() {
-        self.sessionId = userDefaults.string(forKey: "sessionId")
+        // Migrate sessionId from UserDefaults to Keychain (backward compatible)
+        let defaultsSession = userDefaults.string(forKey: "sessionId")
+        let keychainSession = SecureStore.get("sessionId")
+
+        if let keychainSession, !keychainSession.isEmpty {
+            self.sessionId = keychainSession
+        } else if let defaultsSession, !defaultsSession.isEmpty {
+            // One-time migration: move to Keychain and keep defaults for older builds if needed
+            self.sessionId = defaultsSession
+            SecureStore.set(defaultsSession, for: "sessionId")
+        } else {
+            self.sessionId = nil
+        }
 
         if let storedUserInfo = userDefaults.data(forKey: "userInfo"),
             let user = try? JSONDecoder().decode(UserInfo.self, from: storedUserInfo)
@@ -27,7 +40,9 @@ class SessionService: ObservableObject {
 
     func clearSession() {
         sessionId = nil
+        // Remove from both stores
         userDefaults.removeObject(forKey: "sessionId")
+        SecureStore.remove("sessionId")
         // Don't clear user info to keep the UI consistent
     }
 
@@ -156,6 +171,8 @@ class SessionService: ObservableObject {
 
     private func storeSessionId(_ sessionId: String) {
         self.sessionId = sessionId
+        // Write to Keychain primarily; mirror to defaults for compatibility with very old builds
+        SecureStore.set(sessionId, for: "sessionId")
         userDefaults.set(sessionId, forKey: "sessionId")
     }
 }

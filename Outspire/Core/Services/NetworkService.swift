@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 
 enum HTTPMethod: String {
     case get = "GET"
@@ -39,7 +40,16 @@ enum NetworkError: Error {
 class NetworkService {
     static let shared = NetworkService()
 
-    private init() {}
+    // Allow dependency injection for tests
+    private var session: URLSession
+
+    private init(session: URLSession = .shared) {
+        self.session = session
+    }
+
+    #if DEBUG
+    func setSession(_ session: URLSession) { self.session = session }
+    #endif
 
     // Form URL encoding allowed characters - stricter than .urlQueryAllowed
     private static let formURLEncodedAllowedCharacters: CharacterSet = {
@@ -94,22 +104,21 @@ class NetworkService {
             request.httpBody = paramString.data(using: .utf8)
         }
 
-        URLSession.shared.dataTask(with: request) { data, response, error in
+        session.dataTask(with: request) { data, response, error in
             DispatchQueue.main.async {
                 if let error = error {
                     // Handle connection error
-                    print("Network request failed: \(error.localizedDescription)")
+                    Log.net.error("Network request failed: \(error.localizedDescription, privacy: .public)")
 
                     // Check if this is a timeout or connectivity issue
-                    if let nsError = error as? NSError {
-                        if nsError.domain == NSURLErrorDomain &&
-                            (nsError.code == NSURLErrorTimedOut ||
-                                nsError.code == NSURLErrorCannotConnectToHost ||
-                                nsError.code == NSURLErrorNetworkConnectionLost ||
-                                nsError.code == NSURLErrorNotConnectedToInternet) {
-                            // This is a connectivity issue - check if we should switch servers
-                            ConnectivityManager.shared.handleNetworkRequestFailure(wasUsingSSL: isUsingSSL)
-                        }
+                    let nsError = error as NSError
+                    if nsError.domain == NSURLErrorDomain &&
+                        (nsError.code == NSURLErrorTimedOut ||
+                            nsError.code == NSURLErrorCannotConnectToHost ||
+                            nsError.code == NSURLErrorNetworkConnectionLost ||
+                            nsError.code == NSURLErrorNotConnectedToInternet) {
+                        // This is a connectivity issue - check if we should switch servers
+                        ConnectivityManager.shared.handleNetworkRequestFailure(wasUsingSSL: isUsingSSL)
                     }
 
                     completion(.failure(.requestFailed(error)))
@@ -135,52 +144,66 @@ class NetworkService {
                     let decodedResponse = try JSONDecoder().decode(T.self, from: data)
                     completion(.success(decodedResponse))
                 } catch {
-                    print("Decoding error: \(error)")
+                    Log.net.error("Decoding error: \(String(describing: error), privacy: .public)")
                     completion(.failure(.decodingError(error)))
                 }
             }
         }.resume()
     }
 
-    // MARK: - Reflection API
-    func fetchReflections(groupID: String, completion: @escaping (Result<ReflectionResponse, NetworkError>) -> Void) {
-        guard let sessionId = SessionService.shared.sessionId else {
-            completion(.failure(.unauthorized))
-            return
+    // MARK: - Async/Await variant (non-breaking addition)
+    @available(iOS 15.0, macOS 12.0, *)
+    func requestAsync<T: Decodable>(
+        endpoint: String,
+        method: HTTPMethod = .post,
+        parameters: [String: String]? = nil,
+        sessionId: String? = nil
+    ) async throws -> T {
+        guard let url = URL(string: "\(Configuration.baseURL)/php/\(endpoint)") else {
+            throw NetworkError.invalidURL
         }
-        let parameters = ["groupid": groupID]
-        request(
-            endpoint: "cas_add_reflection.php",
-            parameters: parameters,
-            sessionId: sessionId,
-            completion: completion
-        )
+
+        let isUsingSSL = Configuration.isHttpsProxyEnabled
+
+        var request = URLRequest(url: url)
+        request.httpMethod = method.rawValue
+        request.timeoutInterval = 10.0
+
+        var headers = ["Content-Type": "application/x-www-form-urlencoded"]
+        if let sessionId = sessionId { headers["Cookie"] = "PHPSESSID=\(sessionId)" }
+        request.allHTTPHeaderFields = headers
+
+        if let parameters = parameters {
+            let paramString = parameters.map { key, value -> String in
+                let encodedValue = value.addingPercentEncoding(withAllowedCharacters: Self.formURLEncodedAllowedCharacters) ?? value
+                return "\(key)=\(encodedValue)"
+            }.joined(separator: "&")
+            request.httpBody = paramString.data(using: .utf8)
+        }
+
+        do {
+            let (data, response) = try await session.data(for: request)
+            if let http = response as? HTTPURLResponse, http.statusCode >= 400 {
+                if http.statusCode >= 500 {
+                    await MainActor.run { ConnectivityManager.shared.handleNetworkRequestFailure(wasUsingSSL: isUsingSSL) }
+                }
+                throw NetworkError.serverError(http.statusCode)
+            }
+            let decoded = try JSONDecoder().decode(T.self, from: data)
+            return decoded
+        } catch {
+            let nsError = error as NSError
+            if nsError.domain == NSURLErrorDomain &&
+                (nsError.code == NSURLErrorTimedOut ||
+                 nsError.code == NSURLErrorCannotConnectToHost ||
+                 nsError.code == NSURLErrorNetworkConnectionLost ||
+                 nsError.code == NSURLErrorNotConnectedToInternet) {
+                await MainActor.run { ConnectivityManager.shared.handleNetworkRequestFailure(wasUsingSSL: isUsingSSL) }
+            }
+            if let netErr = error as? NetworkError { throw netErr }
+            throw NetworkError.requestFailed(error)
+        }
     }
 
-    func saveReflection(parameters: [String: String], completion: @escaping (Result<StatusResponse, NetworkError>) -> Void) {
-        guard let sessionId = SessionService.shared.sessionId else {
-            completion(.failure(.unauthorized))
-            return
-        }
-        request(
-            endpoint: "cas_save_reflection.php",
-            parameters: parameters,
-            sessionId: sessionId,
-            completion: completion
-        )
-    }
-
-    func deleteReflection(reflectionID: String, completion: @escaping (Result<StatusResponse, NetworkError>) -> Void) {
-        guard let sessionId = SessionService.shared.sessionId else {
-            completion(.failure(.unauthorized))
-            return
-        }
-        let parameters = ["reflecid": reflectionID]
-        request(
-            endpoint: "cas_delete_reflection.php",
-            parameters: parameters,
-            sessionId: sessionId,
-            completion: completion
-        )
-    }
+    // Legacy reflection API removed (migrated to CASServiceV2)
 }
