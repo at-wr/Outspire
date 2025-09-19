@@ -46,35 +46,16 @@ struct LunchMenuView: View {
 
     var body: some View {
         NavigationStack {
-            ZStack {
-                // Use system backgrounds/materials
-
-                // Original background - keep for additional system background coloring
-                //                Color(UIColor.systemGroupedBackground)
-                //                    .opacity(0.6)
-                //                    .ignoresSafeArea()
-
-                // Content layers
-                Group {
-                    if viewModel.isLoading && viewModel.menuItems.isEmpty {
-                        loadingView
-                            .transition(.opacity.combined(with: .scale(scale: 0.98, anchor: .center)))
-                    } else if isEmptyState {
-                        emptyStateView
-                            .transition(.opacity.combined(with: .scale(scale: 0.98, anchor: .center)))
-                    } else {
-                        contentListView
-                            .transition(.opacity.combined(with: .asymmetric(
-                                insertion: .scale(scale: 0.98, anchor: .top).combined(with: .opacity),
-                                removal: .opacity
-                            )))
-                    }
+            Group {
+                if viewModel.isLoading && viewModel.menuItems.isEmpty {
+                    loadingView
+                } else if isEmptyState {
+                    emptyStateView
+                } else {
+                    listContent
                 }
-                .animation(.spring(response: transitionDuration, dampingFraction: 0.86), value: viewModel.isLoading)
-                .animation(.spring(response: transitionDuration, dampingFraction: 0.86), value: isEmptyState)
             }
             .navigationTitle("Dining Menus")
-            .toolbarBackground(Color(UIColor.secondarySystemBackground))
             .navigationBarTitleDisplayMode(.large)
             .searchable(
                 text: $searchText,
@@ -86,17 +67,15 @@ struct LunchMenuView: View {
 //                    LoadingIndicator(isLoading: viewModel.isLoading)
 //                }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    RefreshButton(isLoading: viewModel.isLoading, rotation: $refreshButtonRotation, action: {
-                        withAnimation {
-                            refreshButtonRotation += 360
+                    RefreshButton(
+                        isLoading: viewModel.isLoading,
+                        rotation: $refreshButtonRotation,
+                        action: {
+                            withAnimation { refreshButtonRotation += 360 }
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            viewModel.refreshData()
                         }
-
-                        // Add subtle haptic feedback
-                        let generator = UIImpactFeedbackGenerator(style: .light)
-                        generator.impactOccurred()
-
-                        viewModel.refreshData()
-                    })
+                    )
                 }
             }
             .sheet(isPresented: $showDetailSheet, onDismiss: {
@@ -149,45 +128,45 @@ struct LunchMenuView: View {
             .id("LunchMenuSkeletonStableID")
     }
 
-    private var contentListView: some View {
-        ScrollView {
-            LazyVStack(spacing: 18) {
-                // Group sections
-                ForEach(filteredGroups) { group in
-                    LunchMenuSection(
-                        group: group,
-                        toggleGroup: { viewModel.toggleGroupExpansion(group.id) },
-                        toggleItem: { viewModel.toggleItemExpansion($0) },
-                        fetchDetail: { viewModel.fetchMenuDetail(for: $0) },
-                        isLoadingDetail: viewModel.isLoadingDetail,
-                        shouldAnimate: viewModel.shouldAnimate,
-                        isSmallScreen: isSmallDevice,
-                        transitionDuration: transitionDuration,
-                        staggerDelay: staggerDelay
-                    )
-                    .id(group.id)
+    private var listContent: some View {
+        List {
+            ForEach(filteredGroups) { group in
+                Section(header: CollapsibleSectionHeader(
+                    title: group.title,
+                    isExpanded: group.isExpanded,
+                    toggle: { viewModel.toggleGroupExpansion(group.id) }
+                )) {
+                    if group.isExpanded {
+                        ForEach(group.items) { item in
+                            LunchMenuItemRow(
+                                item: item,
+                                onToggle: { viewModel.toggleItemExpansion(item.id) },
+                                onOpen: { viewModel.fetchMenuDetail(for: item) },
+                                isLoadingDetail: viewModel.isLoadingDetail
+                            )
+                            .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
+                        }
+                    }
                 }
-
-                if viewModel.currentPage < viewModel.totalPages && !viewModel.isLoading {
-                    loadMoreIndicator
-                }
+                .id(group.id)
             }
-            .padding()
+
+            if viewModel.currentPage < viewModel.totalPages && !viewModel.isLoading {
+                loadMoreRow
+            }
         }
+        .listStyle(.plain)
         .scrollDismissesKeyboard(.immediately)
-        .refreshable {
-            await performRefresh()
-        }
+        .refreshable { await performRefresh() }
     }
 
-    private var loadMoreIndicator: some View {
-        ProgressView("Loading more...")
-            .padding()
-            .onAppear {
-                viewModel.fetchNextPage()
-            }
-            .opacity(0.8)
-            .transition(.opacity.combined(with: .move(edge: .bottom)))
+    private var loadMoreRow: some View {
+        HStack {
+            Spacer()
+            ProgressView("Loading more…")
+            Spacer()
+        }
+        .onAppear { viewModel.fetchNextPage() }
     }
 
     private var emptyStateView: some View {
@@ -406,6 +385,69 @@ struct LunchMenuSection: View {
                 : .spring(response: 0.5, dampingFraction: 0.8).delay(transitionDuration * 0.2),
             value: shouldAnimate
         )
+    }
+}
+
+// Modern collapsible section header for List/Section
+private struct CollapsibleSectionHeader: View {
+    let title: String
+    let isExpanded: Bool
+    let toggle: () -> Void
+
+    var body: some View {
+        Button(action: toggle) {
+            HStack {
+                Text(title)
+                    .font(AppText.body.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// List row using DisclosureGroup to expand details
+private struct LunchMenuItemRow: View {
+    let item: LunchMenuItem
+    let onToggle: () -> Void
+    let onOpen: () -> Void
+    let isLoadingDetail: Bool
+
+    var body: some View {
+        DisclosureGroup(
+            isExpanded: .init(
+                get: { item.isExpanded },
+                set: { _ in onToggle() }
+            )
+        ) {
+            VStack(alignment: .leading, spacing: 8) {
+                Button(action: onOpen) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "doc.viewfinder").font(.caption)
+                        Text("View Menu PDF")
+                    }
+                }
+                .buttonStyle(.bordered)
+                .tint(.accentColor)
+                .controlSize(.regular)
+                .disabled(isLoadingDetail)
+            }
+            .padding(.top, 6)
+        } label: {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(item.title)
+                    .font(AppText.body.weight(.semibold))
+                    .lineLimit(2)
+                Text(item.publishDate)
+                    .font(AppText.meta)
+                    .foregroundStyle(.secondary)
+            }
+        }
     }
 }
 

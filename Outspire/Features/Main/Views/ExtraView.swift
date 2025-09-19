@@ -6,7 +6,7 @@ struct ExtraView: View {
 
     var body: some View {
         List {
-            Section("Explore") {
+            Section {
                 NavigationLink(destination: SchoolArrangementView()) {
                     Label("School Arrangements", systemImage: "calendar.badge.clock")
                 }
@@ -33,7 +33,7 @@ struct ExtraView: View {
                 }
             }
         }
-        .navigationTitle("Search")
+        .navigationTitle("Explore")
         .navigationBarTitleDisplayMode(.large)
         .searchable(text: $query, prompt: "Search")
         .listStyle(.insetGrouped)
