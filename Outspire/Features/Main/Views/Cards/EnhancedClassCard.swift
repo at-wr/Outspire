@@ -448,10 +448,22 @@ struct EnhancedClassCard: View {
 
     // Add this helper method to find the next period:
     private func findNextPeriodToday(after currentPeriod: ClassPeriod, on date: Date) -> ClassPeriod? {
-        return ClassPeriodsManager.shared.classPeriods
+        let calendar = Calendar.current
+        let weekday = calendar.component(.weekday, from: date)
+
+        let nextPossiblePeriods = ClassPeriodsManager.shared.classPeriods
             .filter { $0.number > currentPeriod.number }
             .sorted { $0.number < $1.number }
-            .first
+
+        guard let potentialNextPeriod = nextPossiblePeriods.first else {
+            return nil
+        }
+
+        if potentialNextPeriod.number == 9 && (weekday == 2 || weekday == 6) {
+            return nil
+        }
+        
+        return potentialNextPeriod
     }
 
     // Helper function to update the gradient when this card is displayed

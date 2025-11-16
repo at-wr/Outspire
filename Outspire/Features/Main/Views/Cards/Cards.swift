@@ -222,7 +222,12 @@ struct DailyScheduleCard: View {
         guard !viewModel.timetable.isEmpty else { return [] }
 
         let maxRow = min(viewModel.timetable.count, maxPeriodsForDay + 1)
-        return (1..<maxRow).compactMap { row in
+        return (1..<maxRow).compactMap { row -> ClassPeriodItem? in
+            
+            if row == 9 && (dayIndex == 0 || dayIndex == 4) {
+                return nil
+            }
+            
             guard row < viewModel.timetable.count && dayIndex + 1 < viewModel.timetable[row].count else {
                 return nil
             }
