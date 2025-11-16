@@ -1,9 +1,7 @@
 import LocalAuthentication
 import SwiftUI
 
-#if !targetEnvironment(macCatalyst)
-import ColorfulX
-#endif
+// Removed ColorfulX usage in favor of system materials
 
 struct ScoreView: View {
     @StateObject private var viewModel = ScoreViewModel()
@@ -11,27 +9,14 @@ struct ScoreView: View {
     @State private var animateIn = false
     @State private var refreshButtonRotation = 0.0
     @EnvironmentObject private var sessionService: SessionService
+    @ObservedObject private var authV2 = AuthServiceV2.shared
     @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject var gradientManager: GradientManager
 
     var body: some View {
         ZStack {
-            #if !targetEnvironment(macCatalyst)
-            ColorfulView(
-                color: $gradientManager.gradientColors,
-                speed: $gradientManager.gradientSpeed,
-                noise: $gradientManager.gradientNoise,
-                transitionSpeed: $gradientManager.gradientTransitionSpeed
-            )
-            .ignoresSafeArea()
-            .opacity(colorScheme == .dark ? 0.15 : 0.3)
-
-            Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
-                .ignoresSafeArea()
-            #endif
-
             // Main content
-            if !sessionService.isAuthenticated {
+            if !isAuthenticated {
                 ContentUnavailableView(
                     "Authentication Required",
                     systemImage: "person.crop.circle.badge.exclamationmark",
@@ -55,13 +40,13 @@ struct ScoreView: View {
             updateGradientForScoreView()
 
             // Force a reset to the most recent term when the view appears
-            if sessionService.isAuthenticated && viewModel.isUnlocked {
+            if isAuthenticated && viewModel.isUnlocked {
                 viewModel.selectMostRecentTerm()
             }
         }
         .task {
             // This ensures initialization happens correctly when switching tabs
-            if sessionService.isAuthenticated {
+            if isAuthenticated {
                 if !viewModel.isUnlocked {
                     viewModel.authenticate()
                 } else if viewModel.terms.isEmpty {
@@ -78,7 +63,7 @@ struct ScoreView: View {
             }
         }
         // Using a unique ID ensures the view is properly recreated when switching tabs
-        .id("scoreView-\(sessionService.isAuthenticated)-\(viewModel.isUnlocked)")
+        .id("scoreView-\(isAuthenticated)-\(viewModel.isUnlocked)")
     }
 
     private var notLoggedInView: some View {
@@ -155,7 +140,8 @@ struct ScoreView: View {
                                                 viewModel.selectedTermId = term.W_YearID
 
                                                 // Save the selected term ID to make this choice persistent
-                                                UserDefaults.standard.set(term.W_YearID, forKey: "selectedTermId")
+                                                UserDefaults.standard.set(
+                                                    term.W_YearID, forKey: "selectedTermId")
 
                                                 // Scroll to make selected term visible
                                                 withAnimation {
@@ -292,7 +278,7 @@ struct ScoreView: View {
                             }
                             .opacity(animateIn ? 0.7 : 0)
                             .animation(.easeIn.delay(0.5), value: animateIn)
-                            .id(viewModel.lastUpdateTime) // This ensures the view updates when the time changes
+                            .id(viewModel.lastUpdateTime)  // This ensures the view updates when the time changes
                         }
                     }
                     .padding(.top)
@@ -318,7 +304,8 @@ struct ScoreView: View {
             // Error toast overlay - for network errors only, not for empty terms
             // Only show the overlay for actual errors, not for informational messages
             if let errorMessage = viewModel.errorMessage,
-               errorMessage.starts(with: "Failed") {
+                errorMessage.starts(with: "Failed")
+            {
                 VStack {
                     Spacer()  // Push error to bottom
 
@@ -367,7 +354,8 @@ struct ScoreView: View {
 
             // Check if there's stale data that needs refreshing
             if !viewModel.scores.isEmpty && !viewModel.isLoading
-                && !viewModel.isCacheValid(for: "scoresCacheTimestamp-\(viewModel.selectedTermId)") {
+                && !viewModel.isCacheValid(for: "scoresCacheTimestamp-\(viewModel.selectedTermId)")
+            {
                 // Silently refresh data if cache is stale
                 viewModel.fetchScores(forceRefresh: true)
             }
@@ -425,15 +413,9 @@ struct ScoreView: View {
 
     private var toolbarItems: some ToolbarContent {
         Group {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                if viewModel.isLoading || viewModel.isLoadingTerms {
-                    ProgressView()
-                        .controlSize(.small)
-                }
-            }
-
-            ToolbarItem(placement: .navigationBarTrailing) {
+            ToolbarItem(placement: .primaryAction) {
                 Button(action: {
+                    HapticManager.shared.playRefresh()
                     withAnimation {
                         refreshButtonRotation += 360
                     }
@@ -455,15 +437,18 @@ struct ScoreView: View {
                         }
                     }
                 }) {
-                    Image(systemName: "arrow.clockwise")
-                        .rotationEffect(.degrees(refreshButtonRotation))
-                        .animation(
-                            .spring(response: 0.6, dampingFraction: 0.5),
-                            value: refreshButtonRotation)
+                    Label {
+                        Text("Refresh")
+                    } icon: {
+                        Image(systemName: "arrow.clockwise")
+                    }
+                    .rotationEffect(.degrees(refreshButtonRotation))
+                    .animation(
+                        .spring(response: 0.6, dampingFraction: 0.5),
+                        value: refreshButtonRotation)
                 }
                 .disabled(
-                    !sessionService.isAuthenticated || viewModel.isLoading
-                        || viewModel.isLoadingTerms)
+                    !isAuthenticated || viewModel.isLoading || viewModel.isLoadingTerms)
             }
         }
     }
@@ -474,6 +459,12 @@ struct ScoreView: View {
     }
 }
 
+extension ScoreView {
+    private var isAuthenticated: Bool {
+        return authV2.isAuthenticated
+    }
+}
+
 struct TermButton: View {
     let term: Term
     let isSelected: Bool
@@ -481,7 +472,10 @@ struct TermButton: View {
     let hasData: Bool  // We'll keep this parameter but not use it visually
 
     var body: some View {
-        Button(action: action) {
+        Button(action: {
+            HapticManager.shared.playSelectionFeedback()
+            action()
+        }) {
             VStack(spacing: 4) {
                 Text(term.W_Year)
                     .font(.system(size: 15, weight: isSelected ? .semibold : .regular))

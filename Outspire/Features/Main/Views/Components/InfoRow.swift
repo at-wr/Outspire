@@ -17,10 +17,10 @@ struct InfoRow: View {
                         .fill(color.opacity(0.1))
                 )
             Text(title)
-                .font(.subheadline)
+                .font(AppText.body)
             Spacer()
             Text(value)
-                .font(.subheadline)
+                .font(AppText.body)
                 .foregroundStyle(.secondary)
         }
     }

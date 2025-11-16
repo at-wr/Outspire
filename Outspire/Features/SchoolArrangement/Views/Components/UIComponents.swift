@@ -19,9 +19,13 @@ struct RefreshButton: View {
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: "arrow.clockwise")
-                .rotationEffect(.degrees(rotation))
-                .animation(.spring(response: 0.6, dampingFraction: 0.5), value: rotation)
+            Label {
+                Text("Refresh")
+            } icon: {
+                Image(systemName: "arrow.clockwise")
+                    .rotationEffect(.degrees(rotation))
+                    .animation(.spring(response: 0.6, dampingFraction: 0.5), value: rotation)
+            }
         }
         .disabled(isLoading)
     }

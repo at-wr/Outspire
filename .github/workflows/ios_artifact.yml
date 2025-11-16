@@ -12,22 +12,32 @@ jobs:
     - name: Checkout Repository
       uses: actions/checkout@v4
 
+    - name: Install SwiftLint and SwiftFormat
+      run: |
+        brew bundle --version || true
+        brew install swiftlint swiftformat
+    - name: Run SwiftFormat (lint only)
+      run: swiftformat --lint .
+    - name: Run SwiftLint
+      run: swiftlint
+
     - name: Set up Xcode
       run: sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
 
     - name: Build Xcode Archive (Without Signing)
       run: |
-        xcodebuild -workspace Outspire.swiftpm \
-                   -scheme "Outspire" \
-                   PRODUCT_BUNDLE_IDENTIFIER="dev.wrye.Outspire" \
-                   -sdk iphoneos \
-                   -destination 'platform=iOS' \
-                   -configuration Release \
-                   archive \
-                   -archivePath ./build/Outspire.xcarchive \
-                   CODE_SIGN_IDENTITY="" \
-                   CODE_SIGNING_REQUIRED=NO \
-                   CODE_SIGNING_ALLOWED=NO
+        xcodebuild \
+          -project Outspire.xcodeproj \
+          -scheme "Outspire" \
+          PRODUCT_BUNDLE_IDENTIFIER="dev.wrye.Outspire" \
+          -sdk iphoneos \
+          -destination 'platform=iOS' \
+          -configuration Release \
+          archive \
+          -archivePath ./build/Outspire.xcarchive \
+          CODE_SIGN_IDENTITY="" \
+          CODE_SIGNING_REQUIRED=NO \
+          CODE_SIGNING_ALLOWED=NO
 
     - name: Pack iOS App Package
       run: |

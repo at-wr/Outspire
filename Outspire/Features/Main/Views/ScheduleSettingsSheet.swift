@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ScheduleSettingsSheet: View {
     @EnvironmentObject var sessionService: SessionService
+    @ObservedObject private var authV2 = AuthServiceV2.shared
     @Binding var selectedDay: Int?
     @Binding var setAsToday: Bool
     @Binding var isHolidayMode: Bool
@@ -31,7 +32,8 @@ struct ScheduleSettingsSheet: View {
 
     var body: some View {
         NavigationStack {
-            if !sessionService.isAuthenticated {
+            // Accept either legacy session or V2 cookie auth
+            if !(sessionService.isAuthenticated || authV2.isAuthenticated) {
                 VStack(spacing: 20) {
                     Image(systemName: "lock.fill")
                         .font(.system(size: 50))
@@ -45,6 +47,7 @@ struct ScheduleSettingsSheet: View {
                         .foregroundStyle(.secondary)
 
                     Button("Close") {
+                        HapticManager.shared.playButtonTap()
                         dismiss()
                     }
                     .buttonStyle(.borderedProminent)
@@ -58,13 +61,15 @@ struct ScheduleSettingsSheet: View {
                     // Day selection section
                     Section(header: Text("Day Selection")) {
                         Button {
+                            HapticManager.shared.playSelectionFeedback()
                             selectedDay = nil
                             isHolidayMode = false
                             setAsToday = false
 
                         } label: {
                             HStack {
-                                if !isCurrentDayWeekend && currentWeekday >= 0 && currentWeekday < 5 {
+                                if !isCurrentDayWeekend && currentWeekday >= 0 && currentWeekday < 5
+                                {
                                     Text("Today (\(dayName(for: currentWeekday)))")
                                 } else {
                                     Text("Today")
@@ -84,6 +89,7 @@ struct ScheduleSettingsSheet: View {
                                 EmptyView()
                             } else {
                                 Button {
+                                    HapticManager.shared.playSelectionFeedback()
                                     selectedDay = index
                                     isHolidayMode = false
 
@@ -107,7 +113,8 @@ struct ScheduleSettingsSheet: View {
                         Section(header: Text("View Mode")) {
                             Toggle("Set as Current Day", isOn: $setAsToday)
                                 .foregroundStyle(.primary)
-                                .onChange(of: setAsToday) { newValue in
+                                .onChange(of: setAsToday) { _, newValue in
+                                    HapticManager.shared.playToggle()
                                     Configuration.setAsToday = newValue
                                 }
                         }
@@ -119,7 +126,8 @@ struct ScheduleSettingsSheet: View {
                             Label("Enable Holiday Mode", systemImage: "sun.max.fill")
                                 .foregroundStyle(isHolidayMode ? .orange : .primary)
                         }
-                        .onChange(of: isHolidayMode) { enabled in
+                        .onChange(of: isHolidayMode) { _, enabled in
+                            HapticManager.shared.playToggle()
                             if enabled {
                                 selectedDay = nil
                                 setAsToday = false
@@ -128,6 +136,9 @@ struct ScheduleSettingsSheet: View {
 
                         if isHolidayMode {
                             Toggle("Set End Date", isOn: $holidayHasEndDate)
+                                .onChange(of: holidayHasEndDate) { _, _ in
+                                    HapticManager.shared.playToggle()
+                                }
                             if holidayHasEndDate {
                                 DatePicker(
                                     "Holiday Ends",
@@ -141,13 +152,18 @@ struct ScheduleSettingsSheet: View {
 
                     // Display options
                     Section(header: Text("Display Options")) {
-                        Toggle("Show Countdown for Future Classes", isOn: $showCountdownForFutureClasses)
-                            .onChange(of: showCountdownForFutureClasses) { newValue in
-                                Configuration.showCountdownForFutureClasses = newValue
-                            }
+                        Toggle(
+                            "Show Countdown for Future Classes",
+                            isOn: $showCountdownForFutureClasses
+                        )
+                        .onChange(of: showCountdownForFutureClasses) { _, newValue in
+                            HapticManager.shared.playToggle()
+                            Configuration.showCountdownForFutureClasses = newValue
+                        }
 
                         Toggle("Hide Map When at School", isOn: $manuallyHideMapAtSchool)
-                            .onChange(of: manuallyHideMapAtSchool) { newValue in
+                            .onChange(of: manuallyHideMapAtSchool) { _, newValue in
+                                HapticManager.shared.playToggle()
                                 Configuration.manuallyHideMapAtSchool = newValue
                             }
                     }
@@ -155,13 +171,15 @@ struct ScheduleSettingsSheet: View {
                     // Debug section
                     Section(header: Text("Developer Options")) {
                         Toggle("Override Map View Display", isOn: $debugOverrideMapView)
-                            .onChange(of: debugOverrideMapView) { newValue in
+                            .onChange(of: debugOverrideMapView) { _, newValue in
+                                HapticManager.shared.playToggle()
                                 Configuration.debugOverrideMapView = newValue
                             }
 
                         if debugOverrideMapView {
                             Toggle("Show Map View", isOn: $debugShowMapView)
-                                .onChange(of: debugShowMapView) { newValue in
+                                .onChange(of: debugShowMapView) { _, newValue in
+                                    HapticManager.shared.playToggle()
                                     Configuration.debugShowMapView = newValue
                                 }
                         }
@@ -173,6 +191,7 @@ struct ScheduleSettingsSheet: View {
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button("Done") {
+                            HapticManager.shared.playButtonTap()
                             isPresented = false
                         }
                     }

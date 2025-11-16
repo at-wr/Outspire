@@ -2,8 +2,9 @@ import SwiftUI
 
 struct SettingsView: View {
     @Binding var showSettingsSheet: Bool
+    // When presented modally, show a close button. Default false for normal navigation.
+    var isModal: Bool = false
     @EnvironmentObject var sessionService: SessionService
-    @State private var navigationPath = NavigationPath()
     @State private var viewRefreshID = UUID()
     @State private var showOnboardingSheet = false
 
@@ -14,33 +15,36 @@ struct SettingsView: View {
         case gradients
         case about
         case license
-
+        #if DEBUG
+            case cache
+        #endif
     }
 
     var body: some View {
-        NavigationStack(path: $navigationPath) {
-            List {
+        List {
                 // Account section
                 Section {
-                    NavigationLink(value: SettingsMenu.account) {
+                    NavigationLink(destination: destinationView(for: .account)) {
                         ProfileHeaderView()
                     }
                 }
 
                 // General settings section
                 Section {
-                    NavigationLink(value: SettingsMenu.general) {
+                    NavigationLink(destination: destinationView(for: .general)) {
                         MenuItemView(item: .general)
                     }
-                    NavigationLink(value: SettingsMenu.notifications) {
+                    NavigationLink(destination: destinationView(for: .notifications)) {
                         MenuItemView(item: .notifications)
                     }
-                    ForEach(SettingsMenu.allCases, id: \.self) { item in
-                        if item != .account && item != .general && item != .notifications {
-                            NavigationLink(value: item) {
-                                MenuItemView(item: item)
-                            }
-                        }
+                    NavigationLink(destination: destinationView(for: .gradients)) {
+                        MenuItemView(item: .gradients)
+                    }
+                    NavigationLink(destination: destinationView(for: .about)) {
+                        MenuItemView(item: .about)
+                    }
+                    NavigationLink(destination: destinationView(for: .license)) {
+                        MenuItemView(item: .license)
                     }
                 }
 
@@ -48,18 +52,23 @@ struct SettingsView: View {
                 Section {
                     ShareLink(
                         item: URL(string: "https://apps.apple.com/us/app/outspire/id6743143348")!,
-                        message: Text("\nCheck out Outspire, an app that makes your WFLA life easier!\nWidgets, Class countdowns, CAS... \n\nDownload now on the App Store.")
+                        message: Text(
+                            "\nCheck out Outspire, an app that makes your WFLA life easier!\nWidgets, Class countdowns, CAS... \n\nDownload now on the App Store."
+                        )
                     ) {
-                        Label("Spread the Love", systemImage: "square.and.arrow.up")
+                        Label("Share Outspire", systemImage: "square.and.arrow.up")
                             .foregroundStyle(.primary)
                     }
 
                     Link(destination: URL(string: "https://outspire.wrye.dev")!) {
-                        Label("Visit our Website", systemImage: "globe")
+                        Label("Website", systemImage: "globe")
                             .foregroundStyle(.primary)
                     }
 
-                    Link(destination: URL(string: "https://github.com/at-wr/Outspire/issues/new/choose")!) {
+                    Link(
+                        destination: URL(
+                            string: "https://github.com/at-wr/Outspire/issues/new/choose")!
+                    ) {
                         Label("Report an Issue", systemImage: "exclamationmark.bubble")
                             .foregroundStyle(.primary)
                     }
@@ -67,52 +76,53 @@ struct SettingsView: View {
                 }
 
                 #if DEBUG
-                Section {
-                    Button("View Onboarding") {
-                        showOnboardingSheet = true
+                    Section("Debug Tools") {
+                        Button("View Onboarding") {
+                            HapticManager.shared.playButtonTap()
+                            showOnboardingSheet = true
+                        }
+                        .foregroundStyle(.blue)
+
+                        NavigationLink(destination: CacheStatusView()) {
+                            Label("Cache Status", systemImage: "externaldrive")
+                                .foregroundStyle(.primary)
+                        }
                     }
-                    .foregroundStyle(.blue)
-                }
                 #endif
-            }
-            .id(viewRefreshID)
-            .navigationTitle("Settings")
-            .toolbarBackground(Color(UIColor.secondarySystemBackground))
-            .toolbar {
+        }
+        .id(viewRefreshID)
+        .navigationTitle("Settings")
+        .navigationBarTitleDisplayMode(.large)
+        .toolbarBackground(Color(UIColor.secondarySystemBackground))
+        .toolbar {
+            if isModal {
                 Button(action: {
+                    HapticManager.shared.playButtonTap()
                     showSettingsSheet = false
                 }) {
                     #if targetEnvironment(macCatalyst)
-                    Text("Close")
-                        .font(.system(size: 14, weight: .medium))
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(Color(.tertiarySystemFill))
-                        .cornerRadius(6)
-                        .foregroundStyle(.primary)
+                        Text("Close")
+                            .font(.system(size: 14, weight: .medium))
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(Color(.tertiarySystemFill))
+                            .cornerRadius(6)
+                            .foregroundStyle(.primary)
                     #else
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.title2)
-                        .foregroundStyle(.secondary)
+                        Image(systemName: "xmark")
+                            .foregroundStyle(.secondary)
                     #endif
                 }
             }
-            .navigationDestination(for: SettingsMenu.self) { destination in
-                destinationView(for: destination)
-            }
-            .onReceive(NotificationCenter.default.publisher(for: Notification.Name.authenticationStatusChanged)) { notification in
-                DispatchQueue.main.async {
-                    viewRefreshID = UUID()
-                    if let action = notification.userInfo?["action"] as? String {
-                        if action == "logout" || action == "signedin" {
-                            navigationPath = NavigationPath()
-                        }
-                    }
-                }
-            }
-            .sheet(isPresented: $showOnboardingSheet) {
-                OnboardingView(isPresented: $showOnboardingSheet)
-            }
+        }
+        .onReceive(
+            NotificationCenter.default.publisher(
+                for: Notification.Name.authenticationStatusChanged)
+        ) { _ in
+            DispatchQueue.main.async { viewRefreshID = UUID() }
+        }
+        .sheet(isPresented: $showOnboardingSheet) {
+            OnboardingView(isPresented: $showOnboardingSheet)
         }
     }
 
@@ -131,25 +141,23 @@ struct SettingsView: View {
             AboutView()
         case .license:
             LicenseView()
-
+        #if DEBUG
+            case .cache:
+                CacheStatusView()
+        #endif
         }
     }
 }
 
-// AccountWithNavigation remains unchanged
 struct AccountWithNavigation: View {
-    @StateObject private var viewModel = AccountViewModel()
     @EnvironmentObject var sessionService: SessionService
 
     var body: some View {
-        AccountView(viewModel: viewModel)
-            .navigationTitle(sessionService.isAuthenticated ? "Account" : "Sign In")
-            .navigationBarTitleDisplayMode(.large)
-            .toolbarBackground(Color(UIColor.secondarySystemBackground))
-            .onAppear {
-                if !sessionService.isAuthenticated && viewModel.captchaImageData == nil {
-                    viewModel.fetchCaptchaImage()
-                }
-            }
+        Group {
+            AccountV2View()
+        }
+        .navigationTitle("Account")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(Color(UIColor.secondarySystemBackground))
     }
 }

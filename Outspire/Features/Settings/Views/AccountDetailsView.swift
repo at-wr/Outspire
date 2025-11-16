@@ -2,15 +2,12 @@ import SwiftUI
 
 struct AccountDetailsView: View {
     @EnvironmentObject var sessionService: SessionService
-    @StateObject private var viewModel = AccountViewModel()
+    // Legacy AccountViewModel removed; V2 view is used exclusively
 
     var body: some View {
-        AccountView(viewModel: viewModel)
-            .navigationTitle(sessionService.isAuthenticated ? "Account Details" : "Account")
-            .onAppear {
-                if !sessionService.isAuthenticated && viewModel.captchaImageData == nil {
-                    viewModel.fetchCaptchaImage()
-                }
-            }
+        Group {
+            AccountV2View()
+        }
+        .navigationTitle("Account")
     }
 }

@@ -77,7 +77,6 @@ class ScoreViewModel: ObservableObject {
     // Track terms with available data
     @Published var termsWithData: Set<String> = []
 
-    private let sessionService = SessionService.shared
     private let cacheDuration: TimeInterval = 300
 
     init() {
@@ -270,43 +269,28 @@ class ScoreViewModel: ObservableObject {
 
     func fetchTerms(forceRefresh: Bool = false) {
         if !forceRefresh && !terms.isEmpty && isCacheValid(for: "termsCacheTimestamp") {
-            if selectedTermId.isEmpty {
-                // Always prioritize the most recent term regardless of data availability
-                if let mostRecentTerm = findMostRecentTerm(from: terms) {
-                    selectedTermId = mostRecentTerm
-                }
-            }
+            if selectedTermId.isEmpty, let first = terms.first { selectedTermId = first.W_YearID }
             fetchScores()
             return
         }
 
         isLoadingTerms = true
-        // Clear error message when starting to fetch
         errorMessage = nil
 
-        NetworkService.shared.request(
-            endpoint: "init_term_dropdown.php",
-            sessionId: sessionService.sessionId
-        ) { [weak self] (result: Result<[Term], NetworkError>) in
+        TimetableServiceV2.shared.fetchYearOptions { [weak self] result in
             guard let self = self else { return }
-
             DispatchQueue.main.async {
                 self.isLoadingTerms = false
-
                 switch result {
-                case .success(let terms):
-                    self.terms = terms
-                    self.cacheTerms(terms)
-
-                    // Always select the most recent term
-                    if let mostRecentTerm = self.findMostRecentTerm(from: terms) {
-                        self.selectedTermId = mostRecentTerm
-                    }
-
+                case .success(let years):
+                    // Map YearOption -> Term (use W_Term = "All")
+                    let mapped: [Term] = years.map { Term(W_YearID: $0.id, W_Year: $0.name, W_Term: "All") }
+                    self.terms = mapped
+                    self.cacheTerms(mapped)
+                    if let first = mapped.first { self.selectedTermId = first.W_YearID }
                     self.fetchScores()
-
                 case .failure(let error):
-                    self.errorMessage = "Failed to load terms: \(error.localizedDescription)"
+                    self.errorMessage = "Failed to load years: \(error.localizedDescription)"
                 }
             }
         }
@@ -323,51 +307,39 @@ class ScoreViewModel: ObservableObject {
             return
         }
 
-        // Set loading state first, before clearing scores
         isLoading = true
+        errorMessage = nil
 
-        // Small delay before clearing scores to minimize layout jumps
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            // Clear any error message from previous requests - this will be set again if the request fails
-            self.errorMessage = nil
-            // Clear scores while loading - do this after a short delay to prevent layout jumps
-            self.scores = []
-        }
-
-        UserDefaults.standard.set(selectedTermId, forKey: "selectedTermId")
-
-        let parameters = ["yearID": selectedTermId]
-
-        // Using custom responseHandler to handle null responses properly
-        fetchScoresWithNullHandling(parameters: parameters) { [weak self] result in
+        ScoreServiceV2.shared.fetchScores(yearId: selectedTermId) { [weak self] result in
             guard let self = self else { return }
-
             DispatchQueue.main.async {
-                // Small delay before updating UI to ensure smooth transitions
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                    self.isLoading = false
-
-                    switch result {
-                    case .success(let scores):
-                        withAnimation {
-                            self.scores = scores
-                            // Update the last update time when new scores are fetched
-                            self.lastUpdateTime = Date()
-                            self.updateFormattedTimestamp()
-                            self.cacheScores(for: self.selectedTermId, scores: scores)
-
-                            // If scores are empty, show a contextual message based on term date
-                            if scores.isEmpty {
-                                self.determineEmptyScoreMessage(for: self.selectedTermId)
-                            } else {
-                                // Clear any error message if scores loaded successfully
-                                self.errorMessage = nil
-                            }
-                        }
-                    case .failure(let error):
-                        // Show error message
-                        self.errorMessage = "Failed to load scores: \(error.localizedDescription)"
+                self.isLoading = false
+                switch result {
+                case .success(let items):
+                    // Map v2 scores into legacy Score model (fill only first slot)
+                    let mapped: [Score] = items.enumerated().map { idx, item in
+                        Score(
+                            IB_SubjectID: "v2-\(idx)",
+                            IB_SubjectE: item.subject,
+                            S_Name: item.subject,
+                            Score1: item.score,
+                            LScore1: item.grade ?? "",
+                            Score2: "0", LScore2: "",
+                            Score3: "0", LScore3: "",
+                            Score4: "0", LScore4: "",
+                            Score5: "0", LScore5: ""
+                        )
                     }
+                    self.scores = mapped
+                    self.cacheScores(for: self.selectedTermId, scores: mapped)
+
+                    if mapped.isEmpty {
+                        self.errorMessage = "No scores available for this year yet."
+                    } else {
+                        self.errorMessage = nil
+                    }
+                case .failure(let error):
+                    self.errorMessage = "Failed to load scores: \(error.localizedDescription)"
                 }
             }
         }
@@ -412,83 +384,7 @@ class ScoreViewModel: ObservableObject {
         }
     }
 
-    // Special handler for the API endpoint that might return null
-    private func fetchScoresWithNullHandling(
-        parameters: [String: String], completion: @escaping (Result<[Score], NetworkError>) -> Void
-    ) {
-        guard let url = URL(string: "\(Configuration.baseURL)/php/search_student_score.php") else {
-            completion(.failure(.invalidURL))
-            return
-        }
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-
-        var headers = ["Content-Type": "application/x-www-form-urlencoded"]
-        if let sessionId = sessionService.sessionId {
-            headers["Cookie"] = "PHPSESSID=\(sessionId)"
-        }
-        request.allHTTPHeaderFields = headers
-
-        // URL-encode parameter values - use the same encoding as NetworkService
-        let paramString = parameters.map { key, value -> String in
-            let encodedValue =
-                value.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? value
-            return "\(key)=\(encodedValue)"
-        }.joined(separator: "&")
-
-        request.httpBody = paramString.data(using: .utf8)
-
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            if let error = error {
-                DispatchQueue.main.async {
-                    completion(.failure(.requestFailed(error)))
-                }
-                return
-            }
-
-            // Check HTTP response for server errors
-            if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode >= 400 {
-                DispatchQueue.main.async {
-                    completion(.failure(.serverError(httpResponse.statusCode)))
-                }
-                return
-            }
-
-            guard let data = data, !data.isEmpty else {
-                DispatchQueue.main.async {
-                    completion(.success([]))  // Empty array for no data
-                }
-                return
-            }
-
-            // Check if the response is "null"
-            if let string = String(data: data, encoding: .utf8),
-               string.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == "null" {
-                DispatchQueue.main.async {
-                    completion(.success([]))  // Empty array for null response
-                }
-                return
-            }
-
-            // Normal JSON decoding for valid data
-            do {
-                let decodedResponse = try JSONDecoder().decode([Score].self, from: data)
-                DispatchQueue.main.async {
-                    completion(.success(decodedResponse))
-                }
-            } catch {
-                print("Score decoding error: \(error)")
-                print(
-                    "Response data: \(String(data: data, encoding: .utf8) ?? "unable to convert to string")"
-                )
-
-                DispatchQueue.main.async {
-                    completion(.failure(.decodingError(error)))
-                }
-            }
-        }.resume()
-    }
+    // Legacy fetchScoresWithNullHandling removed (migrated to TSIMS V2)
 
     func refreshData() {
         // Clear any error message

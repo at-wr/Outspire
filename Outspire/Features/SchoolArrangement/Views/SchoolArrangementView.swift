@@ -1,7 +1,5 @@
 import SwiftUI
-#if !targetEnvironment(macCatalyst)
-import ColorfulX
-#endif
+// Removed ColorfulX usage in favor of system materials
 import Toasts
 import QuickLook
 
@@ -50,25 +48,6 @@ struct SchoolArrangementView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                // Background: ColorfulX for iOS, native gradient for Mac Catalyst
-                #if !targetEnvironment(macCatalyst)
-                ColorfulView(
-                    color: $gradientManager.gradientColors,
-                    speed: $gradientManager.gradientSpeed,
-                    noise: $gradientManager.gradientNoise,
-                    transitionSpeed: $gradientManager.gradientTransitionSpeed
-                )
-                .ignoresSafeArea()
-                .opacity(colorScheme == .dark ? 0.15 : 0.3)
-                #else
-                Color(.systemBackground)
-                    .ignoresSafeArea()
-                #endif
-
-                // Semi-transparent background for better contrast
-                Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
-                    .ignoresSafeArea()
-
                 // Content layers
                 Group {
                     if viewModel.isLoading && viewModel.arrangements.isEmpty {
@@ -97,14 +76,14 @@ struct SchoolArrangementView: View {
                 prompt: "Search by week number or title"
             )
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    if viewModel.isLoadingDetail {
-                        ProgressView()
-                            .controlSize(.small)
-                    } else {
-                        LoadingIndicator(isLoading: viewModel.isLoading)
-                    }
-                }
+//                ToolbarItem(placement: .navigationBarTrailing) {
+//                    if viewModel.isLoadingDetail {
+//                        ProgressView()
+//                            .controlSize(.small)
+//                    } else {
+//                        LoadingIndicator(isLoading: viewModel.isLoading)
+//                    }
+//                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     RefreshButton(isLoading: viewModel.isLoading, rotation: $refreshButtonRotation, action: {
                         withAnimation {

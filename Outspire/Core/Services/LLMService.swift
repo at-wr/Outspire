@@ -12,7 +12,7 @@ final class LLMService {
 
     private let apiKey: String
     private let baseURL: String
-    private let model: String = "grok/grok-3-latest"
+    private let model: String = Configuration.llmModel
     private let service: OpenAIService
 
     /// System prompt for CAS reflection outline generation
@@ -51,6 +51,17 @@ final class LLMService {
         )
     }
 
+    // MARK: - Helpers
+
+    private func decodeJSONString<T: Decodable>(_ jsonString: String) throws -> T {
+        guard let data = jsonString.data(using: String.Encoding.utf8) else {
+            throw NSError(
+                domain: "LLMService", code: -100,
+                userInfo: [NSLocalizedDescriptionKey: "Empty response payload"])
+        }
+        return try JSONDecoder().decode(T.self, from: data)
+    }
+
     /// Suggests a CAS record (title and description) based on user input and past records.
     func suggestCasRecord(
         userInput: String,
@@ -86,7 +97,7 @@ final class LLMService {
             type: .object,
             properties: [
                 "title": JSONSchema(type: .string),
-                "description": JSONSchema(type: .string)
+                "description": JSONSchema(type: .string),
             ],
             required: ["title", "description"],
             additionalProperties: false
@@ -100,7 +111,7 @@ final class LLMService {
         let parameters = ChatCompletionParameters(
             messages: [
                 .init(role: .system, content: .text(systemPrompt)),
-                .init(role: .user, content: .text(userPrompt))
+                .init(role: .user, content: .text(userPrompt)),
             ],
             model: .custom(model),
             responseFormat: .jsonSchema(responseFormat)
@@ -109,14 +120,12 @@ final class LLMService {
         let chat = try await service.startChat(parameters: parameters)
         guard let choice = chat.choices?.first,
               let message = choice.message,
-              let jsonString = message.content,
-              let data = jsonString.data(using: .utf8)
-        else {
+              let jsonString = message.content else {
             throw NSError(
                 domain: "LLMService", code: 1,
                 userInfo: [NSLocalizedDescriptionKey: "Invalid CAS suggestion response"])
         }
-        return try JSONDecoder().decode(CasSuggestion.self, from: data)
+        return try decodeJSONString(jsonString)
     }
 
     /// Suggests an outline for a CAS reflection based on learning outcomes, club, and context.
@@ -159,7 +168,7 @@ final class LLMService {
             properties: [
                 "title": JSONSchema(type: .string),
                 "summary": JSONSchema(type: .string),
-                "content": JSONSchema(type: .string)
+                "content": JSONSchema(type: .string),
             ],
             required: ["title", "summary", "content"],
             additionalProperties: false
@@ -174,31 +183,22 @@ final class LLMService {
         let parameters = ChatCompletionParameters(
             messages: [
                 .init(role: .system, content: .text(systemPrompt)),
-                .init(role: .user, content: .text(userPrompt))
+                .init(role: .user, content: .text(userPrompt)),
             ],
             model: .custom(model),
             responseFormat: .jsonSchema(responseFormat)
         )
 
         let chat = try await service.startChat(parameters: parameters)
+        struct ReflectionOutline: Codable { let title: String; let summary: String; let content: String }
         guard let choice = chat.choices?.first,
               let message = choice.message,
-              let jsonString = message.content,
-              let data = jsonString.data(using: .utf8)
-        else {
+              let jsonString = message.content else {
             throw NSError(
                 domain: "LLMService", code: 2,
                 userInfo: [NSLocalizedDescriptionKey: "No valid reflection outline returned"])
         }
-
-        // Parse the JSON
-        struct ReflectionOutline: Codable {
-            let title: String
-            let summary: String
-            let content: String
-        }
-
-        let outline = try JSONDecoder().decode(ReflectionOutline.self, from: data)
+        let outline: ReflectionOutline = try decodeJSONString(jsonString)
         return outline.content
     }
 
@@ -266,7 +266,7 @@ final class LLMService {
             properties: [
                 "title": JSONSchema(type: .string),
                 "summary": JSONSchema(type: .string),
-                "content": JSONSchema(type: .string)
+                "content": JSONSchema(type: .string),
             ],
             required: ["title", "summary", "content"],
             additionalProperties: false
@@ -281,31 +281,22 @@ final class LLMService {
         let parameters = ChatCompletionParameters(
             messages: [
                 .init(role: .system, content: .text(systemPrompt)),
-                .init(role: .user, content: .text(userPrompt))
+                .init(role: .user, content: .text(userPrompt)),
             ],
             model: .custom(model),
             responseFormat: .jsonSchema(responseFormat)
         )
 
         let chat = try await service.startChat(parameters: parameters)
+        struct FullReflection: Codable { let title: String; let summary: String; let content: String }
         guard let choice = chat.choices?.first,
               let message = choice.message,
-              let jsonString = message.content,
-              let data = jsonString.data(using: .utf8)
-        else {
+              let jsonString = message.content else {
             throw NSError(
                 domain: "LLMService", code: 3,
                 userInfo: [NSLocalizedDescriptionKey: "No valid reflection response returned"])
         }
-
-        // Parse the JSON
-        struct FullReflection: Codable {
-            let title: String
-            let summary: String
-            let content: String
-        }
-
-        let reflection = try JSONDecoder().decode(FullReflection.self, from: data)
+        let reflection: FullReflection = try decodeJSONString(jsonString)
         return (reflection.title, reflection.summary, reflection.content)
     }
 
@@ -355,7 +346,7 @@ final class LLMService {
             properties: [
                 "title": JSONSchema(type: .string),
                 "summary": JSONSchema(type: .string),
-                "content": JSONSchema(type: .string)
+                "content": JSONSchema(type: .string),
             ],
             required: ["title", "summary", "content"],
             additionalProperties: false
@@ -370,33 +361,22 @@ final class LLMService {
         let parameters = ChatCompletionParameters(
             messages: [
                 .init(role: .system, content: .text(systemPrompt)),
-                .init(role: .user, content: .text(userPrompt))
+                .init(role: .user, content: .text(userPrompt)),
             ],
             model: .custom(model),
             responseFormat: .jsonSchema(responseFormat)
         )
 
         let chat = try await service.startChat(parameters: parameters)
+        struct ConversationReflection: Codable { let title: String; let summary: String; let content: String }
         guard let choice = chat.choices?.first,
               let message = choice.message,
-              let jsonString = message.content,
-              let data = jsonString.data(using: .utf8)
-        else {
+              let jsonString = message.content else {
             throw NSError(
                 domain: "LLMService", code: 4,
-                userInfo: [
-                    NSLocalizedDescriptionKey: "No valid conversation reflection response returned"
-                ])
+                userInfo: [NSLocalizedDescriptionKey: "No valid conversation reflection response returned"])
         }
-
-        // Parse the JSON
-        struct ConversationReflection: Codable {
-            let title: String
-            let summary: String
-            let content: String
-        }
-
-        let reflection = try JSONDecoder().decode(ConversationReflection.self, from: data)
+        let reflection: ConversationReflection = try decodeJSONString(jsonString)
         return (reflection.title, reflection.summary, reflection.content)
     }
 }

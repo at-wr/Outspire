@@ -1,8 +1,9 @@
+import CoreLocation
 import SwiftUI
 import Toasts
-import UserNotifications
-import CoreLocation
 import UIKit
+import UserNotifications
+import OSLog
 
 // Create an environment object to manage settings state globally
 class SettingsManager: ObservableObject {
@@ -47,38 +48,48 @@ struct OutspireApp: App {
 
         // Register the Live Activity widget
         #if !targetEnvironment(macCatalyst)
-        if #available(iOS 16.1, *) {
-            LiveActivityRegistration.registerLiveActivities()
-        }
+            if #available(iOS 16.1, *) {
+                LiveActivityRegistration.registerLiveActivities()
+            }
         #endif
     }
 
     var body: some Scene {
         WindowGroup {
-            NavSplitView()
+            RootTabView()
                 .environmentObject(sessionService)
                 .environmentObject(locationManager)
                 .environmentObject(regionChecker)
                 .environmentObject(notificationManager)
-                .environmentObject(settingsManager) // Add settings manager
-                .environmentObject(urlSchemeHandler) // Add URL scheme handler
-                .environmentObject(gradientManager) // Add gradient manager to environment
-                .environmentObject(connectivityManager) // Add connectivity manager
+                .environmentObject(settingsManager)  // Add settings manager
+                .environmentObject(urlSchemeHandler)  // Add URL scheme handler
+                .environmentObject(gradientManager)  // Add gradient manager to environment
+                .environmentObject(connectivityManager)  // Add connectivity manager
                 .installToast(position: .top)
                 .environmentObject(widgetDataManager)
-                .withConnectivityAlerts() // Add the connectivity alerts
+                .withConnectivityAlerts()  // Add the connectivity alerts
                 .onAppear {
+                    // One-time auth migration for v0.7+ (forces re-sign-in for pre-0.7 users)
+                    MigrationManager.shared.performAuthMigrationIfNeeded()
                     // Setup widget data sharing
                     setupWidgetDataSharing()
                     // Setup URL Scheme Handler
                     URLSchemeHandler.shared.setAppReady()
                     // Start connectivity monitoring
                     connectivityManager.startMonitoring()
+                    // Schedule automatic cache cleanup
+                    CacheManager.scheduleAutomaticCleanup()
                 }
                 .onChange(of: scenePhase) { _, newPhase in
                     if newPhase == .active {
                         // Check connectivity when app becomes active
                         connectivityManager.checkConnectivity()
+
+                        // Handle notification scheduling when app becomes active
+                        NotificationManager.shared.handleAppBecameActive()
+
+                        // Proactively refresh TSIMS v2 session and restart keep-alive
+                        AuthServiceV2.shared.onAppForegrounded()
 
                         // Also refresh session status if needed
                         if sessionService.isAuthenticated && sessionService.userInfo == nil {
@@ -109,26 +120,28 @@ struct OutspireApp: App {
                 )
         }
         #if targetEnvironment(macCatalyst)
-        .commands {
-            CommandGroup(after: .appSettings) {
-                Button("Settings") {
-                    settingsManager.showSettingsSheet = true
+            .commands {
+                CommandGroup(after: .appSettings) {
+                    Button("Settings") {
+                        settingsManager.showSettingsSheet = true
+                    }
+                    .keyboardShortcut(",", modifiers: .command)
                 }
-                .keyboardShortcut(",", modifiers: .command)
             }
-        }
         #endif
     }
 
     private func setupWidgetDataSharing() {
         // Ensure app group container exists
-        guard let _ = UserDefaults(suiteName: "group.dev.wrye.Outspire") else {
-            print("Failed to access app group container")
+        guard UserDefaults(suiteName: "group.dev.wrye.Outspire") != nil else {
+            Log.widget.error("Failed to access app group container")
             return
         }
 
-        // Share authentication state with widgets
-        widgetDataManager.updateAuthenticationState(isAuthenticated: sessionService.isAuthenticated)
+        // Share authentication state with widgets (prefer new TSIMS auth)
+        widgetDataManager.updateAuthenticationState(
+            isAuthenticated: AuthServiceV2.shared.isAuthenticated || sessionService.isAuthenticated
+        )
 
         // Share holiday mode settings with widgets
         widgetDataManager.updateHolidayMode(
@@ -138,12 +151,23 @@ struct OutspireApp: App {
         )
 
         // Observe authentication changes
-        NotificationCenter.default.addObserver(forName: .authStateDidChange, object: nil, queue: .main) { _ in
-            self.widgetDataManager.updateAuthenticationState(isAuthenticated: self.sessionService.isAuthenticated)
+        NotificationCenter.default.addObserver(
+            forName: .authStateDidChange, object: nil, queue: .main
+        ) { _ in
+            self.widgetDataManager.updateAuthenticationState(
+                isAuthenticated: AuthServiceV2.shared.isAuthenticated || self.sessionService.isAuthenticated)
+        }
+        NotificationCenter.default.addObserver(
+            forName: .authenticationStatusChanged, object: nil, queue: .main
+        ) { _ in
+            self.widgetDataManager.updateAuthenticationState(
+                isAuthenticated: AuthServiceV2.shared.isAuthenticated || self.sessionService.isAuthenticated)
         }
 
         // Observe holiday mode changes
-        NotificationCenter.default.addObserver(forName: .holidayModeDidChange, object: nil, queue: .main) { _ in
+        NotificationCenter.default.addObserver(
+            forName: .holidayModeDidChange, object: nil, queue: .main
+        ) { _ in
             self.widgetDataManager.updateHolidayMode(
                 isEnabled: Configuration.isHolidayMode,
                 hasEndDate: Configuration.holidayHasEndDate,
@@ -152,7 +176,9 @@ struct OutspireApp: App {
         }
 
         // Observe timetable data changes
-        NotificationCenter.default.addObserver(forName: .timetableDataDidChange, object: nil, queue: .main) { notification in
+        NotificationCenter.default.addObserver(
+            forName: .timetableDataDidChange, object: nil, queue: .main
+        ) { notification in
             if let timetable = notification.userInfo?["timetable"] as? [[String]] {
                 self.widgetDataManager.updateTimetableData(timetable: timetable)
             }
@@ -164,26 +190,43 @@ struct OutspireApp: App {
         // Signal that sheets should be closed
         urlSchemeHandler.closeAllSheets = true
 
-        // Only process URLs when the user is authenticated
-        // or if the URL is for a screen that doesn't require authentication
-        if sessionService.isAuthenticated || url.host == "today" {
+        // Always allow Today deep link without auth
+        if url.host == "today" {
             _ = urlSchemeHandler.handleURL(url)
-        } else {
-            // Show login required message
-            urlSchemeHandler.errorMessage = "You need to be signed in to access this feature"
-            urlSchemeHandler.showErrorAlert = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { self.urlSchemeHandler.closeAllSheets = false }
+            return
         }
 
-        // Reset closeAllSheets after a delay
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            self.urlSchemeHandler.closeAllSheets = false
+        // If already authenticated in either system, proceed immediately
+        if AuthServiceV2.shared.isAuthenticated || sessionService.isAuthenticated {
+            _ = urlSchemeHandler.handleURL(url)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { self.urlSchemeHandler.closeAllSheets = false }
+            return
+        }
+
+        // Otherwise, verify/reauth TSIMS v2 before deciding
+        AuthServiceV2.shared.refreshSessionDetailed { result in
+            switch result {
+            case .valid, .reauthed:
+                _ = self.urlSchemeHandler.handleURL(url)
+            case .credentialsMissing:
+                self.urlSchemeHandler.errorMessage = "You need to be signed in to access this feature"
+                self.urlSchemeHandler.showErrorAlert = true
+            case .wrongCredentials(let reason):
+                self.urlSchemeHandler.errorMessage = reason
+                self.urlSchemeHandler.showErrorAlert = true
+            case .serverUnavailable(let reason):
+                self.urlSchemeHandler.errorMessage = "Server unavailable: \(reason)"
+                self.urlSchemeHandler.showErrorAlert = true
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { self.urlSchemeHandler.closeAllSheets = false }
         }
     }
 
     // Update the method to share club to include universal links
     private func shareClub(groupInfo: GroupInfo) {
         // Create both URLs for better sharing compatibility
-        let urlSchemeString = "outspire://club/\(groupInfo.C_GroupsID)"
+        let _ = "outspire://club/\(groupInfo.C_GroupsID)"
         let universalLinkString = "https://outspire.wrye.dev/app/club/\(groupInfo.C_GroupsID)"
 
         // Use the universal link for sharing, as it works for non-app users too
@@ -196,11 +239,15 @@ struct OutspireApp: App {
 
         // Present the share sheet
         if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-           let rootViewController = windowScene.windows.first?.rootViewController {
+            let rootViewController = windowScene.windows.first?.rootViewController
+        {
             // On iPad, set the popover presentation controller's source
             if UIDevice.current.userInterfaceIdiom == .pad {
-                activityViewController.popoverPresentationController?.sourceView = rootViewController.view
-                activityViewController.popoverPresentationController?.sourceRect = CGRect(x: UIScreen.main.bounds.width / 2, y: UIScreen.main.bounds.height / 2, width: 0, height: 0)
+                activityViewController.popoverPresentationController?.sourceView =
+                    rootViewController.view
+                activityViewController.popoverPresentationController?.sourceRect = CGRect(
+                    x: UIScreen.main.bounds.width / 2, y: UIScreen.main.bounds.height / 2, width: 0,
+                    height: 0)
                 activityViewController.popoverPresentationController?.permittedArrowDirections = []
             }
             rootViewController.present(activityViewController, animated: true)
@@ -209,7 +256,10 @@ struct OutspireApp: App {
 }
 
 class OutspireAppDelegate: NSObject, UIApplicationDelegate {
-    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
+    func application(
+        _ application: UIApplication,
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
+    ) -> Bool {
         // Register for user notifications
         UNUserNotificationCenter.current().delegate = LocationManager.shared
 
@@ -229,32 +279,29 @@ class OutspireAppDelegate: NSObject, UIApplicationDelegate {
 
     private func setupServicesAfterOnboarding() {
         // Start location manager if permission was granted during onboarding
-        if LocationManager.shared.authorizationStatus == .authorizedWhenInUse ||
-            LocationManager.shared.authorizationStatus == .authorizedAlways {
+        if LocationManager.shared.authorizationStatus == .authorizedWhenInUse
+            || LocationManager.shared.authorizationStatus == .authorizedAlways
+        {
             LocationManager.shared.startUpdatingLocation()
         }
 
-        // Schedule notifications only if enabled in settings AND permission was granted
-        if Configuration.departureNotificationsEnabled {
-            NotificationManager.shared.checkAuthorizationStatus { status in
-                if status == .authorized {
-                    NotificationManager.shared.scheduleMorningETANotification()
-                }
-            }
-        }
+        // Use centralized notification management
+        NotificationManager.shared.handleAppBecameActive()
     }
 
     func applicationWillTerminate(_ application: UIApplication) {
         #if !targetEnvironment(macCatalyst)
-        // Clean up Live Activities
-        if #available(iOS 16.1, *) {
-            ClassActivityManager.shared.cleanup()
-        }
+            // Clean up Live Activities
+            if #available(iOS 16.1, *) {
+                ClassActivityManager.shared.cleanup()
+            }
         #endif
     }
 
     // Handle URL scheme when app is launched from a URL
-    func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
+    func application(
+        _ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]
+    ) -> Bool {
         return URLSchemeHandler.shared.handleURL(url)
     }
 }
@@ -294,20 +341,22 @@ extension Notification.Name {
     static let holidayModeDidChange = Notification.Name("holidayModeDidChange")
     static let timetableDataDidChange = Notification.Name("timetableDataDidChange")
     static let authenticationStatusChanged = Notification.Name("authenticationStatusChanged")
+    static let tsimsV2Unauthorized = Notification.Name("tsimsV2Unauthorized")
+    static let tsimsV2ReauthFailed = Notification.Name("tsimsV2ReauthFailed")
 }
 
 /// Helper class to register Live Activities
 #if !targetEnvironment(macCatalyst)
-@available(iOS 16.1, *)
-class LiveActivityRegistration {
-    static func registerLiveActivities() {
-        // We don't directly reference the OutspireWidgetLiveActivity class here
-        // Instead we just ensure the ClassActivityAttributes type is ready
-        _ = ClassActivityAttributes(
-            className: "",
-            roomNumber: "",
-            teacherName: ""
-        )
+    @available(iOS 16.1, *)
+    class LiveActivityRegistration {
+        static func registerLiveActivities() {
+            // We don't directly reference the OutspireWidgetLiveActivity class here
+            // Instead we just ensure the ClassActivityAttributes type is ready
+            _ = ClassActivityAttributes(
+                className: "",
+                roomNumber: "",
+                teacherName: ""
+            )
+        }
     }
-}
 #endif

@@ -1,5 +1,6 @@
 import SwiftUI
 
+@MainActor
 class ClubActivitiesViewModel: ObservableObject {
     // MARK: - Published Properties
     @Published var groups: [ClubGroup] = []
@@ -31,7 +32,8 @@ class ClubActivitiesViewModel: ObservableObject {
 
         self.groups = decodedGroups
 
-        if let savedGroupId = UserDefaults.standard.string(forKey: "selectedClubGroupId") {
+        if let savedGroupId = UserDefaults.standard.string(forKey: "selectedClubGroupId"),
+           CharacterSet.decimalDigits.isSuperset(of: CharacterSet(charactersIn: savedGroupId)) {
             self.selectedGroupId = savedGroupId
             loadCachedActivities(for: savedGroupId)
         } else if let firstGroup = decodedGroups.first {
@@ -93,11 +95,13 @@ class ClubActivitiesViewModel: ObservableObject {
     }
 
     private func performGroupsRequest() {
-        NetworkService.shared.request(
-            endpoint: "cas_add_mygroups_dropdown.php",
-            sessionId: sessionService.sessionId
-        ) { [weak self] (result: Result<GroupDropdownResponse, NetworkError>) in
-            self?.handleGroupsResponse(result)
+        CASServiceV2.shared.fetchMyGroups { [weak self] res in
+            switch res {
+            case .success(let groups):
+                self?.handleGroupsResponse(.success(GroupDropdownResponse(groups: groups, nogroups: nil)))
+            case .failure(let err):
+                self?.handleGroupsResponse(.failure(err))
+            }
         }
     }
 
@@ -125,15 +129,13 @@ class ClubActivitiesViewModel: ObservableObject {
             self.fetchActivityRecords()
         } else if !self.selectedGroupId.isEmpty {
             self.fetchActivityRecords()
+        } else if self.groups.isEmpty {
+            // No groups found; show all records as a fallback
+            self.fetchActivityRecords()
         }
     }
 
     func fetchActivityRecords(forceRefresh: Bool = false) {
-        guard !selectedGroupId.isEmpty else {
-            errorMessage = "Please select a group."
-            return
-        }
-
         if !forceRefresh && isLoadingActivities { return }
         if !forceRefresh && isCacheValid() {
             loadCachedActivities(for: selectedGroupId)
@@ -147,14 +149,33 @@ class ClubActivitiesViewModel: ObservableObject {
 
     private func performActivitiesRequest() {
         UserDefaults.standard.set(selectedGroupId, forKey: "selectedClubGroupId")
-        let parameters = ["groupid": selectedGroupId]
+        // Allow empty groupId to fetch all records (server supports this)
+        let currentGroup = selectedGroupId
+        resolveNumericGroupId(currentGroup) { mappedId in
+        CASServiceV2.shared.fetchRecords(groupId: mappedId) { [weak self] res in
+            switch res {
+            case .success(let records):
+                // Show exactly the filtered result; do not auto-fallback to "all"
+                self?.handleActivitiesResponse(.success(ActivityResponse(casRecord: records)))
+            case .failure(let err):
+                self?.handleActivitiesResponse(.failure(err))
+            }
+        }
+        }
+    }
 
-        NetworkService.shared.request(
-            endpoint: "cas_add_record_info.php",
-            parameters: parameters,
-            sessionId: sessionService.sessionId
-        ) { [weak self] (result: Result<ActivityResponse, NetworkError>) in
-            self?.handleActivitiesResponse(result)
+    // Map GroupNo -> numeric Id using cached group list; prime cache if needed
+    private func resolveNumericGroupId(_ idOrNo: String, completion: @escaping (String) -> Void) {
+        guard !idOrNo.isEmpty else { completion(""); return }
+        if let detail = CASServiceV2.shared.getCachedGroupDetails(idOrNo: idOrNo), let nid = detail.Id {
+            completion(String(nid)); return
+        }
+        CASServiceV2.shared.fetchGroupList(pageIndex: 1, pageSize: 200, categoryId: nil) { _ in
+            if let detail = CASServiceV2.shared.getCachedGroupDetails(idOrNo: idOrNo), let nid = detail.Id {
+                completion(String(nid))
+            } else {
+                completion(idOrNo)
+            }
         }
     }
 
@@ -169,38 +190,33 @@ class ClubActivitiesViewModel: ObservableObject {
                     self.cacheActivities(for: self.selectedGroupId, activities: response.casRecord)
                 }
             case .failure(let error):
-                self.errorMessage = "\(error.localizedDescription)"
+                switch error {
+                case .unauthorized: self.errorMessage = "Session expired"
+                default: self.errorMessage = error.localizedDescription
+                }
 
             }
         }
     }
 
     func deleteRecord(record: ActivityRecord) {
-        let parameters = ["recordid": record.C_ARecordID]
         errorMessage = nil
         HapticManager.shared.playFeedback(.medium)
-
-        performDeleteRequest(parameters: parameters)
-    }
-
-    private func performDeleteRequest(parameters: [String: String]) {
-        NetworkService.shared.request(
-            endpoint: "cas_delete_record_info.php",
-            parameters: parameters,
-            sessionId: sessionService.sessionId
-        ) { [weak self] (result: Result<[String: String], NetworkError>) in
-            self?.handleDeleteResponse(result, recordId: parameters["recordid"] ?? "")
+        CASServiceV2.shared.deleteRecord(id: record.C_ARecordID) { [weak self] res in
+            switch res {
+            case .success(let ok):
+                if ok {
+                    self?.processDeleteSuccess(["status": "ok"], recordId: record.C_ARecordID)
+                } else {
+                    self?.errorMessage = "Delete failed"
+                }
+            case .failure(let err):
+                self?.errorMessage = err.localizedDescription
+            }
         }
     }
 
-    private func handleDeleteResponse(_ result: Result<[String: String], NetworkError>, recordId: String) {
-        switch result {
-        case .success(let response):
-            processDeleteSuccess(response, recordId: recordId)
-        case .failure(let error):
-            self.errorMessage = "\(error.localizedDescription)"
-        }
-    }
+    // Legacy PHP deletion path removed in favor of TSIMS V2 API
 
     private func processDeleteSuccess(_ response: [String: String], recordId: String) {
         if response["status"] == "ok" {
@@ -257,8 +273,8 @@ class ClubActivitiesViewModel: ObservableObject {
     func setSelectedGroupById(_ groupId: String) {
         guard !groupId.isEmpty else { return }
 
-        // Find the matching group
-        if let matchingGroup = groups.first(where: { $0.C_GroupsID == groupId }) {
+        // If the group exists in the loaded list, select and refresh
+        if groups.contains(where: { $0.C_GroupsID == groupId }) {
             selectedGroupId = groupId
             UserDefaults.standard.set(groupId, forKey: "selectedClubGroupId")
             fetchActivityRecords(forceRefresh: true)

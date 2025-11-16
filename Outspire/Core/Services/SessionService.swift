@@ -1,13 +1,14 @@
-import SwiftUI
 import Combine
+import SwiftUI
 
+@MainActor
 class SessionService: ObservableObject {
     @Published var sessionId: String?
     @Published var userInfo: UserInfo?
     @Published var isAuthenticated: Bool = false {
         didSet {
             // Notify about authentication changes
-            NotificationCenter.default.post(name: Notification.Name.authStateDidChange, object: nil)
+            NotificationCenter.default.post(name: .authStateDidChange, object: nil)
         }
     }
 
@@ -15,10 +16,23 @@ class SessionService: ObservableObject {
     static let shared = SessionService()
 
     private init() {
-        self.sessionId = userDefaults.string(forKey: "sessionId")
+        // Migrate sessionId from UserDefaults to Keychain (backward compatible)
+        let defaultsSession = userDefaults.string(forKey: "sessionId")
+        let keychainSession = SecureStore.get("sessionId")
+
+        if let keychainSession, !keychainSession.isEmpty {
+            self.sessionId = keychainSession
+        } else if let defaultsSession, !defaultsSession.isEmpty {
+            // One-time migration: move to Keychain and keep defaults for older builds if needed
+            self.sessionId = defaultsSession
+            SecureStore.set(defaultsSession, for: "sessionId")
+        } else {
+            self.sessionId = nil
+        }
 
         if let storedUserInfo = userDefaults.data(forKey: "userInfo"),
-           let user = try? JSONDecoder().decode(UserInfo.self, from: storedUserInfo) {
+            let user = try? JSONDecoder().decode(UserInfo.self, from: storedUserInfo)
+        {
             self.userInfo = user
             self.isAuthenticated = sessionId != nil
         }
@@ -26,21 +40,26 @@ class SessionService: ObservableObject {
 
     func clearSession() {
         sessionId = nil
+        // Remove from both stores
         userDefaults.removeObject(forKey: "sessionId")
+        SecureStore.remove("sessionId")
         // Don't clear user info to keep the UI consistent
     }
 
     // Update the loginUser method
-    func loginUser(username: String, password: String, captcha: String, completion: @escaping (Bool, String?, Bool) -> Void) {
+    func loginUser(
+        username: String, password: String, captcha: String,
+        completion: @escaping (Bool, String?, Bool) -> Void
+    ) {
         guard let sessionId = self.sessionId, !sessionId.isEmpty else {
-            completion(false, "Please refresh the captcha.", true) // Mark as captcha error to trigger retry
+            completion(false, "Please refresh the captcha.", true)  // Mark as captcha error to trigger retry
             return
         }
 
         let parameters = [
             "username": username,
             "password": password,
-            "code": captcha
+            "code": captcha,
         ]
 
         NetworkService.shared.request(
@@ -52,7 +71,7 @@ class SessionService: ObservableObject {
             case .success(let response):
                 // Check for Chinese error message about captcha (scenario 3)
                 if response.status.contains("验证码") || response.status.contains("错") {
-                    completion(false, "Invalid captcha code. Retrying...", true) // Mark as captcha error
+                    completion(false, "Invalid captcha code. Retrying...", true)  // Mark as captcha error
                     return
                 }
 
@@ -118,7 +137,7 @@ class SessionService: ObservableObject {
         }
 
         // Reset the network session
-        URLSession.shared.reset { }
+        URLSession.shared.reset {}
 
         // Clear user defaults
         userDefaults.removeObject(forKey: "sessionId")
@@ -131,9 +150,15 @@ class SessionService: ObservableObject {
         // Cancel all notifications when user logs out
         NotificationManager.shared.cancelAllNotifications()
 
+        // Clear all cached data to prevent leakage across accounts
+        CacheManager.clearAllCache()
+
+        // Clear URLCache to remove any cached responses
+        URLCache.shared.removeAllCachedResponses()
+
         // Post notification that authentication has changed
         NotificationCenter.default.post(
-            name: Notification.Name.authenticationStatusChanged,
+            name: .authenticationStatusChanged,
             object: nil,
             userInfo: ["action": "logout"]
         )
@@ -146,6 +171,8 @@ class SessionService: ObservableObject {
 
     private func storeSessionId(_ sessionId: String) {
         self.sessionId = sessionId
+        // Write to Keychain primarily; mirror to defaults for compatibility with very old builds
+        SecureStore.set(sessionId, for: "sessionId")
         userDefaults.set(sessionId, forKey: "sessionId")
     }
 }

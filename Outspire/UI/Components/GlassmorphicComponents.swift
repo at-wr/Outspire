@@ -1,15 +1,15 @@
 import SwiftUI
 
-/// A collection of modifiers and components for creating consistent glassmorphic UI elements
-/// that follow Apple's Human Interface Guidelines for depth, materials, and visual hierarchy.
-public enum GlassmorphicStyle {
+/// Native Liquid Glass helpers that map directly to Apple’s APIs.
+/// References:
+/// - Liquid Glass: https://developer.apple.com/documentation/technologyoverviews/liquid-glass/
+/// - Applying Liquid Glass: https://developer.apple.com/documentation/swiftui/applying-liquid-glass-to-custom-views/
+public enum GlassmorphicStyle { // kept name to avoid sweeping renames
 
-    /// Standard card style with subtle border and background
+    /// Standard card style: Liquid Glass on iOS 26+, Material fallback earlier.
     public struct Card: ViewModifier {
         let isDimmed: Bool
         let cornerRadius: CGFloat
-
-        @Environment(\.colorScheme) private var colorScheme
 
         public init(isDimmed: Bool = false, cornerRadius: CGFloat = 16) {
             self.isDimmed = isDimmed
@@ -17,55 +17,19 @@ public enum GlassmorphicStyle {
         }
 
         public func body(content: Content) -> some View {
-            content
-                .background(
-                    ZStack {
-                        // Base blur layer using Apple's material system
-                        RoundedRectangle(cornerRadius: cornerRadius)
-                            .fill(.ultraThinMaterial)
-                            .opacity(colorScheme == .dark ? 0.8 : 0.92)
-
-                        // Subtle gradient overlay for depth
-                        RoundedRectangle(cornerRadius: cornerRadius)
-                            .fill(
-                                LinearGradient(
-                                    colors: [
-                                        Color.white.opacity(colorScheme == .dark ? 0.05 : 0.3),
-                                        Color.white.opacity(colorScheme == .dark ? 0.02 : 0.1)
-                                    ],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                            .opacity(isDimmed ? 0.5 : 1.0)
-
-                        // Subtle border for definition
-                        RoundedRectangle(cornerRadius: cornerRadius)
-                            .strokeBorder(
-                                LinearGradient(
-                                    colors: [
-                                        Color.white.opacity(colorScheme == .dark ? 0.15 : 0.5),
-                                        Color.white.opacity(colorScheme == .dark ? 0.05 : 0.2)
-                                    ],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
-                                lineWidth: 0.5
-                            )
-                            .opacity(isDimmed ? 0.5 : 1.0)
-                    }
-                    .shadow(
-                        color: Color.black.opacity(colorScheme == .dark ? 0.12 : 0.08),
-                        radius: 15,
-                        x: 0,
-                        y: 5
-                    )
-                )
-                .opacity(isDimmed ? 0.85 : 1.0)
+            let shape = RoundedRectangle(cornerRadius: cornerRadius)
+            Group {
+                if #available(iOS 26.0, *) {
+                    content.glassEffect(.regular, in: shape)
+                } else {
+                    content.background(.ultraThinMaterial, in: shape)
+                }
+            }
+            .opacity(isDimmed ? 0.9 : 1.0)
         }
     }
 
-    /// A modifier for creating a card with standard padding
+    /// Card with standard padding.
     public struct PaddedCard: ViewModifier {
         let isDimmed: Bool
         let cornerRadius: CGFloat
@@ -96,7 +60,7 @@ public enum GlassmorphicStyle {
 // MARK: - View Extensions
 
 public extension View {
-    /// Apply a glassmorphic card style to a view.
+    /// Apply a Liquid Glass card style.
     func glassmorphicCard(
         isDimmed: Bool = false,
         cornerRadius: CGFloat = 16
@@ -107,7 +71,7 @@ public extension View {
         ))
     }
 
-    /// Apply a glassmorphic card style with standard padding.
+    /// Apply a Liquid Glass card style with standard padding.
     func paddedGlassmorphicCard(
         isDimmed: Bool = false,
         cornerRadius: CGFloat = 16,
@@ -120,5 +84,15 @@ public extension View {
             horizontalPadding: horizontalPadding,
             verticalPadding: verticalPadding
         ))
+    }
+
+    /// Group multiple glass views to blend and morph on iOS 26+, with a simple stack fallback.
+    @ViewBuilder
+    func glassContainer(spacing: CGFloat = 12) -> some View {
+        if #available(iOS 26.0, *) {
+            GlassEffectContainer(spacing: spacing) { self }
+        } else {
+            VStack(spacing: spacing) { self }
+        }
     }
 }

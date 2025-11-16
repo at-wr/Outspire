@@ -1,8 +1,7 @@
 import SwiftUI
 import Toasts
-#if !targetEnvironment(macCatalyst)
-import ColorfulX
-#endif
+
+// Removed ColorfulX usage in favor of system materials
 
 struct ReflectionsView: View {
     @EnvironmentObject var sessionService: SessionService
@@ -13,49 +12,44 @@ struct ReflectionsView: View {
     @Environment(\.presentToast) var presentToast
     @EnvironmentObject var gradientManager: GradientManager
     @Environment(\.colorScheme) private var colorScheme
+    @State private var sortDescending: Bool = true
 
     var body: some View {
         ZStack {
-            #if !targetEnvironment(macCatalyst)
-            ColorfulView(
-                color: $gradientManager.gradientColors,
-                speed: $gradientManager.gradientSpeed,
-                noise: $gradientManager.gradientNoise,
-                transitionSpeed: $gradientManager.gradientTransitionSpeed
-            )
-            .ignoresSafeArea()
-            .opacity(colorScheme == .dark ? 0.1 : 0.3)
-            #else
-            Color(.systemBackground)
-                .ignoresSafeArea()
-            #endif
-
-            Color.white.opacity(colorScheme == .dark ? 0.1 : 0.7)
-                .ignoresSafeArea()
-
             contentView
         }
         .navigationTitle("Reflections")
         .contentMargins(.vertical, 10.0)
         .toolbar {
-            ToolbarItem(id: "loadingIndicator", placement: .navigationBarTrailing) {
-                if viewModel.isLoadingGroups || viewModel.isLoadingReflections {
-                    ProgressView()
-                        .controlSize(.small)
-                }
-            }
+            //            ToolbarItem(id: "loadingIndicator", placement: .navigationBarTrailing) {
+            //                if viewModel.isLoadingGroups || viewModel.isLoadingReflections {
+            //                    ProgressView()
+            //                        .controlSize(.small)
+            //                }
+            //            }
             ToolbarItem(id: "refreshButton", placement: .navigationBarTrailing) {
                 Button(action: handleRefreshAction) {
-                    Image(systemName: "arrow.clockwise")
-                        .rotationEffect(.degrees(refreshButtonRotation))
+                    Label {
+                        Text("Refresh")
+                    } icon: {
+                        Image(systemName: "arrow.clockwise")
+                            .rotationEffect(.degrees(refreshButtonRotation))
+                    }
                 }
-                .disabled(viewModel.isLoadingGroups || viewModel.isLoadingReflections)
+                //                .disabled(viewModel.isLoadingGroups || viewModel.isLoadingReflections)
             }
             ToolbarItem(id: "addButton", placement: .navigationBarTrailing) {
-                Button(action: { showingAddSheet.toggle() }) {
-                    Image(systemName: "square.and.pencil")
+                Button(action: {
+                    HapticManager.shared.playButtonTap()
+                    showingAddSheet.toggle()
+                }) {
+                    Label {
+                        Text("Compose")
+                    } icon: {
+                        Image(systemName: "square.and.pencil")
+                    }
                 }
-                .disabled(viewModel.isLoadingGroups || viewModel.isLoadingReflections || sessionService.userInfo == nil)
+                .disabled(viewModel.isLoadingGroups || viewModel.groups.isEmpty)
             }
         }
         .sheet(isPresented: $showingAddSheet) {
@@ -72,13 +66,15 @@ struct ReflectionsView: View {
             handleOnAppear()
             updateGradientForReflections()
         })
-        .onChange(of: viewModel.isLoadingReflections) { _ in
+        .onChange(of: viewModel.isLoadingReflections) {
             handleLoadingChange()
         }
-        .onChange(of: viewModel.errorMessage) { errorMessage in
+        .onChange(of: viewModel.errorMessage) { _, errorMessage in
             if let errorMessage = errorMessage {
-                let icon = errorMessage.contains("copied") ?
-                    "checkmark.circle.fill" : "exclamationmark.circle.fill"
+                HapticManager.shared.playError()
+                let icon =
+                    errorMessage.contains("copied")
+                    ? "checkmark.circle.fill" : "exclamationmark.circle.fill"
                 let toast = ToastValue(
                     icon: Image(systemName: icon).foregroundStyle(.red),
                     message: errorMessage
@@ -99,39 +95,25 @@ struct ReflectionsView: View {
             )
         }
         .scrollContentBackground(.hidden)
-        .animation(.spring(response: 0.4), value: viewModel.isLoadingReflections)
-        .animation(.spring(response: 0.4), value: viewModel.reflections.isEmpty)
-        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: viewModel.errorMessage)
+        // Avoid custom animations; keep native behavior
         .refreshable(action: handleRefresh)
     }
 
     @ViewBuilder
     private var addReflectionSheet: some View {
-        if let studentId = sessionService.userInfo?.studentid {
-            AddReflectionSheet(
-                availableGroups: viewModel.groups,
-                studentId: studentId
-            ) {
-                viewModel.fetchReflections(forceRefresh: true)
-            }
-        } else {
-            VStack(spacing: 10) {
-                Text(">_<")
-                    .foregroundStyle(.primary)
-                    .font(.title2)
-                Text("Maybe you haven't logged in yet?")
-                    .foregroundStyle(.primary)
-                Text("Unable to retrieve user ID.")
-                    .foregroundStyle(.secondary)
-            }
-            .padding()
+        AddReflectionSheet(
+            availableGroups: viewModel.groups,
+            studentId: sessionService.userInfo?.studentid ?? ""
+        ) {
+            viewModel.fetchReflections(forceRefresh: true)
         }
     }
 
     private var deleteConfirmationActions: some View {
         Group {
             Button("Delete", role: .destructive) {
-                if let reflection = viewModel.reflectionToDelete {
+                if viewModel.reflectionToDelete != nil {
+                    HapticManager.shared.playDelete()
                     viewModel.confirmDelete()
                     let toast = ToastValue(
                         icon: Image(systemName: "trash.fill").foregroundStyle(.red),
@@ -140,7 +122,9 @@ struct ReflectionsView: View {
                     presentToast(toast)
                 }
             }
-            Button("Cancel", role: .cancel) {}
+            Button("Cancel", role: .cancel) {
+                HapticManager.shared.playButtonTap()
+            }
         }
     }
 
@@ -167,6 +151,7 @@ struct ReflectionsView: View {
     }
 
     private func handleRefreshAction() {
+        HapticManager.shared.playRefresh()
         withAnimation {
             refreshButtonRotation += 360
         }
@@ -190,13 +175,13 @@ struct ReflectionsView: View {
 
     private func updateGradientForReflections() {
         #if !targetEnvironment(macCatalyst)
-        gradientManager.updateGradientForView(.clubActivities, colorScheme: colorScheme)
+            gradientManager.updateGradientForView(.clubActivities, colorScheme: colorScheme)
         #else
-        gradientManager.updateGradient(
-            colors: [Color(.systemBackground)],
-            speed: 0.0,
-            noise: 0.0
-        )
+            gradientManager.updateGradient(
+                colors: [Color(.systemBackground)],
+                speed: 0.0,
+                noise: 0.0
+            )
         #endif
     }
 }
@@ -212,7 +197,8 @@ struct ReflectionGroupSelectorSection: View {
                         Text(group.displayName).tag(group.id)
                     }
                 }
-                .onChange(of: viewModel.selectedGroupId) { _ in
+                .onChange(of: viewModel.selectedGroupId) {
+                    HapticManager.shared.playSelectionFeedback()
                     withAnimation(.easeInOut(duration: 0.3)) {
                         viewModel.fetchReflections(forceRefresh: true)
                     }
@@ -233,15 +219,19 @@ struct ReflectionsSection: View {
     @State private var hasCompletedInitialLoad = false
     @State private var loadAttempted = false
     @Environment(\.presentToast) var presentToast
+    @State private var searchText: String = ""
+    @State private var sortDescending: Bool = true
 
     var body: some View {
         Section {
             if viewModel.groups.isEmpty && !viewModel.isLoadingGroups {
                 Group {
-                    if sessionService.userInfo != nil {
+                    let isAuthed = AuthServiceV2.shared.isAuthenticated || sessionService.isAuthenticated
+                    if isAuthed {
                         ErrorView(
-                            errorMessage: "No clubs available. Try joining some to continue?",
+                            errorMessage: "No clubs available. Join a club to continue.",
                             retryAction: {
+                                HapticManager.shared.playRefresh()
                                 viewModel.fetchGroups(forceRefresh: true)
                                 let toast = ToastValue(
                                     icon: Image(systemName: "arrow.clockwise"),
@@ -262,14 +252,13 @@ struct ReflectionsSection: View {
                         RoundedRectangle(cornerRadius: 12)
                             .fill(Color.gray.opacity(0.15))
                             .frame(height: 80)
-                            .shimmering()
+                            .redacted(reason: .placeholder)
                             .padding(.horizontal)
                     }
                 }
                 .listRowInsets(EdgeInsets())
                 .listRowBackground(Color.clear)
-                .transition(.opacity)
-                .animation(.easeInOut(duration: 0.5), value: viewModel.isLoadingReflections)
+                // Keep implicit transitions
                 .onAppear {
                     if !loadAttempted {
                         loadAttempted = true
@@ -284,13 +273,14 @@ struct ReflectionsSection: View {
                 ReflectionEmptyStateView(action: { showingAddSheet.toggle() })
                     .transition(.scale.combined(with: .opacity))
             } else {
-                ReflectionsList(viewModel: viewModel, animateList: animateList)
+                ReflectionsList(viewModel: viewModel, animateList: animateList, searchText: searchText, sortDescending: sortDescending)
                     .transition(.opacity)
                     .blur(radius: viewModel.isLoadingReflections ? 1.0 : 0)
                     .opacity(viewModel.isLoadingReflections ? 0.7 : 1.0)
             }
         }
-        .onChange(of: viewModel.isLoadingReflections) { isLoading in
+        .searchable(text: $searchText, prompt: "Search reflections")
+        .onChange(of: viewModel.isLoadingReflections) { _, isLoading in
             if !isLoading {
                 hasCompletedInitialLoad = true
             }
@@ -301,26 +291,38 @@ struct ReflectionsSection: View {
 struct ReflectionsList: View {
     @ObservedObject var viewModel: ReflectionsViewModel
     let animateList: Bool
+    let searchText: String
+    let sortDescending: Bool
 
     var body: some View {
-        ForEach(Array(viewModel.reflections.enumerated()), id: \.element.id) { index, reflection in
+        // Apply simple client-side search and optional date sort
+        let list: [Reflection] = (
+            searchText.isEmpty
+                ? viewModel.reflections
+                : viewModel.reflections.filter { r in
+                    r.C_Title.localizedCaseInsensitiveContains(searchText)
+                        || r.C_Summary.localizedCaseInsensitiveContains(searchText)
+                        || r.C_Content.localizedCaseInsensitiveContains(searchText)
+                }
+        ).sorted { a, b in
+            let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd HH:mm:ss"
+            let g = DateFormatter(); g.dateFormat = "yyyy-MM-dd"
+            let da = f.date(from: a.C_Date) ?? g.date(from: a.C_Date) ?? Date.distantPast
+            let db = f.date(from: b.C_Date) ?? g.date(from: b.C_Date) ?? Date.distantPast
+            return sortDescending ? (da > db) : (da < db)
+        }
+        ForEach(Array(list.enumerated()), id: \.element.id) { index, reflection in
             ReflectionCardView(
                 reflection: reflection,
                 onDelete: {
+                    HapticManager.shared.playDelete()
                     viewModel.deleteReflection(reflection)
                 }
             )
             .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
-            .offset(x: animateList ? 0 : 100)
-            .opacity(animateList ? 1 : 0)
-            .animation(
-                .spring(response: 0.4, dampingFraction: 0.7)
-                    .delay(Double(index) * 0.05),
-                value: animateList
-            )
-            .contentTransition(.opacity)
+            .contentTransition(.identity)
         }
     }
 }
@@ -342,7 +344,10 @@ struct ReflectionEmptyStateView: View {
                 .foregroundStyle(.tertiary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
-            Button(action: action) {
+            Button(action: {
+                HapticManager.shared.playButtonTap()
+                action()
+            }) {
                 Label("Add New Reflection", systemImage: "plus.circle")
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
@@ -357,8 +362,8 @@ struct ReflectionEmptyStateView: View {
     }
 }
 
-private extension Optional where Wrapped == String {
-    var isNilOrEmpty: Bool {
+extension Optional where Wrapped == String {
+    fileprivate var isNilOrEmpty: Bool {
         self?.isEmpty ?? true
     }
 }

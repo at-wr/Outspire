@@ -1,23 +1,25 @@
 import SwiftUI
 
 struct ProfileHeaderView: View {
-    @EnvironmentObject var sessionService: SessionService
+    @ObservedObject private var authV2 = AuthServiceV2.shared
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: sessionService.isAuthenticated ? "person.crop.circle" : "person.fill.viewfinder")
+            Image(systemName: isAuthenticated ? "person.crop.circle" : "person.fill.viewfinder")
                 .font(.system(size: 28))
-                .foregroundStyle(sessionService.isAuthenticated ? .cyan : .gray)
+                .foregroundStyle(isAuthenticated ? .cyan : .gray)
                 .frame(width: 36, height: 36)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(displayName)
                     .font(.headline)
-                if sessionService.isAuthenticated, let studentNo = sessionService.userInfo?.studentNo {
-                    Text("Student No: \(studentNo)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                } else if !sessionService.isAuthenticated {
+                if isAuthenticated {
+                    if let code = authV2.user?.userCode {
+                        Text("Code: \(code)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                } else {
                     Text("with your TSIMS account")
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -28,11 +30,11 @@ struct ProfileHeaderView: View {
     }
 
     private var displayName: String {
-        if sessionService.isAuthenticated {
-            let studentName = sessionService.userInfo?.studentname ?? ""
-            let nickname = sessionService.userInfo?.nickname ?? ""
-            return (studentName.isEmpty && nickname.isEmpty) ? "Account" : "\(studentName) \(nickname)".trimmingCharacters(in: .whitespaces)
-        }
-        return "Sign In"
+        if isAuthenticated { return authV2.user?.name ?? "Account" }
+        else { return "Sign In" }
+    }
+
+    private var isAuthenticated: Bool {
+        return authV2.isAuthenticated
     }
 }

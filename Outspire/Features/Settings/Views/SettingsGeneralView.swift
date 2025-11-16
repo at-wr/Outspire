@@ -3,7 +3,7 @@ import Toasts
 
 struct SettingsGeneralView: View {
     @Environment(\.presentToast) var presentToast
-    @State private var useSSL = Configuration.useSSL
+    @State private var useSSL = Configuration.isHttpsProxyEnabled
     @State private var hideAcademicScore = Configuration.hideAcademicScore
     @State private var showMondayClass = Configuration.showMondayClass
     @State private var showSecondsInLongCountdown = Configuration.showSecondsInLongCountdown
@@ -27,9 +27,21 @@ struct SettingsGeneralView: View {
                     //                    }
                 }
                 .onChange(of: useSSL) { _, newValue in
-                    Configuration.useSSL = newValue
-                    connectivityManager.userToggledRelay(isEnabled: newValue)
+                    if Configuration.httpsProxyFeatureEnabled {
+                        Configuration.useSSL = newValue
+                        connectivityManager.userToggledRelay(isEnabled: newValue)
+                    } else {
+                        // Force revert to off and notify
+                        useSSL = false
+                        Configuration.useSSL = false
+                        let toast = ToastValue(
+                            icon: Image(systemName: "exclamationmark.triangle").foregroundStyle(.yellow),
+                            message: "HTTPS Relay is temporarily disabled in this version"
+                        )
+                        presentToast(toast)
+                    }
                 }
+                .disabled(!Configuration.httpsProxyFeatureEnabled)
 
                 //                #if DEBUG
                 //                Button {
@@ -48,9 +60,9 @@ struct SettingsGeneralView: View {
             } header: {
                 Text("Network")
             } footer: {
-                Text(
-                    "Enables Hypertext Transfer Protocol Secure. Relay Service provided by developer."
-                )
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Enables Hypertext Transfer Protocol Secure. Relay provided by developer.")
+                }
                 .font(.footnote)
                 .foregroundColor(.secondary)
             }
