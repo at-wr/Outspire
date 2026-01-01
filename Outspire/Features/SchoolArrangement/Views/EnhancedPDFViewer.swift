@@ -1,5 +1,5 @@
-import SwiftUI
 import PDFKit
+import SwiftUI
 
 struct EnhancedPDFViewer: View {
     let url: URL
@@ -174,11 +174,17 @@ struct EnhancedPDFViewer: View {
 
         // Present the activity view controller
         if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-           let rootVC = windowScene.windows.first?.rootViewController {
+           let rootVC = windowScene.windows.first?.rootViewController
+        {
             // On iPad, set the popover presentation controller's source
             if UIDevice.current.userInterfaceIdiom == .pad {
                 activityVC.popoverPresentationController?.sourceView = rootVC.view
-                activityVC.popoverPresentationController?.sourceRect = CGRect(x: UIScreen.main.bounds.width / 2, y: UIScreen.main.bounds.height / 2, width: 0, height: 0)
+                activityVC.popoverPresentationController?.sourceRect = CGRect(
+                    x: UIScreen.main.bounds.width / 2,
+                    y: UIScreen.main.bounds.height / 2,
+                    width: 0,
+                    height: 0
+                )
                 activityVC.popoverPresentationController?.permittedArrowDirections = []
             }
             rootVC.present(activityVC, animated: true)

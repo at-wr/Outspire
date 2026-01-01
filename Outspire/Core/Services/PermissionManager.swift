@@ -1,5 +1,5 @@
-import Foundation
 import CoreLocation
+import Foundation
 import UserNotifications
 
 class PermissionManager: NSObject, ObservableObject {
@@ -99,7 +99,11 @@ class PermissionManager: NSObject, ObservableObject {
     }
 
     func requestNotificationPermission(completion: @escaping (Bool) -> Void) {
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { [weak self] granted, error in
+        UNUserNotificationCenter.current().requestAuthorization(options: [
+            .alert,
+            .sound,
+            .badge
+        ]) { [weak self] granted, error in
             DispatchQueue.main.async {
                 if let error = error {
                     print("Notification permission request error: \(error.localizedDescription)")

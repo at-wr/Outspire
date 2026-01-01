@@ -1,5 +1,5 @@
-import SwiftUI
 import CoreLocation
+import SwiftUI
 
 // No upcoming class card
 struct NoClassCard: View {
@@ -143,10 +143,10 @@ struct SchoolInfoCard: View {
 
                 if let travelInfo = travelInfo,
                    let travelTime = travelInfo.travelTime,
-                   let distance = travelInfo.distance {
-
+                   let distance = travelInfo.distance
+                {
                     // Use the ID to force view recreation when data changes significantly
-                    let significantChange = Int(travelTime/60) // Minutes value for ID
+                    let significantChange = Int(travelTime / 60) // Minutes value for ID
 
                     TravelTimeInfoView(
                         travelTime: travelTime,
@@ -185,7 +185,7 @@ struct DailyScheduleCard: View {
 
     // Class period model that conforms to Equatable and Identifiable
     struct ClassPeriodItem: Equatable, Identifiable {
-        let id: String  // Using composite id for uniqueness
+        let id: String // Using composite id for uniqueness
         let period: Int
         let data: String
         let isSelfStudy: Bool
@@ -212,7 +212,7 @@ struct DailyScheduleCard: View {
     // Check if there are any classes or self-study periods for the day
     private var hasClasses: Bool {
         guard !viewModel.timetable.isEmpty, viewModel.timetable.count > 1 else { return false }
-        return (1..<min(viewModel.timetable.count, maxPeriodsForDay + 1)).contains { row in
+        return (1 ..< min(viewModel.timetable.count, maxPeriodsForDay + 1)).contains { row in
             row < viewModel.timetable.count && dayIndex + 1 < viewModel.timetable[row].count
         }
     }
@@ -222,8 +222,8 @@ struct DailyScheduleCard: View {
         guard !viewModel.timetable.isEmpty else { return [] }
 
         let maxRow = min(viewModel.timetable.count, maxPeriodsForDay + 1)
-        return (1..<maxRow).compactMap { row in
-            guard row < viewModel.timetable.count && dayIndex + 1 < viewModel.timetable[row].count else {
+        return (1 ..< maxRow).compactMap { row in
+            guard row < viewModel.timetable.count, dayIndex + 1 < viewModel.timetable[row].count else {
                 return nil
             }
 
@@ -242,13 +242,15 @@ struct DailyScheduleCard: View {
     private func checkIfClassesOver() {
         let now = Date()
         // Check if it's a weekday
-        if dayIndex >= 0 && dayIndex <= 4 {
+        if dayIndex >= 0, dayIndex <= 4 {
             // Get all classes for today
             let classes = scheduledClassesForToday
             if !classes.isEmpty {
                 // Find the last class period
                 if let lastClassPeriod = classes.map({ $0.period }).max(),
-                   let lastPeriod = ClassPeriodsManager.shared.classPeriods.first(where: { $0.number == lastClassPeriod }) {
+                   let lastPeriod = ClassPeriodsManager.shared.classPeriods
+                   .first(where: { $0.number == lastClassPeriod })
+                {
                     // Check if current time is past the end time of the last class
                     isClassesOver = now > lastPeriod.endTime
                 }
@@ -290,7 +292,9 @@ struct DailyScheduleCard: View {
                         Array(scheduledClassesForToday.prefix(maxClassesToShow))
 
                     ForEach(visibleClasses) { item in
-                        if let period = ClassPeriodsManager.shared.classPeriods.first(where: { $0.number == item.period }) {
+                        if let period = ClassPeriodsManager.shared.classPeriods
+                            .first(where: { $0.number == item.period })
+                        {
                             let info = ClassInfoParser.parse(item.data)
                             ScheduleRow(
                                 period: item.period,

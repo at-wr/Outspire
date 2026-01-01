@@ -6,12 +6,16 @@ struct RootTabView: View {
     @EnvironmentObject var urlSchemeHandler: URLSchemeHandler
     @EnvironmentObject var gradientManager: GradientManager
 
+    @ObservedObject private var authV2 = AuthServiceV2.shared
+
     @State private var selectedTab: MainTab = .today
 
     enum MainTab: Hashable { case today, classtable, activities, search }
 
     var body: some View {
-        if #available(iOS 18.0, *) {
+        if authV2.isResolvingSession {
+            ProgressView()
+        } else if #available(iOS 18.0, *) {
             TabView(selection: $selectedTab) {
                 Tab("Today", systemImage: "text.rectangle.page", value: MainTab.today) {
                     NavigationStack {

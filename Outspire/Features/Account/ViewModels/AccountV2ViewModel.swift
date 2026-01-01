@@ -1,5 +1,5 @@
-import SwiftUI
 import Combine
+import SwiftUI
 
 class AccountV2ViewModel: ObservableObject {
     @Published var code: String = ""
@@ -47,7 +47,11 @@ class AccountV2ViewModel: ObservableObject {
                 self.code = ""
                 self.password = ""
                 self.successMessage = "Signed in successfully"
-                NotificationCenter.default.post(name: Notification.Name.authenticationStatusChanged, object: nil, userInfo: ["action": "signedin"])
+                NotificationCenter.default.post(
+                    name: Notification.Name.authenticationStatusChanged,
+                    object: nil,
+                    userInfo: ["action": "signedin"]
+                )
             } else {
                 self.errorMessage = message ?? "Login failed"
             }
@@ -58,7 +62,11 @@ class AccountV2ViewModel: ObservableObject {
         AuthServiceV2.shared.logout { _ in
             DispatchQueue.main.async {
                 self.successMessage = "Signed out successfully"
-                NotificationCenter.default.post(name: Notification.Name.authenticationStatusChanged, object: nil, userInfo: ["action": "logout"])
+                NotificationCenter.default.post(
+                    name: Notification.Name.authenticationStatusChanged,
+                    object: nil,
+                    userInfo: ["action": "logout"]
+                )
             }
         }
     }

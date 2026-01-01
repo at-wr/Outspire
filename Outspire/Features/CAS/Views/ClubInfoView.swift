@@ -14,8 +14,8 @@ struct ClubInfoView: View {
     @State private var preservedGroupId: String?
     @State private var initialMembershipCheckComplete = false
     @EnvironmentObject var urlSchemeHandler: URLSchemeHandler
-    @EnvironmentObject var gradientManager: GradientManager  // Add gradient manager
-    @Environment(\.colorScheme) private var colorScheme  // Add colorScheme environment
+    @EnvironmentObject var gradientManager: GradientManager // Add gradient manager
+    @Environment(\.colorScheme) private var colorScheme // Add colorScheme environment
 
     var body: some View {
         ZStack {
@@ -27,8 +27,7 @@ struct ClubInfoView: View {
 
                     errorMessageView
 
-                    if viewModel.isLoading && (viewModel.groupInfo == nil || !viewModel.refreshing)
-                    {
+                    if viewModel.isLoading && (viewModel.groupInfo == nil || !viewModel.refreshing) {
                         loadingSection
                     } else if let groupInfo = viewModel.groupInfo {
                         clubInfoSection(groupInfo: groupInfo)
@@ -63,7 +62,8 @@ struct ClubInfoView: View {
                                         ) {
                                             Label(
                                                 "Exit Club",
-                                                systemImage: "rectangle.portrait.and.arrow.right")
+                                                systemImage: "rectangle.portrait.and.arrow.right"
+                                            )
                                         }
                                     } else {
                                         Button(action: {
@@ -116,7 +116,8 @@ struct ClubInfoView: View {
                                         ) {
                                             Label(
                                                 "Exit Club",
-                                                systemImage: "rectangle.portrait.and.arrow.right")
+                                                systemImage: "rectangle.portrait.and.arrow.right"
+                                            )
                                         }
                                     } else {
                                         Button(action: {
@@ -141,17 +142,20 @@ struct ClubInfoView: View {
                                             systemName: viewModel.isUserMember
                                                 ? "checkmark" : "plus")
                                         //                                        .symbolRenderingMode(.hierarchical)
-                                        //                                        .foregroundStyle(viewModel.isUserMember ? .green : .cyan)
-                                        //                                        .opacity(viewModel.isJoiningClub || viewModel.isExitingClub ? 0.8 : 1.0)
+                                        //                                        .foregroundStyle(viewModel.isUserMember
+                                        //                                        ? .green : .cyan)
+                                        //                                        .opacity(viewModel.isJoiningClub ||
+                                        //                                        viewModel.isExitingClub ? 0.8 : 1.0)
                                     }
                                     //                                .overlay {
-                                    //                                    if viewModel.isJoiningClub || viewModel.isExitingClub {
+                                    //                                    if viewModel.isJoiningClub ||
+                                    //                                    viewModel.isExitingClub {
                                     //                                        ProgressView()
                                     //                                            .controlSize(.mini)
                                     //                                    }
                                     //                                }
                                 }
-                                .buttonStyle(.borderedProminent)  // Only available on Button, fix this later
+                                .buttonStyle(.borderedProminent) // Only available on Button, fix this later
                                 .tint(viewModel.isUserMember ? .pink : .cyan)
                                 .disabled(viewModel.isJoiningClub || viewModel.isExitingClub)
                                 .onChange(of: viewModel.isUserMember) { _, newValue in
@@ -226,7 +230,8 @@ struct ClubInfoView: View {
                             .rotationEffect(.degrees(refreshButtonRotation))
                             .animation(
                                 .spring(response: 0.6, dampingFraction: 0.5),
-                                value: refreshButtonRotation)
+                                value: refreshButtonRotation
+                            )
                         }
                     }
                 }
@@ -274,7 +279,7 @@ struct ClubInfoView: View {
                 }
                 .onChange(of: viewModel.isLoading) { _, newValue in
                     handleLoadingChange(newValue)
-                }  // use this to fix the stupid iOS 17 deprecation warning
+                } // use this to fix the stupid iOS 17 deprecation warning
                 .animation(.spring(response: 0.4), value: viewModel.isLoading)
                 .onChange(of: viewModel.selectedCategory) { _, _ in
                     // Store current group ID when category changes
@@ -285,7 +290,7 @@ struct ClubInfoView: View {
                 .onChange(of: viewModel.groups) { _, newGroups in
                     // Try to restore the previously selected group when groups list changes
                     if let id = preservedGroupId,
-                        let previousGroup = newGroups.first(where: { $0.C_GroupsID == id })
+                       let previousGroup = newGroups.first(where: { $0.C_GroupsID == id })
                     {
                         viewModel.selectedGroup = previousGroup
                     }
@@ -373,7 +378,8 @@ struct ClubInfoView: View {
                                 }
                             ) {
                                 Label(
-                                    "Exit Club", systemImage: "rectangle.portrait.and.arrow.right")
+                                    "Exit Club", systemImage: "rectangle.portrait.and.arrow.right"
+                                )
                             }
                         } else {
                             Button(action: {
@@ -643,7 +649,8 @@ struct ClubInfoView: View {
                 Image(systemName: "arrow.clockwise")
                     .rotationEffect(.degrees(refreshButtonRotation))
                     .animation(
-                        .spring(response: 0.6, dampingFraction: 0.5), value: refreshButtonRotation)
+                        .spring(response: 0.6, dampingFraction: 0.5), value: refreshButtonRotation
+                    )
             }
         }
     }
@@ -686,7 +693,7 @@ struct ClubInfoView: View {
     }
 
     private func handleLoadingChange(_ isLoading: Bool) {
-        if !isLoading && viewModel.groupInfo != nil {
+        if !isLoading, viewModel.groupInfo != nil {
             // Reset and retrigger staggered animations when loading completes
             animateList = false
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
@@ -752,7 +759,7 @@ struct ClubInfoView: View {
 
         // Present the share sheet
         if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-            let rootViewController = windowScene.windows.first?.rootViewController
+           let rootViewController = windowScene.windows.first?.rootViewController
         {
             // On iPad, set the popover presentation controller's source
             if UIDevice.current.userInterfaceIdiom == .pad {
@@ -760,7 +767,8 @@ struct ClubInfoView: View {
                     rootViewController.view
                 activityViewController.popoverPresentationController?.sourceRect = CGRect(
                     x: UIScreen.main.bounds.width / 2, y: UIScreen.main.bounds.height / 2, width: 0,
-                    height: 0)
+                    height: 0
+                )
                 activityViewController.popoverPresentationController?.permittedArrowDirections = []
             }
             rootViewController.present(activityViewController, animated: true)
@@ -795,7 +803,8 @@ struct ClubDetailView: View {
                 .offset(y: animateList ? 0 : 20)
                 .opacity(animateList ? 1 : 0)
                 .animation(
-                    .spring(response: 0.4, dampingFraction: 0.7).delay(0.1), value: animateList)
+                    .spring(response: 0.4, dampingFraction: 0.7).delay(0.1), value: animateList
+                )
 
             Divider()
 
@@ -803,7 +812,8 @@ struct ClubDetailView: View {
                 .offset(y: animateList ? 0 : 20)
                 .opacity(animateList ? 1 : 0)
                 .animation(
-                    .spring(response: 0.4, dampingFraction: 0.7).delay(0.2), value: animateList)
+                    .spring(response: 0.4, dampingFraction: 0.7).delay(0.2), value: animateList
+                )
 
             // Instructor (teacher) from new TSIMS payload
             if let instructor = instructorName, !instructor.trimmingCharacters(in: .whitespaces).isEmpty {
@@ -812,7 +822,8 @@ struct ClubDetailView: View {
                     .offset(y: animateList ? 0 : 20)
                     .opacity(animateList ? 1 : 0)
                     .animation(
-                        .spring(response: 0.4, dampingFraction: 0.7).delay(0.3), value: animateList)
+                        .spring(response: 0.4, dampingFraction: 0.7).delay(0.3), value: animateList
+                    )
             }
 
             // Founded omitted: YearName is not accurate
@@ -825,7 +836,7 @@ struct ClubDetailView: View {
     private var descriptionView: some View {
         Group {
             if let descriptionC = extractText(groupInfo.C_DescriptionC),
-                !descriptionC.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+               !descriptionC.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             {
                 Divider()
 
@@ -834,11 +845,12 @@ struct ClubDetailView: View {
                     .offset(y: animateList ? 0 : 20)
                     .opacity(animateList ? 1 : 0)
                     .animation(
-                        .spring(response: 0.4, dampingFraction: 0.7).delay(0.4), value: animateList)
+                        .spring(response: 0.4, dampingFraction: 0.7).delay(0.4), value: animateList
+                    )
             }
 
             if let descriptionE = extractText(groupInfo.C_DescriptionE),
-                !descriptionE.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+               !descriptionE.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             {
                 if extractText(groupInfo.C_DescriptionC) != nil {
                     Divider()
@@ -849,7 +861,8 @@ struct ClubDetailView: View {
                     .offset(y: animateList ? 0 : 20)
                     .opacity(animateList ? 1 : 0)
                     .animation(
-                        .spring(response: 0.4, dampingFraction: 0.7).delay(0.5), value: animateList)
+                        .spring(response: 0.4, dampingFraction: 0.7).delay(0.5), value: animateList
+                    )
             }
         }
     }
@@ -876,7 +889,7 @@ struct MembersListView: View {
     }
 
     private var memberLoadingView: some View {
-        ForEach(0..<4, id: \.self) { _ in
+        ForEach(0 ..< 4, id: \.self) { _ in
             HStack {
                 RoundedRectangle(cornerRadius: 4)
                     .fill(Color.gray.opacity(0.2))
@@ -1022,7 +1035,7 @@ struct ClubSkeletonView: View {
                     .font(.headline)
                     .foregroundStyle(.clear)
 
-                ForEach(0..<3, id: \.self) { _ in
+                ForEach(0 ..< 3, id: \.self) { _ in
                     HStack {
                         RoundedRectangle(cornerRadius: 4)
                             .fill(Color.gray.opacity(0.2))
@@ -1040,7 +1053,7 @@ struct ClubSkeletonView: View {
 
                 // Description skeleton
                 VStack(alignment: .leading, spacing: 6) {
-                    ForEach(0..<3, id: \.self) { _ in
+                    ForEach(0 ..< 3, id: \.self) { _ in
                         RoundedRectangle(cornerRadius: 4)
                             .fill(Color.gray.opacity(0.2))
                             .frame(height: 12)
@@ -1057,7 +1070,7 @@ struct ClubSkeletonView: View {
                     .font(.headline)
                     .foregroundStyle(.clear)
 
-                ForEach(0..<5, id: \.self) { _ in
+                ForEach(0 ..< 5, id: \.self) { _ in
                     HStack {
                         RoundedRectangle(cornerRadius: 4)
                             .fill(Color.gray.opacity(0.2))

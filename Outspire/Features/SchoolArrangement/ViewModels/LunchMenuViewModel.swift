@@ -1,7 +1,7 @@
-import SwiftUI
-import SwiftSoup
 import Combine
 import PDFKit
+import SwiftSoup
+import SwiftUI
 
 class LunchMenuViewModel: ObservableObject {
     @Published var menuItems: [LunchMenuItem] = []
@@ -97,7 +97,7 @@ class LunchMenuViewModel: ObservableObject {
     }
 
     func fetchNextPage() {
-        if currentPage < totalPages && !isLoading {
+        if currentPage < totalPages, !isLoading {
             fetchMenuItems(page: currentPage + 1)
         }
     }
@@ -158,7 +158,12 @@ class LunchMenuViewModel: ObservableObject {
                 // Reset processed URLs for each new detail
                 self.processedImageUrls.removeAll()
 
-                let detail = try self.parseMenuDetailHTML(htmlString, id: item.id, title: item.title, publishDate: item.publishDate)
+                let detail = try self.parseMenuDetailHTML(
+                    htmlString,
+                    id: item.id,
+                    title: item.title,
+                    publishDate: item.publishDate
+                )
 
                 print("DEBUG: Menu detail parsed successfully with \(detail.imageUrls.count) images")
 
@@ -309,8 +314,12 @@ class LunchMenuViewModel: ObservableObject {
         if let scriptText = try doc.select("script").filter({ try $0.html().contains("var pageNumber =") }).first {
             let scriptContent = try scriptText.html()
             if let rangeStart = scriptContent.range(of: "var pageNumber = ('"),
-               let rangeEnd = scriptContent.range(of: "'.replace", range: rangeStart.upperBound..<scriptContent.endIndex) {
-                let numberString = scriptContent[rangeStart.upperBound..<rangeEnd.lowerBound]
+               let rangeEnd = scriptContent.range(
+                   of: "'.replace",
+                   range: rangeStart.upperBound ..< scriptContent.endIndex
+               )
+            {
+                let numberString = scriptContent[rangeStart.upperBound ..< rangeEnd.lowerBound]
                     .trimmingCharacters(in: CharacterSet(charactersIn: "'\";()"))
                 if let totalPages = Int(numberString) {
                     return totalPages
@@ -321,10 +330,15 @@ class LunchMenuViewModel: ObservableObject {
         return 1
     }
 
-    private func parseMenuDetailHTML(_ html: String, id: String, title: String, publishDate: String) throws -> LunchMenuDetail {
+    private func parseMenuDetailHTML(
+        _ html: String,
+        id: String,
+        title: String,
+        publishDate: String
+    ) throws -> LunchMenuDetail {
         print("DEBUG: Starting to parse HTML for \(title)")
 
-        var content: String = ""
+        var content = ""
         var imageUrls: [String] = []
 
         do {
@@ -368,7 +382,7 @@ class LunchMenuViewModel: ObservableObject {
             // If no images found through DOM, try regex extraction
             if imageUrls.isEmpty {
                 if let regex = try? NSRegularExpression(pattern: "src\\s*=\\s*[\"'](.*?)[\"']") {
-                    let range = NSRange(content.startIndex..<content.endIndex, in: content)
+                    let range = NSRange(content.startIndex ..< content.endIndex, in: content)
                     let matches = regex.matches(in: content, range: range)
 
                     for match in matches {
@@ -386,7 +400,7 @@ class LunchMenuViewModel: ObservableObject {
                 }
             }
 
-        } catch let error {
+        } catch {
             print("DEBUG: Critical HTML parsing error: \(error)")
         }
 
@@ -434,13 +448,15 @@ class LunchMenuViewModel: ObservableObject {
         failedUrls: [String]
     ) {
         if currentIndex >= imageUrls.count {
-            print("DEBUG: All \(imageUrls.count) images processed. Success: \(downloadedImages.count), Failed: \(failedUrls.count)")
+            print(
+                "DEBUG: All \(imageUrls.count) images processed. Success: \(downloadedImages.count), Failed: \(failedUrls.count)"
+            )
             createAndSavePDFWithNotice(detail: detail, images: downloadedImages, failedURLs: failedUrls)
             return
         }
 
         let urlString = imageUrls[currentIndex]
-        print("DEBUG: Downloading image \(currentIndex+1)/\(imageUrls.count): \(urlString)")
+        print("DEBUG: Downloading image \(currentIndex + 1)/\(imageUrls.count): \(urlString)")
 
         let sanitizedURL = sanitizeAndEncodeURL(urlString)
 
@@ -474,13 +490,13 @@ class LunchMenuViewModel: ObservableObject {
             var newFailedUrls = failedUrls
 
             if let error = error {
-                print("DEBUG: Error downloading image \(currentIndex+1): \(error.localizedDescription)")
+                print("DEBUG: Error downloading image \(currentIndex + 1): \(error.localizedDescription)")
                 newFailedUrls.append(urlString)
             } else if let data = data, let image = UIImage(data: data) {
-                print("DEBUG: Successfully downloaded image \(currentIndex+1) - size: \(data.count) bytes")
+                print("DEBUG: Successfully downloaded image \(currentIndex + 1) - size: \(data.count) bytes")
                 newDownloadedImages.append(image)
             } else {
-                print("DEBUG: Failed to convert data to image for URL \(currentIndex+1)")
+                print("DEBUG: Failed to convert data to image for URL \(currentIndex + 1)")
                 newFailedUrls.append(urlString)
             }
 

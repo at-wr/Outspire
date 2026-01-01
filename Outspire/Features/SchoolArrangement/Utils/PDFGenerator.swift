@@ -1,5 +1,5 @@
-import UIKit
 import PDFKit
+import UIKit
 
 class PDFGenerator {
     static func generatePDF(title: String, date: String, content: String, images: [UIImage]) -> Data? {
@@ -26,7 +26,7 @@ class PDFGenerator {
         let renderer = UIGraphicsPDFRenderer(bounds: pageRect, format: format)
 
         do {
-            let data = try renderer.pdfData { (context) in
+            let data = try renderer.pdfData { context in
                 // First page with title and content
                 context.beginPage()
 
@@ -59,10 +59,13 @@ class PDFGenerator {
 
                     // Draw each image
                     for (index, image) in images.enumerated() {
-                        print("DEBUG: Drawing image \(index+1) of \(images.count)")
+                        print("DEBUG: Drawing image \(index + 1) of \(images.count)")
 
                         // Check if we need a new page for this image
-                        let estimatedImageHeight = min(300.0, image.size.height * (contentWidth / max(image.size.width, 1.0)))
+                        let estimatedImageHeight = min(
+                            300.0,
+                            image.size.height * (contentWidth / max(image.size.width, 1.0))
+                        )
                         if yPosition + estimatedImageHeight + 40.0 > pageHeight - margin { // Fixed: Use CGFloat literal
                             context.beginPage()
                             yPosition = margin
@@ -75,7 +78,7 @@ class PDFGenerator {
                             .foregroundColor: UIColor.darkGray
                         ]
 
-                        let imageLabel = "Image \(index+1) of \(images.count):"
+                        let imageLabel = "Image \(index + 1) of \(images.count):"
                         imageLabel.draw(
                             at: CGPoint(x: margin, y: yPosition),
                             withAttributes: imageNumAttributes
@@ -96,7 +99,11 @@ class PDFGenerator {
 
                         // Add a separator between images if not the last one
                         if index < images.count - 1 {
-                            drawSeparator(at: yPosition, width: pageWidth, margin: margin + 20.0) // Fixed: Use CGFloat literal
+                            drawSeparator(
+                                at: yPosition,
+                                width: pageWidth,
+                                margin: margin + 20.0
+                            ) // Fixed: Use CGFloat literal
                             yPosition += 20.0 // Fixed: Use CGFloat literal
                         }
                     }
@@ -198,7 +205,13 @@ class PDFGenerator {
         path.stroke()
     }
 
-    private static func drawImageWithCaptions(image: UIImage, startY: CGFloat, pageRect: CGRect, margin: CGFloat, contentWidth: CGFloat) -> CGFloat {
+    private static func drawImageWithCaptions(
+        image: UIImage,
+        startY: CGFloat,
+        pageRect: CGRect,
+        margin: CGFloat,
+        contentWidth: CGFloat
+    ) -> CGFloat {
         var yPosition = startY
 
         // Calculate image dimensions to fit within page
@@ -239,7 +252,13 @@ class PDFGenerator {
         return yPosition
     }
 
-    private static func drawHTMLContent(content: String, startY: CGFloat, pageRect: CGRect, margin: CGFloat, context: UIGraphicsPDFRendererContext) -> CGFloat {
+    private static func drawHTMLContent(
+        content: String,
+        startY: CGFloat,
+        pageRect: CGRect,
+        margin: CGFloat,
+        context: UIGraphicsPDFRendererContext
+    ) -> CGFloat {
         var yPosition = startY
 
         // Strip HTML tags to get plain text

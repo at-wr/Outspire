@@ -1,13 +1,14 @@
 import Foundation
 
-struct Configuration {
+enum Configuration {
+    static let appGroupSuiteName = "group.dev.wrye.Outspire"
     // For LLM Service
     // Go to Configuration.local.swift
 
     static var departureNotificationsEnabled: Bool {
         get {
             if UserDefaults.standard.object(forKey: "departureNotificationsEnabled") == nil {
-                return false  // Default: disabled
+                return false // Default: disabled
             }
             return UserDefaults.standard.bool(forKey: "departureNotificationsEnabled")
         }
@@ -19,7 +20,8 @@ struct Configuration {
     static var departureNotificationTime: Date {
         get {
             if let storedTime = UserDefaults.standard.object(forKey: "departureNotificationTime")
-                as? Date {
+                as? Date
+            {
                 return storedTime
             } else {
                 // Default time: 6:55 AM
@@ -148,10 +150,12 @@ struct Configuration {
     ]
 
     // MARK: - Connectivity probes (centralized)
+
     static var directServerProbeURL: String { "http://101.230.1.173:6300/php/login_key.php" }
     static var relayServerProbeURL: String { "https://tsimsproxy.wrye.dev/php/login_key.php" }
 
     // MARK: - LLM configuration
+
     static var llmModel: String { "grok/grok-3-latest" }
 
     static var isHolidayMode: Bool {
@@ -210,7 +214,7 @@ struct Configuration {
     static var automaticallyStartLiveActivities: Bool {
         get {
             if UserDefaults.standard.object(forKey: "automaticallyStartLiveActivities") == nil {
-                return true  // Default: enabled
+                return true // Default: enabled
             }
             return UserDefaults.standard.bool(forKey: "automaticallyStartLiveActivities")
         }

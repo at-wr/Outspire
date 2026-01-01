@@ -45,4 +45,3 @@ enum SecureStore {
         SecItemDelete(query as CFDictionary)
     }
 }
-

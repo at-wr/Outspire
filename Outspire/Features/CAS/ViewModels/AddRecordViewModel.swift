@@ -1,6 +1,6 @@
-import SwiftUI
 import Combine
 import Foundation
+import SwiftUI
 
 @MainActor
 class AddRecordViewModel: ObservableObject {
@@ -91,13 +91,15 @@ class AddRecordViewModel: ObservableObject {
         NotificationCenter.default.addObserver(
             forName: Notification.Name("ClearCachedFormData"),
             object: nil,
-            queue: .main) { _ in
+            queue: .main
+        ) { _ in
             // Clear the cached form data
             Self.cachedFormData = nil
         }
     }
 
     // MARK: - LLM Suggestion
+
     @MainActor
     func fetchLLMSuggestion() {
         // Check if user should see the disclaimer first
@@ -120,7 +122,8 @@ class AddRecordViewModel: ObservableObject {
             do {
                 // Compute club name from selected group
                 let selectedGroup = availableGroups.first { $0.C_GroupsID == selectedGroupId }
-                let clubNameValue = (selectedGroup?.C_NameE.isEmpty ?? true) ? selectedGroup?.C_NameC ?? "" : selectedGroup?.C_NameE ?? ""
+                let clubNameValue = (selectedGroup?.C_NameE.isEmpty ?? true) ? selectedGroup?
+                    .C_NameC ?? "" : selectedGroup?.C_NameE ?? ""
                 // Request the AI suggestion
                 let suggestion = try await llmService.suggestCasRecord(
                     userInput: userInput,
@@ -159,13 +162,17 @@ class AddRecordViewModel: ObservableObject {
 
     private func setupPublishers() {
         // Combine all form field publishers to update cache on any change
-        Publishers.CombineLatest4($selectedGroupId, $activityDate, $activityTitle,
-                                  Publishers.CombineLatest3($durationC, $durationA, $durationS))
-            .debounce(for: .seconds(0.5), scheduler: RunLoop.main)
-            .sink { [weak self] _, _, _, _ in
-                self?.cacheFormData()
-            }
-            .store(in: &cancellables)
+        Publishers.CombineLatest4(
+            $selectedGroupId,
+            $activityDate,
+            $activityTitle,
+            Publishers.CombineLatest3($durationC, $durationA, $durationS)
+        )
+        .debounce(for: .seconds(0.5), scheduler: RunLoop.main)
+        .sink { [weak self] _, _, _, _ in
+            self?.cacheFormData()
+        }
+        .store(in: &cancellables)
 
         $activityDescription
             .debounce(for: .seconds(0.5), scheduler: RunLoop.main)
@@ -229,7 +236,8 @@ class AddRecordViewModel: ObservableObject {
               !activityTitle.isEmpty,
               !activityDescription.isEmpty,
               descriptionWordCount >= 80,
-              totalDuration > 0 else {
+              totalDuration > 0
+        else {
             errorMessage = "Fill all fields; ≥80 words"
             return
         }
@@ -241,38 +249,40 @@ class AddRecordViewModel: ObservableObject {
         dateFormatter.dateFormat = "yyyy-MM-dd"
         let activityDateString = dateFormatter.string(from: activityDate)
 
-
         // Map GroupNo -> numeric Id if needed before save
         resolveNumericGroupId(selectedGroupId) { mappedId in
-        let form: [String: String] = [
-            "id": "0",
-            "GroupId": mappedId,
-            "ActivityDate": activityDateString,
-            "Theme": self.activityTitle,
-            "CDuration": String(self.durationC),
-            "ADuration": String(self.durationA),
-            "SDuration": String(self.durationS),
-            "Reflection": self.activityDescription
-        ]
-        TSIMSClientV2.shared.postForm(path: "/Stu/Cas/SaveRecord", form: form) { [weak self] (result: Result<ApiResponse<String>, NetworkError>) in
-            guard let self = self else { return }
-            switch result {
-            case .success(let env):
-                if env.isSuccess {
-                    self.clearCache()
-                    self.onSave()
-                    self.saveSucceeded = true
-                    self.isSaving = false
-                } else {
-                    self.errorMessage = "Save failed"
+            let form: [String: String] = [
+                "id": "0",
+                "GroupId": mappedId,
+                "ActivityDate": activityDateString,
+                "Theme": self.activityTitle,
+                "CDuration": String(self.durationC),
+                "ADuration": String(self.durationA),
+                "SDuration": String(self.durationS),
+                "Reflection": self.activityDescription
+            ]
+            TSIMSClientV2.shared.postForm(path: "/Stu/Cas/SaveRecord", form: form) { [weak self] (result: Result<
+                ApiResponse<String>,
+                NetworkError
+            >) in
+                guard let self = self else { return }
+                switch result {
+                case let .success(env):
+                    if env.isSuccess {
+                        self.clearCache()
+                        self.onSave()
+                        self.saveSucceeded = true
+                        self.isSaving = false
+                    } else {
+                        self.errorMessage = "Save failed"
+                        self.isSaving = false
+                    }
+                case let .failure(err):
+                    _ = err // swallow long message
+                    self.errorMessage = "Network error"
                     self.isSaving = false
                 }
-            case .failure(let err):
-                _ = err // swallow long message
-                self.errorMessage = "Network error"
-                self.isSaving = false
             }
-        }
         }
     }
 
@@ -291,6 +301,7 @@ class AddRecordViewModel: ObservableObject {
     }
 
     // MARK: - Disclaimer Methods
+
     func dismissFirstTimeSuggestionAlert() {
         // Mark that we've shown the disclaimer
         DisclaimerManager.shared.markRecordSuggestionDisclaimerAsShown()

@@ -6,14 +6,14 @@ struct NavSplitView: View {
     @EnvironmentObject var sessionService: SessionService
     @EnvironmentObject var settingsManager: SettingsManager
     @EnvironmentObject var urlSchemeHandler: URLSchemeHandler
-    @EnvironmentObject var gradientManager: GradientManager  // Add gradient manager
+    @EnvironmentObject var gradientManager: GradientManager // Add gradient manager
     @State private var selectedView: ViewType? = .today
     @State private var refreshID = UUID()
     @State private var showOnboardingSheet = false
     @State private var hasCheckedOnboarding = false
     @AppStorage("lastVersionRun") private var lastVersionRun: String?
     @State private var onboardingCompleted = false
-    @Environment(\.colorScheme) private var colorScheme  // Add colorScheme
+    @Environment(\.colorScheme) private var colorScheme // Add colorScheme
     @State private var splitSearch: String = ""
 
     var body: some View {
@@ -68,7 +68,7 @@ struct NavSplitView: View {
                 }
             }
             // Keep default list background to align with Liquid Glass behavior
-            .modifier(NavigationColumnWidthModifier())  // Apply column width correctly
+            .modifier(NavigationColumnWidthModifier()) // Apply column width correctly
             .navigationTitle("Outspire")
             .contentMargins(.vertical, 10)
             // Settings is now available under Search; remove sidebar sheet presentation
@@ -89,9 +89,13 @@ struct NavSplitView: View {
         }
         // Add URL scheme handling changes
         .onChange(of: urlSchemeHandler.navigateToToday) { _, newValue in if newValue { selectedView = .today } }
-        .onChange(of: urlSchemeHandler.navigateToClassTable) { _, newValue in if newValue { selectedView = .classtable } }
+        .onChange(of: urlSchemeHandler.navigateToClassTable) { _, newValue in
+            if newValue { selectedView = .classtable }
+        }
         .onChange(of: urlSchemeHandler.navigateToClub) { _, clubId in if clubId != nil { selectedView = .clubInfo } }
-        .onChange(of: urlSchemeHandler.navigateToAddActivity) { _, clubId in if clubId != nil { selectedView = .clubActivities } }
+        .onChange(of: urlSchemeHandler.navigateToAddActivity) { _, clubId in
+            if clubId != nil { selectedView = .clubActivities }
+        }
         .onChange(of: urlSchemeHandler.navigateToReflection) { _, _ in selectedView = .clubReflections }
         .id(refreshID)
         .task {
@@ -121,11 +125,11 @@ struct NavSplitView: View {
         switch selectedView {
         case .today:
             NavigationStack {
-                TodayView()  // Removed explicit id to enable default transition animations
+                TodayView() // Removed explicit id to enable default transition animations
             }
         case .classtable:
             NavigationStack {
-                ClasstableView()
+                ModernClasstableView()
                     .id("classtable-nav-content")
             }
         case .score:
@@ -181,8 +185,8 @@ struct NavSplitView: View {
         let thresholdVersion = "0.5.1"
 
         if shouldShowOnboardingForVersion(
-            lastVersionRun: lastVersionRun, thresholdVersion: thresholdVersion)
-        {
+            lastVersionRun: lastVersionRun, thresholdVersion: thresholdVersion
+        ) {
             showOnboardingSheet = true
             lastVersionRun = currentVersion
             Log.app.info("Showing onboarding due to version check.")
@@ -194,7 +198,6 @@ struct NavSplitView: View {
                 Log.app.info("Showing onboarding because 'hasCompletedOnboarding' is false.")
             } else {
                 Log.app.info("'hasCompletedOnboarding' is already true. Onboarding will not be shown.")
-
             }
         }
     }
@@ -224,13 +227,16 @@ struct NavSplitView: View {
 
             if !sessionService.isAuthenticated {
                 gradientManager.updateGradientForContext(
-                    context: .notSignedIn, colorScheme: colorScheme)
+                    context: .notSignedIn, colorScheme: colorScheme
+                )
             } else if isHoliday {
                 gradientManager.updateGradientForContext(
-                    context: .holiday, colorScheme: colorScheme)
+                    context: .holiday, colorScheme: colorScheme
+                )
             } else if isWeekend {
                 gradientManager.updateGradientForContext(
-                    context: .weekend, colorScheme: colorScheme)
+                    context: .weekend, colorScheme: colorScheme
+                )
             } else {
                 // Let the Today view handle this in its own onAppear
                 gradientManager.updateGradientForContext(context: .normal, colorScheme: colorScheme)
@@ -249,6 +255,7 @@ struct NavSplitView: View {
 }
 
 // MARK: - Navigation Column Width Modifier
+
 struct NavigationColumnWidthModifier: ViewModifier {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 

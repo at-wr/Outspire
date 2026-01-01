@@ -1,6 +1,6 @@
 import SwiftUI
 #if !targetEnvironment(macCatalyst)
-import ColorfulX
+    import ColorfulX
 #endif
 
 struct GradientSettingsView: View {
@@ -12,9 +12,9 @@ struct GradientSettingsView: View {
     @State private var noiseAmount: Double = 20.0
     @State private var transitionSpeed: Double = 1.0
     #if !targetEnvironment(macCatalyst)
-    @State private var selectedPreset: GradientPreset = .aurora
+        @State private var selectedPreset: GradientPreset = .aurora
     #else
-    @State private var selectedPreset: GradientPreset = .forest
+        @State private var selectedPreset: GradientPreset = .forest
     #endif
 
     // Track if user has customized settings
@@ -23,14 +23,14 @@ struct GradientSettingsView: View {
     // Define the available gradient presets
     enum GradientPreset: String, CaseIterable, Identifiable {
         #if !targetEnvironment(macCatalyst)
-        // Added all ColorfulPreset options
-        case sunrise, sunset, love, ocean, barbie, starry, jelly
-        case lavandula, watermelon, dandelion, lemon
-        case spring, summer, autumn, winter, neon, aurora
-        // Custom color schemes
-        case forest, lavender, cherry
+            // Added all ColorfulPreset options
+            case sunrise, sunset, love, ocean, barbie, starry, jelly
+            case lavandula, watermelon, dandelion, lemon
+            case spring, summer, autumn, winter, neon, aurora
+            // Custom color schemes
+            case forest, lavender, cherry
         #else
-        case forest, lavender, cherry
+            case forest, lavender, cherry
         #endif
 
         var id: String { self.rawValue }
@@ -38,24 +38,24 @@ struct GradientSettingsView: View {
         var colors: [Color] {
             switch self {
             #if !targetEnvironment(macCatalyst)
-            // Map to ColorfulPreset values where available
-            case .sunrise: return ColorfulPreset.sunrise.swiftUIColors
-            case .sunset: return ColorfulPreset.sunset.swiftUIColors
-            case .love: return ColorfulPreset.love.swiftUIColors
-            case .ocean: return ColorfulPreset.ocean.swiftUIColors
-            case .barbie: return ColorfulPreset.barbie.swiftUIColors
-            case .starry: return ColorfulPreset.starry.swiftUIColors
-            case .jelly: return ColorfulPreset.jelly.swiftUIColors
-            case .lavandula: return ColorfulPreset.lavandula.swiftUIColors
-            case .watermelon: return ColorfulPreset.watermelon.swiftUIColors
-            case .dandelion: return ColorfulPreset.dandelion.swiftUIColors
-            case .lemon: return ColorfulPreset.lemon.swiftUIColors
-            case .spring: return ColorfulPreset.spring.swiftUIColors
-            case .summer: return ColorfulPreset.summer.swiftUIColors
-            case .autumn: return ColorfulPreset.autumn.swiftUIColors
-            case .winter: return ColorfulPreset.winter.swiftUIColors
-            case .neon: return ColorfulPreset.neon.swiftUIColors
-            case .aurora: return ColorfulPreset.aurora.swiftUIColors
+                // Map to ColorfulPreset values where available
+                case .sunrise: return ColorfulPreset.sunrise.swiftUIColors
+                case .sunset: return ColorfulPreset.sunset.swiftUIColors
+                case .love: return ColorfulPreset.love.swiftUIColors
+                case .ocean: return ColorfulPreset.ocean.swiftUIColors
+                case .barbie: return ColorfulPreset.barbie.swiftUIColors
+                case .starry: return ColorfulPreset.starry.swiftUIColors
+                case .jelly: return ColorfulPreset.jelly.swiftUIColors
+                case .lavandula: return ColorfulPreset.lavandula.swiftUIColors
+                case .watermelon: return ColorfulPreset.watermelon.swiftUIColors
+                case .dandelion: return ColorfulPreset.dandelion.swiftUIColors
+                case .lemon: return ColorfulPreset.lemon.swiftUIColors
+                case .spring: return ColorfulPreset.spring.swiftUIColors
+                case .summer: return ColorfulPreset.summer.swiftUIColors
+                case .autumn: return ColorfulPreset.autumn.swiftUIColors
+                case .winter: return ColorfulPreset.winter.swiftUIColors
+                case .neon: return ColorfulPreset.neon.swiftUIColors
+                case .aurora: return ColorfulPreset.aurora.swiftUIColors
             #endif
             // Custom gradient combinations
             case .forest: return [Color.green, Color.mint, Color.teal, Color.blue]
@@ -68,33 +68,36 @@ struct GradientSettingsView: View {
     var body: some View {
         List {
             #if DEBUG
-            Section(header: Text("Gradient Preset")) {
-                Picker("Preset", selection: $selectedPreset) {
-                    ForEach(GradientPreset.allCases.sorted(by: { $0.rawValue < $1.rawValue }), id: \.self) { preset in
-                        HStack {
-                            LinearGradient(
-                                colors: preset.colors,
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                            .frame(width: 30, height: 20)
-                            .clipShape(RoundedRectangle(cornerRadius: 4))
+                Section(header: Text("Gradient Preset")) {
+                    Picker("Preset", selection: $selectedPreset) {
+                        ForEach(
+                            GradientPreset.allCases.sorted(by: { $0.rawValue < $1.rawValue }),
+                            id: \.self
+                        ) { preset in
+                            HStack {
+                                LinearGradient(
+                                    colors: preset.colors,
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                                .frame(width: 30, height: 20)
+                                .clipShape(RoundedRectangle(cornerRadius: 4))
 
-                            Text(preset.rawValue.capitalized)
-                                .padding(.leading, 8)
+                                Text(preset.rawValue.capitalized)
+                                    .padding(.leading, 8)
+                            }
+                            .tag(preset)
                         }
-                        .tag(preset)
                     }
-                }
-                .onChange(of: selectedPreset) { _, newValue in
-                    updateGradient(preset: newValue)
-                    hasCustomized = true
-                }
-                .pickerStyle(.navigationLink)
+                    .onChange(of: selectedPreset) { _, newValue in
+                        updateGradient(preset: newValue)
+                        hasCustomized = true
+                    }
+                    .pickerStyle(.navigationLink)
 
-                // Preview of current gradient
-                gradientPreview
-            }
+                    // Preview of current gradient
+                    gradientPreview
+                }
             #endif
 
             Section(header: Text("Animation Settings")) {
@@ -106,7 +109,7 @@ struct GradientSettingsView: View {
                             .foregroundStyle(.secondary)
                     }
 
-                    Slider(value: $animationSpeed, in: 0.1...1.5) { editing in
+                    Slider(value: $animationSpeed, in: 0.1 ... 1.5) { editing in
                         if !editing {
                             updateGradientAnimation()
                             hasCustomized = true
@@ -122,7 +125,7 @@ struct GradientSettingsView: View {
                             .foregroundStyle(.secondary)
                     }
 
-                    Slider(value: $noiseAmount, in: 0...50) { editing in
+                    Slider(value: $noiseAmount, in: 0 ... 50) { editing in
                         if !editing {
                             updateGradientAnimation()
                             hasCustomized = true
@@ -138,7 +141,7 @@ struct GradientSettingsView: View {
                             .foregroundStyle(.secondary)
                     }
 
-                    Slider(value: $transitionSpeed, in: 0.1...2.0) { editing in
+                    Slider(value: $transitionSpeed, in: 0.1 ... 2.0) { editing in
                         if !editing {
                             updateGradientAnimation()
                             hasCustomized = true
@@ -156,9 +159,11 @@ struct GradientSettingsView: View {
             }
 
             Section(header: Text("About Gradients")) {
-                Text("The app will automatically adjust gradients based on context, such as when you're in class or when it's a weekend.")
-                    //                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                Text(
+                    "The app will automatically adjust gradients based on context, such as when you're in class or when it's a weekend."
+                )
+                //                    .font(.caption)
+                .foregroundStyle(.secondary)
             }
         }
         .navigationTitle("Display")
@@ -171,30 +176,30 @@ struct GradientSettingsView: View {
     private var gradientPreview: some View {
         ZStack {
             #if !targetEnvironment(macCatalyst)
-            ColorfulView(
-                color: .constant(selectedPreset.colors),
-                speed: .constant(animationSpeed),
-                noise: .constant(noiseAmount),
-                transitionSpeed: .constant(transitionSpeed)
-            )
-            .frame(height: 100)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .strokeBorder(Color.secondary.opacity(0.3), lineWidth: 0.5)
-            )
+                ColorfulView(
+                    color: .constant(selectedPreset.colors),
+                    speed: .constant(animationSpeed),
+                    noise: .constant(noiseAmount),
+                    transitionSpeed: .constant(transitionSpeed)
+                )
+                .frame(height: 100)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .strokeBorder(Color.secondary.opacity(0.3), lineWidth: 0.5)
+                )
             #else
-            LinearGradient(
-                colors: selectedPreset.colors,
-                startPoint: .leading,
-                endPoint: .trailing
-            )
-            .frame(height: 100)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .strokeBorder(Color.secondary.opacity(0.3), lineWidth: 0.5)
-            )
+                LinearGradient(
+                    colors: selectedPreset.colors,
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+                .frame(height: 100)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .strokeBorder(Color.secondary.opacity(0.3), lineWidth: 0.5)
+                )
             #endif
 
             Text("Preview")
@@ -220,9 +225,9 @@ struct GradientSettingsView: View {
 
         // Try to determine which preset matches the colors
         #if !targetEnvironment(macCatalyst)
-        selectedPreset = findMatchingPreset(for: settings.colors) ?? .aurora
+            selectedPreset = findMatchingPreset(for: settings.colors) ?? .aurora
         #else
-        selectedPreset = findMatchingPreset(for: settings.colors) ?? .forest
+            selectedPreset = findMatchingPreset(for: settings.colors) ?? .forest
         #endif
     }
 

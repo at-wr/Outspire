@@ -22,73 +22,72 @@ struct SettingsView: View {
 
     var body: some View {
         List {
-                // Account section
-                Section {
-                    NavigationLink(destination: destinationView(for: .account)) {
-                        ProfileHeaderView()
-                    }
+            // Account section
+            Section {
+                NavigationLink(destination: destinationView(for: .account)) {
+                    ProfileHeaderView()
+                }
+            }
+
+            // General settings section
+            Section {
+                NavigationLink(destination: destinationView(for: .general)) {
+                    MenuItemView(item: .general)
+                }
+                NavigationLink(destination: destinationView(for: .notifications)) {
+                    MenuItemView(item: .notifications)
+                }
+                NavigationLink(destination: destinationView(for: .gradients)) {
+                    MenuItemView(item: .gradients)
+                }
+                NavigationLink(destination: destinationView(for: .about)) {
+                    MenuItemView(item: .about)
+                }
+                NavigationLink(destination: destinationView(for: .license)) {
+                    MenuItemView(item: .license)
+                }
+            }
+
+            // Links section
+            Section {
+                ShareLink(
+                    item: URL(string: "https://apps.apple.com/us/app/outspire/id6743143348")!,
+                    message: Text(
+                        "\nCheck out Outspire, an app that makes your WFLA life easier!\nWidgets, Class countdowns, CAS... \n\nDownload now on the App Store."
+                    )
+                ) {
+                    Label("Share Outspire", systemImage: "square.and.arrow.up")
+                        .foregroundStyle(.primary)
                 }
 
-                // General settings section
-                Section {
-                    NavigationLink(destination: destinationView(for: .general)) {
-                        MenuItemView(item: .general)
-                    }
-                    NavigationLink(destination: destinationView(for: .notifications)) {
-                        MenuItemView(item: .notifications)
-                    }
-                    NavigationLink(destination: destinationView(for: .gradients)) {
-                        MenuItemView(item: .gradients)
-                    }
-                    NavigationLink(destination: destinationView(for: .about)) {
-                        MenuItemView(item: .about)
-                    }
-                    NavigationLink(destination: destinationView(for: .license)) {
-                        MenuItemView(item: .license)
-                    }
+                Link(destination: URL(string: "https://outspire.wrye.dev")!) {
+                    Label("Website", systemImage: "globe")
+                        .foregroundStyle(.primary)
                 }
 
-                // Links section
-                Section {
-                    ShareLink(
-                        item: URL(string: "https://apps.apple.com/us/app/outspire/id6743143348")!,
-                        message: Text(
-                            "\nCheck out Outspire, an app that makes your WFLA life easier!\nWidgets, Class countdowns, CAS... \n\nDownload now on the App Store."
-                        )
-                    ) {
-                        Label("Share Outspire", systemImage: "square.and.arrow.up")
-                            .foregroundStyle(.primary)
-                    }
-
-                    Link(destination: URL(string: "https://outspire.wrye.dev")!) {
-                        Label("Website", systemImage: "globe")
-                            .foregroundStyle(.primary)
-                    }
-
-                    Link(
-                        destination: URL(
-                            string: "https://github.com/at-wr/Outspire/issues/new/choose")!
-                    ) {
-                        Label("Report an Issue", systemImage: "exclamationmark.bubble")
-                            .foregroundStyle(.primary)
-                    }
-                } footer: {
+                Link(
+                    destination: URL(
+                        string: "https://github.com/at-wr/Outspire/issues/new/choose")!
+                ) {
+                    Label("Report an Issue", systemImage: "exclamationmark.bubble")
+                        .foregroundStyle(.primary)
                 }
+            } footer: {}
 
-                #if DEBUG
-                    Section("Debug Tools") {
-                        Button("View Onboarding") {
-                            HapticManager.shared.playButtonTap()
-                            showOnboardingSheet = true
-                        }
-                        .foregroundStyle(.blue)
-
-                        NavigationLink(destination: CacheStatusView()) {
-                            Label("Cache Status", systemImage: "externaldrive")
-                                .foregroundStyle(.primary)
-                        }
+            #if DEBUG
+                Section("Debug Tools") {
+                    Button("View Onboarding") {
+                        HapticManager.shared.playButtonTap()
+                        showOnboardingSheet = true
                     }
-                #endif
+                    .foregroundStyle(.blue)
+
+                    NavigationLink(destination: CacheStatusView()) {
+                        Label("Cache Status", systemImage: "externaldrive")
+                            .foregroundStyle(.primary)
+                    }
+                }
+            #endif
         }
         .id(viewRefreshID)
         .navigationTitle("Settings")

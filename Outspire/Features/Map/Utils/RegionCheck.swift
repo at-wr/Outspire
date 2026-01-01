@@ -1,5 +1,5 @@
-import Foundation
 import CoreLocation
+import Foundation
 
 class RegionChecker: ObservableObject {
     // Add a shared singleton instance
@@ -40,7 +40,9 @@ class RegionChecker: ObservableObject {
         }
 
         URLSession.shared.dataTask(with: url) { [weak self] data, _, error in
-            if let data = data, let code = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) {
+            if let data = data,
+               let code = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
+            {
                 DispatchQueue.main.async {
                     self?.regionCode = code
                     self?.isCheckingRegion = false
@@ -61,7 +63,7 @@ class RegionChecker: ObservableObject {
         let geocoder = CLGeocoder()
         let location = CLLocation(latitude: taipeiLocation.latitude, longitude: taipeiLocation.longitude)
 
-        geocoder.reverseGeocodeLocation(location) { [weak self] (placemarks, error) in
+        geocoder.reverseGeocodeLocation(location) { [weak self] placemarks, error in
             guard let self = self else { return }
 
             if let placemark = placemarks?.first {

@@ -1,6 +1,6 @@
-import SwiftUI
-import MapKit
 import CoreLocation
+import MapKit
+import SwiftUI
 
 struct MapView: View {
     // Change from @StateObject to @ObservedObject and use the shared instance
@@ -69,6 +69,7 @@ struct MapView: View {
     }
 
     // MARK: - Computed Properties
+
     private var convertedBoundaryCoordinates: [CLLocationCoordinate2D] {
         regionChecker.isChinaRegion() ?
             campusBoundary.map(CoordinateConverter.coordinateHandler) :
@@ -85,6 +86,7 @@ struct MapView: View {
     }
 
     // MARK: - Private Methods
+
     private func setupMap() {
         let locationManager = CLLocationManager()
         locationManager.requestWhenInUseAuthorization()
@@ -117,6 +119,7 @@ struct MapView: View {
 }
 
 // MARK: - Supporting Structures
+
 struct CampusLocation: Identifiable {
     let id = UUID()
     let name: String
@@ -124,6 +127,7 @@ struct CampusLocation: Identifiable {
 }
 
 // MARK: - Extensions
+
 extension CLLocationCoordinate2D {
     func distance(from coordinate: CLLocationCoordinate2D) -> CLLocationDistance {
         let location1 = CLLocation(latitude: latitude, longitude: longitude)

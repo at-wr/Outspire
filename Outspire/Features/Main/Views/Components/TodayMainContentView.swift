@@ -1,5 +1,5 @@
-import SwiftUI
 import CoreLocation
+import SwiftUI
 
 struct TodayMainContentView: View {
     let isAuthenticated: Bool
@@ -103,10 +103,10 @@ struct TodayMainContentView: View {
     private func shouldShowTravelInfo() -> Bool {
         // Show travel info if user is not near school and we have travel data
         guard locationManager.userLocation != nil,
-            locationManager.authorizationStatus == .authorizedWhenInUse
-                || locationManager.authorizationStatus == .authorizedAlways,
-            travelTimeToSchool != nil,
-            travelDistance != nil
+              locationManager.authorizationStatus == .authorizedWhenInUse
+              || locationManager.authorizationStatus == .authorizedAlways,
+              travelTimeToSchool != nil,
+              travelDistance != nil
         else {
             return false
         }
@@ -117,7 +117,7 @@ struct TodayMainContentView: View {
     private func areClassesOverForToday() -> Bool {
         // Only check this for weekdays
         guard !isCurrentDateWeekend, !isHolidayActive, effectiveDayIndex >= 0,
-            effectiveDayIndex <= 4
+              effectiveDayIndex <= 4
         else {
             return false
         }
@@ -126,18 +126,18 @@ struct TodayMainContentView: View {
 
         // Get the last period of the day
         if let lastClassPeriod = ClassPeriodsManager.shared.classPeriods.last?.number,
-            let timetable = classtableViewModel.timetable.isEmpty
-                ? nil : classtableViewModel.timetable,
-            !timetable.isEmpty
+           let timetable = classtableViewModel.timetable.isEmpty
+           ? nil : classtableViewModel.timetable,
+           !timetable.isEmpty
         {
             // Check if there's any class data for this day
             if effectiveDayIndex + 1 < timetable[min(lastClassPeriod, timetable.count - 1)].count {
                 // Check if we have any scheduled classes
                 let classes = getScheduledClassesForDay(effectiveDayIndex)
                 if !classes.isEmpty, let lastPeriodNumber = classes.map({ $0.0 }).max(),
-                    let lastPeriod = ClassPeriodsManager.shared.classPeriods.first(where: {
-                        $0.number == lastPeriodNumber
-                    })
+                   let lastPeriod = ClassPeriodsManager.shared.classPeriods.first(where: {
+                       $0.number == lastPeriodNumber
+                   })
                 {
                     // If current time is after the end time of the last class, all classes are over
                     return now > lastPeriod.endTime
@@ -155,9 +155,9 @@ struct TodayMainContentView: View {
             return classes
         }
 
-        for row in 1..<classtableViewModel.timetable.count {
-            if row < classtableViewModel.timetable.count
-                && dayIndex + 1 < classtableViewModel.timetable[row].count
+        for row in 1 ..< classtableViewModel.timetable.count {
+            if row < classtableViewModel.timetable.count,
+               dayIndex + 1 < classtableViewModel.timetable[row].count
             {
                 let classData = classtableViewModel.timetable[row][dayIndex + 1]
                 if !classData.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {

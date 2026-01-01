@@ -41,7 +41,7 @@ struct AddRecordSheet: View {
 
                 Section(header: Text("Durations")) {
                     Stepper(
-                        "C: \(viewModel.durationC) hours", value: $viewModel.durationC, in: 0...10,
+                        "C: \(viewModel.durationC) hours", value: $viewModel.durationC, in: 0 ... 10,
                         onEditingChanged: { _ in
                             HapticManager.shared.playStepperChange()
                             viewModel.validateDuration()
@@ -54,9 +54,10 @@ struct AddRecordSheet: View {
                                 )
                                 presentToast(toast)
                             }
-                        })
+                        }
+                    )
                     Stepper(
-                        "A: \(viewModel.durationA) hours", value: $viewModel.durationA, in: 0...10,
+                        "A: \(viewModel.durationA) hours", value: $viewModel.durationA, in: 0 ... 10,
                         onEditingChanged: { _ in
                             HapticManager.shared.playStepperChange()
                             viewModel.validateDuration()
@@ -69,9 +70,10 @@ struct AddRecordSheet: View {
                                 )
                                 presentToast(toast)
                             }
-                        })
+                        }
+                    )
                     Stepper(
-                        "S: \(viewModel.durationS) hours", value: $viewModel.durationS, in: 0...10,
+                        "S: \(viewModel.durationS) hours", value: $viewModel.durationS, in: 0 ... 10,
                         onEditingChanged: { _ in
                             HapticManager.shared.playStepperChange()
                             viewModel.validateDuration()
@@ -84,27 +86,28 @@ struct AddRecordSheet: View {
                                 )
                                 presentToast(toast)
                             }
-                        })
+                        }
+                    )
                 }
 
                 Section(
                     header:
-                        HStack {
-                            Text("Reflection")
-                            Spacer()
-                            Text("\(viewModel.descriptionWordCount)")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
+                    HStack {
+                        Text("Reflection")
+                        Spacer()
+                        Text("\(viewModel.descriptionWordCount)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 ) {
                     TextEditor(text: $viewModel.activityDescription)
                         .frame(minHeight: 100)
                         .overlay(alignment: .topLeading) {
                             if viewModel.activityDescription == "" {
                                 Text("Write your reflection (min 80 words)...\nAutosave enabled, no worries!")
-                                .foregroundStyle(Color(UIColor.tertiaryLabel))
-                                .padding(.top, 8)
-                                .padding(.leading, 3)
+                                    .foregroundStyle(Color(UIColor.tertiaryLabel))
+                                    .padding(.top, 8)
+                                    .padding(.leading, 3)
                             }
                         }
                 }
@@ -120,7 +123,7 @@ struct AddRecordSheet: View {
                 ToolbarItem(id: "cancelButton", placement: .navigationBarLeading) {
                     Button("Cancel") {
                         HapticManager.shared.playButtonTap()
-                        viewModel.cacheFormData()  // Cache data when cancelling
+                        viewModel.cacheFormData() // Cache data when cancelling
                         presentationMode.wrappedValue.dismiss()
                     }
                 }
@@ -170,7 +173,7 @@ struct AddRecordSheet: View {
                     .disabled(viewModel.isSaving)
                 }
             }
-            .interactiveDismissDisabled(true)  // Force user to use buttons
+            .interactiveDismissDisabled(true) // Force user to use buttons
             .onDisappear {
                 // This is a backup in case the form is dismissed in other ways
                 viewModel.cacheFormData()

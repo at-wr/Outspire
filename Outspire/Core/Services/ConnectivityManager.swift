@@ -1,7 +1,7 @@
 import Foundation
 import Network
-import SwiftUI
 import OSLog
+import SwiftUI
 
 @MainActor
 class ConnectivityManager: ObservableObject {
@@ -105,7 +105,7 @@ class ConnectivityManager: ObservableObject {
 
     func checkConnectivity(forceCheck: Bool = false) {
         // Don't check if already checking, unless forced
-        if isCheckingConnectivity && !forceCheck {
+        if isCheckingConnectivity, !forceCheck {
             return
         }
 
@@ -184,8 +184,8 @@ class ConnectivityManager: ObservableObject {
                 // Force off when feature disabled
                 Configuration.useSSL = false
             }
-            self.isUsingTemporaryRelay = false  // Clear temporary flag since this was manual
-            self.hasSuggestedRelay = false      // Reset suggestion flags
+            self.isUsingTemporaryRelay = false // Clear temporary flag since this was manual
+            self.hasSuggestedRelay = false // Reset suggestion flags
             self.hasSuggestedDirect = false
         }
     }
@@ -250,13 +250,16 @@ class ConnectivityManager: ObservableObject {
 
         var request = URLRequest(url: url)
         request.timeoutInterval = timeoutInterval
-        request.httpMethod = "HEAD"  // Just check headers, no need for full response
+        request.httpMethod = "HEAD" // Just check headers, no need for full response
         request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
 
         let task = URLSession.shared.dataTask(with: request) { _, response, error in
             DispatchQueue.main.async {
                 if let error = error {
-                    Log.net.error("Server access check failed: \(urlString, privacy: .public), error: \(error.localizedDescription, privacy: .public)")
+                    Log.net
+                        .error(
+                            "Server access check failed: \(urlString, privacy: .public), error: \(error.localizedDescription, privacy: .public)"
+                        )
                     completion(false)
                     return
                 }
@@ -279,14 +282,17 @@ class ConnectivityManager: ObservableObject {
 
     private func tryEvaluateConnectivityStatus() {
         // Only proceed when both server checks have reported back
-        if directCheckCompleted && relayCheckCompleted {
+        if directCheckCompleted, relayCheckCompleted {
             evaluateConnectivityStatus()
         }
     }
 
     private func evaluateConnectivityStatus() {
         // We now know both checks are complete, so log connectivity status
-        Log.net.info("Connectivity check complete: Direct=\(self.directServerAccessible) Relay=\(self.relayServerAccessible) UsingSSL=\(Configuration.isHttpsProxyEnabled) TempRelay=\(self.isUsingTemporaryRelay)")
+        Log.net
+            .info(
+                "Connectivity check complete: Direct=\(self.directServerAccessible) Relay=\(self.relayServerAccessible) UsingSSL=\(Configuration.isHttpsProxyEnabled) TempRelay=\(self.isUsingTemporaryRelay)"
+            )
 
         // First check if we have internet connectivity at all
         if !isInternetAvailable {
@@ -303,9 +309,9 @@ class ConnectivityManager: ObservableObject {
         }
 
         // Decision tree for suggesting relay or direct connection
-        if directServerAccessible && relayServerAccessible {
+        if directServerAccessible, relayServerAccessible {
             // Both servers are accessible
-            if isUsingTemporaryRelay && !hasSuggestedDirect {
+            if isUsingTemporaryRelay, !hasSuggestedDirect {
                 // We're using temporary relay but direct is available - suggest switching back
                 Log.net.info("Suggesting switch back to direct connection")
                 if !isOnboardingActive {
@@ -314,9 +320,9 @@ class ConnectivityManager: ObservableObject {
                     }
                 }
             }
-        } else if !directServerAccessible && relayServerAccessible {
+        } else if !directServerAccessible, relayServerAccessible {
             // Only relay is accessible
-            if Configuration.httpsProxyFeatureEnabled && !Configuration.isHttpsProxyEnabled && !hasSuggestedRelay {
+            if Configuration.httpsProxyFeatureEnabled, !Configuration.isHttpsProxyEnabled, !hasSuggestedRelay {
                 // We're not using relay but direct is inaccessible - suggest switching to relay
                 Log.net.info("Suggesting switch to relay connection")
                 if !isOnboardingActive {
@@ -325,9 +331,9 @@ class ConnectivityManager: ObservableObject {
                     }
                 }
             }
-        } else if directServerAccessible && !relayServerAccessible {
+        } else if directServerAccessible, !relayServerAccessible {
             // Only direct is accessible
-            if Configuration.isHttpsProxyEnabled && isUsingTemporaryRelay {
+            if Configuration.isHttpsProxyEnabled, isUsingTemporaryRelay {
                 // We're using temporary relay but it's not accessible and direct is - switch back
                 Log.net.info("Automatically switching back to direct connection")
                 DispatchQueue.main.async {

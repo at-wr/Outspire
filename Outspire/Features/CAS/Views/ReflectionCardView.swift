@@ -118,11 +118,11 @@ struct ReflectionCardView: View {
                 Button {
                     HapticManager.shared.playButtonTap()
                     let all = """
-                        Title: \(reflection.C_Title)
-                        Date: \(formatDate(reflection.C_Date))
-                        Summary: \(reflection.C_Summary)
-                        Content: \(reflection.C_Content)
-                        """
+                    Title: \(reflection.C_Title)
+                    Date: \(formatDate(reflection.C_Date))
+                    Summary: \(reflection.C_Summary)
+                    Content: \(reflection.C_Content)
+                    """
                     UIPasteboard.general.string = all
                     let toast = ToastValue(
                         icon: Image(systemName: "doc.on.clipboard"),

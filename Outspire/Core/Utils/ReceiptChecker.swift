@@ -9,9 +9,9 @@ import Foundation
 enum ReceiptChecker {
     private static var isSimulator: Bool {
         #if targetEnvironment(simulator)
-        return true
+            return true
         #else
-        return false
+            return false
         #endif
     }
 

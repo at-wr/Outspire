@@ -1,12 +1,12 @@
 //
-//  AppIntent.swift
+//  WidgetIntents.swift
 //  OutspireWidget
 //
 //  Created by Alan Ye on 3/17/25.
 //
 
-import WidgetKit
 import AppIntents
+import WidgetKit
 
 // Base configuration for class widgets
 struct ClassWidgetConfigurationIntent: WidgetConfigurationIntent {

@@ -46,7 +46,8 @@ struct AccountV2View: View {
                     HStack { Spacer()
                         if viewModel.isLoggingIn { ProgressView().tint(.white) }
                         else { Text("Continue").font(.headline).foregroundColor(.white) }
-                        Spacer() }
+                        Spacer()
+                    }
                     .frame(height: 46)
                     .background(Color.accentColor)
                     .cornerRadius(12)
@@ -76,7 +77,7 @@ struct AccountV2View: View {
         .navigationTitle("Account")
         .confirmationDialog("Are you sure you want to sign out?", isPresented: $showLogoutConfirmation) {
             Button("Sign Out", role: .destructive) { viewModel.logout() }
-            Button("Cancel", role: .cancel) { }
+            Button("Cancel", role: .cancel) {}
         }
     }
 
@@ -84,10 +85,10 @@ struct AccountV2View: View {
 
     private func showToast(_ message: String?, isError: Bool) {
         guard let message = message else { return }
-        let icon = isError ? Image(systemName: "exclamationmark.triangle").foregroundColor(.red) : Image(systemName: "checkmark.circle").foregroundColor(.green)
+        let icon = isError ? Image(systemName: "exclamationmark.triangle")
+            .foregroundColor(.red) : Image(systemName: "checkmark.circle").foregroundColor(.green)
         let toast = ToastValue(icon: icon, message: message)
         presentToast(toast)
         if isError { viewModel.errorMessage = nil } else { viewModel.successMessage = nil }
     }
 }
-

@@ -1,5 +1,5 @@
-import XCTest
 @testable import Outspire
+import XCTest
 
 private class TSIMSMockURLProtocol: URLProtocol {
     static var responseData: Data?
@@ -41,13 +41,13 @@ final class TSIMSClientV2Tests: XCTestCase {
         config.protocolClasses = [TSIMSMockURLProtocol.self]
         let session = URLSession(configuration: config)
         #if DEBUG
-        TSIMSClientV2.shared.setSession(session)
+            TSIMSClientV2.shared.setSession(session)
         #endif
     }
 
     func test_getJSONAsync_success() async throws {
         guard #available(iOS 15.0, *) else { return }
-        let payload = ["ResultType": 0, "Message": "ok", "Data": ["Foo": "bar"]] as [String : Any]
+        let payload = ["ResultType": 0, "Message": "ok", "Data": ["Foo": "bar"]] as [String: Any]
         let data = try JSONSerialization.data(withJSONObject: payload, options: [])
         TSIMSMockURLProtocol.responseData = data
         TSIMSMockURLProtocol.statusCode = 200
@@ -94,4 +94,3 @@ final class TSIMSClientV2Tests: XCTestCase {
         }
     }
 }
-

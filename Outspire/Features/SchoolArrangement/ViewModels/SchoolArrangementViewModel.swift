@@ -1,8 +1,8 @@
-import SwiftUI
-import SwiftSoup
 import Combine
 import PDFKit
 import QuickLook
+import SwiftSoup
+import SwiftUI
 
 class SchoolArrangementViewModel: ObservableObject {
     @Published var arrangements: [SchoolArrangementItem] = []
@@ -103,7 +103,7 @@ class SchoolArrangementViewModel: ObservableObject {
     }
 
     func fetchNextPage() {
-        if currentPage < totalPages && !isLoading {
+        if currentPage < totalPages, !isLoading {
             fetchArrangements(page: currentPage + 1)
         }
     }
@@ -121,7 +121,7 @@ class SchoolArrangementViewModel: ObservableObject {
         isLoadingDetail = true
         errorMessage = nil
         selectedDetail = nil
-        pdfURL = nil  // Reset PDF URL
+        pdfURL = nil // Reset PDF URL
 
         // Sanitize URL - handle cases where the URL might contain spaces or invalid characters
         let urlString = "\(baseURL)\(item.url)"
@@ -166,7 +166,12 @@ class SchoolArrangementViewModel: ObservableObject {
                 // Reset processed URLs for each new detail
                 self.processedImageUrls.removeAll()
 
-                let detail = try self.parseArrangementDetailHTML(htmlString, id: item.id, title: item.title, publishDate: item.publishDate)
+                let detail = try self.parseArrangementDetailHTML(
+                    htmlString,
+                    id: item.id,
+                    title: item.title,
+                    publishDate: item.publishDate
+                )
 
                 // Create the detail object
                 print("DEBUG: Detail parsed successfully with \(detail.imageUrls.count) images")
@@ -258,7 +263,8 @@ class SchoolArrangementViewModel: ObservableObject {
             monthYearFormatter.dateFormat = "MMMM yyyy"
 
             if let date1 = monthYearFormatter.date(from: key1),
-               let date2 = monthYearFormatter.date(from: key2) {
+               let date2 = monthYearFormatter.date(from: key2)
+            {
                 return date1 > date2
             }
             return key1 > key2
@@ -310,8 +316,12 @@ class SchoolArrangementViewModel: ObservableObject {
         if let scriptText = try doc.select("script").filter({ try $0.html().contains("var pageNumber =") }).first {
             let scriptContent = try scriptText.html()
             if let rangeStart = scriptContent.range(of: "var pageNumber = ('"),
-               let rangeEnd = scriptContent.range(of: "'.replace", range: rangeStart.upperBound..<scriptContent.endIndex) {
-                let numberString = scriptContent[rangeStart.upperBound..<rangeEnd.lowerBound]
+               let rangeEnd = scriptContent.range(
+                   of: "'.replace",
+                   range: rangeStart.upperBound ..< scriptContent.endIndex
+               )
+            {
+                let numberString = scriptContent[rangeStart.upperBound ..< rangeEnd.lowerBound]
                     .trimmingCharacters(in: CharacterSet(charactersIn: "'\";()"))
                 if let totalPages = Int(numberString) {
                     return totalPages
@@ -322,10 +332,15 @@ class SchoolArrangementViewModel: ObservableObject {
         return 1 // Default to 1 page if we can't parse it
     }
 
-    private func parseArrangementDetailHTML(_ html: String, id: String, title: String, publishDate: String) throws -> SchoolArrangementDetail {
+    private func parseArrangementDetailHTML(
+        _ html: String,
+        id: String,
+        title: String,
+        publishDate: String
+    ) throws -> SchoolArrangementDetail {
         print("DEBUG: Starting to parse HTML for \(title)")
 
-        var content: String = ""
+        var content = ""
         var imageUrls: [String] = []
 
         do {
@@ -382,7 +397,7 @@ class SchoolArrangementViewModel: ObservableObject {
                 print("DEBUG: No images found by selectors, trying regex extraction from HTML")
                 let imgPattern = "src\\s*=\\s*[\"'](.*?)[\"']"
                 if let regex = try? NSRegularExpression(pattern: imgPattern) {
-                    let range = NSRange(content.startIndex..<content.endIndex, in: content)
+                    let range = NSRange(content.startIndex ..< content.endIndex, in: content)
                     let matches = regex.matches(in: content, range: range)
 
                     for match in matches {
@@ -409,7 +424,7 @@ class SchoolArrangementViewModel: ObservableObject {
                         print("DEBUG: Found paragraph with img tag: \(pHtml.prefix(100))...")
                         // Extract URLs from this paragraph
                         if let regex = try? NSRegularExpression(pattern: "src\\s*=\\s*[\"'](.*?)[\"']") {
-                            let range = NSRange(pHtml.startIndex..<pHtml.endIndex, in: pHtml)
+                            let range = NSRange(pHtml.startIndex ..< pHtml.endIndex, in: pHtml)
                             let matches = regex.matches(in: pHtml, range: range)
 
                             for match in matches {
@@ -432,10 +447,10 @@ class SchoolArrangementViewModel: ObservableObject {
 
             print("DEBUG: Final image count: \(imageUrls.count)")
             for (index, url) in imageUrls.enumerated() {
-                print("DEBUG: Image \(index+1): \(url)")
+                print("DEBUG: Image \(index + 1): \(url)")
             }
 
-        } catch let error {
+        } catch {
             print("DEBUG: Critical HTML parsing error: \(error)")
         }
 
@@ -454,7 +469,7 @@ class SchoolArrangementViewModel: ObservableObject {
             return []
         }
 
-        let range = NSRange(title.startIndex..<title.endIndex, in: title)
+        let range = NSRange(title.startIndex ..< title.endIndex, in: title)
         guard let match = regex.firstMatch(in: title, range: range) else {
             return []
         }
@@ -474,8 +489,9 @@ class SchoolArrangementViewModel: ObservableObject {
                     let rangeComponents = component.components(separatedBy: "-")
                     if rangeComponents.count == 2,
                        let start = Int(rangeComponents[0]),
-                       let end = Int(rangeComponents[1]) {
-                        weekNumbers.append(contentsOf: start...end)
+                       let end = Int(rangeComponents[1])
+                    {
+                        weekNumbers.append(contentsOf: start ... end)
                     }
                 } else if let number = Int(component) {
                     weekNumbers.append(number)
@@ -550,13 +566,15 @@ class SchoolArrangementViewModel: ObservableObject {
     ) {
         // Check if we've processed all images
         if currentIndex >= imageUrls.count {
-            print("DEBUG: All \(imageUrls.count) images processed. Success: \(downloadedImages.count), Failed: \(failedUrls.count)")
+            print(
+                "DEBUG: All \(imageUrls.count) images processed. Success: \(downloadedImages.count), Failed: \(failedUrls.count)"
+            )
             createAndSavePDFWithNotice(detail: detail, images: downloadedImages, failedURLs: failedUrls)
             return
         }
 
         let urlString = imageUrls[currentIndex]
-        print("DEBUG: Downloading image \(currentIndex+1)/\(imageUrls.count): \(urlString)")
+        print("DEBUG: Downloading image \(currentIndex + 1)/\(imageUrls.count): \(urlString)")
 
         // Process URL: clean and prepare
         let sanitizedURL = sanitizeAndEncodeURL(urlString)
@@ -593,13 +611,13 @@ class SchoolArrangementViewModel: ObservableObject {
             var newFailedUrls = failedUrls
 
             if let error = error {
-                print("DEBUG: Error downloading image \(currentIndex+1): \(error.localizedDescription)")
+                print("DEBUG: Error downloading image \(currentIndex + 1): \(error.localizedDescription)")
                 newFailedUrls.append(urlString)
             } else if let data = data, let image = UIImage(data: data) {
-                print("DEBUG: Successfully downloaded image \(currentIndex+1) - size: \(data.count) bytes")
+                print("DEBUG: Successfully downloaded image \(currentIndex + 1) - size: \(data.count) bytes")
                 newDownloadedImages.append(image)
             } else {
-                print("DEBUG: Failed to convert data to image for URL \(currentIndex+1)")
+                print("DEBUG: Failed to convert data to image for URL \(currentIndex + 1)")
                 newFailedUrls.append(urlString)
             }
 
@@ -647,7 +665,7 @@ class SchoolArrangementViewModel: ObservableObject {
             return encoded
         }
 
-        return cleaned  // Return original if all else fails
+        return cleaned // Return original if all else fails
     }
 
     private func createAndSavePDFWithNotice(detail: SchoolArrangementDetail, images: [UIImage], failedURLs: [String]) {

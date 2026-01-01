@@ -20,11 +20,11 @@ enum NetworkError: Error {
             return "Invalid URL"
         case .noData:
             return "No data received"
-        case .decodingError(let error):
+        case let .decodingError(error):
             return "Failed to decode response: \(error.localizedDescription)"
-        case .requestFailed(let error):
+        case let .requestFailed(error):
             return "Request failed: \(error.localizedDescription)"
-        case .serverError(let code):
+        case let .serverError(code):
             return "Server error with code: \(code)"
         case .unauthorized:
             return "Unauthorized access"
@@ -48,7 +48,7 @@ class NetworkService {
     }
 
     #if DEBUG
-    func setSession(_ session: URLSession) { self.session = session }
+        func setSession(_ session: URLSession) { self.session = session }
     #endif
 
     // Form URL encoding allowed characters - stricter than .urlQueryAllowed
@@ -97,7 +97,8 @@ class NetworkService {
         if let parameters = parameters {
             // URL-encode parameter values with stricter encoding for form submissions
             let paramString = parameters.map { key, value -> String in
-                let encodedValue = value.addingPercentEncoding(withAllowedCharacters: Self.formURLEncodedAllowedCharacters) ?? value
+                let encodedValue = value
+                    .addingPercentEncoding(withAllowedCharacters: Self.formURLEncodedAllowedCharacters) ?? value
                 return "\(key)=\(encodedValue)"
             }.joined(separator: "&")
 
@@ -116,7 +117,8 @@ class NetworkService {
                         (nsError.code == NSURLErrorTimedOut ||
                             nsError.code == NSURLErrorCannotConnectToHost ||
                             nsError.code == NSURLErrorNetworkConnectionLost ||
-                            nsError.code == NSURLErrorNotConnectedToInternet) {
+                            nsError.code == NSURLErrorNotConnectedToInternet)
+                    {
                         // This is a connectivity issue - check if we should switch servers
                         ConnectivityManager.shared.handleNetworkRequestFailure(wasUsingSSL: isUsingSSL)
                     }
@@ -131,7 +133,8 @@ class NetworkService {
                 }
 
                 if let httpResponse = response as? HTTPURLResponse,
-                   httpResponse.statusCode >= 400 {
+                   httpResponse.statusCode >= 400
+                {
                     // Server error - also check connectivity if this is a serious server error
                     if httpResponse.statusCode >= 500 {
                         ConnectivityManager.shared.handleNetworkRequestFailure(wasUsingSSL: isUsingSSL)
@@ -152,6 +155,7 @@ class NetworkService {
     }
 
     // MARK: - Async/Await variant (non-breaking addition)
+
     @available(iOS 15.0, macOS 12.0, *)
     func requestAsync<T: Decodable>(
         endpoint: String,
@@ -175,7 +179,8 @@ class NetworkService {
 
         if let parameters = parameters {
             let paramString = parameters.map { key, value -> String in
-                let encodedValue = value.addingPercentEncoding(withAllowedCharacters: Self.formURLEncodedAllowedCharacters) ?? value
+                let encodedValue = value
+                    .addingPercentEncoding(withAllowedCharacters: Self.formURLEncodedAllowedCharacters) ?? value
                 return "\(key)=\(encodedValue)"
             }.joined(separator: "&")
             request.httpBody = paramString.data(using: .utf8)
@@ -185,7 +190,8 @@ class NetworkService {
             let (data, response) = try await session.data(for: request)
             if let http = response as? HTTPURLResponse, http.statusCode >= 400 {
                 if http.statusCode >= 500 {
-                    await MainActor.run { ConnectivityManager.shared.handleNetworkRequestFailure(wasUsingSSL: isUsingSSL) }
+                    await MainActor
+                        .run { ConnectivityManager.shared.handleNetworkRequestFailure(wasUsingSSL: isUsingSSL) }
                 }
                 throw NetworkError.serverError(http.statusCode)
             }
@@ -195,9 +201,10 @@ class NetworkService {
             let nsError = error as NSError
             if nsError.domain == NSURLErrorDomain &&
                 (nsError.code == NSURLErrorTimedOut ||
-                 nsError.code == NSURLErrorCannotConnectToHost ||
-                 nsError.code == NSURLErrorNetworkConnectionLost ||
-                 nsError.code == NSURLErrorNotConnectedToInternet) {
+                    nsError.code == NSURLErrorCannotConnectToHost ||
+                    nsError.code == NSURLErrorNetworkConnectionLost ||
+                    nsError.code == NSURLErrorNotConnectedToInternet)
+            {
                 await MainActor.run { ConnectivityManager.shared.handleNetworkRequestFailure(wasUsingSSL: isUsingSSL) }
             }
             if let netErr = error as? NetworkError { throw netErr }

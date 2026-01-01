@@ -66,7 +66,7 @@ struct MonthSection: View {
                                 .combined(with: .scale(scale: 0.95, anchor: .top))
                                 .combined(with: .offset(y: -5))
                                 .animation(.spring(response: 0.4, dampingFraction: 0.65)
-                                            .delay(Double(index) * 0.05)),
+                                    .delay(Double(index) * 0.05)),
                             removal: .opacity
                                 .combined(with: .scale(scale: 0.95, anchor: .top))
                                 .animation(.easeOut(duration: 0.2))

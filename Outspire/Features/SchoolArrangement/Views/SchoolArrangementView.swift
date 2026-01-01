@@ -1,7 +1,9 @@
 import SwiftUI
+
+import QuickLook
+
 // Removed ColorfulX usage in favor of system materials
 import Toasts
-import QuickLook
 
 struct SchoolArrangementView: View {
     @StateObject private var viewModel = SchoolArrangementViewModel()
@@ -35,7 +37,12 @@ struct SchoolArrangementView: View {
                 if filteredItems.isEmpty {
                     return nil
                 } else {
-                    return ArrangementGroup(id: group.id, title: group.title, items: filteredItems, isExpanded: group.isExpanded)
+                    return ArrangementGroup(
+                        id: group.id,
+                        title: group.title,
+                        items: filteredItems,
+                        isExpanded: group.isExpanded
+                    )
                 }
             }
         }
@@ -339,13 +346,13 @@ struct SchoolArrangementView: View {
     // Add method to update gradient for school arrangements
     private func updateGradientForSchoolArrangements() {
         #if !targetEnvironment(macCatalyst)
-        gradientManager.updateGradientForView(.schoolArrangements, colorScheme: colorScheme)
+            gradientManager.updateGradientForView(.schoolArrangements, colorScheme: colorScheme)
         #else
-        gradientManager.updateGradient(
-            colors: [Color(.systemBackground)],
-            speed: 0.0,
-            noise: 0.0
-        )
+            gradientManager.updateGradient(
+                colors: [Color(.systemBackground)],
+                speed: 0.0,
+                noise: 0.0
+            )
         #endif
     }
 }

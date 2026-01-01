@@ -8,28 +8,34 @@
 import Foundation
 import WidgetKit
 
+private enum WidgetConfiguration {
+    static let appGroupSuiteName = "group.dev.wrye.Outspire"
+}
+
 // Service for fetching data for widgets
 class WidgetDataService {
     static let shared = WidgetDataService()
+
+    private let defaults = UserDefaults(suiteName: WidgetConfiguration.appGroupSuiteName)
 
     private init() {}
 
     // Check if user is signed in
     func isUserSignedIn() -> Bool {
-        // Read from UserDefaults or keychain
-        return UserDefaults(suiteName: "group.dev.wrye.Outspire")?.bool(forKey: "isAuthenticated") ?? false
+        // Read from shared App Group user defaults
+        return defaults?.bool(forKey: "isAuthenticated") ?? false
     }
 
     // Check if holiday mode is enabled
     func isHolidayModeEnabled() -> Bool {
-        return UserDefaults(suiteName: "group.dev.wrye.Outspire")?.bool(forKey: "isHolidayMode") ?? false
+        return defaults?.bool(forKey: "isHolidayMode") ?? false
     }
 
     // Get holiday end date if available
     func getHolidayEndDate() -> Date? {
-        let hasEndDate = UserDefaults(suiteName: "group.dev.wrye.Outspire")?.bool(forKey: "holidayHasEndDate") ?? false
+        let hasEndDate = defaults?.bool(forKey: "holidayHasEndDate") ?? false
         if hasEndDate {
-            return UserDefaults(suiteName: "group.dev.wrye.Outspire")?.object(forKey: "holidayEndDate") as? Date
+            return defaults?.object(forKey: "holidayEndDate") as? Date
         }
         return nil
     }
@@ -46,8 +52,9 @@ class WidgetDataService {
         }
 
         // Get timetable data from shared UserDefaults
-        guard let timetableData = UserDefaults(suiteName: "group.dev.wrye.Outspire")?.data(forKey: "widgetTimetableData"),
-              let timetable = try? JSONDecoder().decode([[String]].self, from: timetableData) else {
+        guard let timetableData = defaults?.data(forKey: "widgetTimetableData"),
+              let timetable = try? JSONDecoder().decode([[String]].self, from: timetableData)
+        else {
             return (nil, [])
         }
 
@@ -67,13 +74,14 @@ class WidgetDataService {
         // If no period found, return empty
         guard let period = periodInfo.period,
               period.number < timetable.count,
-              dayIndex + 1 < timetable[period.number].count else {
+              dayIndex + 1 < timetable[period.number].count
+        else {
             return (nil, [])
         }
 
         // Get class data
         let classData = timetable[period.number][dayIndex + 1]
-        let isSelfStudy = classData.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        let isSelfStudy = classData.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines).isEmpty
 
         // Create class widget data
         let currentClass = ClassWidgetData.fromClassData(
@@ -89,11 +97,13 @@ class WidgetDataService {
         if periodInfo.isCurrentlyActive {
             // Find periods after current period
             let periods = ClassPeriodsManager.shared.classPeriods(for: date)
-            for i in (period.number + 1)..<timetable.count {
-                if i < timetable.count && dayIndex + 1 < timetable[i].count,
-                   let nextPeriod = periods.first(where: { $0.number == i }) {
+            for i in (period.number + 1) ..< timetable.count {
+                if i < timetable.count, dayIndex + 1 < timetable[i].count,
+                   let nextPeriod = periods.first(where: { $0.number == i })
+                {
                     let nextClassData = timetable[i][dayIndex + 1]
-                    let nextIsSelfStudy = nextClassData.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    let nextIsSelfStudy = nextClassData.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+                        .isEmpty
 
                     upcomingClasses.append(ClassWidgetData.fromClassData(
                         classData: nextIsSelfStudy ? "You\nSelf-Study" : nextClassData,
@@ -118,16 +128,18 @@ class WidgetDataService {
         if WidgetHelpers.isCurrentDateWeekend() || isHolidayModeEnabled() {
             return ("", [])
         }
+        let date = Date()
 
         // Get timetable data from shared UserDefaults
-        guard let timetableData = UserDefaults(suiteName: "group.dev.wrye.Outspire")?.data(forKey: "widgetTimetableData"),
-              let timetable = try? JSONDecoder().decode([[String]].self, from: timetableData) else {
+        guard let timetableData = defaults?.data(forKey: "widgetTimetableData"),
+              let timetable = try? JSONDecoder().decode([[String]].self, from: timetableData)
+        else {
             return ("", [])
         }
 
         // Get current day index (0-4 for Mon-Fri)
         let calendar = Calendar.current
-        let weekday = calendar.component(.weekday, from: Date())
+        let weekday = calendar.component(.weekday, from: date)
         let dayIndex = weekday == 1 || weekday == 7 ? -1 : weekday - 2
 
         // If it's weekend, return empty
@@ -147,11 +159,12 @@ class WidgetDataService {
 
         // Loop through all periods
         let periods = ClassPeriodsManager.shared.classPeriods(for: date)
-        for i in 1..<timetable.count {
-            if i < timetable.count && dayIndex + 1 < timetable[i].count,
-               let period = periods.first(where: { $0.number == i }) {
+        for i in 1 ..< timetable.count {
+            if i < timetable.count, dayIndex + 1 < timetable[i].count,
+               let period = periods.first(where: { $0.number == i })
+            {
                 let classData = timetable[i][dayIndex + 1]
-                let isSelfStudy = classData.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                let isSelfStudy = classData.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines).isEmpty
 
                 classes.append(ClassWidgetData.fromClassData(
                     classData: isSelfStudy ? "You\nSelf-Study" : classData,
@@ -167,14 +180,14 @@ class WidgetDataService {
 
 // Extension of ClassPeriodsManager for widget use
 class ClassPeriodsManager {
-    public static let shared = ClassPeriodsManager()
+    static let shared = ClassPeriodsManager()
 
     // All periods for the day
-    public var classPeriods: [ClassPeriod] {
+    var classPeriods: [ClassPeriod] {
         classPeriods(for: Date())
     }
 
-    public func classPeriods(for date: Date) -> [ClassPeriod] {
+    func classPeriods(for date: Date) -> [ClassPeriod] {
         let calendar = Calendar.current
         let day = calendar.startOfDay(for: date)
 
@@ -192,7 +205,7 @@ class ClassPeriodsManager {
     }
 
     // Find current or next period
-    public func getCurrentOrNextPeriod(at referenceDate: Date = Date()) -> (period: ClassPeriod?, isCurrentlyActive: Bool) {
+    func getCurrentOrNextPeriod(at referenceDate: Date = Date()) -> (period: ClassPeriod?, isCurrentlyActive: Bool) {
         let periods = classPeriods(for: referenceDate)
         if let activePeriod = periods.first(where: { $0.isActive(at: referenceDate) }) {
             return (activePeriod, true)
@@ -205,10 +218,17 @@ class ClassPeriodsManager {
     }
 
     // Helper to create a period
-    private func createPeriod(number: Int, hour: Int, minute: Int, endHour: Int, endMinute: Int, date: Date) -> ClassPeriod {
+    private func createPeriod(
+        number: Int,
+        hour: Int,
+        minute: Int,
+        endHour: Int,
+        endMinute: Int,
+        date: Date
+    ) -> ClassPeriod {
         let calendar = Calendar.current
-        let startTime = calendar.date(bySettingHour: hour, minute: minute, second: 0, of: date)!
-        let endTime = calendar.date(bySettingHour: endHour, minute: endMinute, second: 0, of: date)!
+        let startTime = calendar.date(bySettingHour: hour, minute: minute, second: 0, of: date) ?? date
+        let endTime = calendar.date(bySettingHour: endHour, minute: endMinute, second: 0, of: date) ?? date
 
         return ClassPeriod(number: number, startTime: startTime, endTime: endTime)
     }

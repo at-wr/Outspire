@@ -130,7 +130,7 @@ class CacheManager {
         let yearsTimestamp = userDefaults.double(forKey: "yearsCacheTimestamp")
         let hasValidYearsCache =
             (currentTime - yearsTimestamp) < 86400
-            && userDefaults.data(forKey: "cachedYears") != nil
+                && userDefaults.data(forKey: "cachedYears") != nil
 
         // Check terms cache (5 minutes)
         let termsTimestamp = userDefaults.double(forKey: "termsCacheTimestamp")
@@ -141,14 +141,14 @@ class CacheManager {
         let clubsTimestamp = userDefaults.double(forKey: "clubActivitiesCacheTimestamp")
         let hasValidClubsCache =
             (currentTime - clubsTimestamp) < 300
-            && userDefaults.data(forKey: "cachedClubGroups") != nil
+                && userDefaults.data(forKey: "cachedClubGroups") != nil
 
         // Check school arrangements cache (24 hours)
         let arrangementsTimestamp = userDefaults.double(
             forKey: "cachedSchoolArrangements-timestamp")
         let hasValidArrangementsCache =
             (currentTime - arrangementsTimestamp) < 86400
-            && userDefaults.data(forKey: "cachedSchoolArrangements") != nil
+                && userDefaults.data(forKey: "cachedSchoolArrangements") != nil
 
         // Count timetable caches
         let timetableCacheCount = userDefaults.dictionaryRepresentation().keys.filter {
@@ -179,7 +179,7 @@ class CacheManager {
 
         // Calculate size of cached data
         let cacheKeys = [
-            "cachedYears", "cachedTerms", "cachedClubGroups", "cachedSchoolArrangements",
+            "cachedYears", "cachedTerms", "cachedClubGroups", "cachedSchoolArrangements"
         ]
 
         for key in cacheKeys {
@@ -235,10 +235,10 @@ class CacheManager {
 
         // Define cache durations for different types (in seconds)
         let cacheDurations: [String: TimeInterval] = [
-            "yearsCacheTimestamp": 86400,  // 1 day
-            "termsCacheTimestamp": 300,  // 5 minutes
-            "clubActivitiesCacheTimestamp": 300,  // 5 minutes
-            "cachedSchoolArrangements-timestamp": 86400,  // 1 day
+            "yearsCacheTimestamp": 86400, // 1 day
+            "termsCacheTimestamp": 300, // 5 minutes
+            "clubActivitiesCacheTimestamp": 300, // 5 minutes
+            "cachedSchoolArrangements-timestamp": 86400 // 1 day
         ]
 
         // Clean up known cache types
@@ -285,9 +285,10 @@ class CacheManager {
         for key in allKeys {
             if key.hasPrefix("timetableCacheTimestamp-") {
                 let lastUpdate = userDefaults.double(forKey: key)
-                if (currentTime - lastUpdate) >= 86400 {  // 1 day
+                if (currentTime - lastUpdate) >= 86400 { // 1 day
                     let cacheKey = key.replacingOccurrences(
-                        of: "timetableCacheTimestamp-", with: "cachedTimetable-")
+                        of: "timetableCacheTimestamp-", with: "cachedTimetable-"
+                    )
                     userDefaults.removeObject(forKey: cacheKey)
                     userDefaults.removeObject(forKey: key)
                 }
@@ -296,9 +297,10 @@ class CacheManager {
             // Clean up score caches (5 minutes duration)
             if key.hasPrefix("scoresCacheTimestamp-") {
                 let lastUpdate = userDefaults.double(forKey: key)
-                if (currentTime - lastUpdate) >= 300 {  // 5 minutes
+                if (currentTime - lastUpdate) >= 300 { // 5 minutes
                     let cacheKey = key.replacingOccurrences(
-                        of: "scoresCacheTimestamp-", with: "cachedScores-")
+                        of: "scoresCacheTimestamp-", with: "cachedScores-"
+                    )
                     userDefaults.removeObject(forKey: cacheKey)
                     userDefaults.removeObject(forKey: key)
                 }
@@ -308,7 +310,7 @@ class CacheManager {
             if key.hasPrefix("cachedActivities-") {
                 let timestampKey = "\(key)-timestamp"
                 let lastUpdate = userDefaults.double(forKey: timestampKey)
-                if (currentTime - lastUpdate) >= 300 {  // 5 minutes
+                if (currentTime - lastUpdate) >= 300 { // 5 minutes
                     userDefaults.removeObject(forKey: key)
                     userDefaults.removeObject(forKey: timestampKey)
                 }
@@ -364,7 +366,7 @@ class CacheManager {
             "yearsCacheTimestamp": 86400,
             "termsCacheTimestamp": 300,
             "clubActivitiesCacheTimestamp": 300,
-            "cachedSchoolArrangements-timestamp": 86400,
+            "cachedSchoolArrangements-timestamp": 86400
         ]
 
         for (timestampKey, duration) in cacheDurations {
@@ -420,7 +422,7 @@ struct CacheStatus {
 
     var overallCacheHealth: CacheHealth {
         let validCaches = [
-            hasValidYearsCache, hasValidTermsCache, hasValidClubsCache, hasValidArrangementsCache,
+            hasValidYearsCache, hasValidTermsCache, hasValidClubsCache, hasValidArrangementsCache
         ]
         let validCount = validCaches.filter { $0 }.count
 

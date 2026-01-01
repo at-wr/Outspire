@@ -1,8 +1,8 @@
 import CoreLocation
 
 // GCJ-02 conversion functions
-struct CoordinateConverter {
-    static let a = 6378245.0
+enum CoordinateConverter {
+    static let a = 6_378_245.0
     static let ee = 0.00669342162296594323
 
     static func transformLat(_ lat: Double, _ lon: Double) -> Double {
@@ -58,7 +58,7 @@ struct CoordinateConverter {
         var convertedLat = lat
         var convertedLon = lon
 
-        for _ in 0..<10 { // Iterative refinement for better accuracy
+        for _ in 0 ..< 10 { // Iterative refinement for better accuracy
             convertedLat = tempLat
             convertedLon = tempLon
 

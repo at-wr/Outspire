@@ -1,7 +1,9 @@
 import SwiftUI
+
+import QuickLook
+
 // Removed ColorfulX usage in favor of system materials
 import Toasts
-import QuickLook
 
 struct LunchMenuView: View {
     @StateObject private var viewModel = LunchMenuViewModel()
@@ -34,7 +36,12 @@ struct LunchMenuView: View {
                 if filteredItems.isEmpty {
                     return nil
                 } else {
-                    return LunchMenuGroup(id: group.id, title: group.title, items: filteredItems, isExpanded: group.isExpanded)
+                    return LunchMenuGroup(
+                        id: group.id,
+                        title: group.title,
+                        items: filteredItems,
+                        isExpanded: group.isExpanded
+                    )
                 }
             }
         }
@@ -287,13 +294,13 @@ struct LunchMenuView: View {
     // Add method to update gradient for lunch menu
     private func updateGradientForLunchMenu() {
         #if !targetEnvironment(macCatalyst)
-        gradientManager.updateGradientForView(.lunchMenu, colorScheme: colorScheme)
+            gradientManager.updateGradientForView(.lunchMenu, colorScheme: colorScheme)
         #else
-        gradientManager.updateGradient(
-            colors: [Color(.systemBackground)],
-            speed: 0.0,
-            noise: 0.0
-        )
+            gradientManager.updateGradient(
+                colors: [Color(.systemBackground)],
+                speed: 0.0,
+                noise: 0.0
+            )
         #endif
     }
 }
@@ -366,7 +373,7 @@ struct LunchMenuSection: View {
                                 .combined(with: .scale(scale: 0.95, anchor: .top))
                                 .combined(with: .offset(y: -5))
                                 .animation(.spring(response: 0.4, dampingFraction: 0.65)
-                                            .delay(Double(index) * 0.05)),
+                                    .delay(Double(index) * 0.05)),
                             removal: .opacity
                                 .combined(with: .scale(scale: 0.95, anchor: .top))
                                 .animation(.easeOut(duration: 0.2))
@@ -618,7 +625,7 @@ struct LunchMenuSkeletonView: View {
                 .padding(.horizontal, 8)
                 .padding(.bottom, 4)
 
-                ForEach(0..<3, id: \.self) { index in
+                ForEach(0 ..< 3, id: \.self) { index in
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
                             // Title skeleton

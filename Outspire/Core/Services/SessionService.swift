@@ -31,7 +31,7 @@ class SessionService: ObservableObject {
         }
 
         if let storedUserInfo = userDefaults.data(forKey: "userInfo"),
-            let user = try? JSONDecoder().decode(UserInfo.self, from: storedUserInfo)
+           let user = try? JSONDecoder().decode(UserInfo.self, from: storedUserInfo)
         {
             self.userInfo = user
             self.isAuthenticated = sessionId != nil
@@ -52,14 +52,14 @@ class SessionService: ObservableObject {
         completion: @escaping (Bool, String?, Bool) -> Void
     ) {
         guard let sessionId = self.sessionId, !sessionId.isEmpty else {
-            completion(false, "Please refresh the captcha.", true)  // Mark as captcha error to trigger retry
+            completion(false, "Please refresh the captcha.", true) // Mark as captcha error to trigger retry
             return
         }
 
         let parameters = [
             "username": username,
             "password": password,
-            "code": captcha,
+            "code": captcha
         ]
 
         NetworkService.shared.request(
@@ -68,10 +68,10 @@ class SessionService: ObservableObject {
             sessionId: sessionId
         ) { [weak self] (result: Result<LoginResponse, NetworkError>) in
             switch result {
-            case .success(let response):
+            case let .success(response):
                 // Check for Chinese error message about captcha (scenario 3)
                 if response.status.contains("验证码") || response.status.contains("错") {
-                    completion(false, "Invalid captcha code. Retrying...", true)  // Mark as captcha error
+                    completion(false, "Invalid captcha code. Retrying...", true) // Mark as captcha error
                     return
                 }
 
@@ -89,7 +89,7 @@ class SessionService: ObservableObject {
                     completion(false, "Login failed: \(response.status)", false)
                 }
 
-            case .failure(let error):
+            case let .failure(error):
                 completion(false, "Login failed: \(error.localizedDescription)", false)
             }
         }
@@ -101,13 +101,13 @@ class SessionService: ObservableObject {
             sessionId: sessionId
         ) { [weak self] (result: Result<UserInfo, NetworkError>) in
             switch result {
-            case .success(let userInfo):
+            case let .success(userInfo):
                 self?.userInfo = userInfo
                 // Cache user info
                 self?.userDefaults.set(try? JSONEncoder().encode(userInfo), forKey: "userInfo")
                 self?.isAuthenticated = true
                 completion(true, nil)
-            case .failure(let error):
+            case let .failure(error):
                 completion(false, "Failed: \(error.localizedDescription)")
             }
         }

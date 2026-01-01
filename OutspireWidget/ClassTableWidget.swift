@@ -1,19 +1,22 @@
 //
-//  OutspireWidgetControl.swift
+//  ClassTableWidget.swift
 //  OutspireWidget
 //
 //  Created by Alan Ye on 3/17/25.
 //
 
-import WidgetKit
 import SwiftUI
+import WidgetKit
 
 struct ClassTableProvider: AppIntentTimelineProvider {
     func placeholder(in context: Context) -> ClassTableWidgetEntry {
         ClassTableWidgetEntry.placeholder(configuration: ClassTableWidgetConfigurationIntent())
     }
 
-    func snapshot(for configuration: ClassTableWidgetConfigurationIntent, in context: Context) async -> ClassTableWidgetEntry {
+    func snapshot(
+        for configuration: ClassTableWidgetConfigurationIntent,
+        in context: Context
+    ) async -> ClassTableWidgetEntry {
         // For preview, return a placeholder with sample data
         if context.isPreview {
             let calendar = Calendar.current
@@ -22,7 +25,7 @@ struct ClassTableProvider: AppIntentTimelineProvider {
             // Create sample classes
             var sampleClasses: [ClassWidgetData] = []
 
-            for i in 1...5 {
+            for i in 1 ... 5 {
                 let startHour = 8 + i
                 let endHour = startHour + 1
 
@@ -32,7 +35,7 @@ struct ClassTableProvider: AppIntentTimelineProvider {
                 let isCurrentClass = i == 2
 
                 sampleClasses.append(ClassWidgetData(
-                    className: ["Mathematics", "English", "Science", "History", "Art"][i-1],
+                    className: ["Mathematics", "English", "Science", "History", "Art"][i - 1],
                     teacherName: "Teacher \(i)",
                     roomNumber: "Room \(100 + i)",
                     periodNumber: i,
@@ -56,7 +59,10 @@ struct ClassTableProvider: AppIntentTimelineProvider {
         return await getTimelineEntry(for: configuration)
     }
 
-    func timeline(for configuration: ClassTableWidgetConfigurationIntent, in context: Context) async -> Timeline<ClassTableWidgetEntry> {
+    func timeline(
+        for configuration: ClassTableWidgetConfigurationIntent,
+        in context: Context
+    ) async -> Timeline<ClassTableWidgetEntry> {
         // Get the current entry
         let entry = await getTimelineEntry(for: configuration)
 
@@ -98,7 +104,9 @@ struct ClassTableProvider: AppIntentTimelineProvider {
     }
 
     // Helper method to get the current timeline entry
-    private func getTimelineEntry(for configuration: ClassTableWidgetConfigurationIntent) async -> ClassTableWidgetEntry {
+    private func getTimelineEntry(for configuration: ClassTableWidgetConfigurationIntent) async
+        -> ClassTableWidgetEntry
+    {
         // Check if user is signed in
         if !WidgetDataService.shared.isUserSignedIn() {
             return ClassTableWidgetEntry.notSignedIn(configuration: configuration)
@@ -170,7 +178,11 @@ struct OutspireWidgetControl: Widget {
     let kind: String = "OutspireWidgetControl"
 
     var body: some WidgetConfiguration {
-        AppIntentConfiguration(kind: kind, intent: ClassTableWidgetConfigurationIntent.self, provider: ClassTableProvider()) { entry in
+        AppIntentConfiguration(
+            kind: kind,
+            intent: ClassTableWidgetConfigurationIntent.self,
+            provider: ClassTableProvider()
+        ) { entry in
             OutspireWidgetControlView(entry: entry)
         }
         .configurationDisplayName("Class Table Widget")
@@ -203,7 +215,7 @@ struct OutspireWidgetControlView: View {
                     loadingView
                 case .weekend:
                     weekendView
-                case .holiday(let endDate):
+                case let .holiday(endDate):
                     holidayView(endDate: endDate)
                 case .noClasses:
                     noClassesView
@@ -238,7 +250,7 @@ struct OutspireWidgetControlView: View {
                     .lineLimit(1)
 
                 // First two classes
-                if entry.classes.count > 0 {
+                if !entry.classes.isEmpty {
                     let firstClass = entry.classes[0]
                     Text("P\(firstClass.periodNumber): \(firstClass.className)")
                         .font(.caption)
@@ -385,9 +397,9 @@ struct ClassTableContentView: View {
     private var maxClassesToShow: Int {
         switch widgetFamily {
         case .systemLarge:
-            return 8  // Reduced from 10 to avoid potential overflow
+            return 8 // Reduced from 10 to avoid potential overflow
         case .systemMedium:
-            return 4  // Reduced from 5 for better layout
+            return 4 // Reduced from 5 for better layout
         default:
             return 3
         }
@@ -418,7 +430,7 @@ struct ClassTableContentView: View {
         }
         .padding(.horizontal, widgetFamily == .systemLarge ? 16 : 12)
         .padding(.top, widgetFamily == .systemLarge ? 8 : 6)
-        .padding(.bottom, 3)  // Reduced padding
+        .padding(.bottom, 3) // Reduced padding
     }
 
     // Class list view - more compact VStack
@@ -494,7 +506,8 @@ struct ClassRowView: View {
 
                 // Only show teacher/room for large widget and optimize for space
                 if widgetFamily == .systemLarge,
-                   !classData.teacherName.isEmpty || !classData.roomNumber.isEmpty {
+                   !classData.teacherName.isEmpty || !classData.roomNumber.isEmpty
+                {
                     HStack(spacing: 2) {
                         if !classData.teacherName.isEmpty {
                             Text(classData.teacherName)
@@ -555,15 +568,15 @@ struct ClassRowView: View {
 
 // MARK: - Preview
 
-extension ClassTableWidgetConfigurationIntent {
-    fileprivate static var defaultConfig: ClassTableWidgetConfigurationIntent {
+private extension ClassTableWidgetConfigurationIntent {
+    static var defaultConfig: ClassTableWidgetConfigurationIntent {
         let intent = ClassTableWidgetConfigurationIntent()
         intent.maxClassesToShow = 3
         intent.showClassDetails = true
         return intent
     }
 
-    fileprivate static var minimalConfig: ClassTableWidgetConfigurationIntent {
+    static var minimalConfig: ClassTableWidgetConfigurationIntent {
         let intent = ClassTableWidgetConfigurationIntent()
         intent.maxClassesToShow = 2
         intent.showClassDetails = false
@@ -581,7 +594,7 @@ extension ClassTableWidgetConfigurationIntent {
     // Create sample classes
     var sampleClasses: [ClassWidgetData] = []
 
-    for i in 1...5 {
+    for i in 1 ... 5 {
         let startHour = 8 + i
         let endHour = startHour + 1
 
@@ -591,7 +604,7 @@ extension ClassTableWidgetConfigurationIntent {
         let isCurrentClass = i == 2
 
         sampleClasses.append(ClassWidgetData(
-            className: ["Mathematics", "English", "Science", "History", "Art"][i-1],
+            className: ["Mathematics", "English", "Science", "History", "Art"][i - 1],
             teacherName: "Teacher \(i)",
             roomNumber: "Room \(100 + i)",
             periodNumber: i,

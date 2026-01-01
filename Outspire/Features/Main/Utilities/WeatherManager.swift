@@ -1,7 +1,7 @@
-import Foundation
-import WeatherKit
 import CoreLocation
+import Foundation
 import SwiftUI
+import WeatherKit
 
 @MainActor
 class WeatherManager: ObservableObject {

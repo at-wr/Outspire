@@ -37,6 +37,7 @@ class DisclaimerManager {
 }
 
 // MARK: - Disclaimer Text
+
 extension DisclaimerManager {
     // Get the full disclaimer text
     static var fullDisclaimerText: String {

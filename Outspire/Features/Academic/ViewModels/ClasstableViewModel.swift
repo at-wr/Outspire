@@ -33,13 +33,14 @@ class ClasstableViewModel: ObservableObject {
             shareTimetableWithWidgets()
         }
     }
+
     @Published var errorMessage: String?
     @Published var isLoadingYears: Bool = false
     @Published var isLoadingTimetable: Bool = false
-    @Published var lastUpdateTime: Date = Date()
+    @Published var lastUpdateTime: Date = .init()
     @Published var formattedLastUpdateTime: String = ""
 
-    private let cacheDuration: TimeInterval = 86400  // 1 day in seconds
+    private let cacheDuration: TimeInterval = 86400 // 1 day in seconds
 
     init() {
         // Clean up outdated cache entries on initialization
@@ -58,14 +59,14 @@ class ClasstableViewModel: ObservableObject {
     private func loadCachedData() {
         // Load cached years
         if let cachedYearsData = UserDefaults.standard.data(forKey: "cachedYears"),
-            let decodedYears = try? JSONDecoder().decode([Year].self, from: cachedYearsData),
-            isCacheValid(for: "yearsCacheTimestamp")
+           let decodedYears = try? JSONDecoder().decode([Year].self, from: cachedYearsData),
+           isCacheValid(for: "yearsCacheTimestamp")
         {
             self.years = decodedYears
 
             // Load the selected year ID
             if let savedYearId = UserDefaults.standard.string(forKey: "selectedYearId"),
-                decodedYears.contains(where: { $0.W_YearID == savedYearId })
+               decodedYears.contains(where: { $0.W_YearID == savedYearId })
             {
                 self.selectedYearId = savedYearId
             } else if let firstYear = decodedYears.first {
@@ -85,10 +86,11 @@ class ClasstableViewModel: ObservableObject {
         let versionKey = "timetableCacheVersion-\(yearId)"
 
         if let cachedTimetableData = UserDefaults.standard.data(forKey: cacheKey),
-            let decodedTimetable = try? JSONDecoder().decode(
-                [[String]].self, from: cachedTimetableData),
-            isCacheValid(for: timestampKey),
-            UserDefaults.standard.integer(forKey: versionKey) == timetableCacheVersion
+           let decodedTimetable = try? JSONDecoder().decode(
+               [[String]].self, from: cachedTimetableData
+           ),
+           isCacheValid(for: timestampKey),
+           UserDefaults.standard.integer(forKey: versionKey) == timetableCacheVersion
         {
             self.timetable = decodedTimetable
 
@@ -131,8 +133,8 @@ class ClasstableViewModel: ObservableObject {
     }
 
     func fetchYears(forceRefresh: Bool = false) {
-        if !forceRefresh && !years.isEmpty && isCacheValid(for: "yearsCacheTimestamp") {
-            if timetable.isEmpty && !selectedYearId.isEmpty { fetchTimetable(forceRefresh: forceRefresh) }
+        if !forceRefresh, !years.isEmpty, isCacheValid(for: "yearsCacheTimestamp") {
+            if timetable.isEmpty, !selectedYearId.isEmpty { fetchTimetable(forceRefresh: forceRefresh) }
             return
         }
 
@@ -144,7 +146,7 @@ class ClasstableViewModel: ObservableObject {
             DispatchQueue.main.async {
                 self.isLoadingYears = false
                 switch result {
-                case .success(let options):
+                case let .success(options):
                     let mapped: [Year] = options.map { Year(W_YearID: $0.id, W_Year: $0.name) }
                     self.years = mapped
                     self.cacheYears(mapped)
@@ -153,7 +155,7 @@ class ClasstableViewModel: ObservableObject {
                         UserDefaults.standard.set(first.W_YearID, forKey: "selectedYearId")
                         self.fetchTimetable(forceRefresh: forceRefresh)
                     }
-                case .failure(let error):
+                case let .failure(error):
                     self.errorMessage = "Failed to load years: \(error.localizedDescription)"
                 }
             }
@@ -167,7 +169,7 @@ class ClasstableViewModel: ObservableObject {
         }
 
         let timestampKey = "timetableCacheTimestamp-\(selectedYearId)"
-        if !forceRefresh && !timetable.isEmpty && isCacheValid(for: timestampKey) { return }
+        if !forceRefresh, !timetable.isEmpty, isCacheValid(for: timestampKey) { return }
 
         isLoadingTimetable = true
         errorMessage = nil
@@ -178,20 +180,21 @@ class ClasstableViewModel: ObservableObject {
             // Try to resolve user id from profile before fetching
             AuthServiceV2.shared.ensureProfile { _ in
                 sid = AuthServiceV2.shared.user?.userId.map(String.init)
-                TimetableServiceV2.shared.fetchTimetable(yearId: self.selectedYearId, studentId: sid) { [weak self] result in
-                    guard let self = self else { return }
-                    DispatchQueue.main.async {
-                        self.isLoadingTimetable = false
-                        switch result {
-                        case .success(let items):
-                            let grid = Self.buildGrid(from: items)
-                            self.timetable = grid
-                            self.cacheTimetable(grid, for: self.selectedYearId)
-                        case .failure(let error):
-                            self.errorMessage = "Failed to load timetable: \(error.localizedDescription)"
+                TimetableServiceV2.shared
+                    .fetchTimetable(yearId: self.selectedYearId, studentId: sid) { [weak self] result in
+                        guard let self = self else { return }
+                        DispatchQueue.main.async {
+                            self.isLoadingTimetable = false
+                            switch result {
+                            case let .success(items):
+                                let grid = Self.buildGrid(from: items)
+                                self.timetable = grid
+                                self.cacheTimetable(grid, for: self.selectedYearId)
+                            case let .failure(error):
+                                self.errorMessage = "Failed to load timetable: \(error.localizedDescription)"
+                            }
                         }
                     }
-                }
             }
             return
         }
@@ -200,11 +203,11 @@ class ClasstableViewModel: ObservableObject {
             DispatchQueue.main.async {
                 self.isLoadingTimetable = false
                 switch result {
-                case .success(let items):
+                case let .success(items):
                     let grid = Self.buildGrid(from: items)
                     self.timetable = grid
                     self.cacheTimetable(grid, for: self.selectedYearId)
-                case .failure(let error):
+                case let .failure(error):
                     self.errorMessage = "Failed to load timetable: \(error.localizedDescription)"
                 }
             }
@@ -217,7 +220,9 @@ class ClasstableViewModel: ObservableObject {
         let days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
         let header = [""] + ["Mon", "Tue", "Wed", "Thu", "Fri"]
         var dayIndex: [String: Int] = [:]
-        for (i, d) in days.enumerated() { dayIndex[d] = i + 1 }
+        for (i, d) in days.enumerated() {
+            dayIndex[d] = i + 1
+        }
 
         // Determine maximum period count from configured periods (fallback to items)
         let configuredMax = ClassPeriodsManager.shared.classPeriods.map { $0.number }.max() ?? 9
@@ -228,7 +233,7 @@ class ClasstableViewModel: ObservableObject {
         grid.append(header)
 
         // Create a row for every period index so missing classes stay empty (self-study)
-        for p in 1...maxPeriod {
+        for p in 1 ... maxPeriod {
             var row = Array(repeating: "", count: header.count)
             row[0] = String(p)
             for it in items where it.period == p {
@@ -283,7 +288,8 @@ class ClasstableViewModel: ObservableObject {
 
             if let encoded = try? JSONEncoder().encode(timetable) {
                 UserDefaults(suiteName: "group.dev.wrye.Outspire")?.set(
-                    encoded, forKey: "widgetTimetableData")
+                    encoded, forKey: "widgetTimetableData"
+                )
             }
         }
     }
@@ -317,7 +323,7 @@ class ClasstableViewModel: ObservableObject {
         let hasValidYearsCache = !years.isEmpty && isCacheValid(for: "yearsCacheTimestamp")
         let hasValidTimetableCache =
             !timetable.isEmpty && !selectedYearId.isEmpty
-            && isCacheValid(for: "timetableCacheTimestamp-\(selectedYearId)")
+                && isCacheValid(for: "timetableCacheTimestamp-\(selectedYearId)")
 
         return (hasValidYearsCache, hasValidTimetableCache)
     }

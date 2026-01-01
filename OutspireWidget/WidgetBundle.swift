@@ -1,12 +1,12 @@
 //
-//  OutspireWidgetBundle.swift
+//  WidgetBundle.swift
 //  OutspireWidget
 //
 //  Created by Alan Ye on 3/17/25.
 //
 
-import WidgetKit
 import SwiftUI
+import WidgetKit
 
 @main
 struct OutspireWidgetBundle: WidgetBundle {
@@ -15,7 +15,7 @@ struct OutspireWidgetBundle: WidgetBundle {
         OutspireWidgetControl()
         CurrentNextClassWidget()
         #if !targetEnvironment(macCatalyst)
-        OutspireWidgetLiveActivity()
+            OutspireWidgetLiveActivity()
         #endif
     }
 }

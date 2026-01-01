@@ -54,7 +54,10 @@ struct SchoolArrangementDetailView: View {
                                         }
                                         .opacity(animateContent ? 1 : 0)
                                         .offset(y: animateContent ? 0 : 15)
-                                        .animation(.easeOut(duration: 0.5).delay(0.3 + Double(index) * 0.1), value: animateContent)
+                                        .animation(
+                                            .easeOut(duration: 0.5).delay(0.3 + Double(index) * 0.1),
+                                            value: animateContent
+                                        )
                                 }
                             }
                         }
@@ -108,8 +111,10 @@ struct SchoolArrangementDetailView: View {
         .fullScreenCover(isPresented: $showingFullScreenImage) {
             if let index = selectedImageIndex,
                index < detail.imageUrls.count,
-               let validUrlString = detail.imageUrls[index].addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
-               URL(string: validUrlString) != nil { // Validate URL more thoroughly
+               let validUrlString = detail.imageUrls[index]
+               .addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+               URL(string: validUrlString) != nil
+            { // Validate URL more thoroughly
                 ImageViewer(
                     imageUrl: validUrlString, // Use the encoded URL string
                     title: detail.title,
@@ -160,7 +165,7 @@ struct ImageThumbnail: View {
                     .overlay {
                         ProgressView()
                     }
-            case .success(let image):
+            case let .success(image):
                 image
                     .resizable()
                     .aspectRatio(contentMode: .fill)
@@ -250,7 +255,7 @@ struct ImageViewer: View {
                             case .empty:
                                 ProgressView()
                                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            case .success(let image):
+                            case let .success(image):
                                 image
                                     .resizable()
                                     .aspectRatio(contentMode: .fit)

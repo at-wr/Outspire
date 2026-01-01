@@ -5,7 +5,8 @@ struct LicenseView: View {
 
     private func loadLicenses() {
         if let url = Bundle.main.url(forResource: "ThirdPartyLicenses", withExtension: "txt"),
-           let content = try? String(contentsOf: url) {
+           let content = try? String(contentsOf: url)
+        {
             licenseText = content
         } else {
             licenseText = "License currently unavailable."

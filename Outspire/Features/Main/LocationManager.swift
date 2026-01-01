@@ -1,6 +1,6 @@
-import SwiftUI
 import CoreLocation
 import MapKit
+import SwiftUI
 import UserNotifications
 
 class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, UNUserNotificationCenterDelegate {
@@ -35,7 +35,6 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, UN
         UNUserNotificationCenter.current().delegate = self
 
         setupLocationAuthorizationObserver()
-
     }
 
     deinit {
@@ -71,7 +70,8 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, UN
 
     func calculateETAToSchool(isInChina: Bool, completion: @escaping () -> Void) {
         guard let userLocation = userLocation,
-              authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways else {
+              authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways
+        else {
             self.travelTimeToSchool = nil
             self.travelDistance = nil
             completion()
@@ -102,7 +102,11 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, UN
         }
     }
 
-    private func calculateETAWithMapKit(from userCoordinate: CLLocationCoordinate2D, isInChina: Bool, completion: @escaping () -> Void) {
+    private func calculateETAWithMapKit(
+        from userCoordinate: CLLocationCoordinate2D,
+        isInChina: Bool,
+        completion: @escaping () -> Void
+    ) {
         let request = MKDirections.Request()
 
         let sourceCoordinate = userCoordinate

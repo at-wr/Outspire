@@ -20,7 +20,7 @@ struct ScheduleRow: View {
         if isSelfStudy {
             return .purple
         } else if !subject.isEmpty {
-            return ClasstableView.getSubjectColor(from: subject)
+            return ModernScheduleRow.subjectColor(for: subject)
         } else {
             return .blue
         }

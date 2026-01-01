@@ -9,4 +9,3 @@ enum Log {
     static let auth = Logger(subsystem: subsystem, category: "Auth")
     static let widget = Logger(subsystem: subsystem, category: "Widget")
 }
-

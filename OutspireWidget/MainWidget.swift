@@ -1,12 +1,12 @@
 //
-//  OutspireWidget.swift
+//  MainWidget.swift
 //  OutspireWidget
 //
 //  Created by Alan Ye on 3/17/25.
 //
 
-import WidgetKit
 import SwiftUI
+import WidgetKit
 
 struct Provider: AppIntentTimelineProvider {
     func placeholder(in context: Context) -> WidgetEntry {
@@ -18,8 +18,11 @@ struct Provider: AppIntentTimelineProvider {
         if context.isPreview {
             let calendar = Calendar.current
             let now = Date()
-            let startTime = calendar.date(bySettingHour: 10, minute: 45, second: 0, of: now)!
-            let endTime = calendar.date(bySettingHour: 11, minute: 25, second: 0, of: now)!
+            guard let startTime = calendar.date(bySettingHour: 10, minute: 45, second: 0, of: now),
+                  let endTime = calendar.date(bySettingHour: 11, minute: 25, second: 0, of: now)
+            else {
+                return WidgetEntry.placeholder(configuration: configuration)
+            }
 
             let sampleClass = ClassWidgetData(
                 className: "Mathematics",
@@ -74,7 +77,7 @@ struct OutspireWidgetEntryView: View {
                     loadingView
                 case .weekend:
                     weekendView
-                case .holiday(let endDate):
+                case let .holiday(endDate):
                     holidayView(endDate: endDate)
                 case .noClasses:
                     noClassesView
@@ -204,13 +207,33 @@ struct OutspireWidgetEntryView: View {
 
     // MARK: - Class View
 
+    private var showLargeWidgetUpcomingClasses: Bool {
+        widgetFamily == .systemLarge && !entry.upcomingClasses.isEmpty
+    }
+
+    private var showCountdown: Bool {
+        entry.configuration.showCountdown
+    }
+
+    private var showTimeBadge: Bool {
+        widgetFamily != .systemSmall
+    }
+
+    private var showDetailLabels: Bool {
+        widgetFamily != .systemSmall || !showCountdown
+    }
+
+    private var isSmallWidget: Bool {
+        widgetFamily == .systemSmall
+    }
+
     private func classView(classData: ClassWidgetData) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             // Header - more compact with reduced padding
             HStack {
-                VStack(alignment: .leading, spacing: widgetFamily == .systemSmall ? 0 : 1) {
+                VStack(alignment: .leading, spacing: isSmallWidget ? 0 : 1) {
                     Text(classData.statusText)
-                        .font(widgetFamily == .systemSmall ? .caption2 : .caption)
+                        .font(isSmallWidget ? .caption2 : .caption)
                         .fontWeight(.medium)
                         .foregroundStyle(classColor(for: classData))
 
@@ -222,7 +245,7 @@ struct OutspireWidgetEntryView: View {
                 Spacer()
 
                 // Only show time range badge in medium and larger widgets
-                if widgetFamily != .systemSmall {
+                if showTimeBadge {
                     Text(classData.timeRangeFormatted)
                         .font(.caption2)
                         .padding(.horizontal, 4)
@@ -234,18 +257,18 @@ struct OutspireWidgetEntryView: View {
                 }
             }
             .padding(.horizontal, 12)
-            .padding(.top, widgetFamily == .systemSmall ? 6 : 8)
-            .padding(.bottom, widgetFamily == .systemSmall ? 3 : 4)
+            .padding(.top, isSmallWidget ? 6 : 8)
+            .padding(.bottom, isSmallWidget ? 3 : 4)
 
             // Class details - more compact layout
-            VStack(alignment: .leading, spacing: widgetFamily == .systemSmall ? 1 : 2) {
+            VStack(alignment: .leading, spacing: isSmallWidget ? 1 : 2) {
                 Text(classData.className)
-                    .font(widgetFamily == .systemSmall ? .callout : .system(.headline, design: .rounded))
+                    .font(isSmallWidget ? .callout : .system(.headline, design: .rounded))
                     .fontWeight(.semibold)
                     .lineLimit(1)
                     .minimumScaleFactor(0.9)
 
-                if widgetFamily != .systemSmall || !entry.configuration.showCountdown {
+                if showDetailLabels {
                     HStack(spacing: 8) {
                         if !classData.teacherName.isEmpty {
                             Label {
@@ -274,10 +297,14 @@ struct OutspireWidgetEntryView: View {
                         }
                     }
                     .foregroundStyle(.secondary)
-                } else if widgetFamily == .systemSmall && entry.configuration.showCountdown {
+                } else if isSmallWidget && showCountdown {
                     // For small widgets with countdown, show compact info
                     if !classData.teacherName.isEmpty || !classData.roomNumber.isEmpty {
-                        Text("\(classData.teacherName)\((!classData.teacherName.isEmpty && !classData.roomNumber.isEmpty) ? " • " : "")\(classData.roomNumber)")
+                        let hasTeacher = !classData.teacherName.isEmpty
+                        let hasRoom = !classData.roomNumber.isEmpty
+                        let separator = hasTeacher && hasRoom ? " • " : ""
+
+                        Text("\(classData.teacherName)\(separator)\(classData.roomNumber)")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
@@ -289,8 +316,8 @@ struct OutspireWidgetEntryView: View {
             .padding(.horizontal, 12)
 
             // Compact countdown section
-            if entry.configuration.showCountdown {
-                Spacer(minLength: widgetFamily == .systemSmall ? 1 : 3)
+            if showCountdown {
+                Spacer(minLength: isSmallWidget ? 1 : 3)
 
                 VStack(spacing: 0) {
                     Divider()
@@ -299,9 +326,12 @@ struct OutspireWidgetEntryView: View {
                     HStack(alignment: .center) {
                         // Timer icon - smaller for small widget
                         Image(systemName: classData.isCurrentClass ? "timer" : "hourglass")
-                            .font(.system(size: widgetFamily == .systemSmall ? 11 : 13, weight: .medium))
+                            .font(.system(size: isSmallWidget ? 11 : 13, weight: .medium))
                             .foregroundStyle(classColor(for: classData))
-                            .frame(width: widgetFamily == .systemSmall ? 16 : 20, height: widgetFamily == .systemSmall ? 16 : 20)
+                            .frame(
+                                width: isSmallWidget ? 16 : 20,
+                                height: isSmallWidget ? 16 : 20
+                            )
                             .background(
                                 Circle()
                                     .fill(classColor(for: classData).opacity(0.1))
@@ -313,7 +343,7 @@ struct OutspireWidgetEntryView: View {
                                 .font(.caption2)
                                 .foregroundStyle(.secondary)
 
-                            if widgetFamily == .systemSmall {
+                            if isSmallWidget {
                                 // More compact timer for small widget
                                 Text(classData.targetDate, style: .timer)
                                     .font(.system(.body, design: .rounded))
@@ -350,7 +380,7 @@ struct OutspireWidgetEntryView: View {
                         }
                     }
                     .padding(.horizontal, 12)
-                    .padding(.vertical, widgetFamily == .systemSmall ? 3 : 5)
+                    .padding(.vertical, isSmallWidget ? 3 : 5)
                 }
             } else {
                 // When not showing countdown, add minimal spacing
@@ -358,7 +388,7 @@ struct OutspireWidgetEntryView: View {
             }
 
             // For large widget, show upcoming classes more compactly
-            if widgetFamily == .systemLarge && !entry.upcomingClasses.isEmpty {
+            if showLargeWidgetUpcomingClasses {
                 VStack(alignment: .leading, spacing: 0) {
                     Divider()
                         .padding(.horizontal, 12)
@@ -531,14 +561,14 @@ struct OutspireWidget: Widget {
 
 // MARK: - Preview
 
-extension ClassWidgetConfigurationIntent {
-    fileprivate static var withCountdown: ClassWidgetConfigurationIntent {
+private extension ClassWidgetConfigurationIntent {
+    static var withCountdown: ClassWidgetConfigurationIntent {
         let intent = ClassWidgetConfigurationIntent()
         intent.showCountdown = true
         return intent
     }
 
-    fileprivate static var withoutCountdown: ClassWidgetConfigurationIntent {
+    static var withoutCountdown: ClassWidgetConfigurationIntent {
         let intent = ClassWidgetConfigurationIntent()
         intent.showCountdown = false
         return intent

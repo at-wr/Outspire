@@ -3,7 +3,7 @@ import SwiftUI
 struct ActivitySkeletonView: View {
     var body: some View {
         VStack(spacing: 15) {
-            ForEach(0..<3, id: \.self) { _ in
+            ForEach(0 ..< 3, id: \.self) { _ in
                 VStack(alignment: .leading, spacing: 10) {
                     // Title
                     RoundedRectangle(cornerRadius: 4)
@@ -19,7 +19,7 @@ struct ActivitySkeletonView: View {
 
                     // CAS Badges
                     HStack {
-                        ForEach(0..<3, id: \.self) { _ in
+                        ForEach(0 ..< 3, id: \.self) { _ in
                             RoundedRectangle(cornerRadius: 12)
                                 .fill(Color.gray.opacity(0.2))
                                 .frame(width: 60, height: 24)
@@ -28,7 +28,7 @@ struct ActivitySkeletonView: View {
 
                     // Reflection
                     VStack(alignment: .leading, spacing: 6) {
-                        ForEach(0..<3, id: \.self) { _ in
+                        ForEach(0 ..< 3, id: \.self) { _ in
                             RoundedRectangle(cornerRadius: 4)
                                 .fill(Color.gray.opacity(0.2))
                                 .frame(height: 10)

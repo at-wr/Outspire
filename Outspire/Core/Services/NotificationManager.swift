@@ -76,10 +76,11 @@ class NotificationManager: ObservableObject {
             dateComponents.minute = minute
 
             // Set up a trigger for each weekday
-            for weekday in 2...6 {
+            for weekday in 2 ... 6 {
                 dateComponents.weekday = weekday
                 let trigger = UNCalendarNotificationTrigger(
-                    dateMatching: dateComponents, repeats: true)
+                    dateMatching: dateComponents, repeats: true
+                )
 
                 // Create the request with a unique identifier per weekday
                 let request = UNNotificationRequest(
@@ -109,8 +110,8 @@ class NotificationManager: ObservableObject {
         notificationCenter.getPendingNotificationRequests { requests in
             let identifiersToRemove =
                 requests
-                .filter { $0.identifier.hasPrefix(type.rawValue) }
-                .map { $0.identifier }
+                    .filter { $0.identifier.hasPrefix(type.rawValue) }
+                    .map { $0.identifier }
 
             self.notificationCenter.removePendingNotificationRequests(
                 withIdentifiers: identifiersToRemove)
@@ -200,9 +201,9 @@ class NotificationManager: ObservableObject {
     private func getSchoolArrivalTime(for weekday: Int) -> String {
         // Weekday is 1-7 where 1 is Sunday
         switch weekday {
-        case 2: return "before 7:45"  // Monday
-        case 3, 4, 5, 6: return "before 7:55"  // Tuesday-Friday
-        default: return "on time"  // Weekend or error case
+        case 2: return "before 7:45" // Monday
+        case 3, 4, 5, 6: return "before 7:55" // Tuesday-Friday
+        default: return "on time" // Weekend or error case
         }
     }
 
@@ -221,10 +222,10 @@ class NotificationManager: ObservableObject {
         let weekday = calendar.component(.weekday, from: now)
 
         // Determine target arrival time based on weekday
-        let arrivalHour = 7  // Changed from 'var' to 'let' as it's never mutated
-        var arrivalMinute = 55  // Default for Tue-Fri
+        let arrivalHour = 7 // Changed from 'var' to 'let' as it's never mutated
+        var arrivalMinute = 55 // Default for Tue-Fri
 
-        if weekday == 2 {  // Monday
+        if weekday == 2 { // Monday
             arrivalMinute = 45
         }
 
@@ -267,7 +268,7 @@ class NotificationManager: ObservableObject {
     /// This should be called whenever settings change or app becomes active
     func updateNotificationScheduling() {
         checkAuthorizationStatus { status in
-            if status == .authorized && Configuration.departureNotificationsEnabled {
+            if status == .authorized, Configuration.departureNotificationsEnabled {
                 self.scheduleMorningETANotification()
             } else {
                 self.cancelNotification(of: .morningETA)

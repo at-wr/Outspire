@@ -7,6 +7,7 @@ import WeatherKit
 
 struct TodayView: View {
     // MARK: - Environment & State
+
     @EnvironmentObject var sessionService: SessionService
     @StateObject private var classtableViewModel = ClasstableViewModel()
     @ObservedObject private var authV2 = AuthServiceV2.shared
@@ -41,6 +42,7 @@ struct TodayView: View {
     @Environment(\.colorScheme) private var colorScheme
 
     // MARK: - Body
+
     var body: some View {
         ScrollView {
             contentView
@@ -97,7 +99,8 @@ struct TodayView: View {
             timer?.invalidate()
             timer = nil
             NotificationCenter.default.removeObserver(
-                self, name: .locationSignificantChange, object: nil)
+                self, name: .locationSignificantChange, object: nil
+            )
         }
         .onChange(of: classtableViewModel.years) { _, years in
             handleYearsChange(years)
@@ -107,7 +110,7 @@ struct TodayView: View {
         }
         .onChange(of: sessionService.isAuthenticated) { _, isAuthenticated in
             handleAuthChange(isAuthenticated)
-            updateGradientColors()  // Update gradient when authentication changes
+            updateGradientColors() // Update gradient when authentication changes
         }
         .onChange(of: authV2.isAuthenticated) { _, isAuthenticated in
             handleAuthChange(isAuthenticated)
@@ -158,7 +161,8 @@ struct TodayView: View {
     private func updateGradientColors() {
         if !isAuthenticated {
             gradientManager.updateGradientForContext(
-                context: .notSignedIn, colorScheme: colorScheme)
+                context: .notSignedIn, colorScheme: colorScheme
+            )
             return
         }
 
@@ -179,7 +183,8 @@ struct TodayView: View {
             if isActive {
                 if isSelfStudy {
                     gradientManager.updateGradientForContext(
-                        context: .inSelfStudy, colorScheme: colorScheme)
+                        context: .inSelfStudy, colorScheme: colorScheme
+                    )
                 } else {
                     gradientManager.updateGradientForContext(
                         context: .inClass(subject: upcomingInfo.classData),
@@ -189,7 +194,8 @@ struct TodayView: View {
             } else {
                 if isSelfStudy {
                     gradientManager.updateGradientForContext(
-                        context: .upcomingSelfStudy, colorScheme: colorScheme)
+                        context: .upcomingSelfStudy, colorScheme: colorScheme
+                    )
                 } else {
                     gradientManager.updateGradientForContext(
                         context: .upcomingClass(subject: upcomingInfo.classData),
@@ -199,9 +205,10 @@ struct TodayView: View {
             }
         } else {
             gradientManager.updateGradientForContext(
-                context: .afterSchool, colorScheme: colorScheme)
+                context: .afterSchool, colorScheme: colorScheme
+            )
         }
-    }    // Removed custom navigation bar appearance to align with Liquid Glass defaults\n
+    } // Removed custom navigation bar appearance to align with Liquid Glass defaults\n
     private func saveSettings() {
         Configuration.selectedDayOverride = selectedDayOverride
         Configuration.setAsToday = setAsToday
@@ -211,6 +218,7 @@ struct TodayView: View {
     }
 
     // MARK: - Components
+
     private var contentView: some View {
         VStack(spacing: 20) {
             headerView
@@ -230,7 +238,6 @@ struct TodayView: View {
         }
         .disabled(!isAuthenticated)
         .opacity(isAuthenticated ? 1.0 : 0.5)
-
     }
 
     private var scheduleSettingsSheet: some View {
@@ -246,6 +253,7 @@ struct TodayView: View {
     }
 
     // MARK: - Subviews
+
     private var headerView: some View {
         TodayHeaderView(
             greeting: greeting,
@@ -291,6 +299,7 @@ struct TodayView: View {
     }
 
     // MARK: - Computed Properties
+
     private var formattedDate: String {
         TodayViewHelpers.formatDateString(currentTime)
     }
@@ -299,8 +308,8 @@ struct TodayView: View {
         let calendar = Calendar.current
         let hour = calendar.component(.hour, from: currentTime)
         switch hour {
-        case 6..<12: return "Good Morning"
-        case 12..<18: return "Good Afternoon"
+        case 6 ..< 12: return "Good Morning"
+        case 12 ..< 18: return "Good Afternoon"
         default: return "Good Evening"
         }
     }
@@ -319,17 +328,17 @@ struct TodayView: View {
     }
 
     private var isAuthenticated: Bool {
-        return AuthServiceV2.shared.isAuthenticated
+        AuthServiceV2.shared.isAuthenticated || sessionService.isAuthenticated
     }
 
     private var assemblyTime: String {
         let dayIndex = effectiveDayIndex
         if dayIndex == 0 {
             return "7:45 - 8:05"
-        }  // Monday
+        } // Monday
         else if dayIndex >= 1 && dayIndex <= 4 {
             return "7:55 - 8:05"
-        }  // Tues - Fri
+        } // Tues - Fri
         else {
             return "No assembly"
         }
@@ -339,10 +348,10 @@ struct TodayView: View {
         let dayIndex = effectiveDayIndex
         if dayIndex == 0 {
             return "before 7:45"
-        }  // Monday
+        } // Monday
         else if dayIndex >= 1 && dayIndex <= 4 {
             return "before 7:55"
-        }  // Tues - Fri
+        } // Tues - Fri
         else {
             return "No arrival requirement"
         }
@@ -400,9 +409,9 @@ struct TodayView: View {
 
         // Adjust to get the closest occurrence (past or future)
         if daysToAdd > 3 {
-            daysToAdd -= 7  // Go back a week if more than 3 days ahead
+            daysToAdd -= 7 // Go back a week if more than 3 days ahead
         } else if daysToAdd < -3 {
-            daysToAdd += 7  // Go forward a week if more than 3 days behind
+            daysToAdd += 7 // Go forward a week if more than 3 days behind
         }
 
         // Create a new date that represents the target weekday but with current time
@@ -410,6 +419,7 @@ struct TodayView: View {
     }
 
     // MARK: - Helper Methods
+
     private func setupOnAppear() {
         checkForDateChange()
 
@@ -593,8 +603,8 @@ struct TodayView: View {
 
         // Check if user location is available and authorized
         guard locationManager.userLocation != nil,
-            locationManager.authorizationStatus == .authorizedWhenInUse
-                || locationManager.authorizationStatus == .authorizedAlways
+              locationManager.authorizationStatus == .authorizedWhenInUse
+              || locationManager.authorizationStatus == .authorizedAlways
         else {
             return false
         }
@@ -630,7 +640,7 @@ struct TodayView: View {
     }
 
     private func handleYearsChange(_ years: [Year]) {
-        if !years.isEmpty && !classtableViewModel.selectedYearId.isEmpty {
+        if !years.isEmpty, !classtableViewModel.selectedYearId.isEmpty {
             // Check if we need to fetch or if we have valid cache
             let cacheStatus = classtableViewModel.getCacheStatus()
             if !cacheStatus.hasValidTimetableCache {
@@ -665,10 +675,11 @@ struct TodayView: View {
         period: ClassPeriod, classData: String, dayIndex: Int, isForToday: Bool
     )? {
         // If we're using "Set as Today" mode with a selected day
-        if setAsToday && selectedDayOverride != nil {
+        if setAsToday, selectedDayOverride != nil {
             let periodInfo = ClassPeriodsManager.shared.getCurrentOrNextPeriod(
                 useEffectiveDate: true,
-                effectiveDate: effectiveDateForSelectedDay)
+                effectiveDate: effectiveDateForSelectedDay
+            )
             return getClassForPeriod(periodInfo, dayIndex: dayIndex, isForToday: true)
         }
         // Normal "today" mode
@@ -679,9 +690,9 @@ struct TodayView: View {
         // Preview mode for other days
         else {
             // Find the first class of the day when viewing other days
-            for row in 1..<classtableViewModel.timetable.count {
-                if row < classtableViewModel.timetable.count
-                    && dayIndex + 1 < classtableViewModel.timetable[row].count
+            for row in 1 ..< classtableViewModel.timetable.count {
+                if row < classtableViewModel.timetable.count,
+                   dayIndex + 1 < classtableViewModel.timetable[row].count
                 {
                     let classData = classtableViewModel.timetable[row][dayIndex + 1]
                     let isSelfStudy = classData.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -730,7 +741,12 @@ struct TodayView: View {
                     let classData = isEmpty ? "You\nSelf-Study" : raw
                     return (period: startPeriod, classData: classData, dayIndex: dayIndex, isForToday: isForToday)
                 } else {
-                    return (period: startPeriod, classData: "You\nSelf-Study", dayIndex: dayIndex, isForToday: isForToday)
+                    return (
+                        period: startPeriod,
+                        classData: "You\nSelf-Study",
+                        dayIndex: dayIndex,
+                        isForToday: isForToday
+                    )
                 }
             } else {
                 // Find first non-empty future class at or after suggested period
@@ -739,7 +755,9 @@ struct TodayView: View {
                     if let raw = dataFor(periodNumber: p) {
                         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
                         if !trimmed.isEmpty {
-                            if let periodObj = ClassPeriodsManager.shared.classPeriods.first(where: { $0.number == p }) {
+                            if let periodObj = ClassPeriodsManager.shared.classPeriods
+                                .first(where: { $0.number == p })
+                            {
                                 return (period: periodObj, classData: raw, dayIndex: dayIndex, isForToday: isForToday)
                             }
                         }
@@ -807,7 +825,7 @@ struct TodayView: View {
     private func checkForClassTransition() -> Bool {
         // Only check for active periods that are about to end
         if let upcoming = upcomingClassInfo,
-            upcoming.isForToday && upcoming.period.isCurrentlyActive()
+           upcoming.isForToday && upcoming.period.isCurrentlyActive()
         {
             let secondsRemaining = upcoming.period.endTime.timeIntervalSince(Date())
             // Only trigger refresh for the last 5 seconds of a class period
@@ -839,7 +857,7 @@ struct TodayView: View {
 
         // Check if we're close to the end of a period (last 10 seconds)
         if let upcoming = upcomingClassInfo,
-            upcoming.isForToday && upcoming.period.isCurrentlyActive()
+           upcoming.isForToday && upcoming.period.isCurrentlyActive()
         {
             let secondsRemaining = upcoming.period.endTime.timeIntervalSince(Date())
             if secondsRemaining <= 10 && secondsRemaining > 0 {
@@ -859,7 +877,7 @@ struct TodayView: View {
 
             // Only process when we have class info and timetable data
             guard let upcoming = upcomingClassInfo,
-                !classtableViewModel.timetable.isEmpty
+                  !classtableViewModel.timetable.isEmpty
             else { return }
 
             // Create a unique ID for this class period
@@ -867,7 +885,7 @@ struct TodayView: View {
 
             // Skip if we've already started a Live Activity for this specific class period
             // unless we're explicitly forcing a check
-            if !forceCheck && activeClassLiveActivities[activityId] == true {
+            if !forceCheck, activeClassLiveActivities[activityId] == true {
                 return
             }
 
@@ -921,8 +939,8 @@ struct TodayView: View {
     #if !targetEnvironment(macCatalyst)
         private func buildLiveActivitySchedule(for dayIndex: Int) -> [ClassActivityAttributes.ScheduledClass] {
             guard !classtableViewModel.timetable.isEmpty,
-                dayIndex >= 0,
-                dayIndex + 1 < classtableViewModel.timetable.first?.count ?? 0
+                  dayIndex >= 0,
+                  dayIndex + 1 < classtableViewModel.timetable.first?.count ?? 0
             else {
                 return []
             }
@@ -955,7 +973,9 @@ struct TodayView: View {
             return schedule.sorted(by: { $0.startTime < $1.startTime })
         }
 
-        private func parseClassInformation(from classData: String) -> (teacher: String, className: String, room: String) {
+        private func parseClassInformation(from classData: String)
+            -> (teacher: String, className: String, room: String)
+        {
             let trimmed = classData.trimmingCharacters(in: .whitespacesAndNewlines)
 
             guard !trimmed.isEmpty else {

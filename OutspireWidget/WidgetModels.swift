@@ -69,7 +69,7 @@ struct ClassWidgetData: Identifiable {
 
     // Add a date range for timer-based progress
     var progressRange: ClosedRange<Date> {
-        startTime...endTime
+        startTime ... endTime
     }
 
     var timeRangeFormatted: String {
@@ -117,7 +117,7 @@ struct ClassWidgetData: Identifiable {
 
         return ClassWidgetData(
             className: components.count > 1 ? components[1] : (isSelfStudy ? "Self-Study" : "Class"),
-            teacherName: components.count > 0 ? components[0] : "",
+            teacherName: !components.isEmpty ? components[0] : "",
             roomNumber: components.count > 2 ? components[2] : "",
             periodNumber: period.number,
             startTime: period.startTime,
@@ -300,7 +300,10 @@ struct CurrentNextClassWidgetEntry: TimelineEntry {
     }
 
     // Helper for holiday state
-    static func holiday(endDate: Date?, configuration: CurrentNextClassWidgetConfigurationIntent) -> CurrentNextClassWidgetEntry {
+    static func holiday(
+        endDate: Date?,
+        configuration: CurrentNextClassWidgetConfigurationIntent
+    ) -> CurrentNextClassWidgetEntry {
         return CurrentNextClassWidgetEntry(
             date: Date(),
             state: .holiday(endDate: endDate),
@@ -312,7 +315,7 @@ struct CurrentNextClassWidgetEntry: TimelineEntry {
 }
 
 // Helper functions for widgets
-struct WidgetHelpers {
+enum WidgetHelpers {
     static func weekdayName(for index: Int) -> String {
         let days = ["Mon", "Tue", "Wed", "Thu", "Fri"]
         guard index >= 1 && index <= 5 else { return "" }
@@ -445,7 +448,10 @@ extension Provider {
         }
     }
 
-    func timeline(for configuration: ClassWidgetConfigurationIntent, in context: Context) async -> Timeline<WidgetEntry> {
+    func timeline(
+        for configuration: ClassWidgetConfigurationIntent,
+        in context: Context
+    ) async -> Timeline<WidgetEntry> {
         let now = Date()
         let currentEntry = await getTimelineEntry(for: configuration, at: now)
 
@@ -525,7 +531,10 @@ private func nextPolicyUpdateDate(from entry: WidgetEntry, relativeTo now: Date,
 
 // Expose the helper method for sorting classes by relevance
 extension WidgetDataService {
-    static func sortClassesByRelevance(_ classes: [ClassWidgetData], referenceDate: Date = Date()) -> [ClassWidgetData] {
+    static func sortClassesByRelevance(
+        _ classes: [ClassWidgetData],
+        referenceDate: Date = Date()
+    ) -> [ClassWidgetData] {
         let now = referenceDate
 
         // Sort classes by period number to ensure correct ordering
@@ -539,7 +548,7 @@ extension WidgetDataService {
             let currentAndUpcoming = Array(sortedClasses[currentClassIndex...])
             // If we don't have enough classes to show, include earlier classes too
             if currentAndUpcoming.count < 3, currentClassIndex > 0 {
-                let earlierClasses = Array(sortedClasses[0..<currentClassIndex])
+                let earlierClasses = Array(sortedClasses[0 ..< currentClassIndex])
                 return currentAndUpcoming + earlierClasses
             }
             return currentAndUpcoming
@@ -552,7 +561,7 @@ extension WidgetDataService {
             let upcomingClasses = Array(sortedClasses[nextClassIndex...])
             // If we don't have enough upcoming classes, include earlier classes as a reference
             if upcomingClasses.count < 3, nextClassIndex > 0 {
-                let earlierClasses = Array(sortedClasses[0..<nextClassIndex])
+                let earlierClasses = Array(sortedClasses[0 ..< nextClassIndex])
                 return upcomingClasses + earlierClasses
             }
             return upcomingClasses

@@ -1,5 +1,5 @@
-import SwiftUI
 import Foundation
+import SwiftUI
 
 struct Category: Decodable, Identifiable, Hashable {
     let C_CategoryID: String

@@ -17,7 +17,7 @@ struct EnhancedClassCard: View {
     @State private var isTransitioning = false
     @State private var isTimeComplete = false // New state to track if time is actually complete
     @State private var isNextClass = false // New state to track if this is the next class
-    @State private var circlePercent: Double = 0.0  // Add the missing circlePercent property
+    @State private var circlePercent: Double = 0.0 // Add the missing circlePercent property
 
     @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject var gradientManager: GradientManager
@@ -40,7 +40,7 @@ struct EnhancedClassCard: View {
         } else {
             // Use subject-specific color if we can determine it
             if let subject = classInfo.subject {
-                return ClasstableView.getSubjectColor(from: subject)
+                return ModernScheduleRow.subjectColor(for: subject)
             }
             return .blue
         }
@@ -132,7 +132,7 @@ struct EnhancedClassCard: View {
 
             // Class details
             VStack(alignment: .leading, spacing: 12) {
-                    if let subject = classInfo.subject {
+                if let subject = classInfo.subject {
                     Text(subject)
                         .font(AppText.body.weight(.bold))
 
@@ -239,14 +239,14 @@ struct EnhancedClassCard: View {
     // Make this function not update state if we're already at zero
     private func calculateTimeRemaining() {
         // Don't recalculate if we've determined time is complete and UI shows correct state
-        if isTimeComplete && !isCurrentClass {
+        if isTimeComplete, !isCurrentClass {
             return
         }
 
         let calendar = Calendar.current
         let now = Date() // Current real time
 
-        if setAsToday && effectiveDate != nil {
+        if setAsToday, effectiveDate != nil {
             // For "Set as Today" mode with an effectiveDate
             let effectiveTime = getTimeComponents(from: now)
             let effectiveDay = getDateComponents(from: effectiveDate!)
@@ -266,7 +266,7 @@ struct EnhancedClassCard: View {
             let adjustedStartTime = createAdjustedTime(from: period.startTime, onDate: effectiveDate!)
             let adjustedEndTime = createAdjustedTime(from: period.endTime, onDate: effectiveDate!)
 
-            if effectiveNow >= adjustedStartTime && effectiveNow <= adjustedEndTime {
+            if effectiveNow >= adjustedStartTime, effectiveNow <= adjustedEndTime {
                 isCurrentClass = true
                 let newTimeRemaining = adjustedEndTime.timeIntervalSince(effectiveNow)
 
@@ -322,7 +322,7 @@ struct EnhancedClassCard: View {
             }
         } else if isForToday {
             // Regular today logic - FIX the countdown bug
-            if now >= period.startTime && now <= period.endTime {
+            if now >= period.startTime, now <= period.endTime {
                 // Current class
                 isCurrentClass = true
                 let newTimeRemaining = period.endTime.timeIntervalSince(now)
@@ -392,7 +392,8 @@ struct EnhancedClassCard: View {
                 daysToAdd += 7
             }
 
-            guard let nextDate = calendar.date(byAdding: .day, value: daysToAdd, to: calendar.startOfDay(for: now)) else { return }
+            guard let nextDate = calendar.date(byAdding: .day, value: daysToAdd, to: calendar.startOfDay(for: now))
+            else { return }
             var components = calendar.dateComponents([.year, .month, .day], from: nextDate)
             let periodStartComponents = calendar.dateComponents([.hour, .minute], from: period.startTime)
             components.hour = periodStartComponents.hour
@@ -555,7 +556,7 @@ struct EnhancedClassCard: View {
 
     // Get the effective date for calculations
     private func getEffectiveDate() -> Date? {
-        if setAsToday && effectiveDate != nil {
+        if setAsToday, effectiveDate != nil {
             return effectiveDate
         } else {
             return Date()

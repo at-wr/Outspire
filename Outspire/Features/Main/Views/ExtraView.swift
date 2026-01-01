@@ -28,7 +28,7 @@ struct ExtraView: View {
                 NavigationLink(destination: TodayView()) {
                     Label("Today", systemImage: "text.rectangle.page")
                 }
-                NavigationLink(destination: ClasstableView()) {
+                NavigationLink(destination: ModernClasstableView()) {
                     Label("Class Schedule", systemImage: "calendar.day.timeline.left")
                 }
             }

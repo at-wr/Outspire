@@ -61,7 +61,9 @@ final class MigrationManager {
 
         // 3) Purge cookies and reset URLSession to avoid stale auth
         if let cookies = HTTPCookieStorage.shared.cookies {
-            for cookie in cookies { HTTPCookieStorage.shared.deleteCookie(cookie) }
+            for cookie in cookies {
+                HTTPCookieStorage.shared.deleteCookie(cookie)
+            }
         }
         URLSession.shared.reset {}
 

@@ -30,7 +30,7 @@ struct SchoolArrangementDetail: Identifiable, Equatable {
 struct ArrangementGroup: Identifiable {
     let id: String
     let title: String
-    var items: [SchoolArrangementItem]  // Change from let to var
+    var items: [SchoolArrangementItem] // Change from let to var
     var isExpanded: Bool = true
 }
 

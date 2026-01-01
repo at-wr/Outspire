@@ -61,7 +61,10 @@ public class ClassPeriodsManager {
         ]
     }
 
-    public func getCurrentOrNextPeriod(useEffectiveDate: Bool = false, effectiveDate: Date? = nil) -> (period: ClassPeriod?, isCurrentlyActive: Bool) {
+    public func getCurrentOrNextPeriod(
+        useEffectiveDate: Bool = false,
+        effectiveDate: Date? = nil
+    ) -> (period: ClassPeriod?, isCurrentlyActive: Bool) {
         if useEffectiveDate, let effectiveDate = effectiveDate {
             let calendar = Calendar.current
             let effectiveTime = calendar.dateComponents([.hour, .minute, .second], from: Date())
@@ -83,7 +86,7 @@ public class ClassPeriodsManager {
                 let adjustedStartTime = createAdjustedTime(from: period.startTime, onDate: effectiveDate)
                 let adjustedEndTime = createAdjustedTime(from: period.endTime, onDate: effectiveDate)
 
-                if effectiveNow >= adjustedStartTime && effectiveNow <= adjustedEndTime {
+                if effectiveNow >= adjustedStartTime, effectiveNow <= adjustedEndTime {
                     return (period, true)
                 }
             }
@@ -114,11 +117,11 @@ public class ClassPeriodsManager {
 
     public func getMaxPeriodsByWeekday(_ weekday: Int) -> Int {
         switch weekday {
-        case 2: return 9  // Monday
-        case 3: return 9  // Tuesday
-        case 4: return 9  // Wednesday
-        case 5: return 9  // Thursday
-        case 6: return 9  // Friday
+        case 2: return 9 // Monday
+        case 3: return 9 // Tuesday
+        case 4: return 9 // Wednesday
+        case 5: return 9 // Thursday
+        case 6: return 9 // Friday
         default: return 0 // Weekend
         }
     }
@@ -135,10 +138,17 @@ public class ClassPeriodsManager {
         return calendar.date(from: dateComponents) ?? date
     }
 
-    private func createPeriod(number: Int, hour: Int, minute: Int, endHour: Int, endMinute: Int, date: Date) -> ClassPeriod {
+    private func createPeriod(
+        number: Int,
+        hour: Int,
+        minute: Int,
+        endHour: Int,
+        endMinute: Int,
+        date: Date
+    ) -> ClassPeriod {
         let calendar = Calendar.current
-        let startTime = calendar.date(bySettingHour: hour, minute: minute, second: 0, of: date)!
-        let endTime = calendar.date(bySettingHour: endHour, minute: endMinute, second: 0, of: date)!
+        let startTime = calendar.date(bySettingHour: hour, minute: minute, second: 0, of: date) ?? date
+        let endTime = calendar.date(bySettingHour: endHour, minute: endMinute, second: 0, of: date) ?? date
 
         return ClassPeriod(number: number, startTime: startTime, endTime: endTime)
     }

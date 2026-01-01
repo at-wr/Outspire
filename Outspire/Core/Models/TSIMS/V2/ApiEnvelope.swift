@@ -1,15 +1,16 @@
 import Foundation
 
 // MARK: - ResultType decoding that supports both string and integer forms
+
 enum ResultTypeValue: Decodable {
     case string(String)
     case int(Int)
 
     var isSuccess: Bool {
         switch self {
-        case .string(let s):
+        case let .string(s):
             return s == "0"
-        case .int(let i):
+        case let .int(i):
             return i == 0
         }
     }
@@ -26,6 +27,7 @@ enum ResultTypeValue: Decodable {
 }
 
 // MARK: - Generic API envelope used by the new TSIMS server
+
 struct ApiResponse<T: Decodable>: Decodable {
     let resultType: ResultTypeValue
     let message: String?
@@ -41,6 +43,7 @@ struct ApiResponse<T: Decodable>: Decodable {
 }
 
 // MARK: - Paged wrapper used by many list endpoints
+
 struct Paged<T: Decodable>: Decodable {
     let totalCount: Int
     let list: [T]

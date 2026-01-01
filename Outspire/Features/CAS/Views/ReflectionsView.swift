@@ -74,7 +74,7 @@ struct ReflectionsView: View {
                 HapticManager.shared.playError()
                 let icon =
                     errorMessage.contains("copied")
-                    ? "checkmark.circle.fill" : "exclamationmark.circle.fill"
+                        ? "checkmark.circle.fill" : "exclamationmark.circle.fill"
                 let toast = ToastValue(
                     icon: Image(systemName: icon).foregroundStyle(.red),
                     message: errorMessage
@@ -248,7 +248,7 @@ struct ReflectionsSection: View {
             } else if viewModel.isLoadingReflections || !loadAttempted {
                 // Use a generic loading skeleton for reflections
                 VStack(spacing: 16) {
-                    ForEach(0..<3) { _ in
+                    ForEach(0 ..< 3) { _ in
                         RoundedRectangle(cornerRadius: 12)
                             .fill(Color.gray.opacity(0.15))
                             .frame(height: 80)
@@ -273,10 +273,15 @@ struct ReflectionsSection: View {
                 ReflectionEmptyStateView(action: { showingAddSheet.toggle() })
                     .transition(.scale.combined(with: .opacity))
             } else {
-                ReflectionsList(viewModel: viewModel, animateList: animateList, searchText: searchText, sortDescending: sortDescending)
-                    .transition(.opacity)
-                    .blur(radius: viewModel.isLoadingReflections ? 1.0 : 0)
-                    .opacity(viewModel.isLoadingReflections ? 0.7 : 1.0)
+                ReflectionsList(
+                    viewModel: viewModel,
+                    animateList: animateList,
+                    searchText: searchText,
+                    sortDescending: sortDescending
+                )
+                .transition(.opacity)
+                .blur(radius: viewModel.isLoadingReflections ? 1.0 : 0)
+                .opacity(viewModel.isLoadingReflections ? 0.7 : 1.0)
             }
         }
         .searchable(text: $searchText, prompt: "Search reflections")
@@ -311,7 +316,7 @@ struct ReflectionsList: View {
             let db = f.date(from: b.C_Date) ?? g.date(from: b.C_Date) ?? Date.distantPast
             return sortDescending ? (da > db) : (da < db)
         }
-        ForEach(Array(list.enumerated()), id: \.element.id) { index, reflection in
+        ForEach(Array(list.enumerated()), id: \.element.id) { _, reflection in
             ReflectionCardView(
                 reflection: reflection,
                 onDelete: {
@@ -362,8 +367,8 @@ struct ReflectionEmptyStateView: View {
     }
 }
 
-extension Optional where Wrapped == String {
-    fileprivate var isNilOrEmpty: Bool {
+private extension Optional where Wrapped == String {
+    var isNilOrEmpty: Bool {
         self?.isEmpty ?? true
     }
 }

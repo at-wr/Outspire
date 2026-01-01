@@ -8,14 +8,46 @@ struct ReflectionDetailView: View {
 
     private var learningOutcomes: [(String, String, String)] {
         var outcomes: [(String, String, String)] = []
-        if let v = reflection.c_lo1, !v.isEmpty { outcomes.append(("brain.head.profile", "Awareness", "Increase your awareness of your strengths and areas for growth")) }
-        if let v = reflection.c_lo2, !v.isEmpty { outcomes.append(("figure.walk.motion", "Challenge", "Undertaken new challenges")) }
-        if let v = reflection.c_lo3, !v.isEmpty { outcomes.append(("lightbulb", "Initiative", "Planned and initiated activities")) }
-        if let v = reflection.c_lo4, !v.isEmpty { outcomes.append(("person.2", "Collaboration", "Worked collaboratively with others")) }
-        if let v = reflection.c_lo5, !v.isEmpty { outcomes.append(("checkmark.seal", "Commitment", "Shown perseverance and commitment on your activities")) }
-        if let v = reflection.c_lo6, !v.isEmpty { outcomes.append(("globe.americas", "Global Value", "Engaged with issues of global importance")) }
-        if let v = reflection.c_lo7, !v.isEmpty { outcomes.append(("shield.lefthalf.filled", "Ethics", "Considered the ethical implications of your actions")) }
-        if let v = reflection.c_lo8, !v.isEmpty { outcomes.append(("wrench.and.screwdriver", "New Skills", "Developed new skills")) }
+        if let v = reflection.c_lo1, !v.isEmpty { outcomes.append((
+            "brain.head.profile",
+            "Awareness",
+            "Increase your awareness of your strengths and areas for growth"
+        )) }
+        if let v = reflection.c_lo2, !v.isEmpty { outcomes.append((
+            "figure.walk.motion",
+            "Challenge",
+            "Undertaken new challenges"
+        )) }
+        if let v = reflection.c_lo3, !v.isEmpty { outcomes.append((
+            "lightbulb",
+            "Initiative",
+            "Planned and initiated activities"
+        )) }
+        if let v = reflection.c_lo4, !v.isEmpty { outcomes.append((
+            "person.2",
+            "Collaboration",
+            "Worked collaboratively with others"
+        )) }
+        if let v = reflection.c_lo5, !v.isEmpty { outcomes.append((
+            "checkmark.seal",
+            "Commitment",
+            "Shown perseverance and commitment on your activities"
+        )) }
+        if let v = reflection.c_lo6, !v.isEmpty { outcomes.append((
+            "globe.americas",
+            "Global Value",
+            "Engaged with issues of global importance"
+        )) }
+        if let v = reflection.c_lo7, !v.isEmpty { outcomes.append((
+            "shield.lefthalf.filled",
+            "Ethics",
+            "Considered the ethical implications of your actions"
+        )) }
+        if let v = reflection.c_lo8, !v.isEmpty { outcomes.append((
+            "wrench.and.screwdriver",
+            "New Skills",
+            "Developed new skills"
+        )) }
         return outcomes
     }
 
@@ -160,26 +192,26 @@ struct ReflectionDetailView: View {
 }
 
 #if DEBUG
-struct ReflectionDetailView_Previews: PreviewProvider {
-    static var previews: some View {
-        let sampleReflection = Reflection(
-            C_RefID: "1",
-            C_Title: "My Reflection on Leadership",
-            C_Summary: "This is a summary of my experiences as a team leader during the club activities.",
-            C_Content: "During this semester, I had the opportunity to lead our team in various activities. It was challenging but rewarding to organize events, delegate tasks, and ensure everyone was engaged and contributing. I learned that effective communication is key to successful leadership, and I've improved my ability to listen to team members and incorporate their feedback. The experience has made me more confident in my leadership abilities while also teaching me to be humble and open to learning from others.",
-            C_Date: "2023-10-15 12:00:00",
-            C_GroupNo: "G123",
-            c_lo1: "Awareness",
-            c_lo2: "Challenge",
-            c_lo3: "Initiative",
-            c_lo4: "Collaboration",
-            c_lo5: nil,
-            c_lo6: nil,
-            c_lo7: nil,
-            c_lo8: nil
-        )
+    struct ReflectionDetailView_Previews: PreviewProvider {
+        static var previews: some View {
+            let sampleReflection = Reflection(
+                C_RefID: "1",
+                C_Title: "My Reflection on Leadership",
+                C_Summary: "This is a summary of my experiences as a team leader during the club activities.",
+                C_Content: "During this semester, I had the opportunity to lead our team in various activities. It was challenging but rewarding to organize events, delegate tasks, and ensure everyone was engaged and contributing. I learned that effective communication is key to successful leadership, and I've improved my ability to listen to team members and incorporate their feedback. The experience has made me more confident in my leadership abilities while also teaching me to be humble and open to learning from others.",
+                C_Date: "2023-10-15 12:00:00",
+                C_GroupNo: "G123",
+                c_lo1: "Awareness",
+                c_lo2: "Challenge",
+                c_lo3: "Initiative",
+                c_lo4: "Collaboration",
+                c_lo5: nil,
+                c_lo6: nil,
+                c_lo7: nil,
+                c_lo8: nil
+            )
 
-        ReflectionDetailView(reflection: sampleReflection)
+            ReflectionDetailView(reflection: sampleReflection)
+        }
     }
-}
 #endif

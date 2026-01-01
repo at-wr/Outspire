@@ -3,6 +3,7 @@ import SwiftUI
 @MainActor
 class ClubActivitiesViewModel: ObservableObject {
     // MARK: - Published Properties
+
     @Published var groups: [ClubGroup] = []
     @Published var activities: [ActivityRecord] = []
     @Published var selectedGroupId: String = ""
@@ -13,6 +14,7 @@ class ClubActivitiesViewModel: ObservableObject {
     @Published var recordToDelete: ActivityRecord?
 
     // MARK: - Private Properties
+
     private var hasAttemptedInitialLoad = false
     private var cachedActivities: [String: [ActivityRecord]] = [:]
     private let cacheTimestampKey = "clubActivitiesCacheTimestamp"
@@ -20,20 +22,23 @@ class ClubActivitiesViewModel: ObservableObject {
     private let sessionService = SessionService.shared
 
     // MARK: - Initialization
+
     init() {
         loadInitialCachedData()
     }
 
     private func loadInitialCachedData() {
         guard let cachedGroupsData = UserDefaults.standard.data(forKey: "cachedClubGroups"),
-              let decodedGroups = try? JSONDecoder().decode([ClubGroup].self, from: cachedGroupsData) else {
+              let decodedGroups = try? JSONDecoder().decode([ClubGroup].self, from: cachedGroupsData)
+        else {
             return
         }
 
         self.groups = decodedGroups
 
         if let savedGroupId = UserDefaults.standard.string(forKey: "selectedClubGroupId"),
-           CharacterSet.decimalDigits.isSuperset(of: CharacterSet(charactersIn: savedGroupId)) {
+           CharacterSet.decimalDigits.isSuperset(of: CharacterSet(charactersIn: savedGroupId))
+        {
             self.selectedGroupId = savedGroupId
             loadCachedActivities(for: savedGroupId)
         } else if let firstGroup = decodedGroups.first {
@@ -42,9 +47,11 @@ class ClubActivitiesViewModel: ObservableObject {
     }
 
     // MARK: - Cache Management
+
     private func loadCachedActivities(for groupId: String) {
         guard let cachedData = UserDefaults.standard.data(forKey: "cachedActivities-\(groupId)"),
-              let decodedActivities = try? JSONDecoder().decode([ActivityRecord].self, from: cachedData) else {
+              let decodedActivities = try? JSONDecoder().decode([ActivityRecord].self, from: cachedData)
+        else {
             return
         }
         self.activities = decodedActivities
@@ -68,6 +75,7 @@ class ClubActivitiesViewModel: ObservableObject {
     }
 
     // MARK: - Network Operations
+
     @MainActor
     func fetchGroupsAsync(forceRefresh: Bool = false) async {
         await withCheckedContinuation { continuation in
@@ -85,7 +93,7 @@ class ClubActivitiesViewModel: ObservableObject {
     }
 
     func fetchGroups(forceRefresh: Bool = false) {
-        if !forceRefresh && !groups.isEmpty { return }
+        if !forceRefresh, !groups.isEmpty { return }
         guard !isLoadingGroups else { return }
 
         isLoadingGroups = true
@@ -97,9 +105,9 @@ class ClubActivitiesViewModel: ObservableObject {
     private func performGroupsRequest() {
         CASServiceV2.shared.fetchMyGroups { [weak self] res in
             switch res {
-            case .success(let groups):
+            case let .success(groups):
                 self?.handleGroupsResponse(.success(GroupDropdownResponse(groups: groups, nogroups: nil)))
-            case .failure(let err):
+            case let .failure(err):
                 self?.handleGroupsResponse(.failure(err))
             }
         }
@@ -111,9 +119,9 @@ class ClubActivitiesViewModel: ObservableObject {
             self.hasAttemptedInitialLoad = true
 
             switch result {
-            case .success(let response):
+            case let .success(response):
                 self.processSuccessfulGroupsResponse(response)
-            case .failure(let error):
+            case let .failure(error):
                 self.errorMessage = "\(error.localizedDescription)"
             }
         }
@@ -136,8 +144,8 @@ class ClubActivitiesViewModel: ObservableObject {
     }
 
     func fetchActivityRecords(forceRefresh: Bool = false) {
-        if !forceRefresh && isLoadingActivities { return }
-        if !forceRefresh && isCacheValid() {
+        if !forceRefresh, isLoadingActivities { return }
+        if !forceRefresh, isCacheValid() {
             loadCachedActivities(for: selectedGroupId)
         }
 
@@ -152,15 +160,15 @@ class ClubActivitiesViewModel: ObservableObject {
         // Allow empty groupId to fetch all records (server supports this)
         let currentGroup = selectedGroupId
         resolveNumericGroupId(currentGroup) { mappedId in
-        CASServiceV2.shared.fetchRecords(groupId: mappedId) { [weak self] res in
-            switch res {
-            case .success(let records):
-                // Show exactly the filtered result; do not auto-fallback to "all"
-                self?.handleActivitiesResponse(.success(ActivityResponse(casRecord: records)))
-            case .failure(let err):
-                self?.handleActivitiesResponse(.failure(err))
+            CASServiceV2.shared.fetchRecords(groupId: mappedId) { [weak self] res in
+                switch res {
+                case let .success(records):
+                    // Show exactly the filtered result; do not auto-fallback to "all"
+                    self?.handleActivitiesResponse(.success(ActivityResponse(casRecord: records)))
+                case let .failure(err):
+                    self?.handleActivitiesResponse(.failure(err))
+                }
             }
-        }
         }
     }
 
@@ -184,17 +192,16 @@ class ClubActivitiesViewModel: ObservableObject {
             self.isLoadingActivities = false
 
             switch result {
-            case .success(let response):
+            case let .success(response):
                 withAnimation {
                     self.activities = response.casRecord
                     self.cacheActivities(for: self.selectedGroupId, activities: response.casRecord)
                 }
-            case .failure(let error):
+            case let .failure(error):
                 switch error {
                 case .unauthorized: self.errorMessage = "Session expired"
                 default: self.errorMessage = error.localizedDescription
                 }
-
             }
         }
     }
@@ -204,13 +211,13 @@ class ClubActivitiesViewModel: ObservableObject {
         HapticManager.shared.playFeedback(.medium)
         CASServiceV2.shared.deleteRecord(id: record.C_ARecordID) { [weak self] res in
             switch res {
-            case .success(let ok):
+            case let .success(ok):
                 if ok {
                     self?.processDeleteSuccess(["status": "ok"], recordId: record.C_ARecordID)
                 } else {
                     self?.errorMessage = "Delete failed"
                 }
-            case .failure(let err):
+            case let .failure(err):
                 self?.errorMessage = err.localizedDescription
             }
         }
@@ -230,6 +237,7 @@ class ClubActivitiesViewModel: ObservableObject {
     }
 
     // MARK: - Copy Functions
+
     // showTemporaryMessage duplicate in ClubActivitiesView
     func copyTitle(_ activity: ActivityRecord) {
         HapticManager.shared.playFeedback(.light)

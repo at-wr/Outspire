@@ -21,7 +21,9 @@ struct ConnectivityAlertsViewModifier: ViewModifier {
                     connectivityManager.userSelectedRelay()
                 }
             } message: {
-                Text("Possibly due to GeoIP or Network restrictions, direct connection to the school server is not available. Would you like to use the Relay server instead?")
+                Text(
+                    "Possibly due to GeoIP or Network restrictions, direct connection to the school server is not available. Would you like to use the Relay server instead?"
+                )
             }
 
             // Alert for direct connection suggestion
@@ -33,7 +35,9 @@ struct ConnectivityAlertsViewModifier: ViewModifier {
                     connectivityManager.userSelectedDirect()
                 }
             } message: {
-                Text("Direct connection to the school server is now available. Would you like to switch for faster performance?")
+                Text(
+                    "Direct connection to the school server is now available. Would you like to switch for faster performance?"
+                )
             }
     }
 }

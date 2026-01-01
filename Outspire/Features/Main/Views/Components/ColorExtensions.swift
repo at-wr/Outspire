@@ -21,6 +21,7 @@ extension Color {
     }
 
     // MARK: - Weather Colors
+
     static let weatherSun = Color.yellow
     static let weatherCloud = Color.gray
     static let weatherFog = Color.gray.opacity(0.7)

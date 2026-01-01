@@ -71,7 +71,7 @@ class ScoreViewModel: ObservableObject {
     @Published var terms: [Term] = []
     @Published var isLoadingTerms: Bool = false
     @Published var selectedTermId: String = ""
-    @Published var lastUpdateTime: Date = Date()
+    @Published var lastUpdateTime: Date = .init()
     @Published var formattedLastUpdateTime: String = ""
 
     // Track terms with available data
@@ -94,17 +94,20 @@ class ScoreViewModel: ObservableObject {
     private func loadCachedData() {
         // Load cached terms with data
         if let cachedTermsWithData = UserDefaults.standard.array(forKey: "termsWithData")
-            as? [String] {
+            as? [String]
+        {
             self.termsWithData = Set(cachedTermsWithData)
         }
 
         if let cachedTermsData = UserDefaults.standard.data(forKey: "cachedTerms"),
-           let decodedTerms = try? JSONDecoder().decode([Term].self, from: cachedTermsData) {
+           let decodedTerms = try? JSONDecoder().decode([Term].self, from: cachedTermsData)
+        {
             self.terms = decodedTerms
 
             // First try to use the previously selected term if it exists
             if let savedTermId = UserDefaults.standard.string(forKey: "selectedTermId"),
-               decodedTerms.contains(where: { $0.W_YearID == savedTermId }) {
+               decodedTerms.contains(where: { $0.W_YearID == savedTermId })
+            {
                 self.selectedTermId = savedTermId
                 loadCachedScores(for: savedTermId)
             }
@@ -153,12 +156,14 @@ class ScoreViewModel: ObservableObject {
         self.errorMessage = nil
 
         if let cachedData = UserDefaults.standard.data(forKey: "cachedScores-\(termId)"),
-           let decodedScores = try? JSONDecoder().decode([Score].self, from: cachedData) {
+           let decodedScores = try? JSONDecoder().decode([Score].self, from: cachedData)
+        {
             self.scores = decodedScores
 
             // Load cached timestamp
             if let cachedTimestamp = UserDefaults.standard.object(
-                forKey: "scoresCacheTimestamp-\(termId)") as? TimeInterval {
+                forKey: "scoresCacheTimestamp-\(termId)") as? TimeInterval
+            {
                 self.lastUpdateTime = Date(timeIntervalSince1970: cachedTimestamp)
             } else {
                 self.lastUpdateTime = Date()
@@ -268,7 +273,7 @@ class ScoreViewModel: ObservableObject {
     }
 
     func fetchTerms(forceRefresh: Bool = false) {
-        if !forceRefresh && !terms.isEmpty && isCacheValid(for: "termsCacheTimestamp") {
+        if !forceRefresh, !terms.isEmpty, isCacheValid(for: "termsCacheTimestamp") {
             if selectedTermId.isEmpty, let first = terms.first { selectedTermId = first.W_YearID }
             fetchScores()
             return
@@ -282,14 +287,14 @@ class ScoreViewModel: ObservableObject {
             DispatchQueue.main.async {
                 self.isLoadingTerms = false
                 switch result {
-                case .success(let years):
+                case let .success(years):
                     // Map YearOption -> Term (use W_Term = "All")
                     let mapped: [Term] = years.map { Term(W_YearID: $0.id, W_Year: $0.name, W_Term: "All") }
                     self.terms = mapped
                     self.cacheTerms(mapped)
                     if let first = mapped.first { self.selectedTermId = first.W_YearID }
                     self.fetchScores()
-                case .failure(let error):
+                case let .failure(error):
                     self.errorMessage = "Failed to load years: \(error.localizedDescription)"
                 }
             }
@@ -302,7 +307,7 @@ class ScoreViewModel: ObservableObject {
             return
         }
 
-        if !forceRefresh && isCacheValid(for: "scoresCacheTimestamp-\(selectedTermId)") {
+        if !forceRefresh, isCacheValid(for: "scoresCacheTimestamp-\(selectedTermId)") {
             loadCachedScores(for: selectedTermId)
             return
         }
@@ -315,19 +320,23 @@ class ScoreViewModel: ObservableObject {
             DispatchQueue.main.async {
                 self.isLoading = false
                 switch result {
-                case .success(let items):
-                    // Map v2 scores into legacy Score model (fill only first slot)
+                case let .success(items):
+                    // Map v2 scores into legacy Score model (keep 5 slots)
                     let mapped: [Score] = items.enumerated().map { idx, item in
                         Score(
                             IB_SubjectID: "v2-\(idx)",
                             IB_SubjectE: item.subject,
                             S_Name: item.subject,
-                            Score1: item.score,
-                            LScore1: item.grade ?? "",
-                            Score2: "0", LScore2: "",
-                            Score3: "0", LScore3: "",
-                            Score4: "0", LScore4: "",
-                            Score5: "0", LScore5: ""
+                            Score1: item.score1,
+                            LScore1: item.ibScore1,
+                            Score2: item.score2,
+                            LScore2: item.ibScore2,
+                            Score3: item.score3,
+                            LScore3: item.ibScore3,
+                            Score4: item.score4,
+                            LScore4: item.ibScore4,
+                            Score5: item.score5,
+                            LScore5: item.ibScore5
                         )
                     }
                     self.scores = mapped
@@ -338,7 +347,7 @@ class ScoreViewModel: ObservableObject {
                     } else {
                         self.errorMessage = nil
                     }
-                case .failure(let error):
+                case let .failure(error):
                     self.errorMessage = "Failed to load scores: \(error.localizedDescription)"
                 }
             }
@@ -374,8 +383,9 @@ class ScoreViewModel: ObservableObject {
         } else if termYear < currentYear - 3 {
             // Very old term - likely before student enrolled
             self.errorMessage = "This term occurred before your enrollment."
-        } else if termYear == currentYear
-                    && termNumber > (calendar.component(.month, from: currentDate) / 4) + 1 {
+        } else if termYear == currentYear,
+                  termNumber > (calendar.component(.month, from: currentDate) / 4) + 1
+        {
             // Current year but future term
             self.errorMessage = "This term hasn't started yet."
         } else {

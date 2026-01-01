@@ -11,8 +11,8 @@ struct ClubActivitiesView: View {
     @State private var refreshButtonRotation = 0.0
     @EnvironmentObject var urlSchemeHandler: URLSchemeHandler
     @Environment(\.presentToast) var presentToast
-    @EnvironmentObject var gradientManager: GradientManager  // Add gradient manager
-    @Environment(\.colorScheme) private var colorScheme  // Add color scheme
+    @EnvironmentObject var gradientManager: GradientManager // Add gradient manager
+    @Environment(\.colorScheme) private var colorScheme // Add color scheme
     @State private var activitySearch: String = ""
 
     var body: some View {
@@ -59,7 +59,7 @@ struct ClubActivitiesView: View {
         }
         .sheet(isPresented: $showingAddRecordSheet) {
             addRecordSheet
-                .environmentObject(sessionService)  // Explicitly pass environment object
+                .environmentObject(sessionService) // Explicitly pass environment object
         }
         .confirmationDialog(
             "Delete Record",
@@ -90,7 +90,7 @@ struct ClubActivitiesView: View {
                 HapticManager.shared.playError()
                 let icon =
                     errorMessage.contains("copied")
-                    ? "checkmark.circle.fill" : "exclamationmark.circle.fill"
+                        ? "checkmark.circle.fill" : "exclamationmark.circle.fill"
                 let toast = ToastValue(
                     icon: Image(systemName: icon).foregroundStyle(.red),
                     message: errorMessage
@@ -123,7 +123,7 @@ struct ClubActivitiesView: View {
         .scrollContentBackground(.hidden)
         // Avoid custom animations; rely on native behavior
         .searchable(text: $activitySearch, prompt: "Search activities")
-        .refreshable(action: handleRefresh)  // Fixed refreshable syntax
+        .refreshable(action: handleRefresh) // Fixed refreshable syntax
     }
 
     @ViewBuilder
@@ -196,7 +196,7 @@ struct ClubActivitiesView: View {
         }
     }
 
-    @Sendable private func handleRefresh() async {  // Added @Sendable to fix data race warning
+    @Sendable private func handleRefresh() async { // Added @Sendable to fix data race warning
         HapticManager.shared.playFeedback(.medium)
         if viewModel.groups.isEmpty {
             await viewModel.fetchGroupsAsync(forceRefresh: true)
@@ -361,9 +361,9 @@ struct ActivitiesList: View {
     var body: some View {
         let filtered = searchText.isEmpty ? viewModel.activities : viewModel.activities.filter { a in
             a.C_Theme.localizedCaseInsensitiveContains(searchText) ||
-            a.C_Reflection.localizedCaseInsensitiveContains(searchText)
+                a.C_Reflection.localizedCaseInsensitiveContains(searchText)
         }
-        ForEach(Array(filtered.enumerated()), id: \.element.id) { index, activity in
+        ForEach(Array(filtered.enumerated()), id: \.element.id) { _, activity in
             ActivityCardView(activity: activity, viewModel: viewModel)
                 .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
                 .listRowBackground(Color.clear)
@@ -530,7 +530,8 @@ struct ReflectionView: View {
                             .foregroundStyle(.blue)
                             .rotationEffect(.degrees(isExpanded ? 180 : 0))
                             .animation(
-                                .spring(response: 0.35, dampingFraction: 0.7), value: isExpanded)
+                                .spring(response: 0.35, dampingFraction: 0.7), value: isExpanded
+                            )
                     }
                     .padding(.top, 4)
                     .scaleEffect(buttonScale)
@@ -542,7 +543,8 @@ struct ReflectionView: View {
                         withAnimation(.easeInOut(duration: 0.2)) {
                             buttonScale = isPressing ? 0.92 : 1.0
                         }
-                    }, perform: {})
+                    }, perform: {}
+                )
             }
         }
     }

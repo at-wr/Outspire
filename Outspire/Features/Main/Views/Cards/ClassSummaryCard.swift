@@ -19,7 +19,7 @@ struct ClassSummaryCard: View {
 
     private var subjectColor: Color {
         if classInfo.isSelfStudy { return .purple }
-        if let subject = classInfo.subject { return ClasstableView.getSubjectColor(from: subject) }
+        if let subject = classInfo.subject { return ModernScheduleRow.subjectColor(for: subject) }
         return .blue
     }
 

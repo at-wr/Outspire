@@ -4,6 +4,7 @@ extension Bundle {
     var releaseVersionNumber: String? {
         return infoDictionary?["CFBundleShortVersionString"] as? String
     }
+
     var buildVersionNumber: String? {
         return infoDictionary?["CFBundleVersion"] as? String
     }
@@ -13,7 +14,6 @@ let appVersion = Bundle.main.releaseVersionNumber
 let appBuild = Bundle.main.buildVersionNumber
 
 struct AboutView: View {
-
     var body: some View {
         List {
             Section {
@@ -24,7 +24,6 @@ struct AboutView: View {
                         Text("\(version) (Build \(build))")
                             .foregroundStyle(.secondary)
                     }
-
                 }
                 HStack {
                     Label("Developer", systemImage: "person")
@@ -43,7 +42,6 @@ struct AboutView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
-
             }
 
             Section {
@@ -74,7 +72,9 @@ struct AboutView: View {
                         .foregroundStyle(.primary)
                 }
 
-                Link(destination: URL(string: "https://github.com/at-wr/Outspire?tab=readme-ov-file#terms-of-service")!) {
+                Link(
+                    destination: URL(string: "https://github.com/at-wr/Outspire?tab=readme-ov-file#terms-of-service")!
+                ) {
                     Label("Terms of Service", systemImage: "text.document")
                         .foregroundStyle(.primary)
                 }

@@ -31,6 +31,11 @@ enum ClassInfoParser {
         let isSelfStudy = subject?.localizedCaseInsensitiveContains("self-study") == true
             || subject?.localizedCaseInsensitiveContains("self study") == true
 
-        return ClassInfo(teacher: teacher, subject: isSelfStudy ? "Self-Study" : subject, room: room, isSelfStudy: isSelfStudy)
+        return ClassInfo(
+            teacher: teacher,
+            subject: isSelfStudy ? "Self-Study" : subject,
+            room: room,
+            isSelfStudy: isSelfStudy
+        )
     }
 }

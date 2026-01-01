@@ -1,9 +1,9 @@
 import CoreLocation
+import OSLog
 import SwiftUI
 import Toasts
 import UIKit
 import UserNotifications
-import OSLog
 
 // Create an environment object to manage settings state globally
 class SettingsManager: ObservableObject {
@@ -61,13 +61,13 @@ struct OutspireApp: App {
                 .environmentObject(locationManager)
                 .environmentObject(regionChecker)
                 .environmentObject(notificationManager)
-                .environmentObject(settingsManager)  // Add settings manager
-                .environmentObject(urlSchemeHandler)  // Add URL scheme handler
-                .environmentObject(gradientManager)  // Add gradient manager to environment
-                .environmentObject(connectivityManager)  // Add connectivity manager
+                .environmentObject(settingsManager) // Add settings manager
+                .environmentObject(urlSchemeHandler) // Add URL scheme handler
+                .environmentObject(gradientManager) // Add gradient manager to environment
+                .environmentObject(connectivityManager) // Add connectivity manager
                 .installToast(position: .top)
                 .environmentObject(widgetDataManager)
-                .withConnectivityAlerts()  // Add the connectivity alerts
+                .withConnectivityAlerts() // Add the connectivity alerts
                 .onAppear {
                     // One-time auth migration for v0.7+ (forces re-sign-in for pre-0.7 users)
                     MigrationManager.shared.performAuthMigrationIfNeeded()
@@ -120,14 +120,14 @@ struct OutspireApp: App {
                 )
         }
         #if targetEnvironment(macCatalyst)
-            .commands {
-                CommandGroup(after: .appSettings) {
-                    Button("Settings") {
-                        settingsManager.showSettingsSheet = true
-                    }
-                    .keyboardShortcut(",", modifiers: .command)
+        .commands {
+            CommandGroup(after: .appSettings) {
+                Button("Settings") {
+                    settingsManager.showSettingsSheet = true
                 }
+                .keyboardShortcut(",", modifiers: .command)
             }
+        }
         #endif
     }
 
@@ -212,10 +212,10 @@ struct OutspireApp: App {
             case .credentialsMissing:
                 self.urlSchemeHandler.errorMessage = "You need to be signed in to access this feature"
                 self.urlSchemeHandler.showErrorAlert = true
-            case .wrongCredentials(let reason):
+            case let .wrongCredentials(reason):
                 self.urlSchemeHandler.errorMessage = reason
                 self.urlSchemeHandler.showErrorAlert = true
-            case .serverUnavailable(let reason):
+            case let .serverUnavailable(reason):
                 self.urlSchemeHandler.errorMessage = "Server unavailable: \(reason)"
                 self.urlSchemeHandler.showErrorAlert = true
             }
@@ -226,7 +226,7 @@ struct OutspireApp: App {
     // Update the method to share club to include universal links
     private func shareClub(groupInfo: GroupInfo) {
         // Create both URLs for better sharing compatibility
-        let _ = "outspire://club/\(groupInfo.C_GroupsID)"
+        _ = "outspire://club/\(groupInfo.C_GroupsID)"
         let universalLinkString = "https://outspire.wrye.dev/app/club/\(groupInfo.C_GroupsID)"
 
         // Use the universal link for sharing, as it works for non-app users too
@@ -239,7 +239,7 @@ struct OutspireApp: App {
 
         // Present the share sheet
         if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-            let rootViewController = windowScene.windows.first?.rootViewController
+           let rootViewController = windowScene.windows.first?.rootViewController
         {
             // On iPad, set the popover presentation controller's source
             if UIDevice.current.userInterfaceIdiom == .pad {
@@ -247,7 +247,8 @@ struct OutspireApp: App {
                     rootViewController.view
                 activityViewController.popoverPresentationController?.sourceRect = CGRect(
                     x: UIScreen.main.bounds.width / 2, y: UIScreen.main.bounds.height / 2, width: 0,
-                    height: 0)
+                    height: 0
+                )
                 activityViewController.popoverPresentationController?.permittedArrowDirections = []
             }
             rootViewController.present(activityViewController, animated: true)

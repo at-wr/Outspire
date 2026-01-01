@@ -1,5 +1,5 @@
-import SwiftUI
 import QuickLook
+import SwiftUI
 import UIKit
 
 struct UnifiedPDFPreview: View {
@@ -69,7 +69,10 @@ struct QuickLookPreviewWithCustomization: UIViewControllerRepresentable {
         }
 
         // Remove the document title from QuickLook
-        func previewController(_ controller: QLPreviewController, editingModeFor previewItem: QLPreviewItem) -> QLPreviewItemEditingMode {
+        func previewController(
+            _ controller: QLPreviewController,
+            editingModeFor previewItem: QLPreviewItem
+        ) -> QLPreviewItemEditingMode {
             return .disabled
         }
 

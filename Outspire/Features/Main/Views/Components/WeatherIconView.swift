@@ -11,7 +11,10 @@ struct WeatherIconView: View {
 
     private var renderingMode: SymbolRenderingMode {
         // Use hierarchical for single-layer symbols like cloud.fill
-        if conditionSymbol == "cloud.fill" || conditionSymbol == "wind" || conditionSymbol == "cloud.hail" || conditionSymbol == "cloud.snow" || conditionSymbol == "wind.snow" || conditionSymbol == "hurricane" || conditionSymbol == "tropicalstorm" || conditionSymbol == "cloud.bolt.rain.fill" {
+        if conditionSymbol == "cloud.fill" || conditionSymbol == "wind" || conditionSymbol == "cloud.hail" ||
+            conditionSymbol == "cloud.snow" || conditionSymbol == "wind.snow" || conditionSymbol == "hurricane" ||
+            conditionSymbol == "tropicalstorm" || conditionSymbol == "cloud.bolt.rain.fill"
+        {
             return .hierarchical
         } else {
             return .palette
@@ -20,12 +23,19 @@ struct WeatherIconView: View {
 
     private var colors: AnyShapeStyle {
         // Use hierarchical for single-layer symbols like cloud.fill
-        if conditionSymbol == "cloud.fill" || conditionSymbol == "wind" || conditionSymbol == "cloud.hail" || conditionSymbol == "cloud.snow" || conditionSymbol == "wind.snow" || conditionSymbol == "hurricane" || conditionSymbol == "tropicalstorm" || conditionSymbol == "cloud.bolt.rain.fill" {
+        if conditionSymbol == "cloud.fill" || conditionSymbol == "wind" || conditionSymbol == "cloud.hail" ||
+            conditionSymbol == "cloud.snow" || conditionSymbol == "wind.snow" || conditionSymbol == "hurricane" ||
+            conditionSymbol == "tropicalstorm" || conditionSymbol == "cloud.bolt.rain.fill"
+        {
             // For hierarchical, just use the accent color
             return AnyShapeStyle(accentColor)
         } else {
             // For palette, use cloud and accent colors
-            return AnyShapeStyle(LinearGradient(gradient: Gradient(colors: [cloudColor, accentColor]), startPoint: .topLeading, endPoint: .bottomTrailing))
+            return AnyShapeStyle(LinearGradient(
+                gradient: Gradient(colors: [cloudColor, accentColor]),
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            ))
         }
     }
 

@@ -1,5 +1,5 @@
-import SwiftUI
 import SwiftSoup
+import SwiftUI
 
 @MainActor
 class ClubInfoViewModel: ObservableObject {
@@ -60,12 +60,13 @@ class ClubInfoViewModel: ObservableObject {
             self.isLoading = false
 
             switch result {
-            case .success(let groups):
+            case let .success(groups):
                 self.groups = groups
 
                 // Check for pending club ID from URL scheme first
                 if let pendingId = self.pendingClubId,
-                   let targetGroup = groups.first(where: { $0.C_GroupsID == pendingId }) {
+                   let targetGroup = groups.first(where: { $0.C_GroupsID == pendingId })
+                {
                     print("Found pending club with ID: \(pendingId) in category \(category.C_Category)")
                     self.selectedGroup = targetGroup
                     self.fetchGroupInfo(for: targetGroup)
@@ -80,11 +81,14 @@ class ClubInfoViewModel: ObservableObject {
                 // If we have a pending ID but didn't find it in current category,
                 // try the next one systematically
                 if let pendingId = self.pendingClubId {
-                    let currentCategoryIndex = self.categories.firstIndex(where: { $0.C_CategoryID == category.C_CategoryID }) ?? -1
+                    let currentCategoryIndex = self.categories
+                        .firstIndex(where: { $0.C_CategoryID == category.C_CategoryID }) ?? -1
                     if currentCategoryIndex < self.categories.count - 1 {
                         // Try the next category
                         let nextCategoryIndex = currentCategoryIndex + 1
-                        print("Club \(pendingId) not found in \(category.C_Category), trying \(self.categories[nextCategoryIndex].C_Category)")
+                        print(
+                            "Club \(pendingId) not found in \(category.C_Category), trying \(self.categories[nextCategoryIndex].C_Category)"
+                        )
                         DispatchQueue.main.async {
                             self.selectedCategory = self.categories[nextCategoryIndex]
                             self.fetchGroups(for: self.categories[nextCategoryIndex])
@@ -105,7 +109,8 @@ class ClubInfoViewModel: ObservableObject {
                     print("Keeping current selection due to URL navigation")
                     return
                 } else if let previousId = previousSelection,
-                          let previousGroup = groups.first(where: { $0.C_GroupsID == previousId }) {
+                          let previousGroup = groups.first(where: { $0.C_GroupsID == previousId })
+                {
                     self.selectedGroup = previousGroup
                     self.fetchGroupInfo(for: previousGroup)
                     return
@@ -114,32 +119,32 @@ class ClubInfoViewModel: ObservableObject {
                 // Only apply auto-selection if we're not in the middle of a URL navigation
                 if !isNavigatingFromURL {
                     #if targetEnvironment(macCatalyst)
-                    // On Mac Catalyst, immediately set selection to avoid "Unavailable" display
-                    if self.selectedGroup == nil && !groups.isEmpty {
-                        // Use main queue to ensure proper UI update
-                        DispatchQueue.main.async {
-                            let pick = groups.randomElement() ?? groups[0]
-                            self.selectedGroup = pick
-                            self.fetchGroupInfo(for: pick)
+                        // On Mac Catalyst, immediately set selection to avoid "Unavailable" display
+                        if self.selectedGroup == nil, !groups.isEmpty {
+                            // Use main queue to ensure proper UI update
+                            DispatchQueue.main.async {
+                                let pick = groups.randomElement() ?? groups[0]
+                                self.selectedGroup = pick
+                                self.fetchGroupInfo(for: pick)
+                            }
                         }
-                    }
                     #else
-                    // When category changes, reset the selectedGroup and show the "Select" option
-                    self.selectedGroup = nil
+                        // When category changes, reset the selectedGroup and show the "Select" option
+                        self.selectedGroup = nil
 
-                    // Auto-select first group if available
-                    if !groups.isEmpty {
-                        // Use a small delay to ensure UI updates properly
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                            let pick = groups.randomElement() ?? groups[0]
-                            self.selectedGroup = pick
-                            self.fetchGroupInfo(for: pick)
+                        // Auto-select first group if available
+                        if !groups.isEmpty {
+                            // Use a small delay to ensure UI updates properly
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                let pick = groups.randomElement() ?? groups[0]
+                                self.selectedGroup = pick
+                                self.fetchGroupInfo(for: pick)
+                            }
                         }
-                    }
                     #endif
                 }
 
-            case .failure(let error):
+            case let .failure(error):
                 self.errorMessage = "Unable to load groups: \(error.localizedDescription)"
             }
         }
@@ -151,7 +156,7 @@ class ClubInfoViewModel: ObservableObject {
 
         // New TSIMS: enrich detail from cached group list item
         let detail = CASServiceV2.shared.getCachedGroupDetails(idOrNo: group.C_GroupsID) ??
-                     CASServiceV2.shared.getCachedGroupDetails(idOrNo: group.C_GroupNo)
+            CASServiceV2.shared.getCachedGroupDetails(idOrNo: group.C_GroupNo)
 
         let info = GroupInfo(
             C_GroupsID: group.C_GroupsID,
@@ -174,7 +179,7 @@ class ClubInfoViewModel: ObservableObject {
                 self.isLoading = false
                 self.isFromURLNavigation = false
                 switch res {
-                case .success(let myGroups):
+                case let .success(myGroups):
                     let targetKeys = Set([group.C_GroupsID, group.C_GroupNo].filter { !$0.isEmpty })
                     let myKeys = Set(myGroups.flatMap { [$0.C_GroupsID, $0.C_GroupNo] }.filter { !$0.isEmpty })
                     self.isUserMember = !targetKeys.isDisjoint(with: myKeys)
@@ -190,7 +195,8 @@ class ClubInfoViewModel: ObservableObject {
     // Check if current user is a member of this club
     private func checkUserMembership() {
         guard sessionService.isAuthenticated,
-              let currentUserId = sessionService.userInfo?.studentid else {
+              let currentUserId = sessionService.userInfo?.studentid
+        else {
             isUserMember = false
             return
         }
@@ -206,8 +212,9 @@ class ClubInfoViewModel: ObservableObject {
     }
 
     func joinClub(asProject: Bool) {
-        guard (authV2.isAuthenticated || sessionService.isAuthenticated),
-              let currentGroup = selectedGroup else {
+        guard authV2.isAuthenticated || sessionService.isAuthenticated,
+              let currentGroup = selectedGroup
+        else {
             errorMessage = "You need to be signed in and have a club selected"
             return
         }
@@ -221,7 +228,7 @@ class ClubInfoViewModel: ObservableObject {
                 self.isJoiningClub = false
 
                 switch result {
-                case .success(let ok):
+                case let .success(ok):
                     if ok {
                         // Refresh club info to update membership status
                         if let currentGroup = self.selectedGroup {
@@ -233,7 +240,7 @@ class ClubInfoViewModel: ObservableObject {
                     } else {
                         self.errorMessage = "Failed to join club"
                     }
-                case .failure(let error):
+                case let .failure(error):
                     self.errorMessage = "Failed to join club: \(error.localizedDescription)"
                 }
             }
@@ -241,8 +248,9 @@ class ClubInfoViewModel: ObservableObject {
     }
 
     func exitClub() {
-        guard (authV2.isAuthenticated || sessionService.isAuthenticated),
-              let currentGroup = selectedGroup else {
+        guard authV2.isAuthenticated || sessionService.isAuthenticated,
+              let currentGroup = selectedGroup
+        else {
             errorMessage = "You need to be signed in and have a club selected"
             return
         }
@@ -256,7 +264,7 @@ class ClubInfoViewModel: ObservableObject {
                 self.isExitingClub = false
 
                 switch result {
-                case .success(let ok):
+                case let .success(ok):
                     if ok {
                         // Refresh club info to update membership status
                         if let currentGroup = self.selectedGroup {
@@ -268,7 +276,7 @@ class ClubInfoViewModel: ObservableObject {
                     } else {
                         self.errorMessage = "Failed to exit club"
                     }
-                case .failure(let error):
+                case let .failure(error):
                     self.errorMessage = "Failed to exit club: \(error.localizedDescription)"
                 }
             }
@@ -314,14 +322,14 @@ class ClubInfoViewModel: ObservableObject {
             guard let self = self else { return }
             DispatchQueue.main.async {
                 switch res {
-                case .success(let list):
+                case let .success(list):
                     if let group = list.first(where: { $0.C_GroupsID == clubId || $0.C_GroupNo == clubId }) {
                         self.selectedGroup = group
                         self.fetchGroupInfo(for: group)
                     } else {
                         self.errorMessage = "Club not found"
                     }
-                case .failure(let err):
+                case let .failure(err):
                     self.errorMessage = err.localizedDescription
                 }
             }
@@ -337,7 +345,7 @@ class ClubInfoViewModel: ObservableObject {
             guard let self = self else { return }
             DispatchQueue.main.async {
                 switch res {
-                case .success(let list):
+                case let .success(list):
                     if let group = list.first(where: { $0.C_GroupsID == clubId || $0.C_GroupNo == clubId }) {
                         self.selectedGroup = group
                         self.fetchGroupInfo(for: group)
@@ -345,7 +353,7 @@ class ClubInfoViewModel: ObservableObject {
                         self.errorMessage = "Club not found"
                         self.isLoading = false
                     }
-                case .failure(let err):
+                case let .failure(err):
                     self.errorMessage = err.localizedDescription
                     self.isLoading = false
                 }
@@ -355,27 +363,28 @@ class ClubInfoViewModel: ObservableObject {
 
     // Helper method to fetch groups for a category with a preselected club
     private func fetchGroupsForCategory(_ category: Category, preselectedGroupId: String) {
-        CASServiceV2.shared.fetchGroupList(pageIndex: 1, pageSize: 200, categoryId: category.C_CategoryID) { [weak self] result in
-            guard let self = self else { return }
+        CASServiceV2.shared
+            .fetchGroupList(pageIndex: 1, pageSize: 200, categoryId: category.C_CategoryID) { [weak self] result in
+                guard let self = self else { return }
 
-            DispatchQueue.main.async {
-                switch result {
-                case .success(let groups):
-                    self.groups = groups
+                DispatchQueue.main.async {
+                    switch result {
+                    case let .success(groups):
+                        self.groups = groups
 
-                    // If we already have a group selected, ensure it's in the list
-                    if self.selectedGroup?.C_GroupsID == preselectedGroupId {
-                        // Find a more complete version of the group in the loaded groups
-                        if let fullGroup = groups.first(where: { $0.C_GroupsID == preselectedGroupId }) {
-                            self.selectedGroup = fullGroup
+                        // If we already have a group selected, ensure it's in the list
+                        if self.selectedGroup?.C_GroupsID == preselectedGroupId {
+                            // Find a more complete version of the group in the loaded groups
+                            if let fullGroup = groups.first(where: { $0.C_GroupsID == preselectedGroupId }) {
+                                self.selectedGroup = fullGroup
+                            }
                         }
+                    case let .failure(error):
+                        print("Failed to load groups for category: \(error.localizedDescription)")
+                        // Don't set error message here as we already have the club info displayed
                     }
-                case .failure(let error):
-                    print("Failed to load groups for category: \(error.localizedDescription)")
-                // Don't set error message here as we already have the club info displayed
                 }
             }
-        }
     }
 
     // Helper to fetch categories with a preselection
@@ -390,7 +399,8 @@ class ClubInfoViewModel: ObservableObject {
             Category(C_CategoryID: "6", C_Category: "Personal")
         ]
         if let categoryId = categoryId,
-           let category = self.categories.first(where: { $0.C_CategoryID == categoryId }) {
+           let category = self.categories.first(where: { $0.C_CategoryID == categoryId })
+        {
             self.selectedCategory = category
             self.fetchGroupsForCategory(category, preselectedGroupId: clubId)
         }

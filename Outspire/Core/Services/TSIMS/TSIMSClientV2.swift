@@ -11,7 +11,7 @@ final class TSIMSClientV2 {
     private var session: URLSession = .shared
 
     #if DEBUG
-    func setSession(_ session: URLSession) { self.session = session }
+        func setSession(_ session: URLSession) { self.session = session }
     #endif
 
     // Shared headers for form POSTs
@@ -27,6 +27,7 @@ final class TSIMSClientV2 {
     }
 
     // MARK: - Debug helpers
+
     private func log(_ message: String) {
         if Configuration.debugNetworkLogging { Log.net.debug("[TSIMS] \(message, privacy: .public)") }
     }
@@ -38,6 +39,7 @@ final class TSIMSClientV2 {
     }
 
     // MARK: - Public
+
     // Low-level POST returning raw data for custom decoding
     func postFormRaw(
         path: String,
@@ -62,10 +64,12 @@ final class TSIMSClientV2 {
         request.httpBody = body.data(using: .utf8)
 
         #if DEBUG
-        let bodyPreview = form.map { "\($0.key)=\($0.value)" }.joined(separator: "&")
-        log("POST \(path) keys=\(Array(form.keys).sorted()) body=\(bodyPreview) cookies=[\(cookieSummary(for: url))]")
+            let bodyPreview = form.map { "\($0.key)=\($0.value)" }.joined(separator: "&")
+            log(
+                "POST \(path) keys=\(Array(form.keys).sorted()) body=\(bodyPreview) cookies=[\(cookieSummary(for: url))]"
+            )
         #else
-        log("POST \(path) keys=\(Array(form.keys).sorted()) cookies=[\(cookieSummary(for: url))]")
+            log("POST \(path) keys=\(Array(form.keys).sorted()) cookies=[\(cookieSummary(for: url))]")
         #endif
 
         func makeRequest(retried: Bool) {
@@ -158,7 +162,10 @@ final class TSIMSClientV2 {
                     }
                     do {
                         let decoded = try JSONDecoder().decode(ApiResponse<T>.self, from: data)
-                        self.log("RESP ok decoded type=\(T.self) isSuccess=\(decoded.isSuccess) msg=\(decoded.message ?? "")")
+                        self
+                            .log(
+                                "RESP ok decoded type=\(T.self) isSuccess=\(decoded.isSuccess) msg=\(decoded.message ?? "")"
+                            )
                         completion(.success(decoded))
                     } catch {
                         let preview = String(data: data, encoding: .utf8)?.prefix(200) ?? "<bin>"
@@ -196,7 +203,10 @@ final class TSIMSClientV2 {
         request.setValue("XMLHttpRequest", forHTTPHeaderField: "X-Requested-With")
         request.setValue(Configuration.tsimsV2BaseURL + "/", forHTTPHeaderField: "Referer")
         request.setValue(Configuration.tsimsV2BaseURL, forHTTPHeaderField: "Origin")
-        request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile Safari", forHTTPHeaderField: "User-Agent")
+        request.setValue(
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile Safari",
+            forHTTPHeaderField: "User-Agent"
+        )
         request.setValue("zh-CN,zh;q=0.9,en;q=0.8,ja;q=0.7", forHTTPHeaderField: "Accept-Language")
 
         log("GET \(path) cookies=[\(cookieSummary(for: url))]")
@@ -234,7 +244,10 @@ final class TSIMSClientV2 {
                     }
                     do {
                         let decoded = try JSONDecoder().decode(ApiResponse<T>.self, from: data)
-                        self.log("RESP ok decoded type=\(T.self) isSuccess=\(decoded.isSuccess) msg=\(decoded.message ?? "")")
+                        self
+                            .log(
+                                "RESP ok decoded type=\(T.self) isSuccess=\(decoded.isSuccess) msg=\(decoded.message ?? "")"
+                            )
                         completion(.success(decoded))
                     } catch {
                         let preview = String(data: data, encoding: .utf8)?.prefix(200) ?? "<bin>"
@@ -248,6 +261,7 @@ final class TSIMSClientV2 {
     }
 
     // MARK: - Internal
+
     private func handleResponse<T: Decodable>(
         data: Data?,
         response: URLResponse?,
@@ -294,6 +308,7 @@ final class TSIMSClientV2 {
     }
 
     // MARK: - Async variants (non-breaking additions)
+
     @available(iOS 15.0, macOS 12.0, *)
     func postFormAsync<T: Decodable>(path: String, form: [String: String]) async throws -> ApiResponse<T> {
         guard let url = URL(string: Configuration.tsimsV2BaseURL + path) else { throw NetworkError.invalidURL }
@@ -337,7 +352,10 @@ final class TSIMSClientV2 {
         request.setValue("XMLHttpRequest", forHTTPHeaderField: "X-Requested-With")
         request.setValue(Configuration.tsimsV2BaseURL + "/", forHTTPHeaderField: "Referer")
         request.setValue(Configuration.tsimsV2BaseURL, forHTTPHeaderField: "Origin")
-        request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile Safari", forHTTPHeaderField: "User-Agent")
+        request.setValue(
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile Safari",
+            forHTTPHeaderField: "User-Agent"
+        )
         request.setValue("zh-CN,zh;q=0.9,en;q=0.8,ja;q=0.7", forHTTPHeaderField: "Accept-Language")
 
         log("GET (async) \(path) cookies=[\(cookieSummary(for: url))]")

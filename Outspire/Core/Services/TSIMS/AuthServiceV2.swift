@@ -8,25 +8,30 @@ final class AuthServiceV2: ObservableObject {
     private init() {
         // Restore saved user and check session on launch
         if let data = UserDefaults.standard.data(forKey: "v2User"),
-           let saved = try? JSONDecoder().decode(V2User.self, from: data) {
+           let saved = try? JSONDecoder().decode(V2User.self, from: data)
+        {
             self.user = saved
         }
         // Verify existing cookies/session
         verifySession { ok in
             DispatchQueue.main.async {
                 self.isAuthenticated = ok
+                self.isResolvingSession = false
                 if ok { self.startKeepAlive() }
             }
         }
 
         // Listen for server-side unauthorized events
-        NotificationCenter.default.addObserver(forName: .tsimsV2Unauthorized, object: nil, queue: .main) { [weak self] _ in
-            self?.attemptReauthIfPossible()
-        }
+        NotificationCenter.default
+            .addObserver(forName: .tsimsV2Unauthorized, object: nil, queue: .main) { [weak self] _ in
+                self?.attemptReauthIfPossible()
+            }
     }
 
     @Published var user: V2User?
     @Published var isAuthenticated: Bool = false
+    @Published private(set) var isResolvingSession: Bool = true
+
     private var keepAliveTimer: Timer?
     private var reauthInProgress = false
 
@@ -63,18 +68,25 @@ final class AuthServiceV2: ObservableObject {
         URLSession.shared.dataTask(with: seedReq) { _, _, _ in
             if Configuration.debugNetworkLogging {
                 if let url = seedReq.url, let cookies = HTTPCookieStorage.shared.cookies(for: url) {
-                    print("[AuthV2] Seed cookies: \(cookies.map{ $0.name }.joined(separator: ", "))")
+                    print("[AuthV2] Seed cookies: \(cookies.map { $0.name }.joined(separator: ", "))")
                 }
             }
             // Step 2: POST credentials
             let form = [
                 "code": code,
-                "password": password,
+                "password": password
             ]
-            TSIMSClientV2.shared.postForm(path: "/Home/Login", form: form) { (result: Result<ApiResponse<V2User>, NetworkError>) in
+            TSIMSClientV2.shared.postForm(path: "/Home/Login", form: form) { (result: Result<
+                ApiResponse<V2User>,
+                NetworkError
+            >) in
                 switch result {
-                case .success(let envelope):
-                    if Configuration.debugNetworkLogging { print("[AuthV2] Login result isSuccess=\(envelope.isSuccess) msg=\(envelope.message ?? "")") }
+                case let .success(envelope):
+                    if Configuration
+                        .debugNetworkLogging
+                    {
+                        print("[AuthV2] Login result isSuccess=\(envelope.isSuccess) msg=\(envelope.message ?? "")")
+                    }
                     if envelope.isSuccess {
                         // Some deployments omit user data; try to fill from profile
                         if let user = envelope.data {
@@ -97,7 +109,7 @@ final class AuthServiceV2: ObservableObject {
                     } else {
                         completion(false, envelope.message ?? "Login failed")
                     }
-                case .failure(let error):
+                case let .failure(error):
                     if Configuration.debugNetworkLogging { print("[AuthV2] Login error=\(error.localizedDescription)") }
                     completion(false, error.localizedDescription)
                 }
@@ -106,7 +118,10 @@ final class AuthServiceV2: ObservableObject {
     }
 
     func logout(completion: @escaping (Bool) -> Void) {
-        TSIMSClientV2.shared.postForm(path: "/Home/logout", form: [:]) { (result: Result<ApiResponse<String>, NetworkError>) in
+        TSIMSClientV2.shared.postForm(path: "/Home/logout", form: [:]) { (result: Result<
+            ApiResponse<String>,
+            NetworkError
+        >) in
             // Regardless of server response, clear local state when we can reach the server
             switch result {
             case .success:
@@ -126,7 +141,9 @@ final class AuthServiceV2: ObservableObject {
         stopKeepAlive()
         // Clear cookies to fully sign out
         if let cookies = HTTPCookieStorage.shared.cookies {
-            for c in cookies { HTTPCookieStorage.shared.deleteCookie(c) }
+            for c in cookies {
+                HTTPCookieStorage.shared.deleteCookie(c)
+            }
         }
         URLSession.shared.reset {}
         URLCache.shared.removeAllCachedResponses()
@@ -142,12 +159,15 @@ final class AuthServiceV2: ObservableObject {
     // Fetch profile HTML and parse basic info if missing from login response
     private func fetchProfile(completion: @escaping (Bool) -> Void) {
         // Try an HTML page that contains student info
-        guard let url = URL(string: Configuration.tsimsV2BaseURL + "/Home/StudentInfo") else { completion(false); return }
+        guard let url = URL(string: Configuration.tsimsV2BaseURL + "/Home/StudentInfo")
+        else { completion(false); return }
         var req = URLRequest(url: url)
         req.httpMethod = "GET"
         req.httpShouldHandleCookies = true
-        URLSession.shared.dataTask(with: req) { data, response, error in
-            guard error == nil, let data = data, let html = String(data: data, encoding: .utf8) else { DispatchQueue.main.async { completion(false) }; return }
+        URLSession.shared.dataTask(with: req) { data, _, error in
+            guard error == nil, let data = data,
+                  let html = String(data: data, encoding: .utf8)
+            else { DispatchQueue.main.async { completion(false) }; return }
             // Parse using SwiftSoup to be resilient
             var name: String? = nil
             var code: String? = nil
@@ -159,11 +179,18 @@ final class AuthServiceV2: ObservableObject {
                     code = try input.val()
                 }
                 // Try to extract numeric user id (id/UserId/StudentId)
-                if let idVal = try doc.select("input[name=id], input[name=UserId], input[name=StudentId]").first()?.val(), let uid = Int(idVal) {
+                if let idVal = try doc.select("input[name=id], input[name=UserId], input[name=StudentId]").first()?
+                    .val(), let uid = Int(idVal)
+                {
                     if self.user == nil {
                         self.user = V2User(userId: uid, userCode: code, name: nil, role: nil)
                     } else {
-                        self.user = V2User(userId: uid, userCode: self.user?.userCode ?? code, name: self.user?.name, role: self.user?.role)
+                        self.user = V2User(
+                            userId: uid,
+                            userCode: self.user?.userCode ?? code,
+                            name: self.user?.name,
+                            role: self.user?.role
+                        )
                     }
                 }
                 if code == nil, let tds = try? doc.select("td, th") {
@@ -181,17 +208,26 @@ final class AuthServiceV2: ObservableObject {
                 if name == nil {
                     let first = try? doc.select("input[name=FirstName]").first()?.val()
                     let last = try? doc.select("input[name=LastName]").first()?.val()
-                    let combined = [(first ?? ""), (last ?? "")].joined(separator: " ").trimmingCharacters(in: .whitespaces)
+                    let combined = [first ?? "", last ?? ""].joined(separator: " ").trimmingCharacters(in: .whitespaces)
                     if !combined.isEmpty { name = combined }
                 }
             } catch {
                 // fallback ignored
             }
             DispatchQueue.main.async {
-                if Configuration.debugNetworkLogging { print("[AuthV2] Parsed profile name=\(name ?? "<nil>") code=\(code ?? "<nil>")") }
+                if Configuration
+                    .debugNetworkLogging
+                {
+                    print("[AuthV2] Parsed profile name=\(name ?? "<nil>") code=\(code ?? "<nil>")")
+                }
                 if self.user == nil { self.user = V2User(userId: nil, userCode: code, name: name, role: nil) }
                 else {
-                    self.user = V2User(userId: self.user?.userId, userCode: self.user?.userCode ?? code, name: self.user?.name ?? name, role: self.user?.role)
+                    self.user = V2User(
+                        userId: self.user?.userId,
+                        userCode: self.user?.userCode ?? code,
+                        name: self.user?.name ?? name,
+                        role: self.user?.role
+                    )
                 }
                 // Persist user for next launch
                 if let u = self.user, let encoded = try? JSONEncoder().encode(u) {
@@ -209,13 +245,14 @@ final class AuthServiceV2: ObservableObject {
         req.httpShouldHandleCookies = true
         req.setValue("application/json, text/javascript, */*; q=0.01", forHTTPHeaderField: "Accept")
         req.setValue("XMLHttpRequest", forHTTPHeaderField: "X-Requested-With")
-        URLSession.shared.dataTask(with: req) { data, response, error in
+        URLSession.shared.dataTask(with: req) { data, response, _ in
             let ok = (response as? HTTPURLResponse)?.statusCode == 200 && (data?.count ?? 0) > 0
             DispatchQueue.main.async { completion(ok) }
         }.resume()
     }
 
     // MARK: - Keep-alive to extend cookie lifetime (~30m reported)
+
     private func startKeepAlive() {
         stopKeepAlive()
         // Ping every 20 minutes to refresh session before 30-minute expiry
@@ -236,12 +273,19 @@ final class AuthServiceV2: ObservableObject {
     }
 
     // MARK: - Auto Re-auth
+
     private func attemptReauthIfPossible() {
         guard !reauthInProgress else { return }
-        guard let code = SecureStore.get(keyUsername), let pwd = SecureStore.get(keyPassword), !code.isEmpty, !pwd.isEmpty else {
+        guard let code = SecureStore.get(keyUsername), let pwd = SecureStore.get(keyPassword), !code.isEmpty,
+              !pwd.isEmpty
+        else {
             // No saved credentials; mark unauthenticated
             DispatchQueue.main.async { self.isAuthenticated = false }
-            NotificationCenter.default.post(name: .tsimsV2ReauthFailed, object: nil, userInfo: ["reason": "Credentials missing"])
+            NotificationCenter.default.post(
+                name: .tsimsV2ReauthFailed,
+                object: nil,
+                userInfo: ["reason": "Credentials missing"]
+            )
             return
         }
         reauthInProgress = true
@@ -254,7 +298,11 @@ final class AuthServiceV2: ObservableObject {
                 } else {
                     self.isAuthenticated = false
                     let reason = message ?? "Re-login failed"
-                    NotificationCenter.default.post(name: .tsimsV2ReauthFailed, object: nil, userInfo: ["reason": reason])
+                    NotificationCenter.default.post(
+                        name: .tsimsV2ReauthFailed,
+                        object: nil,
+                        userInfo: ["reason": reason]
+                    )
                 }
             }
         }
@@ -271,10 +319,16 @@ final class AuthServiceV2: ObservableObject {
                 return
             }
             // Attempt reauth using stored credentials
-            guard let code = SecureStore.get(self.keyUsername), let pwd = SecureStore.get(self.keyPassword), !code.isEmpty, !pwd.isEmpty else {
+            guard let code = SecureStore.get(self.keyUsername), let pwd = SecureStore.get(self.keyPassword),
+                  !code.isEmpty, !pwd.isEmpty
+            else {
                 DispatchQueue.main.async {
                     self.isAuthenticated = false
-                    NotificationCenter.default.post(name: .tsimsV2ReauthFailed, object: nil, userInfo: ["reason": "Credentials missing"])
+                    NotificationCenter.default.post(
+                        name: .tsimsV2ReauthFailed,
+                        object: nil,
+                        userInfo: ["reason": "Credentials missing"]
+                    )
                     completion(false)
                 }
                 return
@@ -295,15 +349,20 @@ final class AuthServiceV2: ObservableObject {
                 DispatchQueue.main.async { completion(.valid) }
                 return
             }
-            guard let code = SecureStore.get(self.keyUsername), let pwd = SecureStore.get(self.keyPassword), !code.isEmpty, !pwd.isEmpty else {
+            guard let code = SecureStore.get(self.keyUsername), let pwd = SecureStore.get(self.keyPassword),
+                  !code.isEmpty, !pwd.isEmpty
+            else {
                 DispatchQueue.main.async { completion(.credentialsMissing) }
                 return
             }
 
             // Try login directly to capture wrong-credentials vs server errors
-            TSIMSClientV2.shared.postForm(path: "/Home/Login", form: ["code": code, "password": pwd]) { (result: Result<ApiResponse<V2User>, NetworkError>) in
+            TSIMSClientV2.shared.postForm(path: "/Home/Login", form: [
+                "code": code,
+                "password": pwd
+            ]) { (result: Result<ApiResponse<V2User>, NetworkError>) in
                 switch result {
-                case .success(let envelope):
+                case let .success(envelope):
                     if envelope.isSuccess {
                         // Verify JSON endpoint after login to ensure cookies are set
                         self.verifySession { ok2 in
@@ -325,7 +384,7 @@ final class AuthServiceV2: ObservableObject {
                             completion(.wrongCredentials(reason: reason))
                         }
                     }
-                case .failure(let error):
+                case let .failure(error):
                     DispatchQueue.main.async {
                         self.isAuthenticated = false
                         completion(.serverUnavailable(reason: error.localizedDescription))

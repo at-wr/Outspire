@@ -1,6 +1,6 @@
+import CoreImage
 import Foundation
 import Vision
-import CoreImage
 
 class CaptchaRecognizer {
     enum RecognitionMethod {
@@ -10,7 +10,11 @@ class CaptchaRecognizer {
         case combined // Tries all methods
     }
 
-    static func recognizeText(in imageData: Data, method: RecognitionMethod = .combined, completion: @escaping (String?) -> Void) {
+    static func recognizeText(
+        in imageData: Data,
+        method: RecognitionMethod = .combined,
+        completion: @escaping (String?) -> Void
+    ) {
         guard let cgImage = createCGImage(from: imageData) else {
             completion(nil)
             return
@@ -104,7 +108,8 @@ class CaptchaRecognizer {
         // Create text recognition request with specialized settings for captchas
         let request = VNRecognizeTextRequest { request, error in
             guard error == nil,
-                  let observations = request.results as? [VNRecognizedTextObservation] else {
+                  let observations = request.results as? [VNRecognizedTextObservation]
+            else {
                 completion(nil)
                 return
             }
@@ -132,7 +137,12 @@ class CaptchaRecognizer {
         request.recognitionLevel = .accurate
         request.recognitionLanguages = ["en-US"] // Focus on English characters
         request.usesLanguageCorrection = false // Disable language correction (important for captchas)
-        request.customWords = ["abcdefghijklmnopqrstuvwxyz", "ABCDEFGHIJKLMNOPQRSTUVXWYZ", "0123456789"] // Common captcha chars
+        request
+            .customWords = [
+                "abcdefghijklmnopqrstuvwxyz",
+                "ABCDEFGHIJKLMNOPQRSTUVXWYZ",
+                "0123456789"
+            ] // Common captcha chars
 
         // Perform the request
         try? requestHandler.perform([request])

@@ -1,5 +1,5 @@
-import XCTest
 @testable import Outspire
+import XCTest
 
 final class CacheManagerTests: XCTestCase {
     override func setUp() {
@@ -15,7 +15,9 @@ final class CacheManagerTests: XCTestCase {
     private func clearAll() {
         let ud = UserDefaults.standard
         for key in ud.dictionaryRepresentation().keys {
-            if key.hasPrefix("cached") || key.hasSuffix("timestamp") || key.contains("Cache") || key.contains("selected") || key.contains("years") || key.contains("terms") {
+            if key.hasPrefix("cached") || key.hasSuffix("timestamp") || key.contains("Cache") || key
+                .contains("selected") || key.contains("years") || key.contains("terms")
+            {
                 ud.removeObject(forKey: key)
             }
         }
@@ -80,4 +82,3 @@ final class CacheManagerTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(count, 4)
     }
 }
-

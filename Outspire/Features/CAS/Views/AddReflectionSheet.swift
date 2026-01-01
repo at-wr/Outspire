@@ -206,7 +206,7 @@ struct AddReflectionSheet: View {
                 }
             }
         }
-        .interactiveDismissDisabled(true)  // Force user to use buttons
+        .interactiveDismissDisabled(true) // Force user to use buttons
         .onChange(of: viewModel.errorMessage) { _, err in
             if let msg = err {
                 HapticManager.shared.playError()
@@ -237,31 +237,38 @@ struct AddReflectionSheet: View {
                                 LearningOutcomeExplanationRow(
                                     icon: "brain.head.profile", title: "Awareness",
                                     explanation:
-                                        "Increase your awareness of your strengths and areas for growth"
+                                    "Increase your awareness of your strengths and areas for growth"
                                 )
                                 LearningOutcomeExplanationRow(
                                     icon: "figure.walk.motion", title: "Challenge",
-                                    explanation: "Undertaken new challenges")
+                                    explanation: "Undertaken new challenges"
+                                )
                                 LearningOutcomeExplanationRow(
                                     icon: "lightbulb", title: "Initiative",
-                                    explanation: "Planned and initiated activities")
+                                    explanation: "Planned and initiated activities"
+                                )
                                 LearningOutcomeExplanationRow(
                                     icon: "person.2", title: "Collaboration",
-                                    explanation: "Worked collaboratively with others")
+                                    explanation: "Worked collaboratively with others"
+                                )
                                 LearningOutcomeExplanationRow(
                                     icon: "checkmark.seal", title: "Commitment",
                                     explanation:
-                                        "Shown perseverance and commitment on your activities")
+                                    "Shown perseverance and commitment on your activities"
+                                )
                                 LearningOutcomeExplanationRow(
                                     icon: "globe.americas", title: "Global Value",
-                                    explanation: "Engaged with issues of global importance")
+                                    explanation: "Engaged with issues of global importance"
+                                )
                                 LearningOutcomeExplanationRow(
                                     icon: "shield.lefthalf.filled", title: "Ethics",
                                     explanation:
-                                        "Considered the ethical implications of your actions")
+                                    "Considered the ethical implications of your actions"
+                                )
                                 LearningOutcomeExplanationRow(
                                     icon: "wrench.and.screwdriver", title: "New Skills",
-                                    explanation: "Developed new skills")
+                                    explanation: "Developed new skills"
+                                )
                             }
                             .padding(.vertical, 8)
                         }

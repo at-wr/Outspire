@@ -1,6 +1,6 @@
 import SwiftUI
 #if !targetEnvironment(macCatalyst)
-import ColorfulX
+    import ColorfulX
 #endif
 
 // Structure to hold view-specific gradient settings
@@ -183,9 +183,16 @@ class GradientManager: ObservableObject {
         saveViewSettings()
     }
 
-    func getSettingsForView(_ viewType: ViewType) -> (colors: [Color], speed: Double, noise: Double, transitionSpeed: Double) {
+    func getSettingsForView(_ viewType: ViewType)
+        -> (colors: [Color], speed: Double, noise: Double, transitionSpeed: Double)
+    {
         if useGlobalSettings, let globalSettings = globalSettings {
-            return (globalSettings.swiftUIColors, globalSettings.speed, globalSettings.noise, globalSettings.transitionSpeed)
+            return (
+                globalSettings.swiftUIColors,
+                globalSettings.speed,
+                globalSettings.noise,
+                globalSettings.transitionSpeed
+            )
         }
 
         if let settings = viewSettings[viewType] {
@@ -272,7 +279,8 @@ class GradientManager: ObservableObject {
 
         // Load global settings
         if let globalData = UserDefaults.standard.data(forKey: "globalGradientSettings"),
-           let decodedSettings = try? JSONDecoder().decode(ViewGradientSettings.self, from: globalData) {
+           let decodedSettings = try? JSONDecoder().decode(ViewGradientSettings.self, from: globalData)
+        {
             globalSettings = decodedSettings
         } else {
             // Default global settings
@@ -286,7 +294,8 @@ class GradientManager: ObservableObject {
 
         // Load view-specific settings
         if let viewData = UserDefaults.standard.data(forKey: "viewGradientSettings"),
-           let viewDictionary = try? JSONDecoder().decode([String: ViewGradientSettings].self, from: viewData) {
+           let viewDictionary = try? JSONDecoder().decode([String: ViewGradientSettings].self, from: viewData)
+        {
             // Convert string keys back to ViewType
             for (key, value) in viewDictionary {
                 if let viewType = ViewType(rawValue: key) {
@@ -322,7 +331,8 @@ class GradientManager: ObservableObject {
     private func saveViewSettings() {
         // Save global settings
         if let globalSettings = globalSettings,
-           let encodedGlobal = try? JSONEncoder().encode(globalSettings) {
+           let encodedGlobal = try? JSONEncoder().encode(globalSettings)
+        {
             UserDefaults.standard.set(encodedGlobal, forKey: "globalGradientSettings")
         }
 
@@ -382,7 +392,7 @@ class GradientManager: ObservableObject {
         case .afterSchool:
             return AppGradients.afterSchool
 
-        case .inClass(let subject):
+        case let .inClass(subject):
             // If we have a subject, create a subject-specific gradient
             if !subject.isEmpty {
                 let components = subject.replacingOccurrences(of: "<br>", with: "\n")
@@ -390,7 +400,7 @@ class GradientManager: ObservableObject {
                     .filter { !$0.isEmpty }
 
                 if components.count > 1 {
-                    let subjectColor = ClasstableView.getSubjectColor(from: components[1])
+                    let subjectColor = ModernScheduleRow.subjectColor(for: components[1])
                     // Use explicit path to the extension method
                     let darkerVariant = Color.adjustBrightness(subjectColor, by: -0.2)
                     let lighterVariant = Color.adjustBrightness(subjectColor, by: 0.2)
@@ -405,7 +415,7 @@ class GradientManager: ObservableObject {
             }
             return AppGradients.inClass
 
-        case .upcomingClass(let subject):
+        case let .upcomingClass(subject):
             // If we have a subject, create a subject-specific gradient
             if !subject.isEmpty {
                 let components = subject.replacingOccurrences(of: "<br>", with: "\n")
@@ -414,7 +424,7 @@ class GradientManager: ObservableObject {
 
                 if components.count > 1 {
                     // Use a lighter version of the subject color
-                    let subjectColor = ClasstableView.getSubjectColor(from: components[1])
+                    let subjectColor = ModernScheduleRow.subjectColor(for: components[1])
                     // Use explicit path to the extension method
                     let lighterVariant1 = Color.adjustBrightness(subjectColor, by: 0.2)
                     let lighterVariant2 = Color.adjustBrightness(subjectColor, by: 0.3)
@@ -439,7 +449,12 @@ class GradientManager: ObservableObject {
 
     func getBaseSettings() -> (colors: [Color], speed: Double, noise: Double, transitionSpeed: Double) {
         if useGlobalSettings, let globalSettings = globalSettings {
-            return (globalSettings.swiftUIColors, globalSettings.speed, globalSettings.noise, globalSettings.transitionSpeed)
+            return (
+                globalSettings.swiftUIColors,
+                globalSettings.speed,
+                globalSettings.noise,
+                globalSettings.transitionSpeed
+            )
         } else {
             // Use default animation settings
             return (AppGradients.defaultGradient, 0.5, 20.0, 1.0)
@@ -491,7 +506,7 @@ extension GradientManager {
                 .filter { !$0.isEmpty }
 
             if components.count > 1 {
-                let subjectColor = ClasstableView.getSubjectColor(from: components[1])
+                let subjectColor = ModernScheduleRow.subjectColor(for: components[1])
                 let darkerVariant = subjectColor.adjustBrightness(by: -0.2)
                 let lighterVariant = subjectColor.adjustBrightness(by: 0.2)
 
@@ -561,7 +576,6 @@ enum GradientContext: Equatable {
             return false
         }
     }
-
 }
 
 // Add extension method to UIColor for hex string conversion

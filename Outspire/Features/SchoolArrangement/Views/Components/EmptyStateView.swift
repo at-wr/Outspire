@@ -9,7 +9,8 @@ struct EmptyStateView: View {
     var body: some View {
         VStack(spacing: 20) {
             // Only animate if we're not on a small screen or if this is the first load
-            let animationEnabled = !isSmallScreen || AnimationManager.shared.hasAnimated(viewId: "SchoolArrangementView")
+            let animationEnabled = !isSmallScreen || AnimationManager.shared
+                .hasAnimated(viewId: "SchoolArrangementView")
 
             Image(systemName: "calendar.badge.exclamationmark")
                 .font(.system(size: 60))

@@ -68,8 +68,7 @@ struct ScheduleSettingsSheet: View {
 
                         } label: {
                             HStack {
-                                if !isCurrentDayWeekend && currentWeekday >= 0 && currentWeekday < 5
-                                {
+                                if !isCurrentDayWeekend && currentWeekday >= 0 && currentWeekday < 5 {
                                     Text("Today (\(dayName(for: currentWeekday)))")
                                 } else {
                                     Text("Today")
@@ -84,7 +83,7 @@ struct ScheduleSettingsSheet: View {
                         }
                         .foregroundStyle(.primary)
 
-                        ForEach(0..<5, id: \.self) { index in
+                        ForEach(0 ..< 5, id: \.self) { index in
                             if index == currentWeekday && !isCurrentDayWeekend {
                                 EmptyView()
                             } else {

@@ -7,20 +7,20 @@ enum ReflectionGroup: Identifiable, Hashable {
 
     var id: String {
         switch self {
-        case .club(let group): return group.C_GroupsID
-        case .noGroup(let group): return group.C_GroupsID
+        case let .club(group): return group.C_GroupsID
+        case let .noGroup(group): return group.C_GroupsID
         }
     }
 
     var displayName: String {
         switch self {
-        case .club(let group):
+        case let .club(group):
             if !group.C_NameE.isEmpty {
                 return group.C_NameE
             } else {
                 return group.C_NameC
             }
-        case .noGroup(let group):
+        case let .noGroup(group):
             if !group.C_NameE.isEmpty {
                 return group.C_NameE
             } else {
@@ -33,6 +33,7 @@ enum ReflectionGroup: Identifiable, Hashable {
 @MainActor
 class ReflectionsViewModel: ObservableObject {
     // MARK: - Published Properties
+
     @Published var groups: [ReflectionGroup] = []
     @Published var reflections: [Reflection] = []
     @Published var selectedGroupId: String = ""
@@ -45,8 +46,9 @@ class ReflectionsViewModel: ObservableObject {
     private let sessionService = SessionService.shared
 
     // MARK: - Fetch Groups
+
     func fetchGroups(forceRefresh: Bool = false) {
-        if !groups.isEmpty && !forceRefresh { return }
+        if !groups.isEmpty, !forceRefresh { return }
         isLoadingGroups = true
         errorMessage = nil
 
@@ -55,7 +57,7 @@ class ReflectionsViewModel: ObservableObject {
             DispatchQueue.main.async {
                 self?.isLoadingGroups = false
                 switch result {
-                case .success(let groups):
+                case let .success(groups):
                     let combined: [ReflectionGroup] = groups.map { .club($0) }
                     self?.groups = combined
                     if self?.selectedGroupId.isEmpty == true, let first = combined.first {
@@ -66,7 +68,7 @@ class ReflectionsViewModel: ObservableObject {
                         self?.selectedGroupId = ""
                         self?.fetchReflections()
                     }
-                case .failure(let error):
+                case let .failure(error):
                     switch error {
                     case .unauthorized: self?.errorMessage = "Session expired"
                     default: self?.errorMessage = error.localizedDescription
@@ -77,26 +79,27 @@ class ReflectionsViewModel: ObservableObject {
     }
 
     // MARK: - Fetch Reflections
+
     func fetchReflections(forceRefresh: Bool = false) {
-        if isLoadingReflections && !forceRefresh { return }
+        if isLoadingReflections, !forceRefresh { return }
         isLoadingReflections = true
         errorMessage = nil
 
         // Map GroupNo to numeric Id, then fetch
         let currentGroup = selectedGroupId
         resolveNumericGroupId(currentGroup) { mappedId in
-        CASServiceV2.shared.fetchReflections(groupId: mappedId) { [weak self] result in
-            DispatchQueue.main.async {
-                self?.isLoadingReflections = false
-                switch result {
-                case .success(let reflections):
-                    // Show exactly the filtered result; do not auto-fallback to "all"
-                    self?.reflections = reflections
-                case .failure(let error):
-                    self?.errorMessage = error.localizedDescription
+            CASServiceV2.shared.fetchReflections(groupId: mappedId) { [weak self] result in
+                DispatchQueue.main.async {
+                    self?.isLoadingReflections = false
+                    switch result {
+                    case let .success(reflections):
+                        // Show exactly the filtered result; do not auto-fallback to "all"
+                        self?.reflections = reflections
+                    case let .failure(error):
+                        self?.errorMessage = error.localizedDescription
+                    }
                 }
             }
-        }
         }
     }
 
@@ -116,6 +119,7 @@ class ReflectionsViewModel: ObservableObject {
     }
 
     // MARK: - Delete Reflection
+
     func deleteReflection(_ reflection: Reflection) {
         reflectionToDelete = reflection
         showingDeleteConfirmation = true
@@ -132,13 +136,13 @@ class ReflectionsViewModel: ObservableObject {
                 self?.showingDeleteConfirmation = false
 
                 switch result {
-                case .success(let ok):
+                case let .success(ok):
                     if ok {
                         self?.reflections.removeAll { $0.C_RefID == reflection.C_RefID }
                     } else {
                         self?.errorMessage = "Delete failed"
                     }
-                case .failure(let error):
+                case let .failure(error):
                     self?.errorMessage = error.localizedDescription
                 }
                 self?.reflectionToDelete = nil

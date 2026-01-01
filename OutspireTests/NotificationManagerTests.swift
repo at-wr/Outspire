@@ -4,7 +4,6 @@ import XCTest
 @testable import Outspire
 
 class NotificationManagerTests: XCTestCase {
-
     var notificationManager: NotificationManager!
     var mockNotificationCenter: MockUNUserNotificationCenter!
 
@@ -42,7 +41,8 @@ class NotificationManagerTests: XCTestCase {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             XCTAssertEqual(
                 mockCenter.addedRequests.count, 0,
-                "No notifications should be scheduled when user preference is disabled")
+                "No notifications should be scheduled when user preference is disabled"
+            )
             expectation.fulfill()
         }
 
@@ -66,7 +66,8 @@ class NotificationManagerTests: XCTestCase {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             XCTAssertEqual(
                 mockCenter.addedRequests.count, 5,
-                "Should schedule 5 notifications for weekdays when enabled")
+                "Should schedule 5 notifications for weekdays when enabled"
+            )
             expectation.fulfill()
         }
 
@@ -91,7 +92,8 @@ class NotificationManagerTests: XCTestCase {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             XCTAssertEqual(
                 mockCenter.addedRequests.count, 0,
-                "No notifications should be scheduled without authorization")
+                "No notifications should be scheduled without authorization"
+            )
             expectation.fulfill()
         }
 
@@ -247,7 +249,7 @@ extension NotificationManagerTests {
         config.protocolClasses = [MockURLProtocol.self]
         let session = URLSession(configuration: config)
         #if DEBUG
-        NetworkService.shared.setSession(session)
+            NetworkService.shared.setSession(session)
         #endif
 
         let payload = TestDecodable(message: "ok")
@@ -273,7 +275,7 @@ extension NotificationManagerTests {
         config.protocolClasses = [MockURLProtocol.self]
         let session = URLSession(configuration: config)
         #if DEBUG
-        NetworkService.shared.setSession(session)
+            NetworkService.shared.setSession(session)
         #endif
 
         MockURLProtocol.responseData = Data("{}".utf8)
@@ -286,7 +288,7 @@ extension NotificationManagerTests {
             )
             XCTFail("Expected to throw NetworkError.serverError")
         } catch {
-            guard case NetworkError.serverError(let code) = error else {
+            guard case let NetworkError.serverError(code) = error else {
                 return XCTFail("Unexpected error: \(error)")
             }
             XCTAssertEqual(code, 500)

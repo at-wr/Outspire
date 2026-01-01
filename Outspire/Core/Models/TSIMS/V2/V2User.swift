@@ -14,4 +14,3 @@ struct V2User: Codable {
         case role = "Role"
     }
 }
-

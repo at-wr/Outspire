@@ -7,6 +7,7 @@ import Toasts
 @MainActor
 class AddReflectionViewModel: ObservableObject {
     // MARK: - Published form fields
+
     @Published var selectedGroupId: String
     @Published var title: String = ""
     @Published var summary: String = ""
@@ -28,7 +29,7 @@ class AddReflectionViewModel: ObservableObject {
     let availableGroups: [ReflectionGroup]
     private let studentId: String
     private let onSave: () -> Void
-    private let llmService: LLMService = LLMService()
+    private let llmService: LLMService = .init()
 
     // AI Suggestion State
     @Published var isFetchingSuggestion = false
@@ -181,6 +182,7 @@ class AddReflectionViewModel: ObservableObject {
     }
 
     // MARK: - Computed word counts
+
     var summaryWordCount: Int { summary.trimmingCharacters(in: .whitespacesAndNewlines).count }
     var contentWordCount: Int { content.trimmingCharacters(in: .whitespacesAndNewlines).count }
 
@@ -188,6 +190,7 @@ class AddReflectionViewModel: ObservableObject {
     var summaryLimit: Int {
         selectedGroupId == altGroupId ? altSummaryLimit : defaultSummaryLimit
     }
+
     var contentMin: Int {
         selectedGroupId == altGroupId ? altContentMin : defaultContentMin
     }
@@ -198,6 +201,7 @@ class AddReflectionViewModel: ObservableObject {
     }
 
     // MARK: - Validation
+
     func validate() -> Bool {
         // All required
         guard !selectedGroupId.isEmpty,
@@ -228,6 +232,7 @@ class AddReflectionViewModel: ObservableObject {
     }
 
     // MARK: - Save
+
     func save() {
         guard validate() else { return }
         // Accept either legacy session or V2 auth cookies
@@ -255,48 +260,51 @@ class AddReflectionViewModel: ObservableObject {
             "refnote": content,
             "studentid": studentId
         ]
-        for idx in 1...8 {
+        for idx in 1 ... 8 {
             params["c_lo\(idx)"] = loValues[idx - 1]
         }
 
         // New TSIMS expects consolidated fields; map to V2 payload
         // Resolve GroupId to numeric (server expects numeric id)
         resolveNumericGroupId(selectedGroupId) { mappedId in
-        var v2Form: [String: String] = [
-            "id": "0",
-            "GroupId": mappedId,
-            "Title": self.title,
-            "Summary": self.summary,
-            "Content": self.content,
-        ]
-        // Map selected learning outcomes to first selected numeric code (1..8)
-        if let outcomeCode = self.getSelectedOutcomeCode() {
-            v2Form["outcome"] = outcomeCode
-        }
+            var v2Form: [String: String] = [
+                "id": "0",
+                "GroupId": mappedId,
+                "Title": self.title,
+                "Summary": self.summary,
+                "Content": self.content
+            ]
+            // Map selected learning outcomes to first selected numeric code (1..8)
+            if let outcomeCode = self.getSelectedOutcomeCode() {
+                v2Form["outcome"] = outcomeCode
+            }
 
-        self.isSaving = true
-        self.saveSucceeded = false
+            self.isSaving = true
+            self.saveSucceeded = false
 
-        TSIMSClientV2.shared.postForm(path: "/Stu/Cas/SaveReflection", form: v2Form) { [weak self] (result: Result<ApiResponse<String>, NetworkError>) in
-            DispatchQueue.main.async {
-                switch result {
-                case .success(let env):
-                    if env.isSuccess {
-                        self?.clearCache()
-                        self?.onSave()
-                        self?.saveSucceeded = true
-                        self?.isSaving = false
-                    } else {
-                        self?.errorMessage = "Save failed"
+            TSIMSClientV2.shared.postForm(path: "/Stu/Cas/SaveReflection", form: v2Form) { [weak self] (result: Result<
+                ApiResponse<String>,
+                NetworkError
+            >) in
+                DispatchQueue.main.async {
+                    switch result {
+                    case let .success(env):
+                        if env.isSuccess {
+                            self?.clearCache()
+                            self?.onSave()
+                            self?.saveSucceeded = true
+                            self?.isSaving = false
+                        } else {
+                            self?.errorMessage = "Save failed"
+                            self?.isSaving = false
+                        }
+                    case let .failure(error):
+                        _ = error
+                        self?.errorMessage = "Network error"
                         self?.isSaving = false
                     }
-                case .failure(let error):
-                    _ = error
-                    self?.errorMessage = "Network error"
-                    self?.isSaving = false
                 }
             }
-        }
         }
     }
 
@@ -316,6 +324,7 @@ class AddReflectionViewModel: ObservableObject {
     }
 
     // MARK: - AI Suggestion
+
     @MainActor
     func fetchLLMSuggestion() {
         // Check if user should see the disclaimer first
@@ -405,8 +414,8 @@ class AddReflectionViewModel: ObservableObject {
     private func getClubName() -> String {
         if let group = availableGroups.first(where: { $0.id == selectedGroupId }) {
             switch group {
-            case .club(let club): return club.C_NameE
-            case .noGroup(let nogroup): return nogroup.C_NameE
+            case let .club(club): return club.C_NameE
+            case let .noGroup(nogroup): return nogroup.C_NameE
             }
         }
         return ""

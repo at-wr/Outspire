@@ -22,8 +22,8 @@ struct OnboardingView: View {
     private let pages: [OnboardingPage] = [
         OnboardingPage(
             title: "Welcome to Outspire",
-            description:
-                "Your ultimate companion for WFLA school life! Everything you need, all in one place. \nLet's get started!",
+            description: "Your ultimate companion for WFLA school life! Everything you need, all in one place.\n"
+                + "Let's get started!",
             imageName: "sparkles.rectangle.stack",
             imageColor: .blue,
             pageType: .information
@@ -31,15 +31,15 @@ struct OnboardingView: View {
         OnboardingPage(
             title: "Schedule & Widgets",
             description:
-                "Stay on top of your classes and deadlines with smart scheduling. Never miss what matters most.",
+            "Stay on top of your classes and deadlines with smart scheduling. Never miss what matters most.",
             imageName: "calendar",
             imageColor: .orange,
             pageType: .information
         ),
         OnboardingPage(
             title: "CAS Made Simple",
-            description:
-                "Track your clubs, activities, and achievements effortlessly. Complete with artificial intelligent insights to help you succeed.",
+            description: "Track your clubs, activities, and achievements effortlessly. "
+                + "Complete with artificial intelligent insights to help you succeed.",
             imageName: "person.2.circle",
             imageColor: .green,
             pageType: .information
@@ -47,7 +47,7 @@ struct OnboardingView: View {
         OnboardingPage(
             title: "Academic Performance",
             description:
-                "Track your grades and progress with complete privacy. Your data stays secure and belongs to you.",
+            "Track your grades and progress with complete privacy. Your data stays secure and belongs to you.",
             imageName: "lock.document",
             imageColor: .purple,
             pageType: .information
@@ -55,7 +55,7 @@ struct OnboardingView: View {
         OnboardingPage(
             title: "Smart Reminders",
             description:
-                "Get personalized travel time calculations and never be late again. We'll help you plan your perfect morning routine.",
+            "Get personalized travel time calculations and never be late again. We'll help you plan your perfect morning routine.",
             imageName: "location.circle.fill",
             imageColor: .blue,
             pageType: .locationPermission
@@ -63,7 +63,7 @@ struct OnboardingView: View {
         OnboardingPage(
             title: "Stay Connected",
             description:
-                "Receive timely updates about your commute and important school news. Stay ahead of what's happening.",
+            "Receive timely updates about your commute and important school news. Stay ahead of what's happening.",
             imageName: "bell.badge.fill",
             imageColor: .red,
             pageType: .notificationPermission
@@ -71,11 +71,11 @@ struct OnboardingView: View {
         OnboardingPage(
             title: "You're All Set!",
             description:
-                "Welcome to your enhanced school experience! Everything is ready for you to explore and succeed.",
+            "Welcome to your enhanced school experience! Everything is ready for you to explore and succeed.",
             imageName: "checkmark.circle.fill",
             imageColor: .green,
             pageType: .information
-        ),
+        )
     ]
 
     var body: some View {
@@ -112,7 +112,7 @@ struct OnboardingView: View {
 
                 // Custom page viewer with explicit animation control
                 ZStack {
-                    ForEach(0..<pages.count, id: \.self) { index in
+                    ForEach(0 ..< pages.count, id: \.self) { index in
                         pageView(for: pages[index])
                             .frame(width: geometry.size.width)
                             .offset(x: CGFloat(index - currentPage) * geometry.size.width)
@@ -127,7 +127,7 @@ struct OnboardingView: View {
 
                 // Page indicators
                 HStack(spacing: 8) {
-                    ForEach(0..<pages.count, id: \.self) { index in
+                    ForEach(0 ..< pages.count, id: \.self) { index in
                         Circle()
                             .frame(width: 8, height: 8)
                             .foregroundColor(
@@ -150,10 +150,10 @@ struct OnboardingView: View {
                                 Text("Previous")
                             }
                             #if targetEnvironment(macCatalyst)
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 8)
-                                .background(Color(.quaternarySystemFill))
-                                .cornerRadius(8)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                            .background(Color(.quaternarySystemFill))
+                            .cornerRadius(8)
                             #endif
                             .foregroundStyle(.secondary)
                         }
@@ -181,10 +181,10 @@ struct OnboardingView: View {
                             )
                         #else
                             .background(
-                                Capsule().fill(Color.accentColor)
-                            )
+                                    Capsule().fill(Color.accentColor)
+                                )
                         #endif
-                        .foregroundStyle(.white)
+                                .foregroundStyle(.white)
                     }
                     .keyboardShortcut(.rightArrow, modifiers: [])
                     .keyboardShortcut(.return, modifiers: [])
@@ -382,8 +382,8 @@ struct OnboardingView: View {
                 for: page,
                 isGranted: locationPermissionGranted,
                 grantedText: "Thank you! This helps calculate your travel time to school.",
-                deniedText:
-                    "Remember, we never store your privacy!\nThis helps us show your travel time to school and provide timely morning notifications."
+                deniedText: "Remember, we never store your privacy!\n"
+                    + "This helps us show your travel time to school and provide timely morning notifications."
             )
         case .notificationPermission:
             permissionPageView(
@@ -391,7 +391,7 @@ struct OnboardingView: View {
                 isGranted: notificationPermissionGranted,
                 grantedText: "Great! You'll receive helpful morning travel notifications.",
                 deniedText:
-                    "I'll never spam you!\nNotifications help you arrive at school on time with morning travel alerts."
+                "I'll never spam you!\nNotifications help you arrive at school on time with morning travel alerts."
             )
         }
     }

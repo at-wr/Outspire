@@ -40,7 +40,9 @@ class URLSchemeHandler: ObservableObject {
     /// - Parameter url: The universal link URL to process
     /// - Returns: True if the URL was successfully handled
     func handleUniversalLink(_ url: URL) -> Bool {
-        print("Processing Universal Link: \(url.absoluteString)")
+        if Configuration.debugNetworkLogging {
+            print("Processing Universal Link: \(url.absoluteString)")
+        }
 
         // Verify it's our domain
         guard url.host == "outspire.wrye.dev" else { return false }
@@ -64,7 +66,9 @@ class URLSchemeHandler: ObservableObject {
     /// - Parameter url: The URL to process
     /// - Returns: True if the URL was successfully handled
     func handleURL(_ url: URL) -> Bool {
-        print("Processing URL: \(url.absoluteString)")
+        if Configuration.debugNetworkLogging {
+            print("Processing URL: \(url.absoluteString)")
+        }
 
         // First check for HTTPS URLs and redirect them to handleUniversalLink
         if url.scheme == "https" {
@@ -87,7 +91,9 @@ class URLSchemeHandler: ObservableObject {
             let host = url.host ?? ""
             let pathComponents = url.pathComponents.filter { $0 != "/" }
 
-            print("Navigating to host: \(host), path components: \(pathComponents)")
+            if Configuration.debugNetworkLogging {
+                print("Navigating to host: \(host), path components: \(pathComponents)")
+            }
 
             // Reset closeAllSheets after a short delay
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
@@ -104,7 +110,9 @@ class URLSchemeHandler: ObservableObject {
             case "club":
                 if pathComponents.count >= 1 {
                     let clubId = pathComponents[0]
-                    print("URL Handler found club ID: \(clubId)")
+                    if Configuration.debugNetworkLogging {
+                        print("URL Handler found club ID: \(clubId)")
+                    }
 
                     // If we're already navigating to the same club, don't reset
                     if self.navigateToClub != clubId {
@@ -158,7 +166,8 @@ class URLSchemeHandler: ObservableObject {
     /// - Returns: True if the activity was handled successfully
     func handleUserActivity(_ userActivity: NSUserActivity) -> Bool {
         guard userActivity.activityType == NSUserActivityTypeBrowsingWeb,
-              let url = userActivity.webpageURL else {
+              let url = userActivity.webpageURL
+        else {
             return false
         }
 

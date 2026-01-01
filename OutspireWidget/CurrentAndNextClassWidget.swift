@@ -1,28 +1,32 @@
 //
-//  CurrentNextClassWidget.swift
+//  CurrentAndNextClassWidget.swift
 //  OutspireWidget
 //
 //  Created by Alan Ye on 3/17/25.
 //
 
-import WidgetKit
 import SwiftUI
+import WidgetKit
 
 struct CurrentNextClassProvider: AppIntentTimelineProvider {
     func placeholder(in context: Context) -> CurrentNextClassWidgetEntry {
         CurrentNextClassWidgetEntry.placeholder(configuration: CurrentNextClassWidgetConfigurationIntent())
     }
 
-    func snapshot(for configuration: CurrentNextClassWidgetConfigurationIntent, in context: Context) async -> CurrentNextClassWidgetEntry {
+    func snapshot(
+        for configuration: CurrentNextClassWidgetConfigurationIntent,
+        in context: Context
+    ) async -> CurrentNextClassWidgetEntry {
         // For preview, return a placeholder with sample data
         if context.isPreview {
             let calendar = Calendar.current
             let now = Date()
-            let currentStartTime = calendar.date(bySettingHour: 10, minute: 45, second: 0, of: now)!
-            let currentEndTime = calendar.date(bySettingHour: 11, minute: 25, second: 0, of: now)!
 
-            let nextStartTime = calendar.date(bySettingHour: 12, minute: 30, second: 0, of: now)!
-            let nextEndTime = calendar.date(bySettingHour: 13, minute: 10, second: 0, of: now)!
+            let currentStartTime = calendar.date(bySettingHour: 10, minute: 45, second: 0, of: now) ?? now
+            let currentEndTime = calendar.date(bySettingHour: 11, minute: 25, second: 0, of: now) ?? now
+
+            let nextStartTime = calendar.date(bySettingHour: 12, minute: 30, second: 0, of: now) ?? now
+            let nextEndTime = calendar.date(bySettingHour: 13, minute: 10, second: 0, of: now) ?? now
 
             let currentClass = ClassWidgetData(
                 className: "Mathematics",
@@ -59,7 +63,10 @@ struct CurrentNextClassProvider: AppIntentTimelineProvider {
         return await getTimelineEntry(for: configuration)
     }
 
-    func timeline(for configuration: CurrentNextClassWidgetConfigurationIntent, in context: Context) async -> Timeline<CurrentNextClassWidgetEntry> {
+    func timeline(
+        for configuration: CurrentNextClassWidgetConfigurationIntent,
+        in context: Context
+    ) async -> Timeline<CurrentNextClassWidgetEntry> {
         // Get the current entry
         let entry = await getTimelineEntry(for: configuration)
 
@@ -91,14 +98,17 @@ struct CurrentNextClassProvider: AppIntentTimelineProvider {
 
         case .notSignedIn, .weekend, .holiday, .noClasses:
             // For static states, update less frequently
-            nextUpdateDate = Calendar.current.date(byAdding: .hour, value: 1, to: Date())!
+            nextUpdateDate = Calendar.current.date(byAdding: .hour, value: 1, to: Date()) ?? Date()
+                .addingTimeInterval(3600)
         }
 
         return Timeline(entries: [entry], policy: .after(nextUpdateDate))
     }
 
     // Helper method to get the current timeline entry
-    private func getTimelineEntry(for configuration: CurrentNextClassWidgetConfigurationIntent) async -> CurrentNextClassWidgetEntry {
+    private func getTimelineEntry(for configuration: CurrentNextClassWidgetConfigurationIntent) async
+        -> CurrentNextClassWidgetEntry
+    {
         // Check if user is signed in
         if !WidgetDataService.shared.isUserSignedIn() {
             return CurrentNextClassWidgetEntry.notSignedIn(configuration: configuration)
@@ -179,7 +189,7 @@ struct CurrentNextClassWidgetEntryView: View {
                     loadingView
                 case .weekend:
                     weekendView
-                case .holiday(let endDate):
+                case let .holiday(endDate):
                     holidayView(endDate: endDate)
                 case .noClasses:
                     noClassesView
@@ -521,7 +531,11 @@ struct CurrentNextClassWidgetEntryView: View {
 
             // Teacher and room combined in one line with better truncation
             if !classData.teacherName.isEmpty || !classData.roomNumber.isEmpty {
-                Text("\(classData.teacherName)\(!classData.teacherName.isEmpty && !classData.roomNumber.isEmpty ? " • " : "")\(classData.roomNumber)")
+                let hasTeacher = !classData.teacherName.isEmpty
+                let hasRoom = !classData.roomNumber.isEmpty
+                let separator = hasTeacher && hasRoom ? " • " : ""
+
+                Text("\(classData.teacherName)\(separator)\(classData.roomNumber)")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -703,7 +717,11 @@ struct CurrentNextClassWidget: Widget {
     let kind: String = "CurrentNextClassWidget"
 
     var body: some WidgetConfiguration {
-        AppIntentConfiguration(kind: kind, intent: CurrentNextClassWidgetConfigurationIntent.self, provider: CurrentNextClassProvider()) { entry in
+        AppIntentConfiguration(
+            kind: kind,
+            intent: CurrentNextClassWidgetConfigurationIntent.self,
+            provider: CurrentNextClassProvider()
+        ) { entry in
             CurrentNextClassWidgetEntryView(entry: entry)
         }
         .configurationDisplayName("Current & Next Class")
@@ -715,14 +733,14 @@ struct CurrentNextClassWidget: Widget {
 
 // MARK: - Preview
 
-extension CurrentNextClassWidgetConfigurationIntent {
-    fileprivate static var defaultConfig: CurrentNextClassWidgetConfigurationIntent {
+private extension CurrentNextClassWidgetConfigurationIntent {
+    static var defaultConfig: CurrentNextClassWidgetConfigurationIntent {
         let intent = CurrentNextClassWidgetConfigurationIntent()
         intent.showClassDetails = true
         return intent
     }
 
-    fileprivate static var minimalConfig: CurrentNextClassWidgetConfigurationIntent {
+    static var minimalConfig: CurrentNextClassWidgetConfigurationIntent {
         let intent = CurrentNextClassWidgetConfigurationIntent()
         intent.showClassDetails = false
         return intent

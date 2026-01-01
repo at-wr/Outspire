@@ -141,7 +141,8 @@ struct ScoreView: View {
 
                                                 // Save the selected term ID to make this choice persistent
                                                 UserDefaults.standard.set(
-                                                    term.W_YearID, forKey: "selectedTermId")
+                                                    term.W_YearID, forKey: "selectedTermId"
+                                                )
 
                                                 // Scroll to make selected term visible
                                                 withAnimation {
@@ -253,11 +254,11 @@ struct ScoreView: View {
                                 }
                             )
                             .padding(.horizontal)
-                            .offset(y: animateIn ? 0 : 10)  // Smaller offset for more subtle animation
+                            .offset(y: animateIn ? 0 : 10) // Smaller offset for more subtle animation
                             .opacity(animateIn ? 1 : 0)
                             .animation(
                                 .spring(response: 0.4, dampingFraction: 0.8)
-                                    .delay(Double(index) * 0.02),  // Faster staggered delay for more responsive feel
+                                    .delay(Double(index) * 0.02), // Faster staggered delay for more responsive feel
                                 value: animateIn
                             )
                         }
@@ -278,11 +279,11 @@ struct ScoreView: View {
                             }
                             .opacity(animateIn ? 0.7 : 0)
                             .animation(.easeIn.delay(0.5), value: animateIn)
-                            .id(viewModel.lastUpdateTime)  // This ensures the view updates when the time changes
+                            .id(viewModel.lastUpdateTime) // This ensures the view updates when the time changes
                         }
                     }
                     .padding(.top)
-                    .id(viewModel.selectedTermId)  // This ensures scrolling resets when term changes
+                    .id(viewModel.selectedTermId) // This ensures scrolling resets when term changes
                 }
                 .refreshable {
                     // Reset animation state
@@ -304,10 +305,10 @@ struct ScoreView: View {
             // Error toast overlay - for network errors only, not for empty terms
             // Only show the overlay for actual errors, not for informational messages
             if let errorMessage = viewModel.errorMessage,
-                errorMessage.starts(with: "Failed")
+               errorMessage.starts(with: "Failed")
             {
                 VStack {
-                    Spacer()  // Push error to bottom
+                    Spacer() // Push error to bottom
 
                     ErrorView(
                         errorMessage: errorMessage,
@@ -335,7 +336,7 @@ struct ScoreView: View {
                     .padding()
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
-                .zIndex(100)  // Ensure error is on top
+                .zIndex(100) // Ensure error is on top
             }
         }
         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: viewModel.errorMessage)
@@ -445,7 +446,8 @@ struct ScoreView: View {
                     .rotationEffect(.degrees(refreshButtonRotation))
                     .animation(
                         .spring(response: 0.6, dampingFraction: 0.5),
-                        value: refreshButtonRotation)
+                        value: refreshButtonRotation
+                    )
                 }
                 .disabled(
                     !isAuthenticated || viewModel.isLoading || viewModel.isLoadingTerms)
@@ -469,7 +471,7 @@ struct TermButton: View {
     let term: Term
     let isSelected: Bool
     let action: () -> Void
-    let hasData: Bool  // We'll keep this parameter but not use it visually
+    let hasData: Bool // We'll keep this parameter but not use it visually
 
     var body: some View {
         Button(action: {
@@ -504,7 +506,7 @@ struct SubjectScoreCard: View {
     let onTap: () -> Void
 
     private var subjectColor: Color {
-        ClasstableView.getSubjectColor(from: subject.subjectName)
+        ModernScheduleRow.subjectColor(for: subject.subjectName)
     }
 
     // Check if this subject has any valid scores
@@ -627,7 +629,7 @@ struct ScoreSkeletonView: View {
     var body: some View {
         // Fixed-size container to prevent layout jumps
         VStack(spacing: 16) {
-            ForEach(0..<5, id: \.self) { _ in
+            ForEach(0 ..< 5, id: \.self) { _ in
                 VStack(spacing: 8) {
                     HStack {
                         Circle()
@@ -658,7 +660,7 @@ struct ScoreSkeletonView: View {
         }
         .padding(.horizontal)
         .padding(.top)
-        .frame(minHeight: 400)  // Ensures consistent height
+        .frame(minHeight: 400) // Ensures consistent height
         .opacity(isAnimating ? 0.6 : 1.0)
         .animation(
             Animation.easeInOut(duration: 1.2)

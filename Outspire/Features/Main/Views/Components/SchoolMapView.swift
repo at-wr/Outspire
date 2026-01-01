@@ -1,5 +1,5 @@
-import SwiftUI
 import MapKit
+import SwiftUI
 
 struct SchoolMapView: View {
     let userLocation: CLLocationCoordinate2D?
@@ -59,8 +59,12 @@ struct SchoolMapView: View {
                         .background(
                             Capsule()
                                 .fill(Color(UIColor.secondarySystemBackground))
-                                .shadow(color: Color.primary.opacity(colorScheme == .dark ? 0.1 : 0.15),
-                                        radius: 3, x: 0, y: 1)
+                                .shadow(
+                                    color: Color.primary.opacity(colorScheme == .dark ? 0.1 : 0.15),
+                                    radius: 3,
+                                    x: 0,
+                                    y: 1
+                                )
                         )
                         .foregroundColor(.primary)
                 }
@@ -69,8 +73,12 @@ struct SchoolMapView: View {
         }
         .frame(height: 180)
         .clipShape(RoundedRectangle(cornerRadius: 16))
-        .shadow(color: colorScheme == .dark ? Color.black.opacity(0.2) : Color.black.opacity(0.05),
-                radius: 8, x: 0, y: 2)
+        .shadow(
+            color: colorScheme == .dark ? Color.black.opacity(0.2) : Color.black.opacity(0.05),
+            radius: 8,
+            x: 0,
+            y: 2
+        )
     }
 
     private func openInMaps() {
