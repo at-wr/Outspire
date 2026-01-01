@@ -871,26 +871,17 @@ struct TodayView: View {
                 return
             }
 
-            // Process the class data to extract required information
-            let components = upcoming.classData.replacingOccurrences(of: "<br>", with: "\n")
-                .components(separatedBy: "\n")
-                .filter { !$0.isEmpty }
+            let classInfo = parseClassInformation(from: upcoming.classData)
+            let schedule = buildLiveActivitySchedule(for: upcoming.dayIndex)
 
-            // Only proceed if we have enough data
-            guard components.count >= 2 else { return }
+            guard !schedule.isEmpty else { return }
 
-            let teacherName = components.count > 0 ? components[0] : "Unknown Teacher"
-            let className = components.count > 1 ? components[1] : "Unknown Class"
-            let roomNumber = components.count > 2 ? components[2] : "Unknown Room"
-
-            // Use the enhanced method that handles either creating a new activity or updating existing
             ClassActivityManager.shared.startOrUpdateClassActivity(
-                className: className,
+                className: classInfo.className,
                 periodNumber: upcoming.period.number,
-                roomNumber: roomNumber,
-                teacherName: teacherName,
-                startTime: upcoming.period.startTime,
-                endTime: upcoming.period.endTime
+                roomNumber: classInfo.room,
+                teacherName: classInfo.teacher,
+                schedule: schedule
             )
 
             // Mark this specific class period as having an active Live Activity
@@ -904,26 +895,18 @@ struct TodayView: View {
         #if !targetEnvironment(macCatalyst)
             guard let upcoming = upcomingClassInfo else { return }
 
-            let components = upcoming.classData.replacingOccurrences(of: "<br>", with: "\n")
-                .components(separatedBy: "\n")
-                .filter { !$0.isEmpty }
-
-            // Only proceed if we have enough data
-            guard components.count >= 2 else { return }
-
-            let teacherName = components.count > 0 ? components[0] : "Unknown Teacher"
-            let className = components.count > 1 ? components[1] : "Unknown Class"
-            let roomNumber = components.count > 2 ? components[2] : "Unknown Room"
+            let classInfo = parseClassInformation(from: upcoming.classData)
+            let schedule = buildLiveActivitySchedule(for: upcoming.dayIndex)
+            guard !schedule.isEmpty else { return }
             let activityId = "\(upcoming.period.number)_\(upcoming.classData)"
 
             // Use the new toggle functionality
             let isActive = ClassActivityManager.shared.toggleActivityForClass(
-                className: className,
+                className: classInfo.className,
                 periodNumber: upcoming.period.number,
-                roomNumber: roomNumber,
-                teacherName: teacherName,
-                startTime: upcoming.period.startTime,
-                endTime: upcoming.period.endTime
+                roomNumber: classInfo.room,
+                teacherName: classInfo.teacher,
+                schedule: schedule
             )
 
             // Update the active status
@@ -934,4 +917,70 @@ struct TodayView: View {
             generator.impactOccurred(intensity: isActive ? 0.7 : 1.0)
         #endif
     }
+
+    #if !targetEnvironment(macCatalyst)
+        private func buildLiveActivitySchedule(for dayIndex: Int) -> [ClassActivityAttributes.ScheduledClass] {
+            guard !classtableViewModel.timetable.isEmpty,
+                dayIndex >= 0,
+                dayIndex + 1 < classtableViewModel.timetable.first?.count ?? 0
+            else {
+                return []
+            }
+
+            var schedule: [ClassActivityAttributes.ScheduledClass] = []
+
+            for period in ClassPeriodsManager.shared.classPeriods {
+                guard period.number < classtableViewModel.timetable.count,
+                      dayIndex + 1 < classtableViewModel.timetable[period.number].count
+                else {
+                    continue
+                }
+
+                let rawClassData = classtableViewModel.timetable[period.number][dayIndex + 1]
+                let info = parseClassInformation(from: rawClassData)
+
+                schedule.append(
+                    ClassActivityAttributes.ScheduledClass(
+                        id: UUID(),
+                        className: info.className,
+                        teacherName: info.teacher,
+                        roomNumber: info.room,
+                        periodNumber: period.number,
+                        startTime: period.startTime,
+                        endTime: period.endTime
+                    )
+                )
+            }
+
+            return schedule.sorted(by: { $0.startTime < $1.startTime })
+        }
+
+        private func parseClassInformation(from classData: String) -> (teacher: String, className: String, room: String) {
+            let trimmed = classData.trimmingCharacters(in: .whitespacesAndNewlines)
+
+            guard !trimmed.isEmpty else {
+                return (teacher: "You", className: "Self-Study", room: "")
+            }
+
+            let components = classData
+                .replacingOccurrences(of: "<br>", with: "\n")
+                .components(separatedBy: "\n")
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+
+            let teacherName = components.indices.contains(0) ? components[0] : "Unknown Teacher"
+            let className: String
+            if components.indices.contains(1) {
+                className = components[1]
+            } else if let first = components.first {
+                className = first
+            } else {
+                className = "Self-Study"
+            }
+
+            let roomNumber = components.indices.contains(2) ? components[2] : ""
+
+            return (teacher: teacherName, className: className, room: roomNumber)
+        }
+    #endif
 }

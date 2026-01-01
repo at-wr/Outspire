@@ -11,8 +11,7 @@ extension ClassActivityManager {
         periodNumber: Int,
         roomNumber: String,
         teacherName: String,
-        startTime: Date,
-        endTime: Date,
+        schedule: [ClassActivityAttributes.ScheduledClass],
         transitionType: ClassTransitionType
     ) {
         let activityId = "\(periodNumber)_\(className)"
@@ -28,31 +27,30 @@ extension ClassActivityManager {
                 periodNumber: periodNumber,
                 roomNumber: roomNumber,
                 teacherName: teacherName,
-                startTime: startTime,
-                endTime: endTime
+                schedule: schedule
             )
 
         case .update:
             // Just update times for an existing activity
             if let existing = activeClassActivities[activityId] {
-                updateExistingActivity(
-                    activity: existing,
-                    activityId: activityId,
-                    startTime: startTime,
-                    endTime: endTime
+                startOrUpdateClassActivity(
+                    className: className,
+                    periodNumber: periodNumber,
+                    roomNumber: roomNumber,
+                    teacherName: teacherName,
+                    schedule: schedule
                 )
             } else {
                 // Create new if doesn't exist
                 // End other activities first
                 endAllActivitiesExcept(activityId: activityId)
 
-                startClassActivity(
+                startOrUpdateClassActivity(
                     className: className,
                     periodNumber: periodNumber,
                     roomNumber: roomNumber,
                     teacherName: teacherName,
-                    startTime: startTime,
-                    endTime: endTime
+                    schedule: schedule
                 )
             }
 

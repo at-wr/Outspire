@@ -4,344 +4,456 @@ import WidgetKit
 #if !targetEnvironment(macCatalyst)
 import ActivityKit
 
+private struct LiveActivityDerivedState {
+    let date: Date
+    let schedule: [ClassActivityAttributes.ScheduledClass]
+    let current: ClassActivityAttributes.ScheduledClass?
+    let next: ClassActivityAttributes.ScheduledClass?
+    let status: ClassActivityAttributes.ClassStatus
+    let countdownTarget: Date?
+    let timeRemaining: TimeInterval
+
+    init(context: ActivityViewContext<ClassActivityAttributes>, date: Date) {
+        self.date = date
+        let ordered = context.state.schedule.sorted(by: { $0.startTime < $1.startTime })
+        schedule = ordered
+
+        let now = date
+        current = ordered.first(where: { $0.startTime <= now && $0.endTime > now })
+        next = ordered.first(where: { $0.startTime > now })
+
+        if let current = current {
+            countdownTarget = current.endTime
+            timeRemaining = max(current.endTime.timeIntervalSince(now), 0)
+            status = timeRemaining <= 300 ? .ending : .ongoing
+        } else if let next = next {
+            countdownTarget = next.startTime
+            timeRemaining = max(next.startTime.timeIntervalSince(now), 0)
+            status = .upcoming
+        } else {
+            countdownTarget = nil
+            timeRemaining = 0
+            status = .completed
+        }
+    }
+
+    var displayClass: ClassActivityAttributes.ScheduledClass? {
+        current ?? next
+    }
+}
+
+private struct LiveActivityTimeline<Content: View>: View {
+    let context: ActivityViewContext<ClassActivityAttributes>
+    let refreshInterval: TimeInterval
+    let content: (LiveActivityDerivedState) -> Content
+
+    init(
+        context: ActivityViewContext<ClassActivityAttributes>,
+        refreshInterval: TimeInterval = 10,
+        @ViewBuilder content: @escaping (LiveActivityDerivedState) -> Content
+    ) {
+        self.context = context
+        self.refreshInterval = refreshInterval
+        self.content = content
+    }
+
+    var body: some View {
+        TimelineView(.periodic(from: Date(), by: refreshInterval)) { timeline in
+            let derived = LiveActivityDerivedState(context: context, date: timeline.date)
+            content(derived)
+        }
+    }
+}
+
 struct ClassActivityLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: ClassActivityAttributes.self) { context in
-            ClassActivityLockScreenView(context: context)
+            LiveActivityTimeline(context: context) { derived in
+                LockScreenActivityView(state: derived)
+                    .activityBackgroundTint(Color(.secondarySystemBackground))
+                    .activitySystemActionForegroundColor(.primary)
+            }
         } dynamicIsland: { context in
             DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
-                    ClassLeadingView(context: context)
+                    LiveActivityTimeline(context: context) { derived in
+                        LeadingActivityView(state: derived)
+                    }
                 }
                 DynamicIslandExpandedRegion(.trailing) {
-                    ClassTrailingView(context: context)
+                    LiveActivityTimeline(context: context) { derived in
+                        TrailingActivityView(state: derived)
+                    }
                 }
                 DynamicIslandExpandedRegion(.bottom) {
-                    ClassBottomView(context: context)
+                    LiveActivityTimeline(context: context) { derived in
+                        BottomActivityView(state: derived)
+                    }
                 }
             } compactLeading: {
-                ZStack {
-                    Circle()
-                        .fill(statusColor(for: context.state.currentStatus))
-                    Text("\(context.state.periodNumber)")
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.white)
+                LiveActivityTimeline(context: context) { derived in
+                    CompactLeadingActivityView(state: derived)
                 }
-                .padding(3)
             } compactTrailing: {
-                Text(timerInterval: Date.now...context.state.endTime, countsDown: true)
-                    .multilineTextAlignment(.center)
-                    .monospacedDigit()
-                    .font(.caption2)
-                    .fontWeight(.bold)
-                    .frame(width: 40)
+                LiveActivityTimeline(context: context) { derived in
+                    CompactTrailingActivityView(state: derived)
+                }
             } minimal: {
-                ZStack {
-                    Circle()
-                        .fill(statusColor(for: context.state.currentStatus))
-                    Text("\(context.state.periodNumber)")
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.white)
+                LiveActivityTimeline(context: context) { derived in
+                    MinimalActivityView(state: derived)
                 }
             }
             .widgetURL(URL(string: "outspire://today"))
-            .keylineTint(statusColor(for: context.state.currentStatus))
-        }
-    }
-
-    private func statusColor(for status: ClassActivityAttributes.ClassStatus) -> Color {
-        switch status {
-        case .upcoming:
-            return .blue
-        case .ongoing:
-            return .green
-        case .ending:
-            return .orange
+            .keylineTint(activityStatusColor(for: LiveActivityDerivedState(context: context, date: Date()).status))
         }
     }
 }
 
-struct ClassActivityLockScreenView: View {
-    let context: ActivityViewContext<ClassActivityAttributes>
+// MARK: - Views
+
+private struct LockScreenActivityView: View {
+    let state: LiveActivityDerivedState
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 5) {
-            // Header with status and period number
-            HStack {
-                statusBadge
+        HStack(spacing: 12) {
+            if let display = state.displayClass {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(headerTitle)
+                        .font(.caption2)
+                        .fontWeight(.medium)
+                        .foregroundStyle(activityClassColor(for: state))
 
-                Spacer()
+                    Text(display.className)
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                        .lineLimit(1)
 
-                Text("Period \(context.attributes.className)")
+                    HStack(spacing: 16) {
+                        if !display.roomNumber.isEmpty {
+                            Label(display.roomNumber, systemImage: "mappin.circle.fill")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        if !display.teacherName.isEmpty {
+                            Label(display.teacherName, systemImage: "person.fill")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            } else {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Schedule")
+                        .font(.caption2)
+                        .fontWeight(.medium)
+                        .foregroundStyle(.secondary)
+
+                    Text("No classes scheduled")
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                }
+            }
+
+            Spacer()
+
+            VStack(alignment: .trailing, spacing: 2) {
+                Text(state.displayClass?.periodNumber.map { "#\($0)" } ?? "--")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+
+                Text(activityCountdownLabel(for: state.status))
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+
+                if let target = state.countdownTarget, state.status != .completed {
+                    Text("00:00")
+                        .hidden()
+                        .overlay(alignment: .trailing) {
+                            Text(timerInterval: Date.now...target, countsDown: true)
+                                .font(.system(.headline, design: .rounded))
+                                .fontWeight(.bold)
+                                .monospacedDigit()
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.9)
+                                .frame(width: 80, alignment: .trailing)
+                                .foregroundStyle(activityClassColor(for: state))
+                        }
+                } else {
+                    Text("Done")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.secondary)
+                }
+
+                if state.status == .ongoing || state.status == .ending,
+                    let active = state.current
+                {
+                    ProgressView(
+                        timerInterval: active.startTime...active.endTime,
+                        countsDown: false,
+                        label: { EmptyView() },
+                        currentValueLabel: { EmptyView() }
+                    )
+                    .progressViewStyle(.linear)
+                    .frame(width: 70)
+                    .tint(activityClassColor(for: state))
+                }
+            }
+            .frame(width: 100)
+        }
+        .padding()
+    }
+
+    private var headerTitle: String {
+        switch state.status {
+        case .upcoming:
+            return "Next Class"
+        case .ongoing, .ending:
+            return "Current Class"
+        case .completed:
+            return "All Done"
+        }
+    }
+}
+
+private struct LeadingActivityView: View {
+    let state: LiveActivityDerivedState
+
+    var body: some View {
+        if let display = state.displayClass {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(display.periodNumber > 0 ? "# \(display.periodNumber)" : "--")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+
+                Text(display.className)
                     .font(.headline)
+                    .fontWeight(.semibold)
                     .lineLimit(1)
             }
-            .padding(.bottom, 2)
-
-            // Middle content - time info
-            HStack(alignment: .center) {
-                // Time countdown
-                if context.state.currentStatus == .upcoming {
-                    Text("Starts in:")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                } else {
-                    Text("Ends in:")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-
-                Text(timerInterval: Date.now...context.state.endTime, countsDown: true)
-                    .font(.system(.title2, design: .rounded).monospacedDigit())
-                    .fontWeight(.semibold)
-                    .foregroundColor(statusColor(for: context.state.currentStatus))
-
-                Spacer()
-
-                // Room display
-                HStack(spacing: 2) {
-                    Image(systemName: "mappin.circle.fill")
-                        .font(.caption)
-                    Text(context.attributes.roomNumber)
-                        .font(.subheadline)
-                }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(Color.gray.opacity(0.15))
-                .clipShape(Capsule())
-            }
-
-            // Bottom info - teacher and time range
-            HStack {
-                VStack(alignment: .leading) {
-                    // Teacher name
-                    HStack(spacing: 2) {
-                        Image(systemName: "person.fill")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                        Text(context.attributes.teacherName)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    // Time display
-                    HStack(spacing: 2) {
-                        Image(systemName: "clock.fill")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-
-                        // Fix: Use a computed property instead of configuring formatters directly in the view
-                        Text(formattedTimeRange)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                Spacer()
-
-                // School logo or icon
-                Image(systemName: "building.columns")
-                    .font(.title3)
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(.indigo)
-            }
-        }
-        .padding(16)
-        .background {
-            ContainerRelativeShape()
-                .fill(.ultraThinMaterial)
-        }
-    }
-
-    // Fix: Add computed property to format the time range
-    private var formattedTimeRange: String {
-        let startFormatter = DateFormatter()
-        startFormatter.dateFormat = "HH:mm"
-
-        let endFormatter = DateFormatter()
-        endFormatter.dateFormat = "HH:mm"
-
-        return "\(startFormatter.string(from: context.state.startTime)) - \(endFormatter.string(from: context.state.endTime))"
-    }
-
-    @ViewBuilder
-    private var statusBadge: some View {
-        switch context.state.currentStatus {
-        case .upcoming:
-            HStack(spacing: 4) {
-                Circle()
-                    .fill(Color.blue)
-                    .frame(width: 10, height: 10)
-                Text("Upcoming")
-                    .font(.caption2)
-                    .fontWeight(.medium)
-                    .foregroundStyle(Color.blue)
-            }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(Color.blue.opacity(0.1))
-            .clipShape(Capsule())
-
-        case .ongoing:
-            HStack(spacing: 4) {
-                Circle()
-                    .fill(Color.green)
-                    .frame(width: 10, height: 10)
-                Text("In Progress")
-                    .font(.caption2)
-                    .fontWeight(.medium)
-                    .foregroundStyle(Color.green)
-            }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(Color.green.opacity(0.1))
-            .clipShape(Capsule())
-
-        case .ending:
-            HStack(spacing: 4) {
-                Circle()
-                    .fill(Color.orange)
-                    .frame(width: 10, height: 10)
-                Text("Ending Soon")
-                    .font(.caption2)
-                    .fontWeight(.medium)
-                    .foregroundStyle(Color.orange)
-            }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(Color.orange.opacity(0.1))
-            .clipShape(Capsule())
-        }
-    }
-
-    // Add the missing statusColor function
-    private func statusColor(for status: ClassActivityAttributes.ClassStatus) -> Color {
-        switch status {
-        case .upcoming: return .blue
-        case .ongoing: return .green
-        case .ending: return .orange
-        }
-    }
-}
-
-// Dynamic Island expanded components
-struct ClassLeadingView: View {
-    let context: ActivityViewContext<ClassActivityAttributes>
-
-    var body: some View {
-        VStack(alignment: .leading) {
-            Text(context.attributes.className)
-                .font(.headline)
-                .lineLimit(1)
-
-            Text(context.attributes.teacherName)
+            .padding(.leading, 4)
+        } else {
+            Text("No Classes")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
-        .padding(.leading)
     }
 }
 
-struct ClassTrailingView: View {
-    let context: ActivityViewContext<ClassActivityAttributes>
+private struct TrailingActivityView: View {
+    let state: LiveActivityDerivedState
 
     var body: some View {
-        VStack(alignment: .trailing) {
-            // Status text
-            Text(context.state.currentStatus == .upcoming ? "Upcoming" : "In Progress")
+        VStack(alignment: .trailing, spacing: 2) {
+            Text(activityCountdownLabel(for: state.status))
                 .font(.caption2)
-                .fontWeight(.bold)
-                .foregroundStyle(statusColor(for: context.state.currentStatus))
-
-            // Room number
-            Text("Room \(context.attributes.roomNumber)")
-                .font(.caption)
                 .foregroundStyle(.secondary)
-        }
-        .padding(.trailing)
-    }
 
-    private func statusColor(for status: ClassActivityAttributes.ClassStatus) -> Color {
-        switch status {
-        case .upcoming: return .blue
-        case .ongoing: return .green
-        case .ending: return .orange
+            if let target = state.countdownTarget, state.status != .completed {
+                Text("00:00")
+                    .hidden()
+                    .overlay(alignment: .leading) {
+                        Text(timerInterval: Date.now...target, countsDown: true)
+                            .font(.system(.headline, design: .rounded))
+                            .fontWeight(.bold)
+                            .monospacedDigit()
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.9)
+                            .frame(width: 80, alignment: .trailing)
+                            .foregroundStyle(activityClassColor(for: state))
+                    }
+            } else {
+                Text("Done")
+                    .font(.headline)
+                    .fontWeight(.bold)
+                    .foregroundStyle(.secondary)
+            }
         }
+        .padding(.trailing, 4)
     }
 }
 
-struct ClassBottomView: View {
-    let context: ActivityViewContext<ClassActivityAttributes>
+private struct BottomActivityView: View {
+    let state: LiveActivityDerivedState
 
     var body: some View {
         HStack {
-            // Start time
-            VStack(alignment: .leading) {
-                Text("Starts")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+            if let display = state.displayClass {
+                if !display.roomNumber.isEmpty {
+                    Label(display.roomNumber, systemImage: "mappin")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
 
-                // Fixed: Move DateFormatter configuration outside view body
-                Text(formattedStartTime)
-                    .font(.caption)
-                    .fontWeight(.semibold)
+                if !display.teacherName.isEmpty {
+                    Label(display.teacherName, systemImage: "person.fill")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             Spacer()
 
-            // Countdown timer
-            VStack {
-                Text(context.state.currentStatus == .upcoming ? "Starting in:" : "Ending in:")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-
-                Text(timerInterval: Date.now...context.state.endTime, countsDown: true)
-                    .font(.system(.headline, design: .rounded).monospacedDigit())
-                    .fontWeight(.bold)
-                    .foregroundColor(statusColor(for: context.state.currentStatus))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-            }
-
-            Spacer()
-
-            // End time
-            VStack(alignment: .trailing) {
-                Text("Ends")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-
-                // Fixed: Move DateFormatter configuration outside view body
-                Text(formattedEndTime)
-                    .font(.caption)
-                    .fontWeight(.semibold)
+            if state.status == .ongoing || state.status == .ending,
+                let active = state.current
+            {
+                ProgressView(
+                    timerInterval: active.startTime...active.endTime,
+                    countsDown: false,
+                    label: { EmptyView() },
+                    currentValueLabel: { EmptyView() }
+                )
+                .progressViewStyle(.linear)
+                .frame(width: 60)
+                .tint(activityClassColor(for: state))
             }
         }
-        .padding([.horizontal, .bottom])
-    }
-
-    // Add the missing statusColor function
-    private func statusColor(for status: ClassActivityAttributes.ClassStatus) -> Color {
-        switch status {
-        case .upcoming: return .blue
-        case .ongoing: return .green
-        case .ending: return .orange
-        }
-    }
-
-    // Add computed properties for formatted times
-    private var formattedStartTime: String {
-        let startFormatter = DateFormatter()
-        startFormatter.dateFormat = "HH:mm"
-        return startFormatter.string(from: context.state.startTime)
-    }
-
-    private var formattedEndTime: String {
-        let endFormatter = DateFormatter()
-        endFormatter.dateFormat = "HH:mm"
-        return endFormatter.string(from: context.state.endTime)
     }
 }
+
+private struct CompactLeadingActivityView: View {
+    let state: LiveActivityDerivedState
+
+    var body: some View {
+        ZStack {
+            if state.status == .ongoing || state.status == .ending,
+                let active = state.current
+            {
+                ProgressView(
+                    timerInterval: active.startTime...active.endTime,
+                    countsDown: false,
+                    label: { EmptyView() },
+                    currentValueLabel: {
+                        Image(systemName: "star.fill")
+                            .foregroundStyle(activityClassColor(for: state))
+                    }
+                )
+                .progressViewStyle(.circular)
+                .tint(activityClassColor(for: state))
+            } else if state.status == .upcoming {
+                Image(systemName: "star.fill")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(activityClassColor(for: state))
+            } else {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(.green)
+            }
+        }
+    }
+}
+
+private struct CompactTrailingActivityView: View {
+    let state: LiveActivityDerivedState
+
+    var body: some View {
+        if let target = state.countdownTarget, state.status != .completed {
+            Text("00:00")
+                .hidden()
+                .overlay(alignment: .leading) {
+                    Text(timerInterval: Date.now...target, countsDown: true)
+                        .font(.system(.headline, design: .rounded))
+                        .fontWeight(.bold)
+                        .monospacedDigit()
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.9)
+                        .frame(width: 60, alignment: .trailing)
+                        .foregroundStyle(activityClassColor(for: state))
+                }
+        } else {
+            Image(systemName: "calendar.badge.checkmark")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(.secondary)
+        }
+    }
+}
+
+private struct MinimalActivityView: View {
+    let state: LiveActivityDerivedState
+
+    var body: some View {
+        if state.status == .ongoing || state.status == .ending,
+            let active = state.current
+        {
+            ProgressView(
+                timerInterval: active.startTime...active.endTime,
+                countsDown: false,
+                label: { EmptyView() },
+                currentValueLabel: {
+                    Image(systemName: "star.fill")
+                        .foregroundStyle(activityClassColor(for: state))
+                }
+            )
+            .progressViewStyle(.circular)
+            .tint(activityStatusColor(for: state.status))
+        } else if state.status == .upcoming {
+            Image(systemName: "clock.badge.checkmark")
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(activityClassColor(for: state))
+        } else {
+            Image(systemName: "checkmark")
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(.green)
+        }
+    }
+}
+
+// MARK: - Helpers
+
+private func activityCountdownLabel(for status: ClassActivityAttributes.ClassStatus) -> String {
+    switch status {
+    case .upcoming:
+        return "Starts in"
+    case .ongoing, .ending:
+        return "Ends in"
+    case .completed:
+        return "Completed"
+    }
+}
+
+private func activityStatusColor(for status: ClassActivityAttributes.ClassStatus) -> Color {
+    switch status {
+    case .upcoming:
+        return .blue
+    case .ongoing:
+        return .green
+    case .ending:
+        return .orange
+    case .completed:
+        return .gray
+    }
+}
+
+private func activityClassColor(for state: LiveActivityDerivedState) -> Color {
+    guard let display = state.displayClass else { return .blue }
+    let lowered = display.className.lowercased()
+
+    if lowered.contains("self-study") {
+        return .purple
+    }
+
+    let colorMap: [Color: [String]] = [
+        .blue: ["math", "mathematics", "maths"],
+        .green: ["english", "language", "literature", "general paper", "esl"],
+        .orange: ["physics", "science"],
+        .purple: ["chemistry", "chem"],
+        .teal: ["biology", "bio"],
+        .mint: ["further math", "maths further"],
+        .yellow: ["体育", "pe", "sports", "p.e"],
+        .pink: ["economics", "econ"],
+        .cyan: ["arts", "art", "tok"],
+        .indigo: ["chinese", "mandarin", "语文"],
+        .gray: ["history", "历史", "geography", "geo", "政治"]
+    ]
+
+    for (color, keywords) in colorMap {
+        if keywords.contains(where: { lowered.contains($0.lowercased()) }) {
+            return color
+        }
+    }
+
+    return .blue
+}
+
 #endif

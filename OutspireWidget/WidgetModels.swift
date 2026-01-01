@@ -320,8 +320,12 @@ struct WidgetHelpers {
     }
 
     static func isCurrentDateWeekend() -> Bool {
+        isWeekend(date: Date())
+    }
+
+    static func isWeekend(date: Date) -> Bool {
         let calendar = Calendar.current
-        let weekday = calendar.component(.weekday, from: Date())
+        let weekday = calendar.component(.weekday, from: date)
         return weekday == 1 || weekday == 7
     }
 
@@ -371,41 +375,60 @@ struct WidgetHelpers {
 
 extension Provider {
     func getTimelineEntry(for configuration: ClassWidgetConfigurationIntent) async -> WidgetEntry {
+        await getTimelineEntry(for: configuration, at: Date())
+    }
+
+    func getTimelineEntry(for configuration: ClassWidgetConfigurationIntent, at date: Date) async -> WidgetEntry {
         // Check if user is signed in
         if !WidgetDataService.shared.isUserSignedIn() {
-            return WidgetEntry.notSignedIn(configuration: configuration)
+            return WidgetEntry(
+                date: date,
+                state: .notSignedIn,
+                classData: nil,
+                upcomingClasses: [],
+                configuration: configuration
+            )
         }
 
         // Check if it's weekend
-        if WidgetHelpers.isCurrentDateWeekend() {
-            return WidgetEntry.weekend(configuration: configuration)
+        if WidgetHelpers.isWeekend(date: date) {
+            return WidgetEntry(
+                date: date,
+                state: .weekend,
+                classData: nil,
+                upcomingClasses: [],
+                configuration: configuration
+            )
         }
 
         // Check if holiday mode is enabled
         if WidgetDataService.shared.isHolidayModeEnabled() {
             let endDate = WidgetDataService.shared.getHolidayEndDate()
-            return WidgetEntry.holiday(endDate: endDate, configuration: configuration)
+            return WidgetEntry(
+                date: date,
+                state: .holiday(endDate: endDate),
+                classData: nil,
+                upcomingClasses: [],
+                configuration: configuration
+            )
         }
 
         // Get current or next class with improved selection logic
-        let (currentClass, upcomingClasses) = WidgetDataService.shared.getCurrentOrNextClass()
+        let (currentClass, upcomingClasses) = WidgetDataService.shared.getCurrentOrNextClass(at: date)
 
         if let currentClass = currentClass {
-            // Sort upcoming classes by relevance for better display
-            let prioritizedUpcoming = WidgetDataService.sortClassesByRelevance(upcomingClasses)
-
+            let prioritizedUpcoming = WidgetDataService.sortClassesByRelevance(upcomingClasses, referenceDate: date)
             return WidgetEntry(
-                date: Date(),
+                date: date,
                 state: .hasClasses,
                 classData: currentClass,
                 upcomingClasses: prioritizedUpcoming,
                 configuration: configuration
             )
         } else if !upcomingClasses.isEmpty {
-            // Sort upcoming classes and use the first as the main class
-            let prioritizedUpcoming = WidgetDataService.sortClassesByRelevance(upcomingClasses)
+            let prioritizedUpcoming = WidgetDataService.sortClassesByRelevance(upcomingClasses, referenceDate: date)
             return WidgetEntry(
-                date: Date(),
+                date: date,
                 state: .hasClasses,
                 classData: prioritizedUpcoming.first,
                 upcomingClasses: Array(prioritizedUpcoming.dropFirst()),
@@ -413,7 +436,7 @@ extension Provider {
             )
         } else {
             return WidgetEntry(
-                date: Date(),
+                date: date,
                 state: .noClasses,
                 classData: nil,
                 upcomingClasses: [],
@@ -423,71 +446,87 @@ extension Provider {
     }
 
     func timeline(for configuration: ClassWidgetConfigurationIntent, in context: Context) async -> Timeline<WidgetEntry> {
-        // Get the current entry
-        let entry = await getTimelineEntry(for: configuration)
+        let now = Date()
+        let currentEntry = await getTimelineEntry(for: configuration, at: now)
 
-        // Calculate next update time based on the widget state
-        var nextUpdateDate: Date = Date().addingTimeInterval(15 * 60) // Default: 15 minutes
+        var entries: [WidgetEntry] = [currentEntry]
 
-        switch entry.state {
-        case .hasClasses:
-            if let classData = entry.classData {
-                let now = Date()
-
-                // For countdown, we'll rely on Text's dynamic date capabilities
-                // but still need to update at class transitions
-                if classData.isCurrentClass {
-                    // If current class, update when it ends
-                    nextUpdateDate = classData.endTime
-
-                    // If class ends soon (within 5 minutes), update more frequently
-                    let timeToEnd = classData.endTime.timeIntervalSince(now)
-                    if timeToEnd <= 300 && timeToEnd > 60 {
-                        // Update every minute for the last 5 minutes
-                        nextUpdateDate = now.addingTimeInterval(60)
-                    } else if timeToEnd <= 60 && timeToEnd > 0 {
-                        // Update every 10 seconds for the last minute
-                        nextUpdateDate = now.addingTimeInterval(10)
-                    } else if timeToEnd <= 0 {
-                        // Class just ended, update immediately to show next class
-                        return Timeline(entries: [entry], policy: .after(now.addingTimeInterval(1)))
-                    }
-                } else {
-                    // If upcoming class, update when it starts
-                    nextUpdateDate = classData.startTime
-
-                    // If class starts soon (within 5 minutes), update more frequently
-                    let timeToStart = classData.startTime.timeIntervalSince(now)
-                    if timeToStart <= 300 && timeToStart > 60 {
-                        // Update every minute for the last 5 minutes
-                        nextUpdateDate = now.addingTimeInterval(60)
-                    } else if timeToStart <= 60 && timeToStart > 0 {
-                        // Update every 10 seconds for the last minute
-                        nextUpdateDate = now.addingTimeInterval(10)
-                    } else if timeToStart <= 0 {
-                        // Class just started, update immediately to show as current
-                        return Timeline(entries: [entry], policy: .after(now.addingTimeInterval(1)))
-                    }
-                }
-            }
-
-        case .loading:
-            // If loading, try again in 30 seconds
-            nextUpdateDate = Date().addingTimeInterval(30)
-
-        case .notSignedIn, .weekend, .holiday, .noClasses:
-            // For static states, update less frequently
-            nextUpdateDate = Calendar.current.date(byAdding: .hour, value: 1, to: Date())!
+        let futureDates = futureUpdateDates(from: currentEntry, relativeTo: now)
+        for nextDate in futureDates.prefix(6) {
+            let entry = await getTimelineEntry(for: configuration, at: nextDate)
+            entries.append(entry)
         }
 
-        return Timeline(entries: [entry], policy: .after(nextUpdateDate))
+        let sortedEntries = entries.sorted(by: { $0.date < $1.date })
+        let nextPolicyDate = nextPolicyUpdateDate(from: currentEntry, relativeTo: now, fallback: futureDates.last)
+
+        return Timeline(entries: sortedEntries, policy: .after(nextPolicyDate))
+    }
+}
+
+private func futureUpdateDates(from entry: WidgetEntry, relativeTo now: Date) -> [Date] {
+    var dates: Set<Date> = []
+
+    if case .hasClasses = entry.state {
+        if let classData = entry.classData {
+            if classData.startTime > now { dates.insert(classData.startTime) }
+            if classData.endTime > now { dates.insert(classData.endTime) }
+        }
+
+        for upcoming in entry.upcomingClasses {
+            if upcoming.startTime > now { dates.insert(upcoming.startTime) }
+            if upcoming.endTime > now { dates.insert(upcoming.endTime) }
+        }
+    }
+
+    return dates.sorted()
+}
+
+private func nextPolicyUpdateDate(from entry: WidgetEntry, relativeTo now: Date, fallback: Date?) -> Date {
+    switch entry.state {
+    case .hasClasses:
+        if let classData = entry.classData {
+            if classData.isCurrentClass {
+                let timeToEnd = classData.endTime.timeIntervalSince(now)
+                if timeToEnd <= 0 {
+                    return now.addingTimeInterval(1)
+                } else if timeToEnd <= 60 {
+                    return now.addingTimeInterval(10)
+                } else if timeToEnd <= 300 {
+                    return now.addingTimeInterval(60)
+                } else {
+                    return classData.endTime
+                }
+            } else {
+                let timeToStart = classData.startTime.timeIntervalSince(now)
+                if timeToStart <= 0 {
+                    return now.addingTimeInterval(1)
+                } else if timeToStart <= 60 {
+                    return now.addingTimeInterval(10)
+                } else if timeToStart <= 300 {
+                    return now.addingTimeInterval(60)
+                } else {
+                    return classData.startTime
+                }
+            }
+        }
+        return fallback ?? now.addingTimeInterval(15 * 60)
+
+    case .loading:
+        return now.addingTimeInterval(30)
+
+    case .notSignedIn, .weekend, .holiday, .noClasses:
+        if let fallback = fallback {
+            return fallback
+        }
+        return Calendar.current.date(byAdding: .hour, value: 1, to: now) ?? now.addingTimeInterval(3600)
     }
 }
 
 // Expose the helper method for sorting classes by relevance
 extension WidgetDataService {
-    static func sortClassesByRelevance(_ classes: [ClassWidgetData]) -> [ClassWidgetData] {
-        let now = Date()
+    static func sortClassesByRelevance(_ classes: [ClassWidgetData], referenceDate: Date = Date()) -> [ClassWidgetData] {
+        let now = referenceDate
 
         // Sort classes by period number to ensure correct ordering
         let sortedClasses = classes.sorted(by: { $0.periodNumber < $1.periodNumber })

@@ -1,5 +1,4 @@
 import Foundation
-import SwiftUI
 
 #if !targetEnvironment(macCatalyst)
 import ActivityKit
@@ -10,51 +9,75 @@ class ClassActivityManager {
     private init() {}
 
     internal var activeClassActivities: [String: Activity<ClassActivityAttributes>] = [:]
+    private var scheduledEndTasks: [String: Task<Void, Never>] = [:]
 
     func startOrUpdateClassActivity(
         className: String,
         periodNumber: Int,
         roomNumber: String,
         teacherName: String,
-        startTime: Date,
-        endTime: Date
+        schedule: [ClassActivityAttributes.ScheduledClass]
     ) {
-        let now = Date()
-        if now < startTime && Calendar.current.component(.hour, from: now) < 6 {
+        guard ActivityAuthorizationInfo().areActivitiesEnabled else {
+            print("Live Activities are not enabled")
             return
         }
-        if #available(iOS 16.2, *) {
-            for activity in Activity<ClassActivityAttributes>.activities {
-                if activity.attributes.className == className && activity.content.state.periodNumber == periodNumber {
-                    activeClassActivities["\(periodNumber)_\(className)"] = activity
-                    return
-                }
-            }
+
+        guard !schedule.isEmpty else {
+            print("Skipping Live Activity start because schedule is empty")
+            return
         }
+
         let activityId = "\(periodNumber)_\(className)"
 
         if activeClassActivities[activityId] == nil {
             endAllActivitiesExcept(activityId: activityId)
         }
 
+        let finalEndDate = schedule.map(\.endTime).max() ?? Date()
+
         if let existingActivity = activeClassActivities[activityId] {
-            updateExistingActivity(
+            update(
                 activity: existingActivity,
                 activityId: activityId,
-                startTime: startTime,
-                endTime: endTime
+                schedule: schedule,
+                finalEndDate: finalEndDate
             )
-            return
+        } else {
+            start(
+                activityId: activityId,
+                className: className,
+                roomNumber: roomNumber,
+                teacherName: teacherName,
+                schedule: schedule,
+                finalEndDate: finalEndDate
+            )
         }
+    }
 
-        startClassActivity(
-            className: className,
-            periodNumber: periodNumber,
-            roomNumber: roomNumber,
-            teacherName: teacherName,
-            startTime: startTime,
-            endTime: endTime
-        )
+    func toggleActivityForClass(
+        className: String,
+        periodNumber: Int,
+        roomNumber: String,
+        teacherName: String,
+        schedule: [ClassActivityAttributes.ScheduledClass]
+    ) -> Bool {
+        let activityId = "\(periodNumber)_\(className)"
+
+        if activeClassActivities[activityId] != nil {
+            endActivity(for: activityId, dismissalPolicy: .immediate)
+            print("Manually ended Live Activity for id: \(activityId)")
+            return false
+        } else {
+            startOrUpdateClassActivity(
+                className: className,
+                periodNumber: periodNumber,
+                roomNumber: roomNumber,
+                teacherName: teacherName,
+                schedule: schedule
+            )
+            return true
+        }
     }
 
     internal func endAllActivitiesExcept(activityId: String) {
@@ -65,245 +88,82 @@ class ClassActivityManager {
                 } else {
                     await activity.end(dismissalPolicy: .immediate)
                 }
-                print("Ended Live Activity with ID: \(activity.id)")
-                activeClassActivities.removeValue(forKey: id)
             }
+            activeClassActivities.removeValue(forKey: id)
+            scheduledEndTasks[id]?.cancel()
+            scheduledEndTasks.removeValue(forKey: id)
+            print("Ended Live Activity with ID: \(activity.id)")
         }
     }
 
-    internal func updateExistingActivity(
-        activity: Activity<ClassActivityAttributes>,
-        activityId: String,
-        startTime: Date,
-        endTime: Date
-    ) {
-        let now = Date()
-        var newStatus: ClassActivityAttributes.ClassStatus
-        let timeRemaining: TimeInterval
-        let progress: Double
-
-        if now < startTime {
-            newStatus = .upcoming
-            timeRemaining = startTime.timeIntervalSince(now)
-            progress = 0.0
-        } else if now >= startTime && now < endTime {
-            if endTime.timeIntervalSince(now) <= 300 {
-                newStatus = .ending
-            } else {
-                newStatus = .ongoing
-            }
-            timeRemaining = max(0, endTime.timeIntervalSince(now))
-            let totalDuration = endTime.timeIntervalSince(startTime)
-            let elapsed = now.timeIntervalSince(startTime)
-            progress = max(0, min(1, elapsed / totalDuration))
-        } else {
-            endActivity(for: activityId)
-            return
-        }
-
-        Task {
-            if #available(iOS 16.2, *) {
-                let staleDate = endTime.addingTimeInterval(60)
-
-                await activity.update(
-                    .init(state: ClassActivityAttributes.ContentState(
-                        startTime: startTime,
-                        endTime: endTime,
-                        currentStatus: newStatus,
-                        periodNumber: activity.content.state.periodNumber,
-                        progress: progress,
-                        timeRemaining: timeRemaining
-                    ), staleDate: staleDate)
-                )
-            } else {
-                await activity.update(
-                    using: ClassActivityAttributes.ContentState(
-                        startTime: startTime,
-                        endTime: endTime,
-                        currentStatus: newStatus,
-                        periodNumber: activity.content.state.periodNumber,
-                        progress: progress,
-                        timeRemaining: timeRemaining
-                    )
-                )
-            }
-
-            scheduleUpdatesForActivity(activity: activity, activityId: activityId, startTime: startTime, endTime: endTime)
-        }
-
-        print("Updated existing Live Activity with ID: \(activity.id)")
-    }
-
-    private func scheduleUpdatesForActivity(activity: Activity<ClassActivityAttributes>, activityId: String, startTime: Date, endTime: Date) {
-        cancelExistingTimers(for: activityId)
-
-        schedulePeriodicUpdates(activityId: activityId, startTime: startTime, endTime: endTime)
-
-        let now = Date()
-        if now < startTime {
-            scheduleStatusUpdate(activity: activity, activityId: activityId, startTime: startTime, endTime: endTime)
-        } else if now < endTime {
-            scheduleEndingSoonUpdate(activity: activity, activityId: activityId, endTime: endTime)
-        }
-    }
-
-    private var activityTimers: [String: [Timer]] = [:]
-
-    private func cancelExistingTimers(for activityId: String) {
-        activityTimers[activityId]?.forEach { $0.invalidate() }
-        activityTimers[activityId] = []
-    }
-
-    private func schedulePeriodicUpdates(activityId: String, startTime: Date, endTime: Date) {
-        // Update more frequently for smoother progress
-        let timer = Timer.scheduledTimer(withTimeInterval: 15, repeats: true) { [weak self] timer in
-            guard let self = self, let activity = self.activeClassActivities[activityId] else {
-                timer.invalidate()
-                return
-            }
-
-            let now = Date()
-
-            // Adjust tolerance based on new interval
-            if (activity.content.state.currentStatus == .upcoming && startTime.timeIntervalSince(now) < 180) ||
-                (activity.content.state.currentStatus != .upcoming && endTime.timeIntervalSince(now) < 180) {
-                timer.tolerance = 2 // Tighter tolerance when close to start/end
-            } else {
-                timer.tolerance = 5  // Standard tolerance
-            }
-
-            self.updateActivityState(activityId: activityId, startTime: startTime, endTime: endTime)
-        }
-
-        if activityTimers[activityId] == nil {
-            activityTimers[activityId] = []
-        }
-        activityTimers[activityId]?.append(timer)
-
-        RunLoop.current.add(timer, forMode: .common)
-    }
-
-    func transitionClassStatus(activityId: String, to status: ClassActivityAttributes.ClassStatus) {
+    func endActivity(for activityId: String, dismissalPolicy: ActivityUIDismissalPolicy = .immediate) {
         guard let activity = activeClassActivities[activityId] else { return }
 
-        let now = Date()
-        let startTime = activity.content.state.startTime
-        let endTime = activity.content.state.endTime
-
-        var timeRemaining: TimeInterval
-        var progress: Double
-
-        switch status {
-        case .upcoming:
-            timeRemaining = startTime.timeIntervalSince(now)
-            progress = 0.0
-        case .ongoing:
-            timeRemaining = endTime.timeIntervalSince(now)
-            let totalDuration = endTime.timeIntervalSince(startTime)
-            let elapsed = now.timeIntervalSince(startTime)
-            progress = max(0, min(1, elapsed / totalDuration))
-        case .ending:
-            timeRemaining = endTime.timeIntervalSince(now)
-            let totalDuration = endTime.timeIntervalSince(startTime)
-            let elapsed = now.timeIntervalSince(startTime)
-            progress = max(0, min(1, elapsed / totalDuration))
-        }
+        scheduledEndTasks[activityId]?.cancel()
+        scheduledEndTasks.removeValue(forKey: activityId)
 
         Task {
             if #available(iOS 16.2, *) {
-                await activity.update(
-                    .init(state: ClassActivityAttributes.ContentState(
-                        startTime: startTime,
-                        endTime: endTime,
-                        currentStatus: status,
-                        periodNumber: activity.content.state.periodNumber,
-                        progress: progress,
-                        timeRemaining: timeRemaining
-                    ), staleDate: nil)
-                )
+                await activity.end(nil, dismissalPolicy: dismissalPolicy)
             } else {
-                await activity.update(
-                    using: ClassActivityAttributes.ContentState(
-                        startTime: startTime,
-                        endTime: endTime,
-                        currentStatus: status,
-                        periodNumber: activity.content.state.periodNumber,
-                        progress: progress,
-                        timeRemaining: timeRemaining
-                    )
-                )
+                await activity.end(dismissalPolicy: dismissalPolicy)
             }
+            activeClassActivities.removeValue(forKey: activityId)
+            print("Ended Live Activity with ID: \(activity.id) using policy: \(dismissalPolicy)")
         }
+    }
 
-        print("Transitioned Live Activity to \(status) state")
+    func endAllActivities() {
+        for (id, activity) in activeClassActivities {
+            Task {
+                if #available(iOS 16.2, *) {
+                    await activity.end(nil, dismissalPolicy: .immediate)
+                } else {
+                    await activity.end(dismissalPolicy: .immediate)
+                }
+                print("Ended Live Activity with ID: \(activity.id)")
+            }
+            scheduledEndTasks[id]?.cancel()
+        }
+        scheduledEndTasks.removeAll()
+        activeClassActivities.removeAll()
     }
 
     func cleanup() {
-        for (activityId, timers) in activityTimers {
-            timers.forEach { $0.invalidate() }
-            activityTimers[activityId] = []
+        for task in scheduledEndTasks.values {
+            task.cancel()
         }
+        scheduledEndTasks.removeAll()
     }
 
-    func startClassActivity(
+    // MARK: - Private helpers
+
+    private func start(
+        activityId: String,
         className: String,
-        periodNumber: Int,
         roomNumber: String,
         teacherName: String,
-        startTime: Date,
-        endTime: Date
+        schedule: [ClassActivityAttributes.ScheduledClass],
+        finalEndDate: Date
     ) {
-        guard ActivityAuthorizationInfo().areActivitiesEnabled else {
-            print("Live Activities are not enabled")
-            return
-        }
-
-        let activityId = "\(periodNumber)_\(className)"
-
-        guard activeClassActivities[activityId] == nil else {
-            print("Activity already exists for this class")
-            return
-        }
-
-        let initialStatus: ClassActivityAttributes.ClassStatus = Date() < startTime ? .upcoming : .ongoing
-
-        let now = Date()
-        let timeRemaining: TimeInterval
-        let progress: Double
-
-        if initialStatus == .upcoming {
-            timeRemaining = startTime.timeIntervalSince(now)
-            progress = 0.0
-        } else {
-            timeRemaining = endTime.timeIntervalSince(now)
-            let totalDuration = endTime.timeIntervalSince(startTime)
-            let elapsed = now.timeIntervalSince(startTime)
-            progress = max(0, min(1, elapsed / totalDuration))
-        }
-
         let attributes = ClassActivityAttributes(
             className: className,
             roomNumber: roomNumber,
             teacherName: teacherName
         )
 
-        let contentState = ClassActivityAttributes.ContentState(
-            startTime: startTime,
-            endTime: endTime,
-            currentStatus: initialStatus,
-            periodNumber: periodNumber,
-            progress: progress,
-            timeRemaining: timeRemaining
+        let contentState = makeContentState(
+            from: schedule,
+            finalEndDate: finalEndDate
         )
 
         do {
             let activity: Activity<ClassActivityAttributes>
 
             if #available(iOS 16.2, *) {
-                let staleDate = endTime.addingTimeInterval(60)
                 activity = try Activity.request(
                     attributes: attributes,
-                    content: .init(state: contentState, staleDate: staleDate),
+                    content: .init(state: contentState, staleDate: finalEndDate),
                     pushType: nil
                 )
             } else {
@@ -315,178 +175,78 @@ class ClassActivityManager {
             }
 
             activeClassActivities[activityId] = activity
-
+            scheduleAutomaticEnd(for: activityId, finalEndDate: finalEndDate)
             print("Started Live Activity with ID: \(activity.id)")
-
-            schedulePeriodicUpdates(activityId: activityId, startTime: startTime, endTime: endTime)
-
-            if initialStatus == .upcoming {
-                scheduleStatusUpdate(activity: activity, activityId: activityId, startTime: startTime, endTime: endTime)
-            } else {
-                scheduleEndingSoonUpdate(activity: activity, activityId: activityId, endTime: endTime)
-            }
         } catch {
             print("Error starting Live Activity: \(error.localizedDescription)")
         }
     }
 
-    private func updateActivityState(activityId: String, startTime: Date, endTime: Date) {
+    private func update(
+        activity: Activity<ClassActivityAttributes>,
+        activityId: String,
+        schedule: [ClassActivityAttributes.ScheduledClass],
+        finalEndDate: Date
+    ) {
+        let contentState = makeContentState(
+            from: schedule,
+            finalEndDate: finalEndDate
+        )
+
+        Task {
+            if #available(iOS 16.2, *) {
+                await activity.update(
+                    .init(state: contentState, staleDate: finalEndDate)
+                )
+            } else {
+                await activity.update(using: contentState)
+            }
+        }
+
+        scheduleAutomaticEnd(for: activityId, finalEndDate: finalEndDate)
+        print("Updated Live Activity with ID: \(activity.id)")
+    }
+
+    private func makeContentState(
+        from schedule: [ClassActivityAttributes.ScheduledClass],
+        finalEndDate: Date
+    ) -> ClassActivityAttributes.ContentState {
+        ClassActivityAttributes.ContentState(
+            schedule: schedule.sorted(by: { $0.startTime < $1.startTime }),
+            generatedAt: Date(),
+            finalEndDate: finalEndDate
+        )
+    }
+
+    private func scheduleAutomaticEnd(for activityId: String, finalEndDate: Date) {
+        scheduledEndTasks[activityId]?.cancel()
+
+        let task = Task.detached { [weak self] in
+            let remaining = finalEndDate.timeIntervalSinceNow
+            if remaining > 0 {
+                try? await Task.sleep(nanoseconds: UInt64(remaining * 1_000_000_000))
+            }
+
+            await self?.finishActivityIfNeeded(activityId: activityId)
+        }
+
+        scheduledEndTasks[activityId] = task
+    }
+
+    @MainActor
+    private func finishActivityIfNeeded(activityId: String) async {
         guard let activity = activeClassActivities[activityId] else { return }
 
-        let now = Date()
-        var newStatus = activity.content.state.currentStatus
-        let timeRemaining: TimeInterval
-        let progress: Double
-
-        if now < startTime {
-            newStatus = .upcoming
-            timeRemaining = startTime.timeIntervalSince(now)
-            progress = 0.0
-        } else if now >= startTime && now < endTime {
-            if endTime.timeIntervalSince(now) <= 300 {
-                newStatus = .ending
-            } else {
-                newStatus = .ongoing
-            }
-            timeRemaining = max(0, endTime.timeIntervalSince(now))
-            let totalDuration = endTime.timeIntervalSince(startTime)
-            let elapsed = now.timeIntervalSince(startTime)
-            progress = max(0, min(1, elapsed / totalDuration))
+        if #available(iOS 16.2, *) {
+            await activity.end(nil, dismissalPolicy: .default)
         } else {
-            timeRemaining = 0
-            progress = 1.0
-            // End the activity directly when the time is up
-            // Use .default dismissal policy for natural ending
-            self.endActivity(for: activityId, dismissalPolicy: .default)
-            return
+            await activity.end(dismissalPolicy: .default)
         }
 
-        // Update more frequently if progress changed noticeably or status changed
-        let shouldUpdate = newStatus != activity.content.state.currentStatus ||
-            abs(progress - activity.content.state.progress) > 0.005 // Lower threshold for smoother updates
-
-        if shouldUpdate {
-            Task {
-                if #available(iOS 16.2, *) {
-                    let staleDate = endTime.addingTimeInterval(60)
-
-                    await activity.update(
-                        .init(state: ClassActivityAttributes.ContentState(
-                            startTime: startTime,
-                            endTime: endTime,
-                            currentStatus: newStatus,
-                            periodNumber: activity.content.state.periodNumber,
-                            progress: progress,
-                            timeRemaining: timeRemaining
-                        ), staleDate: staleDate)
-                    )
-                } else {
-                    await activity.update(
-                        using: ClassActivityAttributes.ContentState(
-                            startTime: startTime,
-                            endTime: endTime,
-                            currentStatus: newStatus,
-                            periodNumber: activity.content.state.periodNumber,
-                            progress: progress,
-                            timeRemaining: timeRemaining
-                        )
-                    )
-                }
-            }
-        }
-    }
-
-    func updateClassStatus(activityId: String, startTime: Date, endTime: Date) {
-        updateActivityState(activityId: activityId, startTime: startTime, endTime: endTime)
-    }
-
-    private func scheduleStatusUpdate(activity: Activity<ClassActivityAttributes>, activityId: String, startTime: Date, endTime: Date) {
-        let now = Date()
-
-        guard startTime > now else { return }
-
-        let delay = startTime.timeIntervalSince(now)
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
-            guard let self = self, self.activeClassActivities[activityId] != nil else { return }
-
-            self.updateClassStatus(activityId: activityId, startTime: startTime, endTime: endTime)
-        }
-    }
-
-    private func scheduleEndingSoonUpdate(activity: Activity<ClassActivityAttributes>, activityId: String, endTime: Date) {
-        let now = Date()
-        let endingSoonTime = endTime.addingTimeInterval(-300) // 5 minutes before end
-
-        guard endingSoonTime > now else { return }
-
-        let delay = endingSoonTime.timeIntervalSince(now)
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
-            guard let self = self, self.activeClassActivities[activityId] != nil else { return }
-
-            self.updateClassStatus(activityId: activityId, startTime: activity.content.state.startTime, endTime: endTime)
-        }
-    }
-
-    func endActivity(for activityId: String, dismissalPolicy: ActivityUIDismissalPolicy = .immediate) {
-        for (id, activity) in activeClassActivities where activity.id == activityId {
-            Task {
-                let finalContent = activity.content // Use last known content or a specific 'ended' state if desired
-                if #available(iOS 16.2, *) {
-                    await activity.end(ActivityContent(state: finalContent.state, staleDate: Date()), dismissalPolicy: dismissalPolicy)
-                } else {
-                    // Prior to 16.2, content update on end is not directly supported, rely on dismissal policy
-                    await activity.end(dismissalPolicy: dismissalPolicy)
-                }
-                activeClassActivities.removeValue(forKey: id)
-                cancelExistingTimers(for: id) // Ensure timers are cancelled on end
-                print("Ended Live Activity with ID: \(activityId) using policy: \(dismissalPolicy)")
-            }
-            break
-        }
-    }
-
-    func endAllActivities() {
-        for (_, activity) in activeClassActivities {
-            Task {
-                if #available(iOS 16.2, *) {
-                    await activity.end(nil, dismissalPolicy: .immediate)
-                } else {
-                    await activity.end(dismissalPolicy: .immediate)
-                }
-                print("Ended Live Activity with ID: \(activity.id)")
-            }
-        }
-        activeClassActivities.removeAll()
-    }
-
-    func toggleActivityForClass(
-        className: String,
-        periodNumber: Int,
-        roomNumber: String,
-        teacherName: String,
-        startTime: Date,
-        endTime: Date
-    ) -> Bool {
-        let activityId = "\(periodNumber)_\(className)"
-
-        if let existingActivity = activeClassActivities[activityId] {
-            // Manually ending should be immediate
-            endActivity(for: activityId, dismissalPolicy: .immediate)
-            print("Manually ended Live Activity with ID: \(existingActivity.id)")
-            return false
-        } else {
-            startOrUpdateClassActivity(
-                className: className,
-                periodNumber: periodNumber,
-                roomNumber: roomNumber,
-                teacherName: teacherName,
-                startTime: startTime,
-                endTime: endTime
-            )
-            return true
-        }
+        activeClassActivities.removeValue(forKey: activityId)
+        scheduledEndTasks[activityId]?.cancel()
+        scheduledEndTasks.removeValue(forKey: activityId)
+        print("Automatically ended Live Activity with ID: \(activity.id)")
     }
 }
 #endif

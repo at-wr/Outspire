@@ -36,8 +36,12 @@ class WidgetDataService {
 
     // Get current or next class period
     func getCurrentOrNextClass() -> (ClassWidgetData?, [ClassWidgetData]) {
+        return getCurrentOrNextClass(at: Date())
+    }
+
+    func getCurrentOrNextClass(at date: Date) -> (ClassWidgetData?, [ClassWidgetData]) {
         // Check if we're in weekend or holiday mode
-        if WidgetHelpers.isCurrentDateWeekend() || isHolidayModeEnabled() {
+        if WidgetHelpers.isWeekend(date: date) || isHolidayModeEnabled() {
             return (nil, [])
         }
 
@@ -49,7 +53,7 @@ class WidgetDataService {
 
         // Get current day index (0-4 for Mon-Fri)
         let calendar = Calendar.current
-        let weekday = calendar.component(.weekday, from: Date())
+        let weekday = calendar.component(.weekday, from: date)
         let dayIndex = weekday == 1 || weekday == 7 ? -1 : weekday - 2
 
         // If it's weekend, return empty
@@ -58,7 +62,7 @@ class WidgetDataService {
         }
 
         // Get current or next period
-        let periodInfo = ClassPeriodsManager.shared.getCurrentOrNextPeriod()
+        let periodInfo = ClassPeriodsManager.shared.getCurrentOrNextPeriod(at: date)
 
         // If no period found, return empty
         guard let period = periodInfo.period,
@@ -84,9 +88,10 @@ class WidgetDataService {
         // If current class is active, find next classes
         if periodInfo.isCurrentlyActive {
             // Find periods after current period
+            let periods = ClassPeriodsManager.shared.classPeriods(for: date)
             for i in (period.number + 1)..<timetable.count {
                 if i < timetable.count && dayIndex + 1 < timetable[i].count,
-                   let nextPeriod = ClassPeriodsManager.shared.classPeriods.first(where: { $0.number == i }) {
+                   let nextPeriod = periods.first(where: { $0.number == i }) {
                     let nextClassData = timetable[i][dayIndex + 1]
                     let nextIsSelfStudy = nextClassData.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
 
@@ -137,13 +142,14 @@ class WidgetDataService {
         var classes: [ClassWidgetData] = []
 
         // Find current period to mark it as active
-        let periodInfo = ClassPeriodsManager.shared.getCurrentOrNextPeriod()
+        let periodInfo = ClassPeriodsManager.shared.getCurrentOrNextPeriod(at: date)
         let currentPeriodNumber = periodInfo.isCurrentlyActive ? periodInfo.period?.number : nil
 
         // Loop through all periods
+        let periods = ClassPeriodsManager.shared.classPeriods(for: date)
         for i in 1..<timetable.count {
             if i < timetable.count && dayIndex + 1 < timetable[i].count,
-               let period = ClassPeriodsManager.shared.classPeriods.first(where: { $0.number == i }) {
+               let period = periods.first(where: { $0.number == i }) {
                 let classData = timetable[i][dayIndex + 1]
                 let isSelfStudy = classData.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
 
@@ -165,29 +171,33 @@ class ClassPeriodsManager {
 
     // All periods for the day
     public var classPeriods: [ClassPeriod] {
+        classPeriods(for: Date())
+    }
+
+    public func classPeriods(for date: Date) -> [ClassPeriod] {
         let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date())
+        let day = calendar.startOfDay(for: date)
 
         return [
-            createPeriod(number: 1, hour: 8, minute: 15, endHour: 8, endMinute: 55, date: today),
-            createPeriod(number: 2, hour: 9, minute: 5, endHour: 9, endMinute: 45, date: today),
-            createPeriod(number: 3, hour: 9, minute: 55, endHour: 10, endMinute: 35, date: today),
-            createPeriod(number: 4, hour: 10, minute: 45, endHour: 11, endMinute: 25, date: today),
-            createPeriod(number: 5, hour: 12, minute: 30, endHour: 13, endMinute: 10, date: today),
-            createPeriod(number: 6, hour: 13, minute: 20, endHour: 14, endMinute: 0, date: today),
-            createPeriod(number: 7, hour: 14, minute: 10, endHour: 14, endMinute: 50, date: today),
-            createPeriod(number: 8, hour: 15, minute: 0, endHour: 15, endMinute: 40, date: today),
-            createPeriod(number: 9, hour: 15, minute: 50, endHour: 16, endMinute: 30, date: today)
+            createPeriod(number: 1, hour: 8, minute: 15, endHour: 8, endMinute: 55, date: day),
+            createPeriod(number: 2, hour: 9, minute: 5, endHour: 9, endMinute: 45, date: day),
+            createPeriod(number: 3, hour: 9, minute: 55, endHour: 10, endMinute: 35, date: day),
+            createPeriod(number: 4, hour: 10, minute: 45, endHour: 11, endMinute: 25, date: day),
+            createPeriod(number: 5, hour: 12, minute: 30, endHour: 13, endMinute: 10, date: day),
+            createPeriod(number: 6, hour: 13, minute: 20, endHour: 14, endMinute: 0, date: day),
+            createPeriod(number: 7, hour: 14, minute: 10, endHour: 14, endMinute: 50, date: day),
+            createPeriod(number: 8, hour: 15, minute: 0, endHour: 15, endMinute: 40, date: day),
+            createPeriod(number: 9, hour: 15, minute: 50, endHour: 16, endMinute: 30, date: day)
         ]
     }
 
     // Find current or next period
-    public func getCurrentOrNextPeriod() -> (period: ClassPeriod?, isCurrentlyActive: Bool) {
-        let now = Date()
-        if let activePeriod = classPeriods.first(where: { $0.isCurrentlyActive() }) {
+    public func getCurrentOrNextPeriod(at referenceDate: Date = Date()) -> (period: ClassPeriod?, isCurrentlyActive: Bool) {
+        let periods = classPeriods(for: referenceDate)
+        if let activePeriod = periods.first(where: { $0.isActive(at: referenceDate) }) {
             return (activePeriod, true)
         }
-        let futurePeriods = classPeriods.filter { $0.startTime > now }
+        let futurePeriods = periods.filter { $0.startTime > referenceDate }
         if let nextPeriod = futurePeriods.min(by: { $0.startTime < $1.startTime }) {
             return (nextPeriod, false)
         }
@@ -215,5 +225,9 @@ public struct ClassPeriod: Identifiable {
     public func isCurrentlyActive() -> Bool {
         let now = Date()
         return now >= startTime && now <= endTime
+    }
+
+    public func isActive(at date: Date) -> Bool {
+        date >= startTime && date <= endTime
     }
 }
