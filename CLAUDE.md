@@ -40,7 +40,7 @@ swiftlint
 xcodebuild \
   -project Outspire.xcodeproj \
   -scheme "Outspire" \
-  -destination 'platform=iOS Simulator,name=iPhone 16 Pro' \
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
   -enableCodeCoverage YES \
   clean test
 ```
@@ -78,7 +78,7 @@ Use `-only-testing` with `xcodebuild test`:
 xcodebuild \
   -project Outspire.xcodeproj \
   -scheme "Outspire" \
-  -destination 'platform=iOS Simulator,name=iPhone 16 Pro' \
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
   -only-testing:OutspireTests/<TestClassName>/<testMethodName> \
   test
 ```
