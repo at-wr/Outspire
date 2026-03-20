@@ -27,39 +27,40 @@ struct ScheduleRow: View {
     }
 
     var body: some View {
-        HStack(alignment: .center, spacing: 10) {
-            // Period indicator with dynamic color
-            ZStack {
+        HStack(alignment: .center, spacing: AppSpace.sm) {
+            // Colored dot + Period number
+            HStack(spacing: 6) {
                 Circle()
-                    .fill(periodColor.opacity(0.1))
-                    .frame(width: 36, height: 36)
+                    .fill(periodColor)
+                    .frame(width: 8, height: 8)
+                    .shadow(color: periodColor.opacity(0.4), radius: 3)
 
                 Text("\(period)")
                     .font(.system(.callout, design: .rounded))
-                    .fontWeight(.semibold)
-                    .foregroundColor(periodColor)
+                    .fontWeight(.bold)
+                    .foregroundStyle(periodColor)
+                    .frame(width: 20, alignment: .center)
             }
 
             // Class details
             VStack(alignment: .leading, spacing: 2) {
                 Text(subject)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
+                    .font(AppText.label)
                     .foregroundStyle(isSelfStudy ? Color.purple : Color.primary)
 
-                HStack(spacing: 8) {
+                HStack(spacing: AppSpace.xxs) {
                     if !room.isEmpty {
                         Text(room)
-                            .font(.caption)
+                            .font(AppText.caption)
                             .foregroundStyle(.secondary)
 
-                        Text("•")
-                            .font(.caption)
+                        Text("·")
+                            .font(AppText.caption)
                             .foregroundStyle(.tertiary)
                     }
 
                     Text(time)
-                        .font(.caption)
+                        .font(AppText.caption)
                         .foregroundStyle(.secondary)
                 }
             }
@@ -68,16 +69,13 @@ struct ScheduleRow: View {
 
             if isSelfStudy {
                 Text("Self-Study")
-                    .font(.caption)
+                    .font(AppText.caption)
+                    .foregroundStyle(.purple.opacity(0.8))
                     .padding(.horizontal, 8)
-                    .padding(.vertical, 2)
-                    .background(
-                        Capsule()
-                            .fill(Color.purple.opacity(0.1))
-                    )
-                    .foregroundStyle(.purple)
+                    .padding(.vertical, 3)
+                    .background(.purple.opacity(0.1), in: Capsule())
             }
         }
-        .contentShape(Rectangle()) // Make the entire row tappable
+        .contentShape(Rectangle())
     }
 }

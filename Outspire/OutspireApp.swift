@@ -57,6 +57,7 @@ struct OutspireApp: App {
     var body: some Scene {
         WindowGroup {
             RootTabView()
+                .tint(AppColor.brand)
                 .environmentObject(sessionService)
                 .environmentObject(locationManager)
                 .environmentObject(regionChecker)

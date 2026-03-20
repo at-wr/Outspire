@@ -35,34 +35,31 @@ struct ReflectionCardView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: AppSpace.xxs) {
                     Text(reflection.C_Title)
-                        .font(.body.weight(.semibold))
+                        .font(AppText.bodyBold)
                         .foregroundStyle(.primary)
                     Text(formatDate(reflection.C_Date))
-                        .font(.footnote)
+                        .font(AppText.meta)
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
-                HStack(spacing: 8) {
+                HStack(spacing: AppSpace.xs) {
                     ForEach(Array(learningOutcomeIcons.enumerated()), id: \.offset) { _, icon in
                         icon
                             .foregroundColor(.accentColor)
+                            .symbolRenderingMode(.hierarchical)
                             .imageScale(.medium)
                     }
                 }
             }
             Text(reflection.C_Summary)
-                .font(.footnote)
+                .font(AppText.meta)
                 .foregroundStyle(.secondary)
                 .lineLimit(2)
         }
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 14)
-                .fill(Color(UIColor.tertiarySystemBackground))
-                .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
-        )
+        .padding(14)
+        .richCard(cornerRadius: AppRadius.lg, shadowRadius: 8)
         .buttonStyle(PlainButtonStyle())
         .onTapGesture {
             HapticManager.shared.playFeedback(.light)

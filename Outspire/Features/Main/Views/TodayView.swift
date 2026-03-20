@@ -49,7 +49,7 @@ struct TodayView: View {
         }
         // Use inline title and a custom principal area to show a subtitle date
         .navigationBarTitleDisplayMode(.inline)
-        // Use default toolbar background and scroll indicators per HIG
+        .applyScrollEdgeEffect()
         .toolbar {
             ToolbarItem(placement: .principal) {
                 VStack(spacing: 0) {
@@ -58,6 +58,11 @@ struct TodayView: View {
                     Text(formattedDate)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
+                    if let statusText = toolbarStatusText {
+                        Text(statusText)
+                            .font(AppText.caption.weight(.medium))
+                            .foregroundStyle(toolbarStatusColor)
+                    }
                 }
             }
             ToolbarItem(placement: .topBarTrailing) {
@@ -221,7 +226,6 @@ struct TodayView: View {
 
     private var contentView: some View {
         VStack(spacing: 20) {
-            headerView
             mainContentView
             Spacer(minLength: 60)
         }
@@ -254,21 +258,6 @@ struct TodayView: View {
 
     // MARK: - Subviews
 
-    private var headerView: some View {
-        TodayHeaderView(
-            greeting: greeting,
-            formattedDate: formattedDate,
-            showDateInHeader: false,
-            nickname: sessionService.userInfo?.nickname,
-            selectedDayOverride: selectedDayOverride,
-            isHolidayActive: isHolidayActive(),
-            holidayHasEndDate: holidayHasEndDate,
-            holidayEndDateString: holidayEndDateString,
-            isHolidayMode: isHolidayMode,
-            animateCards: animateCards
-        )
-    }
-
     private var mainContentView: some View {
         TodayMainContentView(
             isAuthenticated: isAuthenticated,
@@ -299,6 +288,23 @@ struct TodayView: View {
     }
 
     // MARK: - Computed Properties
+
+    private var toolbarStatusText: String? {
+        if let override = selectedDayOverride {
+            return "Viewing \(TodayViewHelpers.weekdayName(for: override + 1))'s schedule"
+        } else if isHolidayActive(), holidayHasEndDate {
+            return "Holiday until \(holidayEndDateString)"
+        } else if isHolidayMode {
+            return "Holiday Mode"
+        }
+        return nil
+    }
+
+    private var toolbarStatusColor: Color {
+        if selectedDayOverride != nil { return AppColor.brand }
+        if isHolidayActive() || isHolidayMode { return .orange }
+        return .secondary
+    }
 
     private var formattedDate: String {
         TodayViewHelpers.formatDateString(currentTime)

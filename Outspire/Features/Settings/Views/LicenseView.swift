@@ -19,12 +19,9 @@ struct LicenseView: View {
                 .padding()
                 .font(.system(size: 14))
                 .fontDesign(.monospaced)
-                .backgroundStyle(Color(UIColor.secondarySystemFill))
         }
         .scrollIndicators(.hidden)
-        .backgroundStyle(Color(UIColor.secondarySystemFill))
         .navigationTitle("Open Source Licenses")
-        .toolbarBackground(Color(UIColor.secondarySystemBackground))
         .onAppear(perform: loadLicenses)
     }
 }

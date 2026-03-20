@@ -118,7 +118,6 @@ struct AddRecordSheet: View {
                 }
             }
             .navigationTitle("New Record")
-            .toolbarBackground(Color(UIColor.systemBackground))
             .toolbar {
                 ToolbarItem(id: "cancelButton", placement: .navigationBarLeading) {
                     Button("Cancel") {

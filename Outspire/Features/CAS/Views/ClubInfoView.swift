@@ -37,6 +37,7 @@ struct ClubInfoView: View {
                 .contentMargins(.vertical, 10.0)
                 .textSelection(.enabled)
                 .scrollContentBackground(.hidden)
+                .appBackground()
                 .navigationBarTitle("Clubs")
                 // .toolbarBackground(Color(UIColor.systemBackground))
                 .toolbar {

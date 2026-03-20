@@ -116,7 +116,6 @@ struct SettingsNotificationsView: View {
         }
         .toggleStyle(.switch)
         .navigationTitle("Notifications")
-        .toolbarBackground(Color(UIColor.secondarySystemBackground))
         .contentMargins(.vertical, 10.0)
         .onAppear {
             checkNotificationPermission()

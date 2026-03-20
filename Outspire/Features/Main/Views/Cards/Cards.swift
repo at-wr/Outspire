@@ -1,7 +1,8 @@
 import CoreLocation
 import SwiftUI
 
-// No upcoming class card
+// MARK: - Status Cards (Rich colored fills with depth)
+
 struct NoClassCard: View {
     let isDimmed: Bool
 
@@ -9,61 +10,80 @@ struct NoClassCard: View {
         self.isDimmed = isDimmed
     }
 
+    private var gradientColors: [Color] {
+        isDimmed
+            ? [Color.indigo.opacity(0.8), Color.indigo.opacity(0.6)]
+            : [Color.green.opacity(0.75), Color.mint.opacity(0.65)]
+    }
+
     var body: some View {
-        VStack(spacing: 24) {
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 40))
-                .foregroundStyle(.green)
-                .padding(12)
-                .background(
-                    Circle()
-                        .fill(Color.green.opacity(0.1))
-                )
+        ZStack(alignment: .topTrailing) {
+            VStack(alignment: .leading, spacing: AppSpace.sm) {
+                Image(systemName: isDimmed ? "moon.stars.fill" : "checkmark.circle.fill")
+                    .font(.system(size: 40, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.9))
+                    .symbolRenderingMode(.hierarchical)
+                    .symbolEffect(.pulse, isActive: true)
 
-            VStack(spacing: 5) {
-                Text("No Classes Scheduled Today")
+                Spacer().frame(height: AppSpace.xs)
+
+                Text(isDimmed ? "All Done for Today" : "No Classes")
                     .font(AppText.title)
+                    .fontDesign(.rounded)
+                    .foregroundStyle(.white)
 
-                Text("Enjoy your free time!")
-                    .font(AppText.meta)
-                    .foregroundStyle(.secondary)
+                Text(isDimmed ? "Great work! Time to relax." : "Enjoy your free time!")
+                    .font(AppText.label)
+                    .foregroundStyle(.white.opacity(0.8))
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            // Decorative background icon
+            Image(systemName: isDimmed ? "sparkles" : "leaf.fill")
+                .font(.system(size: 72, weight: .thin))
+                .foregroundStyle(.white.opacity(0.12))
+                .rotationEffect(.degrees(isDimmed ? 0 : -15))
+                .offset(x: 10, y: -6)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 30)
-        .paddedGlassmorphicCard(horizontalPadding: 0, verticalPadding: 0)
+        .padding(AppSpace.cardPadding)
+        .coloredRichCard(colors: gradientColors)
     }
 }
 
-// Weekend card
 struct WeekendCard: View {
     var body: some View {
-        VStack(spacing: 24) {
-            Image(systemName: "sun.max.fill")
-                .font(.system(size: 40))
-                .foregroundStyle(.yellow)
-                .padding(12)
-                .background(
-                    Circle()
-                        .fill(Color.yellow.opacity(0.1))
-                )
+        ZStack(alignment: .topTrailing) {
+            VStack(alignment: .leading, spacing: AppSpace.sm) {
+                Image(systemName: "sun.max.fill")
+                    .font(.system(size: 40, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.9))
+                    .symbolRenderingMode(.hierarchical)
+                    .symbolEffect(.pulse, isActive: true)
 
-            VStack(spacing: 5) {
+                Spacer().frame(height: AppSpace.xs)
+
                 Text("It's the Weekend!")
                     .font(AppText.title)
+                    .fontDesign(.rounded)
+                    .foregroundStyle(.white)
 
-                Text("Relax and have a great weekend.")
-                    .font(AppText.meta)
-                    .foregroundStyle(.secondary)
+                Text("Relax and recharge.")
+                    .font(AppText.label)
+                    .foregroundStyle(.white.opacity(0.8))
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            // Decorative background icon
+            Image(systemName: "star.fill")
+                .font(.system(size: 64, weight: .thin))
+                .foregroundStyle(.white.opacity(0.12))
+                .offset(x: 6, y: -4)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 30)
-        .paddedGlassmorphicCard(horizontalPadding: 0, verticalPadding: 0)
+        .padding(AppSpace.cardPadding)
+        .coloredRichCard(colors: [Color.yellow.opacity(0.85), Color.orange.opacity(0.75)])
     }
 }
 
-// Holiday mode card
 struct HolidayModeCard: View {
     let hasEndDate: Bool
     let endDate: Date
@@ -75,40 +95,95 @@ struct HolidayModeCard: View {
     }
 
     var body: some View {
-        VStack(spacing: 24) {
-            Image(systemName: "sun.max.fill")
-                .font(.system(size: 40))
-                .foregroundStyle(.orange)
-                .padding(12)
-                .background(
-                    Circle()
-                        .fill(Color.orange.opacity(0.1))
-                )
+        ZStack(alignment: .topTrailing) {
+            VStack(alignment: .leading, spacing: AppSpace.sm) {
+                Image(systemName: "beach.umbrella.fill")
+                    .font(.system(size: 40, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.9))
+                    .symbolRenderingMode(.hierarchical)
+                    .symbolEffect(.pulse, isActive: true)
 
-            VStack(spacing: 5) {
+                Spacer().frame(height: AppSpace.xs)
+
                 Text("Holiday Mode")
                     .font(AppText.title)
+                    .fontDesign(.rounded)
+                    .foregroundStyle(.white)
 
-                Text("Enjoy your time off from classes!")
-                    .font(AppText.meta)
-                    .foregroundStyle(.secondary)
-
-                if hasEndDate {
-                    Text("Until \(formattedEndDate)")
-                        .font(AppText.meta)
-                        .foregroundStyle(.orange)
-                        .padding(.top, 4)
-                }
+                Text(hasEndDate ? "Until \(formattedEndDate)" : "Enjoy your time off!")
+                    .font(AppText.label)
+                    .foregroundStyle(.white.opacity(0.8))
             }
-            .multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            // Decorative background icon
+            Image(systemName: "airplane")
+                .font(.system(size: 64, weight: .thin))
+                .foregroundStyle(.white.opacity(0.12))
+                .rotationEffect(.degrees(-20))
+                .offset(x: 6, y: -4)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 30)
-        .paddedGlassmorphicCard(horizontalPadding: 0, verticalPadding: 0)
+        .padding(AppSpace.cardPadding)
+        .coloredRichCard(colors: [Color.orange.opacity(0.85), Color.red.opacity(0.7)])
     }
 }
 
-// School information card
+// MARK: - School Day Summary (compact info row)
+
+struct SchoolDaySummaryCard: View {
+    let assemblyTime: String
+    let arrivalTime: String
+
+    var body: some View {
+        HStack(spacing: 0) {
+            SummaryItem(icon: "bell.fill", label: "Assembly", value: assemblyTime)
+            SummaryDivider()
+            SummaryItem(icon: "door.left.hand.open", label: "Arrive by", value: arrivalTime)
+            SummaryDivider()
+            SummaryItem(icon: "fork.knife", label: "Lunch", value: "11:30")
+        }
+        .padding(.vertical, AppSpace.md)
+        .coloredRichCard(
+            colors: [AppColor.brand.opacity(0.7), Color.indigo.opacity(0.6)],
+            shadowRadius: 10
+        )
+    }
+}
+
+private struct SummaryDivider: View {
+    var body: some View {
+        Capsule()
+            .fill(.white.opacity(0.2))
+            .frame(width: 1, height: 28)
+    }
+}
+
+private struct SummaryItem: View {
+    let icon: String
+    let label: String
+    let value: String
+
+    var body: some View {
+        VStack(spacing: AppSpace.xxs + 1) {
+            Image(systemName: icon)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 28, height: 28)
+                .background(.white.opacity(0.15), in: Circle())
+            Text(label)
+                .font(AppText.caption.weight(.medium))
+                .foregroundStyle(.white.opacity(0.7))
+            Text(value)
+                .font(AppText.caption.weight(.bold))
+                .foregroundStyle(.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
+// School information card (legacy)
 struct SchoolInfoCard: View {
     let assemblyTime: String
     let arrivalTime: String
@@ -133,10 +208,11 @@ struct SchoolInfoCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: AppSpace.cardSpacing) {
             HStack {
                 Label("Information", systemImage: "info.circle")
-                    .font(.headline)
+                    .font(AppText.sectionTitle)
+                    .fontDesign(.rounded)
                     .foregroundStyle(.primary)
 
                 Spacer()
@@ -145,29 +221,27 @@ struct SchoolInfoCard: View {
                    let travelTime = travelInfo.travelTime,
                    let distance = travelInfo.distance
                 {
-                    // Use the ID to force view recreation when data changes significantly
-                    let significantChange = Int(travelTime / 60) // Minutes value for ID
+                    let significantChange = Int(travelTime / 60)
 
                     TravelTimeInfoView(
                         travelTime: travelTime,
                         distance: distance
                     )
                     .id("travel-\(significantChange)")
-                    // Use native transitions and avoid custom animated timings
                 }
             }
 
-            Divider()
+            SubtleDivider()
 
-            VStack(spacing: 12) {
+            VStack(spacing: AppSpace.sm) {
                 InfoRow(icon: "door.left.hand.open", title: "Arrival Time", value: arrivalTime, color: .purple)
                 InfoRow(icon: "bell.fill", title: "Morning Assembly", value: assemblyTime, color: .blue)
                 InfoRow(icon: "fork.knife", title: "Lunch Break", value: "11:30 - 12:30", color: .orange)
                 InfoRow(icon: "figure.walk", title: "After School Activities", value: "16:30 - 18:00", color: .green)
             }
         }
-        .padding(16)
-        .paddedGlassmorphicCard(horizontalPadding: 0, verticalPadding: 0)
+        .padding(AppSpace.cardSpacing)
+        .richCard()
         .onAppear { isTravelInfoVisible = true }
     }
 }
@@ -241,17 +315,13 @@ struct DailyScheduleCard: View {
     // Add method to check if all classes for today are over
     private func checkIfClassesOver() {
         let now = Date()
-        // Check if it's a weekday
         if dayIndex >= 0, dayIndex <= 4 {
-            // Get all classes for today
             let classes = scheduledClassesForToday
             if !classes.isEmpty {
-                // Find the last class period
                 if let lastClassPeriod = classes.map({ $0.period }).max(),
                    let lastPeriod = ClassPeriodsManager.shared.classPeriods
                    .first(where: { $0.number == lastClassPeriod })
                 {
-                    // Check if current time is past the end time of the last class
                     isClassesOver = now > lastPeriod.endTime
                 }
             }
@@ -259,11 +329,12 @@ struct DailyScheduleCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: AppSpace.cardSpacing) {
             // Card header with class count
             HStack {
                 Label("Schedule", systemImage: "calendar.day.timeline.left")
-                    .font(.headline)
+                    .font(AppText.sectionTitle)
+                    .fontDesign(.rounded)
                     .foregroundStyle(.primary)
                 Spacer()
                 if hasClasses {
@@ -273,20 +344,13 @@ struct DailyScheduleCard: View {
                     Text("\(regularClassCount) Classes, \(selfStudyCount) Self-Study")
                         .font(AppText.meta)
                         .foregroundStyle(.secondary)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 2)
-                        .background(
-                            Capsule()
-                                .fill(Color.blue.opacity(0.1))
-                        )
                 }
             }
-            Divider()
+            SubtleDivider()
 
             // Class listing
             if hasClasses {
-                VStack(spacing: 12) {
-                    // Only show periods up to maxClassesToShow or all if expanded
+                VStack(spacing: AppSpace.sm) {
                     let visibleClasses = isExpandedSchedule ?
                         scheduledClassesForToday :
                         Array(scheduledClassesForToday.prefix(maxClassesToShow))
@@ -306,7 +370,6 @@ struct DailyScheduleCard: View {
                         }
                     }
 
-                    // Only show expand button if there are more classes than default view
                     if scheduledClassesForToday.count > maxClassesToShow {
                         Button {
                             withAnimation(.easeInOut(duration: 0.3)) {
@@ -315,28 +378,28 @@ struct DailyScheduleCard: View {
                         } label: {
                             HStack {
                                 Text(isExpandedSchedule ? "See Less" : "See Full Schedule")
-                                    .font(.subheadline)
-                                    .fontWeight(.medium)
+                                    .font(AppText.label)
                                 Image(systemName: "chevron.down")
                                     .font(.caption)
                                     .rotationEffect(.degrees(isExpandedSchedule ? 180 : 0))
+                                    .symbolEffect(.bounce, value: isExpandedSchedule)
                             }
                             .frame(maxWidth: .infinity)
-                            .foregroundStyle(Color.blue)
+                            .foregroundStyle(AppColor.brand)
                         }
-                        .padding(.top, 6)
+                        .padding(.top, AppSpace.xxs + 2)
                     }
                 }
             } else {
                 Text("No classes scheduled for today")
-                    .font(.subheadline)
+                    .font(AppText.label)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.vertical, 20)
+                    .padding(.vertical, AppSpace.lg)
             }
         }
-        .padding(16)
-        .paddedGlassmorphicCard(isDimmed: isClassesOver, horizontalPadding: 0, verticalPadding: 0)
+        .padding(AppSpace.cardSpacing)
+        .richCard()
         .onAppear {
             checkIfClassesOver()
         }
@@ -348,92 +411,117 @@ struct DailyScheduleCard: View {
 
 // Sign in prompt card
 struct SignInPromptCard: View {
+    @ViewBuilder
+    private var sparklesIcon: some View {
+        let base = Image(systemName: "sparkles")
+            .font(.system(size: 52, weight: .medium))
+            .foregroundStyle(AppColor.brand.gradient)
+            .shadow(color: AppColor.brand.opacity(0.3), radius: 8, y: 4)
+
+        if #available(iOS 18.0, *) {
+            base.symbolEffect(.breathe, isActive: true)
+        } else {
+            base.symbolEffect(.pulse, isActive: true)
+        }
+    }
+
     var body: some View {
-        VStack(spacing: 15) {
+        VStack(spacing: AppSpace.lg) {
             Spacer()
 
-            Image(systemName: "party.popper.fill")
-                .font(.system(size: 60))
-                .foregroundStyle(.cyan.opacity(0.8))
-                .padding(.bottom, 10)
+            sparklesIcon
+                .padding(.bottom, AppSpace.xxs)
 
             Text("Welcome to Outspire!")
-                .font(.title)
-                .fontWeight(.bold)
+                .font(.title.weight(.bold))
                 .fontDesign(.rounded)
                 .multilineTextAlignment(.center)
 
             Text("Make your campus life easier")
-                .font(.title3)
+                .font(AppText.subtitle)
                 .foregroundStyle(.secondary)
-                //                .fontWeight(.bold)
                 .fontDesign(.rounded)
                 .multilineTextAlignment(.center)
-                .padding(.bottom, 10)
 
-            // Sign-in link to Settings (Account)
             NavigationLink(destination: SettingsView(showSettingsSheet: .constant(false), isModal: false)) {
-                HStack {
-                    Image(systemName: "person.fill.viewfinder")
-                    Text("Sign In with TSIMS")
-                }
-                .font(.headline)
-                .foregroundStyle(.white)
-                .padding(.vertical, 12)
-                .padding(.horizontal, 20)
-                .background(Color.accentColor)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .shadow(color: Color.black.opacity(0.1), radius: 2, x: 0, y: 2)
+                Label("Sign In with TSIMS", systemImage: "person.fill.viewfinder")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
             }
-            .padding(.top, 10)
-            .buttonStyle(.plain)
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            .padding(.top, AppSpace.xs)
 
             Spacer()
         }
-        .padding()
+        .padding(AppSpace.xl)
     }
 }
 
-// Quick links card for Today
+// MARK: - Quick Links
+
 struct QuickLinksCard: View {
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Label("Quick Access", systemImage: "bolt.fill")
-                .font(.headline)
-                .foregroundStyle(.primary)
-            HStack(spacing: 12) {
-                QuickLink(destination: ClubInfoView(), title: "Clubs", systemImage: "folder.badge.person.crop")
-                QuickLink(destination: LunchMenuView(), title: "Dining", systemImage: "fork.knife")
-                QuickLink(destination: ClubActivitiesView(), title: "Activities", systemImage: "checklist")
-                QuickLink(destination: ReflectionsView(), title: "Reflect", systemImage: "square.and.pencil")
+        VStack(spacing: AppSpace.sm) {
+            HStack(spacing: AppSpace.sm) {
+                QuickLinkCard(
+                    destination: ClubInfoView(),
+                    title: "Clubs",
+                    systemImage: "person.2.fill",
+                    colors: [Color.blue.opacity(0.8), Color.blue.opacity(0.6)]
+                )
+                QuickLinkCard(
+                    destination: LunchMenuView(),
+                    title: "Dining",
+                    systemImage: "fork.knife",
+                    colors: [Color.orange.opacity(0.8), Color.orange.opacity(0.6)]
+                )
+            }
+            HStack(spacing: AppSpace.sm) {
+                QuickLinkCard(
+                    destination: ClubActivitiesView(),
+                    title: "Activities",
+                    systemImage: "checklist",
+                    colors: [Color.green.opacity(0.8), Color.green.opacity(0.6)]
+                )
+                QuickLinkCard(
+                    destination: ReflectionsView(),
+                    title: "Reflect",
+                    systemImage: "square.and.pencil",
+                    colors: [Color.purple.opacity(0.8), Color.purple.opacity(0.6)]
+                )
             }
         }
-        .padding(16)
-        .glassmorphicCard()
     }
 }
 
-private struct QuickLink<Dest: View>: View {
+private struct QuickLinkCard<Dest: View>: View {
     let destination: Dest
     let title: String
     let systemImage: String
+    let colors: [Color]
 
     var body: some View {
         NavigationLink(destination: destination) {
-            VStack(spacing: 6) {
+            VStack(alignment: .leading, spacing: 10) {
                 Image(systemName: systemImage)
-                    .font(.system(size: 18, weight: .semibold))
-                    .frame(width: 36, height: 36)
-                    .background(Circle().fill(Color.secondary.opacity(0.12)))
+                    .font(.system(size: 28, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.9))
+                    .symbolRenderingMode(.hierarchical)
+
+                Spacer().frame(height: AppSpace.xxs)
+
                 Text(title)
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .font(AppText.sectionTitle)
+                    .fontDesign(.rounded)
+                    .foregroundStyle(.white)
             }
-            .frame(maxWidth: .infinity)
-            .padding(8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(AppSpace.md)
+            .coloredRichCard(colors: colors, shadowRadius: 8)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressableCard)
     }
 }
 
@@ -446,7 +534,7 @@ struct ScaleButtonStyle: ButtonStyle {
     }
 }
 
-// Self Study Period Card - Optimized
+// Self Study Period Card
 struct SelfStudyPeriodCard: View {
     let currentPeriod: Int
     let nextClassPeriod: Int?
@@ -459,39 +547,37 @@ struct SelfStudyPeriodCard: View {
     }
 
     var body: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: AppSpace.cardSpacing) {
             Image(systemName: "book.fill")
-                .font(.system(size: 40))
+                .font(.system(size: 44))
                 .foregroundStyle(.purple)
-                .padding(12)
-                .background(
-                    Circle()
-                        .fill(Color.purple.opacity(0.1))
-                )
+                .symbolRenderingMode(.hierarchical)
+                .symbolEffect(.pulse, isActive: true)
 
-            VStack(spacing: 5) {
+            VStack(spacing: AppSpace.xxs) {
                 Text("Self-Study Period")
                     .font(AppText.title)
+                    .fontDesign(.rounded)
 
                 Text("Period \(currentPeriod)\(isLastPeriodOfDay ? " (Last Period)" : "")")
                     .font(AppText.meta)
                     .foregroundStyle(.secondary)
 
                 if let nextClassPeriod = nextClassPeriod, let nextClassName = nextClassName {
-                    Text("Next class: Period \(nextClassPeriod) - \(nextClassName)")
+                    Text("Next: Period \(nextClassPeriod) — \(nextClassName)")
                         .font(AppText.meta)
                         .foregroundStyle(.purple)
-                        .padding(.top, 4)
+                        .padding(.top, 2)
                 }
             }
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 30)
-        .glassmorphicCard()
+        .richCard()
     }
 }
 
-// Self Study
+// Lunch Break Card
 struct LunchBreakCard: View {
     let nextClassPeriod: Int?
     let nextClassName: String?
@@ -508,19 +594,17 @@ struct LunchBreakCard: View {
     }
 
     var body: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: AppSpace.cardSpacing) {
             Image(systemName: "fork.knife")
-                .font(.system(size: 40))
+                .font(.system(size: 44))
                 .foregroundStyle(.orange)
-                .padding(12)
-                .background(
-                    Circle()
-                        .fill(Color.orange.opacity(0.1))
-                )
+                .symbolRenderingMode(.hierarchical)
+                .symbolEffect(.pulse, isActive: true)
 
-            VStack(spacing: 5) {
+            VStack(spacing: AppSpace.xxs) {
                 Text("Lunch Break")
                     .font(AppText.title)
+                    .fontDesign(.rounded)
 
                 Text("Time remaining: \(timeRemaining)")
                     .font(AppText.meta)
@@ -530,15 +614,40 @@ struct LunchBreakCard: View {
                     let components = nextClassName.components(separatedBy: "\n").filter { !$0.isEmpty }
                     let subjectName = components.count > 1 ? components[1] : nextClassName
 
-                    Text("Next class: Period \(nextClassPeriod) - \(subjectName)")
+                    Text("Next: Period \(nextClassPeriod) — \(subjectName)")
                         .font(AppText.meta)
                         .foregroundStyle(.orange)
-                        .padding(.top, 4)
+                        .padding(.top, 2)
                 }
             }
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 30)
-        .glassmorphicCard()
+        .richCard()
     }
+}
+
+// MARK: - Interactive Card Button Style
+
+/// Press-to-depress button style with haptic feedback and shadow reduction.
+struct PressableCardStyle: ButtonStyle {
+    func makeBody(configuration: ButtonStyle.Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
+            .opacity(configuration.isPressed ? 0.92 : 1.0)
+            .rotation3DEffect(
+                .degrees(configuration.isPressed ? 1 : 0),
+                axis: (x: 1, y: 0, z: 0)
+            )
+            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: configuration.isPressed)
+            .onChange(of: configuration.isPressed) { _, pressed in
+                if pressed {
+                    HapticManager.shared.playLightFeedback()
+                }
+            }
+    }
+}
+
+extension ButtonStyle where Self == PressableCardStyle {
+    static var pressableCard: PressableCardStyle { PressableCardStyle() }
 }

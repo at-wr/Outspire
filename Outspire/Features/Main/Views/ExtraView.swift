@@ -2,62 +2,110 @@ import SwiftUI
 
 struct ExtraView: View {
     @State private var query: String = ""
-    @Environment(\.horizontalSizeClass) private var hSize
+    @State private var navTarget: ExploreTarget?
 
     var body: some View {
         List {
+            // Quick links grid
+            Section {
+                quickLinksGrid
+                    .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
+                    .listRowBackground(Color.clear)
+            }
+
+            // Native iOS list rows
             Section {
                 NavigationLink(destination: SchoolArrangementView()) {
-                    Label("School Arrangements", systemImage: "calendar.badge.clock")
+                    settingsRow("School Arrangements", icon: "calendar", color: .blue)
                 }
                 NavigationLink(destination: LunchMenuView()) {
-                    Label("Dining Menus", systemImage: "fork.knife")
-                }
-                NavigationLink(destination: ScoreView()) {
-                    Label("Academic Grades", systemImage: "pencil.and.list.clipboard")
+                    settingsRow("Dining Menus", icon: "fork.knife", color: .orange)
                 }
                 NavigationLink(destination: ClubInfoView()) {
-                    Label("Hall of Clubs", systemImage: "person.2.circle")
+                    settingsRow("Hall of Clubs", icon: "person.2", color: .purple)
                 }
                 NavigationLink(destination: ReflectionsView()) {
-                    Label("Reflections", systemImage: "square.and.pencil")
+                    settingsRow("Reflections", icon: "square.and.pencil", color: .pink)
                 }
                 NavigationLink(destination: SettingsView(showSettingsSheet: .constant(false), isModal: false)) {
-                    Label("Settings", systemImage: "gear")
-                }
-                NavigationLink(destination: TodayView()) {
-                    Label("Today", systemImage: "text.rectangle.page")
-                }
-                NavigationLink(destination: ModernClasstableView()) {
-                    Label("Class Schedule", systemImage: "calendar.day.timeline.left")
+                    settingsRow("Settings", icon: "gear", color: .gray)
                 }
             }
         }
+        .listStyle(.insetGrouped)
         .navigationTitle("Explore")
         .navigationBarTitleDisplayMode(.large)
         .searchable(text: $query, prompt: "Search")
-        .listStyle(.insetGrouped)
+        .navigationDestination(item: $navTarget) { target in
+            switch target {
+            case .today: TodayView()
+            case .classes: ModernClasstableView()
+            case .activities: ClubActivitiesView()
+            case .grades: ScoreView()
+            }
+        }
     }
 
-    @ViewBuilder
-    private var headerHero: some View {
-        EmptyView()
+    private func settingsRow(_ title: String, icon: String, color: Color) -> some View {
+        Label {
+            Text(title)
+        } icon: {
+            Image(systemName: icon)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 28, height: 28)
+                .background(color.gradient, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+        }
+    }
+
+    private var quickLinksGrid: some View {
+        VStack(spacing: AppSpace.sm) {
+            HStack(spacing: AppSpace.sm) {
+                quickLinkTile("Today", systemImage: "text.rectangle.page",
+                              colors: [AppColor.brand.opacity(0.9), AppColor.brand.opacity(0.7)],
+                              target: .today)
+                quickLinkTile("Classes", systemImage: "calendar.day.timeline.left",
+                              colors: [Color.indigo.opacity(0.85), Color.indigo.opacity(0.65)],
+                              target: .classes)
+            }
+            HStack(spacing: AppSpace.sm) {
+                quickLinkTile("Activities", systemImage: "checklist",
+                              colors: [Color.green.opacity(0.85), Color.green.opacity(0.65)],
+                              target: .activities)
+                quickLinkTile("Grades", systemImage: "pencil.and.list.clipboard",
+                              colors: [Color.orange.opacity(0.85), Color.orange.opacity(0.65)],
+                              target: .grades)
+            }
+        }
+    }
+
+    private func quickLinkTile(_ title: String, systemImage: String, colors: [Color], target: ExploreTarget) -> some View {
+        Button {
+            HapticManager.shared.playLightFeedback()
+            navTarget = target
+        } label: {
+            VStack(alignment: .leading, spacing: 10) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 24, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.9))
+                    .symbolRenderingMode(.hierarchical)
+
+                Spacer().frame(height: 4)
+
+                Text(title)
+                    .font(.headline.weight(.bold))
+                    .fontDesign(.rounded)
+                    .foregroundStyle(.white)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(AppSpace.md)
+            .coloredRichCard(colors: colors, cornerRadius: AppRadius.lg, shadowRadius: 8)
+        }
+        .buttonStyle(.pressableCard)
     }
 }
 
-private struct SectionHeader: View {
-    let title: String
-    var body: some View {
-        Text(title).font(AppText.title)
-    }
-}
-
-private struct RowLink: View {
-    let icon: String
-    let title: String
-    let subtitle: String
-
-    var body: some View {
-        Label(title, systemImage: icon)
-    }
+private enum ExploreTarget: String, Identifiable, Hashable {
+    case today, classes, activities, grades
+    var id: String { rawValue }
 }

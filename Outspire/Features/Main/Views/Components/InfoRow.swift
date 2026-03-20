@@ -7,20 +7,18 @@ struct InfoRow: View {
     let color: Color
 
     var body: some View {
-        HStack(alignment: .center, spacing: 10) {
+        HStack(alignment: .center, spacing: AppSpace.sm) {
             Image(systemName: icon)
-                .font(.system(size: 16))
-                .foregroundStyle(color)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(.white)
+                .symbolRenderingMode(.hierarchical)
                 .frame(width: 28, height: 28)
-                .background(
-                    Circle()
-                        .fill(color.opacity(0.1))
-                )
+                .background(color.opacity(0.85), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
             Text(title)
-                .font(AppText.body)
+                .font(AppText.label)
             Spacer()
             Text(value)
-                .font(AppText.body)
+                .font(AppText.label)
                 .foregroundStyle(.secondary)
         }
     }
