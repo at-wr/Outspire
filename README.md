@@ -1,91 +1,80 @@
-<img align="left" width="60" height="60" src="https://raw.githubusercontent.com/at-wr/Outspire/refs/heads/main/Icon.png" alt="Outspire App Icon">
-
 # Outspire
-[![Xcode Build & Test](https://github.com/at-wr/Outspire/actions/workflows/build_test.yml/badge.svg)](https://github.com/at-wr/Outspire/actions/workflows/build_test.yml)
+
+[![Xcode Build & Test](https://github.com/Computerization/Outspire/actions/workflows/build_test.yml/badge.svg)](https://github.com/Computerization/Outspire/actions/workflows/build_test.yml)
 [![App Store](https://img.shields.io/badge/App_Store-0D96F6?logo=app-store&logoColor=white)](https://apps.apple.com/us/app/outspire/id6743143348)
 
-Your all-in-one WFLA campus companian. It's an iOS app for WFLA TSIMS, which is also compatible with macOS.
-
-## Overview
-
-- Written in Swift with SwiftUI
-- Migrated to Xcode, from Swift Playgrounds
-- Can be daily used
+Your all-in-one WFLA campus companion. A native iOS & macOS app for WFLA TSIMS, built with Swift and SwiftUI.
 
 ## Features
 
-- Today View
-	- [x] Upcoming & Current Class Countdown
-- Network / Account
-	- [x] Account
-	- [x] Relay Encryption
-- Clubs / CAS
-	- [x] Club Info
-	- [x] Club Member List (available with account)
-	- [x] Activity Record
-	- [x] Category Picker
-	- [x] Activity History View
-	- [x] Activity Management
-	- [x] New Activity Record
-- Academic
-	- [x] Academic Score
-	- [x] Class Countdown
-	- [x] Classtable
-- School Data
-	- [x] Weekly Arrangements
-	- [x] Lunch Menus
-- iOS Features
-	- [x] Classtable Widget Support
-	- [x] Live Activity Support
-- [ ] …
+### Today Dashboard
+- Current & upcoming class countdown with live progress ring
+- School day summary (assembly, arrival, lunch times)
+- Quick links to clubs, dining, activities, and reflections
+- Weather integration and location-aware travel time
+- Dynamic gradient backgrounds that adapt to your schedule context
 
-## URL Scheme Support
+### Academics
+- Full interactive classtable with day-by-day navigation
+- Academic score viewer
+- Live Activity support for class countdowns on Lock Screen & Dynamic Island
+- Home Screen widgets for at-a-glance schedule info
 
-Outspire supports URL schemes for deep linking into different parts of the app. You can use these to quickly access specific views or content.
+### CAS (Creativity, Activity, Service)
+- Browse club information and member lists
+- Log and manage activity records with category tagging
+- Write CAS reflections with learning outcome tracking
+- Activity history with search and filtering
 
-### URL Format
-`outspire://<path>/<parameter>`
+### School Life
+- Weekly school arrangements (PDF viewer)
+- Daily lunch menus
 
-### Supported Paths
+### Platform Integration
+- iOS 26 Liquid Glass design with adaptive materials
+- Home Screen widgets (WidgetKit)
+- Live Activities for class countdowns
+- Deep linking via URL schemes and universal links
+- Mac Catalyst support
 
-- **Today View**: `outspire://today`
-- **Class Table**: `outspire://classtable`
-- **Club Information**: `outspire://club/<clubId>`
-- **Add Activity**: `outspire://addactivity/<clubId>`
+## Tech Stack
 
-### Universal Links
+- **UI**: SwiftUI with custom design token system, SF Symbol effects, Liquid Glass (iOS 26+)
+- **Architecture**: MVVM with shared services (`AuthServiceV2`, `SessionService`, `ClasstableViewModel`)
+- **Networking**: URLSession with HTML parsing via SwiftSoup
+- **Dependencies**: SwiftSoup, swiftui-toasts, ColorfulX, SwiftOpenAI
+- **CI/CD**: GitHub Actions (build, test, lint, unsigned IPA artifacts)
 
-Outspire also supports universal links, which let you open the app directly from Safari or other apps using web URLs:
+## URL Schemes
 
-- **Today View**: `https://outspire.wrye.dev/app/today`
-- **Class Table**: `https://outspire.wrye.dev/app/classtable`
-- **Club Information**: `https://outspire.wrye.dev/app/club/<clubId>`
-- **Add Activity**: `https://outspire.wrye.dev/app/addactivity/<clubId>`
+```
+outspire://today              → Today view
+outspire://classtable         → Class table
+outspire://club/<clubId>      → Club information
+outspire://addactivity/<id>   → New activity record
+```
 
-### Examples
+Universal links are also supported via `https://outspire.wrye.dev/app/...`.
 
-- Open the app to the Today view: `outspire://today` or `https://outspire.wrye.dev/app/today`
-- Open a specific club's information: `outspire://club/89` or `https://outspire.wrye.dev/app/club/89`
-- Create a new activity record for a specific club: `outspire://addactivity/89` or `https://outspire.wrye.dev/app/addactivity/89`
+## Building
 
-Note: You must be signed in to access most of these features via URL schemes.
+Requires Xcode 16+ and iOS 17+ deployment target.
+
+```bash
+xcodebuild -project Outspire.xcodeproj -scheme Outspire \
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro' build
+```
 
 ## Terms of Service
 
-Outspire is built on the Web API of TSIMS, utilizing SwiftSoup for HTML parsing. 
+Outspire is built on the Web API of TSIMS, utilizing SwiftSoup for HTML parsing. This application is a personal experiment for educational purposes. Any potential issues caused by misuse of this application are not the responsibility of the author.
 
-This application is a personal experiment for educational purposes. Any potential issues caused by misuse of this application are not the responsibility of the author of Outspire.
-
-When you begin using the app, you agree not to use the App outside of its intended usage.
-
-If you encounter any issues, please create an issue or submit a pull request. If you like this project, please consider giving it a star! All kinds of contributions are welcome.
+When you begin using the app, you agree not to use the App outside of its intended usage. If you encounter any issues, please create an issue or submit a pull request.
 
 ## Privacy Policy
 
-Outspire doesn't collect any user data. All data will be transmitted between the data source, the relay instance, and your device if you’ve enabled Relay Encryption. Relay instance does not collect or store any user data.
+Outspire doesn't collect any user data. All data is transmitted between the data source, the relay instance, and your device. The relay instance does not collect or store any user data.
 
 ## License
 
-Outspire is licensed under the MIT license.
-
-All open-source third-party package licenses are maintained in [Outspire/Resources/ThirdPartyLicenses.txt](Outspire/Resources/ThirdPartyLicenses.txt).
+MIT License. Third-party licenses are listed in [Outspire/Resources/ThirdPartyLicenses.txt](Outspire/Resources/ThirdPartyLicenses.txt).
