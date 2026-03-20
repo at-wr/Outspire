@@ -17,7 +17,7 @@ struct SettingsGeneralView: View {
             Section {
                 Toggle(isOn: $useSSL) {
                     //                    HStack {
-                    Label("Enable HTTPS Relay", systemImage: "lock.square")
+                    Label("Enable HTTPS Relay", systemImage: "lock.fill")
 
                     //                        if connectivityManager.isCheckingConnectivity {
                     //                            ProgressView()
@@ -149,7 +149,6 @@ struct SettingsGeneralView: View {
         }
         .toggleStyle(.switch)
         .navigationTitle("General")
-        .toolbarBackground(Color(UIColor.secondarySystemBackground))
         .contentMargins(.vertical, 10.0)
         .confirmationDialog(
             "Clear Cache?",

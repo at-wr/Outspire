@@ -15,58 +15,111 @@ struct RootTabView: View {
     var body: some View {
         if authV2.isResolvingSession {
             ProgressView()
+        } else if #available(iOS 26.0, *) {
+            ios26TabView
         } else if #available(iOS 18.0, *) {
-            TabView(selection: $selectedTab) {
-                Tab("Today", systemImage: "text.rectangle.page", value: MainTab.today) {
-                    NavigationStack {
-                        TodayView()
-                    }
-                }
-
-                Tab("Class", systemImage: "calendar.day.timeline.left", value: MainTab.classtable) {
-                    NavigationStack {
-                        ModernClasstableView()
-                    }
-                }
-
-                Tab("Activities", systemImage: "checklist", value: MainTab.activities) {
-                    NavigationStack {
-                        ClubActivitiesView()
-                    }
-                }
-
-                Tab("Search", systemImage: "magnifyingglass", value: MainTab.search, role: .search) {
-                    NavigationStack {
-                        ExtraView()
-                    }
-                }
-            }
+            ios18TabView
         } else {
-            TabView(selection: $selectedTab) {
+            legacyTabView
+        }
+    }
+
+    // MARK: - iOS 26+ (Liquid Glass tab bar)
+
+    @available(iOS 26.0, *)
+    private var ios26TabView: some View {
+        TabView(selection: $selectedTab) {
+            Tab("Today", systemImage: "text.rectangle.page.fill", value: MainTab.today) {
                 NavigationStack {
                     TodayView()
                 }
-                .tabItem { Label("Today", systemImage: "text.rectangle.page") }
-                .tag(MainTab.today)
+            }
 
+            Tab("Class", systemImage: "calendar.day.timeline.left", value: MainTab.classtable) {
                 NavigationStack {
                     ModernClasstableView()
                 }
-                .tabItem { Label("Class", systemImage: "calendar.day.timeline.left") }
-                .tag(MainTab.classtable)
+            }
 
+            Tab("Activities", systemImage: "checklist.checked", value: MainTab.activities) {
                 NavigationStack {
                     ClubActivitiesView()
                 }
-                .tabItem { Label("Activities", systemImage: "checklist") }
-                .tag(MainTab.activities)
+            }
 
+            Tab("Explore", systemImage: "square.grid.2x2", value: MainTab.search) {
                 NavigationStack {
                     ExtraView()
                 }
-                .tabItem { Label("Search", systemImage: "magnifyingglass") }
-                .tag(MainTab.search)
             }
+        }
+        .tabViewStyle(.sidebarAdaptable)
+        .tabBarMinimizeBehavior(.onScrollDown)
+        .sensoryFeedback(.selection, trigger: selectedTab)
+    }
+
+    // MARK: - iOS 18+
+
+    @available(iOS 18.0, *)
+    private var ios18TabView: some View {
+        TabView(selection: $selectedTab) {
+            Tab("Today", systemImage: "text.rectangle.page.fill", value: MainTab.today) {
+                NavigationStack {
+                    TodayView()
+                }
+            }
+
+            Tab("Class", systemImage: "calendar.day.timeline.left", value: MainTab.classtable) {
+                NavigationStack {
+                    ModernClasstableView()
+                }
+            }
+
+            Tab("Activities", systemImage: "checklist.checked", value: MainTab.activities) {
+                NavigationStack {
+                    ClubActivitiesView()
+                }
+            }
+
+            Tab("Explore", systemImage: "square.grid.2x2", value: MainTab.search) {
+                NavigationStack {
+                    ExtraView()
+                }
+            }
+        }
+        .sensoryFeedback(.selection, trigger: selectedTab)
+    }
+
+    // MARK: - Legacy
+
+    private var legacyTabView: some View {
+        TabView(selection: $selectedTab) {
+            NavigationStack {
+                TodayView()
+            }
+            .tabItem { Label("Today", systemImage: "text.rectangle.page.fill") }
+            .tag(MainTab.today)
+
+            NavigationStack {
+                ModernClasstableView()
+            }
+            .tabItem { Label("Class", systemImage: "calendar.day.timeline.left") }
+            .tag(MainTab.classtable)
+
+            NavigationStack {
+                ClubActivitiesView()
+            }
+            .tabItem { Label("Activities", systemImage: "checklist.checked") }
+            .tag(MainTab.activities)
+
+            NavigationStack {
+                ExtraView()
+            }
+            .tabItem { Label("Explore", systemImage: "square.grid.2x2") }
+            .tag(MainTab.search)
+        }
+        .onChange(of: selectedTab) { _, _ in
+            HapticManager.shared.playSelectionFeedback()
         }
     }
 }

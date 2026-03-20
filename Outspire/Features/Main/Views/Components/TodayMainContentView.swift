@@ -46,52 +46,54 @@ struct TodayMainContentView: View {
             .padding(.horizontal)
     }
 
+    private var hasValidWeekdaySchedule: Bool {
+        effectiveDayIndex >= 0 && effectiveDayIndex < 5 && !classtableViewModel.timetable.isEmpty
+    }
+
     @ViewBuilder
     private var authenticatedContent: some View {
-        // Fixed-size VStack with spacing to prevent jittering
-        VStack(spacing: 20) {
-            // Main class card with fixed height to prevent layout shifts
-            ZStack {
-                if isHolidayActive {
-                    HolidayModeCard(hasEndDate: holidayHasEndDate, endDate: holidayEndDate)
-                } else if isLoading {
-                    UpcomingClassSkeletonView()
-                } else if let upcoming = upcomingClassInfo {
-                    ClassSummaryCard(
-                        day: TodayViewHelpers.weekdayName(for: upcoming.dayIndex + 1),
-                        period: upcoming.period,
-                        classData: upcoming.classData,
-                        isForToday: upcoming.isForToday
-                    )
-                } else if isCurrentDateWeekend {
-                    WeekendCard()
-                } else if areClassesOverForToday() {
+        VStack(spacing: AppSpace.lg) {
+            // Main content area
+            if isHolidayActive {
+                HolidayModeCard(hasEndDate: holidayHasEndDate, endDate: holidayEndDate)
+                    .padding(.horizontal)
+                    .staggeredEntry(index: 0, animate: animateCards)
+            } else if isLoading {
+                UpcomingClassSkeletonView()
+                    .padding(.horizontal)
+            } else if isCurrentDateWeekend {
+                WeekendCard()
+                    .padding(.horizontal)
+                    .staggeredEntry(index: 0, animate: animateCards)
+            } else if effectiveDayIndex < 0 || effectiveDayIndex >= 5 {
+                NoClassCard()
+                    .padding(.horizontal)
+                    .staggeredEntry(index: 0, animate: animateCards)
+            } else {
+                // Status banner when classes are over
+                if areClassesOverForToday() {
                     NoClassCard(isDimmed: true)
-                } else {
-                    NoClassCard()
-                        .transition(
-                            .asymmetric(
-                                insertion: .opacity.combined(with: .scale(scale: 0.97)).animation(
-                                    .spring(response: 0.5, dampingFraction: 0.7)),
-                                removal: .opacity.animation(.easeOut(duration: 0.25))
-                            )
-                        )
+                        .padding(.horizontal)
+                        .staggeredEntry(index: 0, animate: animateCards)
                 }
-            }
-            .padding(.horizontal)
 
-            // Quick links to common sections
+                // Schedule card — always visible on weekdays
+                UnifiedScheduleCard(
+                    viewModel: classtableViewModel,
+                    dayIndex: effectiveDayIndex,
+                    isForToday: selectedDayOverride == nil,
+                    setAsToday: setAsToday,
+                    effectiveDate: effectiveDate
+                )
+                .padding(.horizontal)
+                .staggeredEntry(index: 1, animate: animateCards)
+            }
+
+            // Quick links
             QuickLinksCard()
                 .padding(.horizontal)
-
-            // Show the schedule card
-            DailyScheduleCard(
-                viewModel: classtableViewModel,
-                dayIndex: effectiveDayIndex
-            )
-            .padding(.horizontal)
+                .staggeredEntry(index: 2, animate: animateCards)
         }
-        .glassContainer(spacing: 16)
     }
 
     @ViewBuilder

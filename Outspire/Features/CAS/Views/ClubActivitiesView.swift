@@ -121,9 +121,9 @@ struct ClubActivitiesView: View {
             )
         }
         .scrollContentBackground(.hidden)
-        // Avoid custom animations; rely on native behavior
+        .appBackground()
         .searchable(text: $activitySearch, prompt: "Search activities")
-        .refreshable(action: handleRefresh) // Fixed refreshable syntax
+        .refreshable(action: handleRefresh)
     }
 
     @ViewBuilder
@@ -415,13 +415,9 @@ struct ActivityCardView: View {
             }
             ReflectionView(text: activity.C_Reflection)
         }
-        .padding(.vertical, 10)
-        .padding(.horizontal, 12)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color(UIColor.tertiarySystemBackground))
-                .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
-        )
+        .padding(.vertical, 12)
+        .padding(.horizontal, 14)
+        .richCard(cornerRadius: 16, shadowRadius: 8)
         .contextMenu {
             Button(
                 role: .destructive,

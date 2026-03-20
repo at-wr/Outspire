@@ -375,18 +375,31 @@ struct ScoreView: View {
     }
 
     private var authenticationView: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 24) {
             Spacer()
 
-            Image(systemName: "lock.fill")
-                .font(.system(size: 60))
-                .foregroundStyle(.secondary)
+            VStack(spacing: 16) {
+                Image(systemName: "lock.fill")
+                    .font(.system(size: 48, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.9))
+                    .symbolRenderingMode(.hierarchical)
 
-            Text("Authentication Required")
-                .font(.title2)
+                Text("Authentication Required")
+                    .font(.title3.weight(.bold))
+                    .foregroundStyle(.white)
 
-            Text("Your academic records are protected.")
-                .foregroundStyle(.secondary)
+                Text("Your academic records are protected.")
+                    .font(.subheadline)
+                    .foregroundStyle(.white.opacity(0.8))
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 32)
+            .padding(.horizontal, 24)
+            .coloredRichCard(
+                colors: [AppColor.brand.opacity(0.9), AppColor.brand.opacity(0.7)],
+                cornerRadius: AppRadius.xl
+            )
+            .padding(.horizontal, 24)
 
             if viewModel.isLoading {
                 ProgressView()
@@ -596,9 +609,7 @@ struct SubjectScoreCard: View {
                 .transition(.opacity.animation(.easeInOut(duration: 0.2)))
             }
         }
-        .background(Color(UIColor.tertiarySystemBackground))
-        .cornerRadius(12)
-        .shadow(color: Color.black.opacity(0.03), radius: 1, x: 0, y: 1)
+        .richCard(cornerRadius: AppRadius.lg, shadowRadius: 10)
         .opacity(hasAnyScores ? 1 : 0.8)
         .animation(.easeInOut(duration: 0.25), value: isExpanded)
     }
@@ -606,11 +617,11 @@ struct SubjectScoreCard: View {
     private func scoreGradeColor(_ grade: String) -> Color {
         switch grade {
         case "A*", "A+":
-            return .purple
+            return Color(red: 0.85, green: 0.65, blue: 0.13) // gold
         case "A":
             return .indigo
         case "B":
-            return .blue
+            return .teal
         case "C":
             return .green
         case "D":

@@ -95,7 +95,7 @@ struct ReflectionsView: View {
             )
         }
         .scrollContentBackground(.hidden)
-        // Avoid custom animations; keep native behavior
+        .appBackground()
         .refreshable(action: handleRefresh)
     }
 

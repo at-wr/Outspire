@@ -272,14 +272,7 @@ struct NavigationColumnWidthModifier: ViewModifier {
                         windowScene.titlebar?.titleVisibility = .visible
                         windowScene.titlebar?.toolbar?.isVisible = true
 
-                        // Override Mac Catalyst settings for better appearance
-                        let sidebarAppearance = UINavigationBar.appearance(
-                            whenContainedInInstancesOf: [UISplitViewController.self])
-                        sidebarAppearance.scrollEdgeAppearance = UINavigationBarAppearance()
-                        sidebarAppearance.compactAppearance = UINavigationBarAppearance()
-                        sidebarAppearance.standardAppearance = UINavigationBarAppearance()
-
-                        // Set sidebar background to clear
+                        // Let system handle navigation bar appearance (Liquid Glass on iOS 26+)
                         UITableView.appearance().backgroundColor = .clear
                     }
                 }

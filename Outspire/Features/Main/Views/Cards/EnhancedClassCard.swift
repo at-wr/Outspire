@@ -98,123 +98,134 @@ struct EnhancedClassCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // Header with class info
-            HStack(alignment: .center) {
-                VStack(alignment: .leading, spacing: 2) {
-                    if isForToday {
-                        Text(isCurrentClass ? "Current Class" : "Upcoming Class")
-                            .font(AppText.title)
-                            .foregroundStyle(statusTextColor)
-                    } else {
-                        Text("Scheduled Class")
-                            .font(AppText.title)
-                            .foregroundStyle(statusTextColor)
+        HStack(spacing: 0) {
+            // Colored accent bar
+            RoundedRectangle(cornerRadius: 2.5)
+                .fill(statusColor.gradient)
+                .frame(width: 4)
+                .padding(.vertical, AppSpace.sm)
+                .shadow(color: statusColor.opacity(0.4), radius: 4, x: 0, y: 0)
+
+            VStack(alignment: .leading, spacing: 0) {
+                // Header with class info
+                HStack(alignment: .center) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        if isForToday {
+                            Text(isCurrentClass ? "Current Class" : "Upcoming Class")
+                                .font(AppText.cardTitle)
+                                .fontDesign(.rounded)
+                                .foregroundStyle(statusTextColor)
+                        } else {
+                            Text("Scheduled Class")
+                                .font(AppText.cardTitle)
+                                .fontDesign(.rounded)
+                                .foregroundStyle(statusTextColor)
+                        }
+
+                        Text("\(day) • Period \(period.number)")
+                            .font(AppText.meta)
+                            .foregroundStyle(secondaryTextColor)
                     }
 
-                    Text("\(day) • Period \(period.number)")
+                    Spacer()
+
+                    Text(period.timeRangeFormatted)
                         .font(AppText.meta)
                         .foregroundStyle(secondaryTextColor)
                 }
+                .padding([.horizontal, .top], AppSpace.cardSpacing)
 
-                Spacer()
+                // Class details
+                VStack(alignment: .leading, spacing: AppSpace.sm) {
+                    if let subject = classInfo.subject {
+                        Text(subject)
+                            .font(AppText.bodyBold)
 
-                Text(period.timeRangeFormatted)
-                    .font(AppText.meta)
-                    .padding(8)
-                    .background(
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(statusBackgroundColor)
-                    )
-                    .foregroundStyle(statusTextColor)
-            }
-            .padding([.horizontal, .top], 16)
-
-            // Class details
-            VStack(alignment: .leading, spacing: 12) {
-                if let subject = classInfo.subject {
-                    Text(subject)
-                        .font(AppText.body.weight(.bold))
-
-                    HStack(alignment: .top, spacing: 24) {
-                        Label {
-                            Text(classInfo.teacher ?? "")
-                                .lineLimit(1)
-                        } icon: {
-                            Image(systemName: "person.fill")
-                                .foregroundStyle(secondaryTextColor)
-                        }
-                        .font(AppText.meta)
-
-                        if let room = classInfo.room, !room.isEmpty {
+                        HStack(alignment: .top, spacing: AppSpace.xl) {
                             Label {
-                                Text(room)
+                                Text(classInfo.teacher ?? "")
                                     .lineLimit(1)
                             } icon: {
-                                Image(systemName: "mappin.circle.fill")
+                                Image(systemName: "person.fill")
                                     .foregroundStyle(secondaryTextColor)
+                                    .symbolRenderingMode(.hierarchical)
                             }
                             .font(AppText.meta)
+
+                            if let room = classInfo.room, !room.isEmpty {
+                                Label {
+                                    Text(room)
+                                        .lineLimit(1)
+                                } icon: {
+                                    Image(systemName: "mappin.circle.fill")
+                                        .foregroundStyle(secondaryTextColor)
+                                        .symbolRenderingMode(.hierarchical)
+                                }
+                                .font(AppText.meta)
+                            }
                         }
+                        .foregroundStyle(secondaryTextColor)
                     }
-                    .foregroundStyle(secondaryTextColor)
                 }
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 8)
-            .padding(.bottom, 16)
+                .padding(.horizontal, AppSpace.cardSpacing)
+                .padding(.top, AppSpace.xs)
+                .padding(.bottom, AppSpace.cardSpacing)
 
-            // Countdown section
-            if isForToday || setAsToday || Configuration.showCountdownForFutureClasses {
-                VStack(alignment: .leading, spacing: 4) {
-                    Divider()
-                        .padding(.horizontal, 16)
+                // Countdown section
+                if isForToday || setAsToday || Configuration.showCountdownForFutureClasses {
+                    VStack(alignment: .leading, spacing: AppSpace.xxs) {
+                        // Gradient divider
+                        Rectangle()
+                            .fill(
+                                LinearGradient(
+                                    colors: [statusColor.opacity(0.5), statusColor.opacity(0.1), .clear],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .frame(height: 1)
+                            .padding(.horizontal, AppSpace.cardSpacing)
 
-                    HStack(alignment: .center, spacing: 0) {
-                        HStack(spacing: 12) {
-                            // Timer icon with improved visibility
-                            ZStack {
-                                Circle()
-                                    .fill(statusBackgroundColor)
-                                    .frame(width: 36, height: 36)
-
+                        HStack(alignment: .center, spacing: 0) {
+                            HStack(spacing: AppSpace.sm) {
                                 Image(systemName: isCurrentClass ? "timer" : "hourglass")
                                     .font(.system(size: 18, weight: .medium))
-                                    .foregroundStyle(statusTextColor)
+                                    .foregroundStyle(statusColor)
+                                    .symbolRenderingMode(.hierarchical)
+                                    .contentTransition(.symbolEffect(.replace))
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(isCurrentClass ? "Class ends in" : "Class starts in")
+                                        .font(AppText.meta)
+                                        .foregroundStyle(secondaryTextColor)
+
+                                    Text(formattedCountdown)
+                                        .font(AppText.monoBody)
+                                        .foregroundStyle(statusTextColor)
+                                        .fixedSize(horizontal: true, vertical: false)
+                                        .frame(minWidth: 80, alignment: .leading)
+                                        .contentTransition(.numericText())
+                                        .transaction { t in
+                                            t.animation = .default
+                                        }
+                                }
                             }
+                            .padding(.leading, AppSpace.cardSpacing)
 
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(isCurrentClass ? "Class ends in" : "Class starts in")
-                                    .font(AppText.meta)
-                                    .foregroundStyle(secondaryTextColor)
+                            Spacer()
 
-                                Text(formattedCountdown)
-                                    .font(AppText.body.weight(.bold))
-                                    .foregroundStyle(statusTextColor)
-                                    .monospacedDigit()
-                                    .fixedSize(horizontal: true, vertical: false)
-                                    .frame(minWidth: 80, alignment: .leading)
-                                    .contentTransition(.numericText())
-                                    .transaction { t in
-                                        t.animation = .default
-                                    }
+                            if isCurrentClass && (isForToday || setAsToday) {
+                                EnhancedCircularProgressView(progress: circlePercent, accentColor: statusColor)
+                                    .frame(width: 42, height: 42)
+                                    .padding(.trailing, AppSpace.cardSpacing)
                             }
                         }
-                        .padding(.leading, 16)
-
-                        Spacer()
-
-                        if isCurrentClass && (isForToday || setAsToday) {
-                            EnhancedCircularProgressView(progress: circlePercent)
-                                .frame(width: 36, height: 36)
-                                .padding(.trailing, 16)
-                        }
+                        .padding(.vertical, 10)
                     }
-                    .padding(.vertical, 10)
                 }
             }
         }
-        .glassmorphicCard() // Replace custom background implementation with shared component
+        .elevatedCard(accentColor: statusColor)
         .onAppear {
             setupTimer()
             updateClassStatus()
@@ -584,16 +595,15 @@ struct EnhancedClassCard: View {
 // Circular progress view component
 private struct EnhancedCircularProgressView: View {
     let progress: Double
+    var accentColor: Color = .orange
     @Environment(\.colorScheme) private var colorScheme
 
-    // Better progress color for dark mode
     private var progressColor: Color {
-        colorScheme == .dark ? Color.white.opacity(0.8) : Color.orange
+        colorScheme == .dark ? Color.white.opacity(0.8) : accentColor
     }
 
-    // Better background color for the progress ring
     private var progressBackgroundColor: Color {
-        colorScheme == .dark ? Color.white.opacity(0.2) : Color.gray.opacity(0.25)
+        colorScheme == .dark ? Color.white.opacity(0.15) : accentColor.opacity(0.15)
     }
 
     var body: some View {
@@ -602,7 +612,7 @@ private struct EnhancedCircularProgressView: View {
             Circle()
                 .stroke(
                     progressBackgroundColor,
-                    lineWidth: 4
+                    lineWidth: 3.5
                 )
 
             // Progress circle
@@ -611,17 +621,18 @@ private struct EnhancedCircularProgressView: View {
                 .stroke(
                     progressColor,
                     style: StrokeStyle(
-                        lineWidth: 4,
+                        lineWidth: 3.5,
                         lineCap: .round
                     )
                 )
                 .rotationEffect(.degrees(-90))
                 .animation(.linear(duration: 0.1), value: progress)
+                // Subtle glow behind progress
+                .shadow(color: progressColor.opacity(0.4), radius: 4)
 
-            // Percentage text with better contrast
+            // Percentage text
             Text("\(Int(progress * 100))%")
-                .font(AppText.meta)
-                .fontWeight(.bold)
+                .font(.system(.caption2, design: .rounded).weight(.bold))
                 .foregroundStyle(colorScheme == .dark ? .white.opacity(0.8) : .secondary)
         }
     }

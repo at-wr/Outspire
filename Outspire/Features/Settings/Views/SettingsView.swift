@@ -2,7 +2,6 @@ import SwiftUI
 
 struct SettingsView: View {
     @Binding var showSettingsSheet: Bool
-    // When presented modally, show a close button. Default false for normal navigation.
     var isModal: Bool = false
     @EnvironmentObject var sessionService: SessionService
     @State private var viewRefreshID = UUID()
@@ -22,33 +21,20 @@ struct SettingsView: View {
 
     var body: some View {
         List {
-            // Account section
             Section {
                 NavigationLink(destination: destinationView(for: .account)) {
                     ProfileHeaderView()
                 }
             }
 
-            // General settings section
             Section {
-                NavigationLink(destination: destinationView(for: .general)) {
-                    MenuItemView(item: .general)
-                }
-                NavigationLink(destination: destinationView(for: .notifications)) {
-                    MenuItemView(item: .notifications)
-                }
-                NavigationLink(destination: destinationView(for: .gradients)) {
-                    MenuItemView(item: .gradients)
-                }
-                NavigationLink(destination: destinationView(for: .about)) {
-                    MenuItemView(item: .about)
-                }
-                NavigationLink(destination: destinationView(for: .license)) {
-                    MenuItemView(item: .license)
-                }
+                settingsLink(.general)
+                settingsLink(.notifications)
+                settingsLink(.gradients)
+                settingsLink(.about)
+                settingsLink(.license)
             }
 
-            // Links section
             Section {
                 ShareLink(
                     item: URL(string: "https://apps.apple.com/us/app/outspire/id6743143348")!,
@@ -56,23 +42,71 @@ struct SettingsView: View {
                         "\nCheck out Outspire, an app that makes your WFLA life easier!\nWidgets, Class countdowns, CAS... \n\nDownload now on the App Store."
                     )
                 ) {
-                    Label("Share Outspire", systemImage: "square.and.arrow.up")
-                        .foregroundStyle(.primary)
+                    HStack {
+                        Label {
+                            Text("Share Outspire")
+                                .foregroundStyle(.primary)
+                        } icon: {
+                            Image(systemName: "square.and.arrow.up.fill")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(.white)
+                                .frame(width: 30, height: 30)
+                                .background(
+                                    AppColor.brand.gradient,
+                                    in: RoundedRectangle(cornerRadius: 7, style: .continuous)
+                                )
+                        }
+                        Spacer()
+                        Image(systemName: "arrow.up.forward.square")
+                            .font(.caption.weight(.medium))
+                            .foregroundColor(AppColor.brand)
+                    }
                 }
 
                 Link(destination: URL(string: "https://outspire.wrye.dev")!) {
-                    Label("Website", systemImage: "globe")
-                        .foregroundStyle(.primary)
+                    HStack {
+                        Label {
+                            Text("Website")
+                                .foregroundStyle(.primary)
+                        } icon: {
+                            Image(systemName: "globe")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(.white)
+                                .frame(width: 30, height: 30)
+                                .background(
+                                    Color.indigo.gradient,
+                                    in: RoundedRectangle(cornerRadius: 7, style: .continuous)
+                                )
+                        }
+                        Spacer()
+                        Image(systemName: "arrow.up.right")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundColor(AppColor.brand)
+                    }
                 }
 
-                Link(
-                    destination: URL(
-                        string: "https://github.com/at-wr/Outspire/issues/new/choose")!
-                ) {
-                    Label("Report an Issue", systemImage: "exclamationmark.bubble")
-                        .foregroundStyle(.primary)
+                Link(destination: URL(string: "https://github.com/at-wr/Outspire/issues/new/choose")!) {
+                    HStack {
+                        Label {
+                            Text("Report an Issue")
+                                .foregroundStyle(.primary)
+                        } icon: {
+                            Image(systemName: "exclamationmark.bubble.fill")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(.white)
+                                .frame(width: 30, height: 30)
+                                .background(
+                                    Color.orange.gradient,
+                                    in: RoundedRectangle(cornerRadius: 7, style: .continuous)
+                                )
+                        }
+                        Spacer()
+                        Image(systemName: "arrow.up.right")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundColor(AppColor.brand)
+                    }
                 }
-            } footer: {}
+            }
 
             #if DEBUG
                 Section("Debug Tools") {
@@ -92,25 +126,14 @@ struct SettingsView: View {
         .id(viewRefreshID)
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.large)
-        .toolbarBackground(Color(UIColor.secondarySystemBackground))
         .toolbar {
             if isModal {
                 Button(action: {
                     HapticManager.shared.playButtonTap()
                     showSettingsSheet = false
                 }) {
-                    #if targetEnvironment(macCatalyst)
-                        Text("Close")
-                            .font(.system(size: 14, weight: .medium))
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 5)
-                            .background(Color(.tertiarySystemFill))
-                            .cornerRadius(6)
-                            .foregroundStyle(.primary)
-                    #else
-                        Image(systemName: "xmark")
-                            .foregroundStyle(.secondary)
-                    #endif
+                    Image(systemName: "xmark")
+                        .foregroundStyle(.secondary)
                 }
             }
         }
@@ -122,6 +145,12 @@ struct SettingsView: View {
         }
         .sheet(isPresented: $showOnboardingSheet) {
             OnboardingView(isPresented: $showOnboardingSheet)
+        }
+    }
+
+    private func settingsLink(_ item: SettingsMenu) -> some View {
+        NavigationLink(destination: destinationView(for: item)) {
+            MenuItemView(item: item)
         }
     }
 
@@ -157,6 +186,5 @@ struct AccountWithNavigation: View {
         }
         .navigationTitle("Account")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(Color(UIColor.secondarySystemBackground))
     }
 }
