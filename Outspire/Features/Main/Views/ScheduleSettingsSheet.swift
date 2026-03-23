@@ -40,8 +40,7 @@ struct ScheduleSettingsSheet: View {
                         .foregroundStyle(.secondary)
 
                     Text("Authentication Required")
-                        .font(.title2)
-                        .bold()
+                        .font(AppText.title)
 
                     Text("Please sign in to access schedule settings")
                         .foregroundStyle(.secondary)

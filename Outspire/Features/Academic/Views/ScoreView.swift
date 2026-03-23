@@ -26,12 +26,13 @@ struct ScoreView: View {
                 .transition(.opacity)
             } else if viewModel.isUnlocked {
                 mainContent
-                    .transition(.opacity)
+                    .transition(.opacity.combined(with: .offset(y: -10)))
             } else {
                 authenticationView
-                    .transition(.opacity)
+                    .transition(.opacity.combined(with: .offset(y: 10)))
             }
         }
+        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: viewModel.isUnlocked)
         .navigationTitle("Academic Grades")
         .toolbar {
             toolbarItems
@@ -285,6 +286,7 @@ struct ScoreView: View {
                     .padding(.top)
                     .id(viewModel.selectedTermId) // This ensures scrolling resets when term changes
                 }
+                .applyScrollEdgeEffect()
                 .refreshable {
                     // Reset animation state
                     animateIn = false

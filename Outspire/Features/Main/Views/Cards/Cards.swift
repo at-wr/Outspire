@@ -1,10 +1,29 @@
 import CoreLocation
 import SwiftUI
 
+// MARK: - Breathe/Pulse Compatibility
+
+private struct BreatheOrPulseModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 18, *) {
+            content.symbolEffect(.breathe, isActive: true)
+        } else {
+            content.symbolEffect(.pulse, isActive: true)
+        }
+    }
+}
+
+private extension View {
+    func breatheOrPulse() -> some View {
+        modifier(BreatheOrPulseModifier())
+    }
+}
+
 // MARK: - Status Cards (Rich colored fills with depth)
 
 struct NoClassCard: View {
     let isDimmed: Bool
+    @State private var appeared = false
 
     init(isDimmed: Bool = false) {
         self.isDimmed = isDimmed
@@ -23,7 +42,8 @@ struct NoClassCard: View {
                     .font(.system(size: 40, weight: .medium))
                     .foregroundStyle(.white.opacity(0.9))
                     .symbolRenderingMode(.hierarchical)
-                    .symbolEffect(.pulse, isActive: true)
+                    .symbolEffect(.bounce, value: appeared)
+                    .onAppear { appeared = true }
 
                 Spacer().frame(height: AppSpace.xs)
 
@@ -58,7 +78,7 @@ struct WeekendCard: View {
                     .font(.system(size: 40, weight: .medium))
                     .foregroundStyle(.white.opacity(0.9))
                     .symbolRenderingMode(.hierarchical)
-                    .symbolEffect(.pulse, isActive: true)
+                    .breatheOrPulse()
 
                 Spacer().frame(height: AppSpace.xs)
 
@@ -101,7 +121,7 @@ struct HolidayModeCard: View {
                     .font(.system(size: 40, weight: .medium))
                     .foregroundStyle(.white.opacity(0.9))
                     .symbolRenderingMode(.hierarchical)
-                    .symbolEffect(.pulse, isActive: true)
+                    .breatheOrPulse()
 
                 Spacer().frame(height: AppSpace.xs)
 
@@ -552,7 +572,7 @@ struct SelfStudyPeriodCard: View {
                 .font(.system(size: 44))
                 .foregroundStyle(.purple)
                 .symbolRenderingMode(.hierarchical)
-                .symbolEffect(.pulse, isActive: true)
+                .breatheOrPulse()
 
             VStack(spacing: AppSpace.xxs) {
                 Text("Self-Study Period")
@@ -599,7 +619,7 @@ struct LunchBreakCard: View {
                 .font(.system(size: 44))
                 .foregroundStyle(.orange)
                 .symbolRenderingMode(.hierarchical)
-                .symbolEffect(.pulse, isActive: true)
+                .breatheOrPulse()
 
             VStack(spacing: AppSpace.xxs) {
                 Text("Lunch Break")

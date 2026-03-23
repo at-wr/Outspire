@@ -14,6 +14,9 @@ let appVersion = Bundle.main.releaseVersionNumber
 let appBuild = Bundle.main.buildVersionNumber
 
 struct AboutView: View {
+    @State private var animateEntrance = false
+    @State private var iconAppeared = false
+
     var body: some View {
         List {
             // Hero section
@@ -26,6 +29,9 @@ struct AboutView: View {
                             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                             .shadow(color: .black.opacity(0.15), radius: 12, y: 6)
                             .shadow(color: AppColor.brand.opacity(0.15), radius: 8, y: 4)
+                            .scaleEffect(iconAppeared ? 1.0 : 0.85)
+                            .opacity(iconAppeared ? 1.0 : 0)
+                            .animation(.spring(response: 0.6, dampingFraction: 0.7), value: iconAppeared)
                     }
 
                     VStack(spacing: 4) {
@@ -54,6 +60,7 @@ struct AboutView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
             }
+            .staggeredEntry(index: 0, animate: animateEntrance)
 
             Section("Developer") {
                 Label {
@@ -66,12 +73,14 @@ struct AboutView: View {
                         .background(Color.blue.gradient, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
                 }
             }
+            .staggeredEntry(index: 1, animate: animateEntrance)
 
             Section("Data Sources") {
                 aboutRow("TSIMS for WFLA Int'l", icon: "server.rack", color: .indigo)
                 aboutRow("WFLMS.cn", icon: "globe", color: .teal)
                 aboutRow(" Weather", icon: "cloud.sun.fill", color: .orange)
             }
+            .staggeredEntry(index: 2, animate: animateEntrance)
 
             Section {
                 aboutLink("Feelin' Lucky", icon: "dice.fill", color: .pink, url: "https://object-battle.netlify.app/")
@@ -95,6 +104,11 @@ struct AboutView: View {
                     url: "https://github.com/at-wr/Outspire/"
                 )
             }
+            .staggeredEntry(index: 3, animate: animateEntrance)
+        }
+        .onAppear {
+            animateEntrance = true
+            iconAppeared = true
         }
         .navigationTitle("About")
         .contentMargins(.vertical, 10.0)
