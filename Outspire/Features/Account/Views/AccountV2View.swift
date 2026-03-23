@@ -5,6 +5,8 @@ struct AccountV2View: View {
     @Environment(\.presentToast) var presentToast
     @StateObject var viewModel = AccountV2ViewModel()
     @State private var showLogoutConfirmation = false
+    @State private var heroAppeared = false
+    @State private var animateLogin = false
     @FocusState private var focusedField: Field?
 
     enum Field { case code, password }
@@ -13,10 +15,13 @@ struct AccountV2View: View {
         Group {
             if viewModel.isAuthenticated {
                 loggedInView
+                    .transition(.opacity.combined(with: .scale(scale: 0.98)))
             } else {
                 loginView
+                    .transition(.opacity.combined(with: .scale(scale: 0.98)))
             }
         }
+        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: viewModel.isAuthenticated)
         .onChange(of: viewModel.errorMessage) { _, msg in showToast(msg, isError: true) }
         .onChange(of: viewModel.successMessage) { _, msg in showToast(msg, isError: false) }
     }
@@ -31,6 +36,8 @@ struct AccountV2View: View {
                     .font(.system(size: 56, weight: .light))
                     .foregroundStyle(AppColor.brand.gradient)
                     .shadow(color: AppColor.brand.opacity(0.3), radius: 12, y: 6)
+                    .symbolEffect(.bounce, value: heroAppeared)
+                    .staggeredEntry(index: 0, animate: animateLogin)
 
                 VStack(spacing: 6) {
                     Text("Welcome")
@@ -39,6 +46,7 @@ struct AccountV2View: View {
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
+                .staggeredEntry(index: 1, animate: animateLogin)
 
                 // Input fields
                 VStack(spacing: 14) {
@@ -63,6 +71,7 @@ struct AccountV2View: View {
                         .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous))
                 }
                 .padding(.horizontal, 4)
+                .staggeredEntry(index: 2, animate: animateLogin)
 
                 // Sign in button
                 Button(action: login) {
@@ -86,12 +95,17 @@ struct AccountV2View: View {
                 }
                 .disabled(viewModel.isLoggingIn)
                 .buttonStyle(.pressableCard)
+                .staggeredEntry(index: 3, animate: animateLogin)
 
                 Spacer()
             }
             .padding(.horizontal, 24)
         }
         .navigationTitle("Account")
+        .onAppear {
+            heroAppeared = true
+            animateLogin = true
+        }
     }
 
     private var loggedInView: some View {

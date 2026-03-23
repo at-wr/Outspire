@@ -33,6 +33,7 @@ struct ExtraView: View {
             }
         }
         .listStyle(.insetGrouped)
+        .applyScrollEdgeEffect()
         .navigationTitle("Explore")
         .navigationBarTitleDisplayMode(.large)
         .searchable(text: $query, prompt: "Search")

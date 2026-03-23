@@ -513,10 +513,10 @@ struct ClubInfoView: View {
                     .padding(.bottom, 8)
 
                 Text("Club Information")
-                    .font(.headline)
+                    .font(AppText.sectionTitle)
 
                 Text("Select a category to view available clubs")
-                    .font(.subheadline)
+                    .font(AppText.label)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
             }
@@ -534,10 +534,10 @@ struct ClubInfoView: View {
                     .padding(.bottom, 8)
 
                 Text("No clubs available")
-                    .font(.headline)
+                    .font(AppText.sectionTitle)
 
                 Text("There are no clubs in this category")
-                    .font(.subheadline)
+                    .font(AppText.label)
                     .foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity)
@@ -601,7 +601,7 @@ struct ClubInfoView: View {
             if !viewModel.members.isEmpty {
                 Text("(\(viewModel.members.count))")
                     .foregroundStyle(.secondary)
-                    .font(.subheadline)
+                    .font(AppText.label)
             }
         }
     }
@@ -968,7 +968,7 @@ struct MemberInfo: View {
             HStack(spacing: 4) {
                 // Member name
                 Text(member.S_Name)
-                    .font(.body)
+                    .font(AppText.body)
                     .fontWeight(
                         member.LeaderYes == "2" || member.LeaderYes == "1" ? .medium : .regular
                     )
@@ -977,7 +977,7 @@ struct MemberInfo: View {
                 // Nickname if available
                 if let nickname = member.S_Nickname, !nickname.isEmpty {
                     Text("(\(nickname))")
-                        .font(.subheadline)
+                        .font(AppText.label)
                         .foregroundStyle(.secondary)
                 }
 
@@ -999,7 +999,7 @@ struct MemberInfo: View {
 struct UserBadge: View {
     var body: some View {
         Text("You")
-            .font(.caption)
+            .font(AppText.caption)
             .foregroundStyle(.blue)
             .padding(.horizontal, 8)
             .padding(.vertical, 2)
@@ -1015,7 +1015,7 @@ struct LeadershipBadge: View {
 
     var body: some View {
         Text(isPresident ? "President" : "Vice President")
-            .font(.caption)
+            .font(AppText.caption)
             .foregroundStyle(isPresident ? .red : .orange)
             .padding(.horizontal, 8)
             .padding(.vertical, 2)
@@ -1033,7 +1033,7 @@ struct ClubSkeletonView: View {
             // Club info skeleton
             VStack(alignment: .leading, spacing: 12) {
                 Text("Club Information")
-                    .font(.headline)
+                    .font(AppText.sectionTitle)
                     .foregroundStyle(.clear)
 
                 ForEach(0 ..< 3, id: \.self) { _ in
@@ -1068,7 +1068,7 @@ struct ClubSkeletonView: View {
             // Member list skeleton
             VStack(alignment: .leading, spacing: 12) {
                 Text("Members")
-                    .font(.headline)
+                    .font(AppText.sectionTitle)
                     .foregroundStyle(.clear)
 
                 ForEach(0 ..< 5, id: \.self) { _ in

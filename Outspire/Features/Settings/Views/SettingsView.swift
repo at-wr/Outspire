@@ -6,6 +6,7 @@ struct SettingsView: View {
     @EnvironmentObject var sessionService: SessionService
     @State private var viewRefreshID = UUID()
     @State private var showOnboardingSheet = false
+    @State private var animateEntrance = false
 
     enum SettingsMenu: String, Hashable, CaseIterable {
         case account
@@ -26,6 +27,7 @@ struct SettingsView: View {
                     ProfileHeaderView()
                 }
             }
+            .staggeredEntry(index: 0, animate: animateEntrance)
 
             Section {
                 settingsLink(.general)
@@ -34,6 +36,7 @@ struct SettingsView: View {
                 settingsLink(.about)
                 settingsLink(.license)
             }
+            .staggeredEntry(index: 1, animate: animateEntrance)
 
             Section {
                 ShareLink(
@@ -107,6 +110,7 @@ struct SettingsView: View {
                     }
                 }
             }
+            .staggeredEntry(index: 2, animate: animateEntrance)
 
             #if DEBUG
                 Section("Debug Tools") {
@@ -121,9 +125,12 @@ struct SettingsView: View {
                             .foregroundStyle(.primary)
                     }
                 }
+                .staggeredEntry(index: 3, animate: animateEntrance)
             #endif
         }
         .id(viewRefreshID)
+        .applyScrollEdgeEffect()
+        .onAppear { animateEntrance = true }
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.large)
         .toolbar {

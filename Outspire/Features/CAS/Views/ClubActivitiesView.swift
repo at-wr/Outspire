@@ -328,10 +328,10 @@ struct ClubEmptyStateView: View {
                 .foregroundStyle(.quaternary)
                 .padding(.bottom, 8)
             Text("No activity records available")
-                .font(.headline)
+                .font(AppText.sectionTitle)
                 .foregroundStyle(.secondary)
             Text("Add a new activity using the + button")
-                .font(.subheadline)
+                .font(AppText.label)
                 .foregroundStyle(.tertiary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
@@ -383,7 +383,7 @@ struct ActivityCardView: View {
             VStack(alignment: .leading, spacing: 6) {
                 HStack(alignment: .center, spacing: 8) {
                     Text(activity.C_Theme)
-                        .font(.headline)
+                        .font(AppText.sectionTitle)
                         .lineLimit(1)
                     Spacer()
                     if let status = activity.C_IsConfirm, status == 1 {
@@ -394,7 +394,7 @@ struct ActivityCardView: View {
                     }
                 }
                 Text("Date: \(formatDate(activity.C_Date))")
-                    .font(.subheadline)
+                    .font(AppText.label)
                     .foregroundStyle(.secondary)
             }
             HStack(spacing: 8) {
@@ -406,7 +406,7 @@ struct ActivityCardView: View {
                     .transition(.scale)
                 Spacer()
                 Text("Total: \(String(format: "%.1f", totalDuration))h")
-                    .font(.caption)
+                    .font(AppText.caption)
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
@@ -502,11 +502,10 @@ struct ReflectionView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Reflection")
-                .font(.subheadline)
-                .fontWeight(.medium)
+                .font(AppText.label)
                 .foregroundStyle(.secondary)
             Text(text)
-                .font(.body)
+                .font(AppText.body)
                 .lineLimit(isExpanded ? nil : 3)
                 .foregroundStyle(.primary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -519,7 +518,7 @@ struct ReflectionView: View {
                 } label: {
                     HStack(spacing: 4) {
                         Text(isExpanded ? "Show Less" : "Show More")
-                            .font(.caption)
+                            .font(AppText.caption)
                             .foregroundStyle(.blue)
                         Image(systemName: "chevron.down")
                             .font(.caption)
