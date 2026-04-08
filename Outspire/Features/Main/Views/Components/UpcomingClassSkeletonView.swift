@@ -1,8 +1,6 @@
 import SwiftUI
 
 struct UpcomingClassSkeletonView: View {
-    @State private var isAnimating = false
-
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             // Header skeleton
@@ -62,39 +60,20 @@ struct UpcomingClassSkeletonView: View {
                 .padding(.horizontal, 16)
                 .padding(.top, 12)
 
-            // Countdown skeleton
-            HStack {
-                HStack(spacing: 12) {
-                    Circle()
-                        .fill(Color.gray.opacity(0.2))
-                        .frame(width: 36, height: 36)
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(Color.gray.opacity(0.2))
-                            .frame(width: 80, height: 12)
-
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(Color.gray.opacity(0.2))
-                            .frame(width: 60, height: 20)
-                    }
-                }
-
-                Spacer()
+            // Loading message
+            HStack(spacing: 8) {
+                ProgressView()
+                    .controlSize(.small)
+                Text("Loading schedule...")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
+            .frame(maxWidth: .infinity, alignment: .center)
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
         }
         .padding(.vertical, 8)
         .paddedGlassmorphicCard(horizontalPadding: 0, verticalPadding: 0)
-        .opacity(isAnimating ? 0.6 : 1)
-        .animation(
-            Animation.easeInOut(duration: 1.2)
-                .repeatForever(autoreverses: true),
-            value: isAnimating
-        )
-        .onAppear {
-            isAnimating = true
-        }
+        .shimmering()
     }
 }

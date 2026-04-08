@@ -26,9 +26,6 @@ struct OutspireApp: App {
     // Add connectivity manager
     @StateObject private var connectivityManager = ConnectivityManager.shared
 
-    // Add observer for widget data updates
-    @StateObject private var widgetDataManager = WidgetDataManager()
-
     @UIApplicationDelegateAdaptor(OutspireAppDelegate.self) var appDelegate
 
     // Add URL scheme handler
@@ -46,12 +43,6 @@ struct OutspireApp: App {
             Configuration.useSSL = false
         }
 
-        // Register the Live Activity widget
-        #if !targetEnvironment(macCatalyst)
-            if #available(iOS 16.1, *) {
-                LiveActivityRegistration.registerLiveActivities()
-            }
-        #endif
     }
 
     var body: some Scene {
@@ -67,13 +58,10 @@ struct OutspireApp: App {
                 .environmentObject(gradientManager) // Add gradient manager to environment
                 .environmentObject(connectivityManager) // Add connectivity manager
                 .installToast(position: .top)
-                .environmentObject(widgetDataManager)
                 .withConnectivityAlerts() // Add the connectivity alerts
                 .onAppear {
                     // One-time auth migration for v0.7+ (forces re-sign-in for pre-0.7 users)
                     MigrationManager.shared.performAuthMigrationIfNeeded()
-                    // Setup widget data sharing
-                    setupWidgetDataSharing()
                     // Setup URL Scheme Handler
                     URLSchemeHandler.shared.setAppReady()
                     // Start connectivity monitoring
@@ -130,60 +118,6 @@ struct OutspireApp: App {
             }
         }
         #endif
-    }
-
-    private func setupWidgetDataSharing() {
-        // Ensure app group container exists
-        guard UserDefaults(suiteName: "group.dev.wrye.Outspire") != nil else {
-            Log.widget.error("Failed to access app group container")
-            return
-        }
-
-        // Share authentication state with widgets (prefer new TSIMS auth)
-        widgetDataManager.updateAuthenticationState(
-            isAuthenticated: AuthServiceV2.shared.isAuthenticated || sessionService.isAuthenticated
-        )
-
-        // Share holiday mode settings with widgets
-        widgetDataManager.updateHolidayMode(
-            isEnabled: Configuration.isHolidayMode,
-            hasEndDate: Configuration.holidayHasEndDate,
-            endDate: Configuration.holidayEndDate
-        )
-
-        // Observe authentication changes
-        NotificationCenter.default.addObserver(
-            forName: .authStateDidChange, object: nil, queue: .main
-        ) { _ in
-            self.widgetDataManager.updateAuthenticationState(
-                isAuthenticated: AuthServiceV2.shared.isAuthenticated || self.sessionService.isAuthenticated)
-        }
-        NotificationCenter.default.addObserver(
-            forName: .authenticationStatusChanged, object: nil, queue: .main
-        ) { _ in
-            self.widgetDataManager.updateAuthenticationState(
-                isAuthenticated: AuthServiceV2.shared.isAuthenticated || self.sessionService.isAuthenticated)
-        }
-
-        // Observe holiday mode changes
-        NotificationCenter.default.addObserver(
-            forName: .holidayModeDidChange, object: nil, queue: .main
-        ) { _ in
-            self.widgetDataManager.updateHolidayMode(
-                isEnabled: Configuration.isHolidayMode,
-                hasEndDate: Configuration.holidayHasEndDate,
-                endDate: Configuration.holidayEndDate
-            )
-        }
-
-        // Observe timetable data changes
-        NotificationCenter.default.addObserver(
-            forName: .timetableDataDidChange, object: nil, queue: .main
-        ) { notification in
-            if let timetable = notification.userInfo?["timetable"] as? [[String]] {
-                self.widgetDataManager.updateTimetableData(timetable: timetable)
-            }
-        }
     }
 
     // Handle incoming URL schemes
@@ -292,12 +226,6 @@ class OutspireAppDelegate: NSObject, UIApplicationDelegate {
     }
 
     func applicationWillTerminate(_ application: UIApplication) {
-        #if !targetEnvironment(macCatalyst)
-            // Clean up Live Activities
-            if #available(iOS 16.1, *) {
-                ClassActivityManager.shared.cleanup()
-            }
-        #endif
     }
 
     // Handle URL scheme when app is launched from a URL
@@ -308,36 +236,6 @@ class OutspireAppDelegate: NSObject, UIApplicationDelegate {
     }
 }
 
-// Widget Data Manager for sharing data with widgets
-class WidgetDataManager: ObservableObject {
-    private let appGroupDefaults = UserDefaults(suiteName: "group.dev.wrye.Outspire")
-
-    init() {
-        // Initialize with default values
-        updateAuthenticationState(isAuthenticated: false)
-    }
-
-    // Update authentication state for widgets
-    func updateAuthenticationState(isAuthenticated: Bool) {
-        appGroupDefaults?.set(isAuthenticated, forKey: "isAuthenticated")
-    }
-
-    // Update timetable data for widgets
-    func updateTimetableData(timetable: [[String]]) {
-        if let encoded = try? JSONEncoder().encode(timetable) {
-            appGroupDefaults?.set(encoded, forKey: "widgetTimetableData")
-        }
-    }
-
-    // Update holiday mode settings for widgets
-    func updateHolidayMode(isEnabled: Bool, hasEndDate: Bool, endDate: Date) {
-        appGroupDefaults?.set(isEnabled, forKey: "isHolidayMode")
-        appGroupDefaults?.set(hasEndDate, forKey: "holidayHasEndDate")
-        appGroupDefaults?.set(endDate, forKey: "holidayEndDate")
-    }
-}
-
-// Notification names for widget data updates
 extension Notification.Name {
     static let authStateDidChange = Notification.Name("authStateDidChange")
     static let holidayModeDidChange = Notification.Name("holidayModeDidChange")
@@ -346,19 +244,3 @@ extension Notification.Name {
     static let tsimsV2Unauthorized = Notification.Name("tsimsV2Unauthorized")
     static let tsimsV2ReauthFailed = Notification.Name("tsimsV2ReauthFailed")
 }
-
-/// Helper class to register Live Activities
-#if !targetEnvironment(macCatalyst)
-    @available(iOS 16.1, *)
-    class LiveActivityRegistration {
-        static func registerLiveActivities() {
-            // We don't directly reference the OutspireWidgetLiveActivity class here
-            // Instead we just ensure the ClassActivityAttributes type is ready
-            _ = ClassActivityAttributes(
-                className: "",
-                roomNumber: "",
-                teacherName: ""
-            )
-        }
-    }
-#endif

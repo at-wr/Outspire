@@ -65,7 +65,7 @@ struct UnifiedScheduleCard: View {
 
         return VStack(alignment: .leading, spacing: 0) {
             // Colored header
-            HStack(alignment: .center) {
+            HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("\(dayName)'s Schedule")
                         .font(.title3.weight(.bold))
@@ -74,22 +74,23 @@ struct UnifiedScheduleCard: View {
                         .font(.subheadline.weight(.medium))
                         .foregroundStyle(.white.opacity(0.75))
                 }
-
                 Spacer()
-
-                Text("\(scheduledPeriods.count)")
-                    .font(.system(size: 32, weight: .heavy, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.3))
             }
             .padding(.horizontal, 22)
             .padding(.vertical, 20)
+            .overlay(alignment: .trailing) {
+                Text("\(scheduledPeriods.count)")
+                    .font(.system(size: 120, weight: .black, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.18))
+                    .offset(x: 12, y: 8)
+            }
+            .clipped()
             .background(
                 LinearGradient(
                     colors: [accentColor, accentColor.opacity(0.8)],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
-                // Top edge highlight
                 .overlay(alignment: .top) {
                     LinearGradient(
                         colors: [.white.opacity(0.2), .clear],

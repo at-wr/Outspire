@@ -4,8 +4,6 @@ import UserNotifications
 struct SettingsNotificationsView: View {
     @State private var departureNotificationsEnabled = Configuration.departureNotificationsEnabled
     @State private var departureNotificationTime = Configuration.departureNotificationTime
-    @State private var automaticallyStartLiveActivities = Configuration
-        .automaticallyStartLiveActivities
     @State private var isRequestingPermission = false
     @State private var permissionDenied = false
     @State private var notificationStatus: UNAuthorizationStatus = .notDetermined
@@ -96,23 +94,6 @@ struct SettingsNotificationsView: View {
                 .foregroundColor(.secondary)
             }
 
-            Section {
-                Toggle(isOn: $automaticallyStartLiveActivities) {
-                    Label("Automatic Live Activities", systemImage: "bolt")
-                }
-                .onChange(of: automaticallyStartLiveActivities) { _, newValue in
-                    Configuration.automaticallyStartLiveActivities = newValue
-                }
-                .disabled(notificationStatus == .denied)
-            } header: {
-                Text("Live Activities")
-            } footer: {
-                Text(
-                    "Enable to automatically start Live Activities for your classes."
-                )
-                .font(.footnote)
-                .foregroundColor(.secondary)
-            }
         }
         .toggleStyle(.switch)
         .navigationTitle("Notifications")
