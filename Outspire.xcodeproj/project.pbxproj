@@ -33,9 +33,6 @@
 		};
 /* End PBXContainerItemProxy section */
 
-/* Begin PBXCopyFilesBuildPhase section */
-/* End PBXCopyFilesBuildPhase section */
-
 /* Begin PBXFileReference section */
 		6ED03A502D84647300C81CF9 /* Outspire.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Outspire.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6ED03A612D84647400C81CF9 /* OutspireTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OutspireTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -457,7 +454,7 @@
 				CODE_SIGN_ENTITLEMENTS = Outspire/Outspire.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 64;
+				CURRENT_PROJECT_VERSION = 65;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Outspire/Preview Content\"";
 				DEVELOPMENT_TEAM = SEWGNELGY8;
@@ -527,7 +524,7 @@
 				CODE_SIGN_ENTITLEMENTS = Outspire/Outspire.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 64;
+				CURRENT_PROJECT_VERSION = 65;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Outspire/Preview Content\"";
 				DEVELOPMENT_TEAM = SEWGNELGY8;
@@ -593,7 +590,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 64;
+				CURRENT_PROJECT_VERSION = 65;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = SEWGNELGY8;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -618,7 +615,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 64;
+				CURRENT_PROJECT_VERSION = 65;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = SEWGNELGY8;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -642,7 +639,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 64;
+				CURRENT_PROJECT_VERSION = 65;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = SEWGNELGY8;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -666,7 +663,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 64;
+				CURRENT_PROJECT_VERSION = 65;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = SEWGNELGY8;
 				GENERATE_INFOPLIST_FILE = YES;

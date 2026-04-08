@@ -1,4 +1,3 @@
-import CoreLocation
 import SwiftUI
 
 // MARK: - Breathe/Pulse Compatibility
@@ -200,69 +199,6 @@ private struct SummaryItem: View {
                 .minimumScaleFactor(0.7)
         }
         .frame(maxWidth: .infinity)
-    }
-}
-
-// School information card (legacy)
-struct SchoolInfoCard: View {
-    let assemblyTime: String
-    let arrivalTime: String
-    let travelInfo: (travelTime: TimeInterval?, distance: CLLocationDistance?)?
-    let isInChina: Bool
-    let isReturningFromSheet: Bool
-
-    @State private var isTravelInfoVisible: Bool = false
-
-    init(
-        assemblyTime: String,
-        arrivalTime: String,
-        travelInfo: (travelTime: TimeInterval?, distance: CLLocationDistance?)?,
-        isInChina: Bool,
-        isReturningFromSheet: Bool = false
-    ) {
-        self.assemblyTime = assemblyTime
-        self.arrivalTime = arrivalTime
-        self.travelInfo = travelInfo
-        self.isInChina = isInChina
-        self.isReturningFromSheet = isReturningFromSheet
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: AppSpace.cardSpacing) {
-            HStack {
-                Label("Information", systemImage: "info.circle")
-                    .font(AppText.sectionTitle)
-                    .fontDesign(.rounded)
-                    .foregroundStyle(.primary)
-
-                Spacer()
-
-                if let travelInfo = travelInfo,
-                   let travelTime = travelInfo.travelTime,
-                   let distance = travelInfo.distance
-                {
-                    let significantChange = Int(travelTime / 60)
-
-                    TravelTimeInfoView(
-                        travelTime: travelTime,
-                        distance: distance
-                    )
-                    .id("travel-\(significantChange)")
-                }
-            }
-
-            SubtleDivider()
-
-            VStack(spacing: AppSpace.sm) {
-                InfoRow(icon: "door.left.hand.open", title: "Arrival Time", value: arrivalTime, color: .purple)
-                InfoRow(icon: "bell.fill", title: "Morning Assembly", value: assemblyTime, color: .blue)
-                InfoRow(icon: "fork.knife", title: "Lunch Break", value: "11:30 - 12:30", color: .orange)
-                InfoRow(icon: "figure.walk", title: "After School Activities", value: "16:30 - 18:00", color: .green)
-            }
-        }
-        .padding(AppSpace.cardSpacing)
-        .richCard()
-        .onAppear { isTravelInfoVisible = true }
     }
 }
 

@@ -1,7 +1,5 @@
-import CoreLocation
 import Foundation
 import SwiftUI
-import WeatherKit
 
 // Removed ColorfulX usage in favor of system materials
 
@@ -11,8 +9,6 @@ struct TodayView: View {
     @EnvironmentObject var sessionService: SessionService
     @StateObject private var classtableViewModel = ClasstableViewModel()
     @ObservedObject private var authV2 = AuthServiceV2.shared
-    @ObservedObject private var locationManager = LocationManager.shared
-    @ObservedObject private var regionChecker = RegionChecker.shared
     @EnvironmentObject var urlSchemeHandler: URLSchemeHandler
     @EnvironmentObject var gradientManager: GradientManager
 
@@ -27,13 +23,8 @@ struct TodayView: View {
     @State private var holidayHasEndDate: Bool = Configuration.holidayHasEndDate
     @State private var setAsToday: Bool = Configuration.setAsToday
     @State private var forceUpdate: Bool = false
-    @State private var showLocationUpdateSheet = false
 
     @AppStorage("hasShownScheduleTip") private var hasShownScheduleTip: Bool = false
-
-    @ObservedObject private var weatherManager = WeatherManager.shared
-    @State private var isWeatherLoading = true
-
 
     @Environment(\.colorScheme) private var colorScheme
 
@@ -78,16 +69,6 @@ struct TodayView: View {
             setupOnAppear()
             updateGradientColors()
 
-            if let location = locationManager.userLocation {
-                isWeatherLoading = true
-                Task {
-                    await weatherManager.fetchWeather(for: location)
-                    DispatchQueue.main.async {
-                        self.isWeatherLoading = false
-                    }
-                }
-            }
-
             if urlSchemeHandler.navigateToToday {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     urlSchemeHandler.navigateToToday = false
@@ -98,9 +79,6 @@ struct TodayView: View {
             saveSettings()
             timer?.invalidate()
             timer = nil
-            NotificationCenter.default.removeObserver(
-                self, name: .locationSignificantChange, object: nil
-            )
         }
         .onChange(of: classtableViewModel.years) { _, years in
             handleYearsChange(years)
@@ -138,17 +116,6 @@ struct TodayView: View {
         }
         .onChange(of: colorScheme) { _, _ in
             updateGradientColors()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .locationSignificantChange)) { _ in
-            if let location = locationManager.userLocation {
-                isWeatherLoading = true
-                Task {
-                    await weatherManager.fetchWeather(for: location)
-                    DispatchQueue.main.async {
-                        self.isWeatherLoading = false
-                    }
-                }
-            }
         }
         .environment(\.colorScheme, colorScheme)
     }
@@ -268,12 +235,7 @@ struct TodayView: View {
             setAsToday: setAsToday,
             selectedDayOverride: selectedDayOverride,
             animateCards: animateCards,
-            effectiveDate: effectiveDateForSelectedDay,
-            locationManager: locationManager,
-            isInChinaRegion: regionChecker.isChinaRegion(),
-            showMapView: shouldShowMapView(),
-            travelTimeToSchool: locationManager.travelTimeToSchool,
-            travelDistance: locationManager.travelDistance
+            effectiveDate: effectiveDateForSelectedDay
         )
     }
 
@@ -461,36 +423,6 @@ struct TodayView: View {
             }
         }
 
-        // Setup location services and region check - only once on appear
-        setupLocationServices()
-
-        // Fetch weather if location is available
-        if let location = locationManager.userLocation {
-            isWeatherLoading = true
-            Task {
-                await weatherManager.fetchWeather(for: location)
-                DispatchQueue.main.async {
-                    self.isWeatherLoading = false
-                }
-            }
-        } else {
-            // Set a timer to fetch weather once location becomes available
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                if let location = self.locationManager.userLocation {
-                    self.isWeatherLoading = true
-                    Task {
-                        await self.weatherManager.fetchWeather(for: location)
-                        DispatchQueue.main.async {
-                            self.isWeatherLoading = false
-                        }
-                    }
-                } else {
-                    // Still no location, stop showing loading indicator
-                    self.isWeatherLoading = false
-                }
-            }
-        }
-
         // Timer to update current time - optimized to reduce unnecessary refreshes
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
             // Only update the time
@@ -512,84 +444,6 @@ struct TodayView: View {
 
         animateCards = true
         AnimationManager.shared.markAppLaunched()
-
-        NotificationCenter.default.addObserver(
-            forName: .locationSignificantChange,
-            object: nil,
-            queue: .main
-        ) { _ in
-            self.regionChecker.fetchRegionCode()
-        }
-
-    }
-
-    private func setupLocationServices() {
-        // Check time of day - only enable location between 5AM and 3PM
-        let calendar = Calendar.current
-        let hour = calendar.component(.hour, from: Date())
-        let shouldCheckLocation = hour >= 5 && hour < 15
-
-        if shouldCheckLocation {
-            // Fetch region code once - don't do this repeatedly
-            if regionChecker.regionCode == nil {
-                regionChecker.fetchRegionCode()
-            }
-
-            // Only start location services if already authorized
-            // (Permissions are handled by onboarding now)
-            if locationManager.authorizationStatus == .authorizedWhenInUse
-                || locationManager.authorizationStatus == .authorizedAlways
-            {
-                locationManager.startUpdatingLocation()
-
-                // Calculate ETA only once on appear, not continuously
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                    self.updateTravelTime()
-                }
-            }
-        }
-    }
-
-    private func updateTravelTime() {
-        // Only calculate ETA if we're within the right time frame
-        let calendar = Calendar.current
-        let hour = calendar.component(.hour, from: Date())
-        let shouldCheckLocation = hour >= 5 && hour < 15
-
-        guard shouldCheckLocation else { return }
-
-        // Use a separate property for map updates to prevent jittering
-        locationManager.calculateETAToSchool(isInChina: regionChecker.isChinaRegion()) {
-            // Force refresh the view when travel time updates
-            /*
-             DispatchQueue.main.async { [self] in
-             self.forceUpdate.toggle()
-             }
-             */
-        }
-    }
-
-    private func shouldShowMapView() -> Bool {
-        // If debug override is enabled, respect its value
-        if Configuration.debugOverrideMapView {
-            return Configuration.debugShowMapView
-        }
-
-        // Check if user location is available and authorized
-        guard locationManager.userLocation != nil,
-              locationManager.authorizationStatus == .authorizedWhenInUse
-              || locationManager.authorizationStatus == .authorizedAlways
-        else {
-            return false
-        }
-
-        // If user is at school and has chosen to hide map there, respect that setting
-        if locationManager.isNearSchool() && Configuration.manuallyHideMapAtSchool {
-            return false
-        }
-
-        // Otherwise, always show the map
-        return true
     }
 
     // Check if we need to reset the selected day override

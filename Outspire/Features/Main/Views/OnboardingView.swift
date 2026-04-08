@@ -1,4 +1,3 @@
-import CoreLocation
 import SwiftUI
 
 struct OnboardingView: View {
@@ -10,11 +9,7 @@ struct OnboardingView: View {
     @Environment(\.dismiss) private var dismiss
 
     // Add states for tracking permission status
-    @State private var locationPermissionGranted = false
     @State private var notificationPermissionGranted = false
-
-    // Add reference to manager objects
-    @StateObject private var permissionManager = PermissionManager()
 
     // Focus state for keyboard controls
     @FocusState private var buttonFocused: OnboardingButtonFocus?
@@ -51,14 +46,6 @@ struct OnboardingView: View {
             imageName: "lock.document",
             imageColor: .purple,
             pageType: .information
-        ),
-        OnboardingPage(
-            title: "Smart Reminders",
-            description:
-            "Get personalized travel time calculations and never be late again. We'll help you plan your perfect morning routine.",
-            imageName: "location.circle.fill",
-            imageColor: .blue,
-            pageType: .locationPermission
         ),
         OnboardingPage(
             title: "Stay Connected",
@@ -252,16 +239,8 @@ struct OnboardingView: View {
 
     // Handle checking current permission status
     private func checkPermissionStatus() {
-        // Check location permission
-        permissionManager.checkLocationPermission { status in
-            DispatchQueue.main.async {
-                locationPermissionGranted =
-                    (status == .authorizedWhenInUse || status == .authorizedAlways)
-            }
-        }
-
         // Check notification permission
-        permissionManager.checkNotificationPermission { status in
+        NotificationManager.shared.checkAuthorizationStatus { status in
             DispatchQueue.main.async {
                 notificationPermissionGranted = (status == .authorized)
             }
@@ -294,42 +273,6 @@ struct OnboardingView: View {
                 }
             }
 
-        case .locationPermission:
-            // For location permission page
-            if locationPermissionGranted {
-                // Already granted, move to next page
-                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                impactFeedback.prepare()
-                impactFeedback.impactOccurred()
-
-                withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-                    currentPage += 1
-                }
-            } else {
-                // Request permission then move to next page
-                let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
-                impactFeedback.prepare()
-                impactFeedback.impactOccurred()
-
-                permissionManager.requestLocationPermission { granted in
-                    DispatchQueue.main.async {
-                        locationPermissionGranted = granted
-
-                        // Haptic feedback for permission result
-                        let resultFeedback = UINotificationFeedbackGenerator()
-                        if granted {
-                            resultFeedback.notificationOccurred(.success)
-                        } else {
-                            resultFeedback.notificationOccurred(.warning)
-                        }
-
-                        withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-                            currentPage += 1
-                        }
-                    }
-                }
-            }
-
         case .notificationPermission:
             // For notification permission page
             if notificationPermissionGranted {
@@ -347,7 +290,7 @@ struct OnboardingView: View {
                 impactFeedback.prepare()
                 impactFeedback.impactOccurred()
 
-                permissionManager.requestNotificationPermission { granted in
+                NotificationManager.shared.requestAuthorization { granted in
                     DispatchQueue.main.async {
                         notificationPermissionGranted = granted
 
@@ -377,14 +320,6 @@ struct OnboardingView: View {
         switch page.pageType {
         case .information:
             standardPageView(for: page)
-        case .locationPermission:
-            permissionPageView(
-                for: page,
-                isGranted: locationPermissionGranted,
-                grantedText: "Thank you! This helps calculate your travel time to school.",
-                deniedText: "Remember, we never store your privacy!\n"
-                    + "This helps us show your travel time to school and provide timely morning notifications."
-            )
         case .notificationPermission:
             permissionPageView(
                 for: page,
@@ -522,7 +457,6 @@ struct OnboardingPage {
 // Page type to distinguish between information and permission pages
 enum OnboardingPageType {
     case information
-    case locationPermission
     case notificationPermission
 }
 

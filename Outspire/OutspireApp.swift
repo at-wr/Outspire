@@ -1,4 +1,3 @@
-import CoreLocation
 import OSLog
 import SwiftUI
 import Toasts
@@ -13,7 +12,6 @@ class SettingsManager: ObservableObject {
 @main
 struct OutspireApp: App {
     @StateObject private var sessionService = SessionService.shared
-    @StateObject private var locationManager = LocationManager.shared
     @StateObject private var regionChecker = RegionChecker.shared
     @StateObject private var notificationManager = NotificationManager.shared
 
@@ -50,7 +48,6 @@ struct OutspireApp: App {
             RootTabView()
                 .tint(AppColor.brand)
                 .environmentObject(sessionService)
-                .environmentObject(locationManager)
                 .environmentObject(regionChecker)
                 .environmentObject(notificationManager)
                 .environmentObject(settingsManager) // Add settings manager
@@ -196,33 +193,16 @@ class OutspireAppDelegate: NSObject, UIApplicationDelegate {
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
-        // Register for user notifications
-        UNUserNotificationCenter.current().delegate = LocationManager.shared
-
         // Register notification categories for interactive notifications
         NotificationManager.shared.registerNotificationCategories()
 
-        // Initialize with proper permissions if onboarding is completed
+        // Use centralized notification management if onboarding is completed
         let hasCompletedOnboarding = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
-
         if hasCompletedOnboarding {
-            // Setup location services if onboarding is complete
-            setupServicesAfterOnboarding()
+            NotificationManager.shared.handleAppBecameActive()
         }
 
         return true
-    }
-
-    private func setupServicesAfterOnboarding() {
-        // Start location manager if permission was granted during onboarding
-        if LocationManager.shared.authorizationStatus == .authorizedWhenInUse
-            || LocationManager.shared.authorizationStatus == .authorizedAlways
-        {
-            LocationManager.shared.startUpdatingLocation()
-        }
-
-        // Use centralized notification management
-        NotificationManager.shared.handleAppBecameActive()
     }
 
     func applicationWillTerminate(_ application: UIApplication) {

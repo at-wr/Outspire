@@ -56,10 +56,10 @@ struct MapView: View {
                     .foregroundStyle(.cyan.opacity(0.3))
                     .stroke(.cyan, lineWidth: 2)
 
-                UserAnnotation()
             }
             .mapControls {
-                MapUserLocationButton()
+                MapCompass()
+                MapScaleView()
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .onAppear(perform: setupMap)
@@ -88,8 +88,6 @@ struct MapView: View {
     // MARK: - Private Methods
 
     private func setupMap() {
-        let locationManager = CLLocationManager()
-        locationManager.requestWhenInUseAuthorization()
         // Use the checkRegion method on the shared instance
         regionChecker.checkRegion()
     }

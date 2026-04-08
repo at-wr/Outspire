@@ -2,10 +2,6 @@ import SwiftUI
 import UserNotifications
 
 struct SettingsNotificationsView: View {
-    @State private var departureNotificationsEnabled = Configuration.departureNotificationsEnabled
-    @State private var departureNotificationTime = Configuration.departureNotificationTime
-    @State private var isRequestingPermission = false
-    @State private var permissionDenied = false
     @State private var notificationStatus: UNAuthorizationStatus = .notDetermined
 
     var body: some View {
@@ -32,70 +28,7 @@ struct SettingsNotificationsView: View {
                     .font(.footnote)
                     .foregroundColor(.secondary)
             }
-
-            Section {
-                Toggle(isOn: $departureNotificationsEnabled) {
-                    Label("Departure Reminder", systemImage: "car")
-                }
-                .onChange(of: departureNotificationsEnabled) { _, newValue in
-                    Configuration.departureNotificationsEnabled = newValue
-                    if newValue {
-                        isRequestingPermission = true
-                        NotificationManager.shared.requestAuthorization { granted in
-                            DispatchQueue.main.async {
-                                isRequestingPermission = false
-                                permissionDenied = !granted
-                                // Use centralized notification management
-                                NotificationManager.shared.handleNotificationSettingsChange()
-                                // Refresh permission status after request
-                                checkNotificationPermission()
-                            }
-                        }
-                    } else {
-                        // Use centralized notification management
-                        NotificationManager.shared.handleNotificationSettingsChange()
-                    }
-                }
-                .disabled(notificationStatus == .denied)
-
-                if departureNotificationsEnabled && notificationStatus == .authorized {
-                    HStack {
-                        Label("Notification Time", systemImage: "clock")
-                        Spacer()
-                        DatePicker(
-                            "Select time",
-                            selection: $departureNotificationTime,
-                            displayedComponents: .hourAndMinute
-                        )
-                        .labelsHidden()
-                        .onChange(of: departureNotificationTime) { _, newValue in
-                            Configuration.departureNotificationTime = newValue
-                            // Use centralized notification management
-                            NotificationManager.shared.handleNotificationSettingsChange()
-                        }
-                    }
-                }
-
-                if isRequestingPermission {
-                    ProgressView("Requesting Notification Permission…")
-                }
-                if permissionDenied {
-                    Text("Permission denied. Please enable notifications in Settings.")
-                        .font(.footnote)
-                        .foregroundColor(.red)
-                }
-            } header: {
-                Text("Notifications")
-            } footer: {
-                Text(
-                    "Enable to receive a morning notification reminding you to leave for school."
-                )
-                .font(.footnote)
-                .foregroundColor(.secondary)
-            }
-
         }
-        .toggleStyle(.switch)
         .navigationTitle("Notifications")
         .contentMargins(.vertical, 10.0)
         .onAppear {

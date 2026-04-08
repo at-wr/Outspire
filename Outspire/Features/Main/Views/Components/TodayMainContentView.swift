@@ -1,4 +1,3 @@
-import CoreLocation
 import SwiftUI
 
 struct TodayMainContentView: View {
@@ -20,14 +19,6 @@ struct TodayMainContentView: View {
     let selectedDayOverride: Int?
     let animateCards: Bool
     let effectiveDate: Date?
-    let locationManager: LocationManager
-    let isInChinaRegion: Bool
-    let showMapView: Bool
-    let travelTimeToSchool: TimeInterval?
-    let travelDistance: CLLocationDistance?
-
-    // Add state to track travel time updates for animations
-    @State private var travelInfoKey = UUID()
 
     var body: some View {
         if isAuthenticated {
@@ -113,19 +104,6 @@ struct TodayMainContentView: View {
     private var notAuthenticatedContent: some View {
         SignInPromptCard()
             .padding(.horizontal)
-    }
-
-    private func shouldShowTravelInfo() -> Bool {
-        // Show travel info if user is not near school and we have travel data
-        guard locationManager.userLocation != nil,
-              locationManager.authorizationStatus == .authorizedWhenInUse
-              || locationManager.authorizationStatus == .authorizedAlways,
-              travelTimeToSchool != nil,
-              travelDistance != nil
-        else {
-            return false
-        }
-        return !locationManager.isNearSchool()
     }
 
     // Method to check if all classes for today are over

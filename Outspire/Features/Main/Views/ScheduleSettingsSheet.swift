@@ -11,12 +11,6 @@ struct ScheduleSettingsSheet: View {
     @Binding var holidayHasEndDate: Bool
     @State private var showCountdownForFutureClasses = Configuration.showCountdownForFutureClasses
 
-    @State private var debugOverrideMapView = Configuration.debugOverrideMapView
-    @State private var debugShowMapView = Configuration.debugShowMapView
-
-    // Add state for the new setting
-    @State private var manuallyHideMapAtSchool = Configuration.manuallyHideMapAtSchool
-
     @Environment(\.dismiss) private var dismiss
 
     private var currentWeekday: Int {
@@ -156,29 +150,6 @@ struct ScheduleSettingsSheet: View {
                         .onChange(of: showCountdownForFutureClasses) { _, newValue in
                             HapticManager.shared.playToggle()
                             Configuration.showCountdownForFutureClasses = newValue
-                        }
-
-                        Toggle("Hide Map When at School", isOn: $manuallyHideMapAtSchool)
-                            .onChange(of: manuallyHideMapAtSchool) { _, newValue in
-                                HapticManager.shared.playToggle()
-                                Configuration.manuallyHideMapAtSchool = newValue
-                            }
-                    }
-
-                    // Debug section
-                    Section(header: Text("Developer Options")) {
-                        Toggle("Override Map View Display", isOn: $debugOverrideMapView)
-                            .onChange(of: debugOverrideMapView) { _, newValue in
-                                HapticManager.shared.playToggle()
-                                Configuration.debugOverrideMapView = newValue
-                            }
-
-                        if debugOverrideMapView {
-                            Toggle("Show Map View", isOn: $debugShowMapView)
-                                .onChange(of: debugShowMapView) { _, newValue in
-                                    HapticManager.shared.playToggle()
-                                    Configuration.debugShowMapView = newValue
-                                }
                         }
                     }
                 }

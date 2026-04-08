@@ -5,37 +5,6 @@ enum Configuration {
     // For LLM Service
     // Go to Configuration.local.swift
 
-    static var departureNotificationsEnabled: Bool {
-        get {
-            if UserDefaults.standard.object(forKey: "departureNotificationsEnabled") == nil {
-                return false // Default: disabled
-            }
-            return UserDefaults.standard.bool(forKey: "departureNotificationsEnabled")
-        }
-        set {
-            UserDefaults.standard.set(newValue, forKey: "departureNotificationsEnabled")
-        }
-    }
-
-    static var departureNotificationTime: Date {
-        get {
-            if let storedTime = UserDefaults.standard.object(forKey: "departureNotificationTime")
-                as? Date
-            {
-                return storedTime
-            } else {
-                // Default time: 6:55 AM
-                var components = DateComponents()
-                components.hour = 6
-                components.minute = 55
-                return Calendar.current.date(from: components) ?? Date()
-            }
-        }
-        set {
-            UserDefaults.standard.set(newValue, forKey: "departureNotificationTime")
-        }
-    }
-
     static var useSSL: Bool {
         get {
             return UserDefaults.standard.bool(forKey: "useSSL")
@@ -191,23 +160,6 @@ enum Configuration {
             UserDefaults.standard.set(newValue, forKey: "holidayEndDate")
             NotificationCenter.default.post(name: .holidayModeDidChange, object: nil)
         }
-    }
-
-    // Add new debug configuration options
-    static var debugOverrideMapView: Bool {
-        get { UserDefaults.standard.bool(forKey: "debugOverrideMapView") }
-        set { UserDefaults.standard.set(newValue, forKey: "debugOverrideMapView") }
-    }
-
-    static var debugShowMapView: Bool {
-        get { UserDefaults.standard.bool(forKey: "debugShowMapView") }
-        set { UserDefaults.standard.set(newValue, forKey: "debugShowMapView") }
-    }
-
-    // Add new setting for manually hiding map
-    static var manuallyHideMapAtSchool: Bool {
-        get { UserDefaults.standard.bool(forKey: "manuallyHideMapAtSchool") }
-        set { UserDefaults.standard.set(newValue, forKey: "manuallyHideMapAtSchool") }
     }
 
     // Debug: verbose network logging for TSIMS v2

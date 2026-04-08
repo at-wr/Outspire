@@ -78,12 +78,10 @@ struct AboutView: View {
             Section("Data Sources") {
                 aboutRow("TSIMS for WFLA Int'l", icon: "server.rack", color: .indigo)
                 aboutRow("WFLMS.cn", icon: "globe", color: .teal)
-                aboutRow(" Weather", icon: "cloud.sun.fill", color: .orange)
             }
             .staggeredEntry(index: 2, animate: animateEntrance)
 
             Section {
-                aboutLink("Feelin' Lucky", icon: "dice.fill", color: .pink, url: "https://object-battle.netlify.app/")
                 aboutLink("Contact via Mail", icon: "envelope.fill", color: .blue, url: "mailto:outspire@wrye.dev")
                 aboutLink(
                     "Terms of Service",
