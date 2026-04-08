@@ -26,18 +26,14 @@ struct TodayView: View {
     @State private var holidayEndDate: Date = Configuration.holidayEndDate
     @State private var holidayHasEndDate: Bool = Configuration.holidayHasEndDate
     @State private var setAsToday: Bool = Configuration.setAsToday
-    @State private var allowAnimation = true
     @State private var forceUpdate: Bool = false
     @State private var showLocationUpdateSheet = false
 
     @AppStorage("hasShownScheduleTip") private var hasShownScheduleTip: Bool = false
 
     @ObservedObject private var weatherManager = WeatherManager.shared
-    @State private var hasStartedLiveActivity = false
-    @State private var activeClassLiveActivities: [String: Bool] = [:]
     @State private var isWeatherLoading = true
 
-    @State private var isReturningFromSheet = false
 
     @Environment(\.colorScheme) private var colorScheme
 
@@ -72,7 +68,6 @@ struct TodayView: View {
         .sheet(
             isPresented: $isSettingsSheetPresented,
             onDismiss: {
-                isReturningFromSheet = true
                 updateGradientColors()
             }
         ) {
@@ -143,9 +138,6 @@ struct TodayView: View {
         }
         .onChange(of: colorScheme) { _, _ in
             updateGradientColors()
-        }
-        .onChange(of: upcomingClassInfo?.period.id) { _, _ in
-            startClassLiveActivityIfNeeded(forceCheck: true)
         }
         .onReceive(NotificationCenter.default.publisher(for: .locationSignificantChange)) { _ in
             if let location = locationManager.userLocation {
@@ -281,9 +273,7 @@ struct TodayView: View {
             isInChinaRegion: regionChecker.isChinaRegion(),
             showMapView: shouldShowMapView(),
             travelTimeToSchool: locationManager.travelTimeToSchool,
-            travelDistance: locationManager.travelDistance,
-            activeClassLiveActivities: activeClassLiveActivities,
-            toggleLiveActivity: toggleLiveActivityForCurrentClass
+            travelDistance: locationManager.travelDistance
         )
     }
 
@@ -520,28 +510,8 @@ struct TodayView: View {
             // Weather now updates only on location change or onAppear :(
         }
 
-        // Handle animations differently depending on context
-        if AnimationManager.shared.isFirstLaunch {
-            // First launch - delay animation for a smooth experience
-            animateCards = false
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-                    animateCards = true
-                    AnimationManager.shared.markAppLaunched()
-                }
-            }
-        } else if isReturningFromSheet {
-            // When returning from a sheet, DON'T trigger any animations
-            // The animateCards value is already set to true in the onDismiss callback
-            // Just reset the flag for next time
-            isReturningFromSheet = false
-        } else {
-            // Normal appearance - animate the cards
-            animateCards = false
-            withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-                animateCards = true
-            }
-        }
+        animateCards = true
+        AnimationManager.shared.markAppLaunched()
 
         NotificationCenter.default.addObserver(
             forName: .locationSignificantChange,
@@ -551,8 +521,6 @@ struct TodayView: View {
             self.regionChecker.fetchRegionCode()
         }
 
-        // Start Live Activity for the current class if available
-        startClassLiveActivityIfNeeded()
     }
 
     private func setupLocationServices() {
@@ -806,11 +774,6 @@ struct TodayView: View {
 
     // Method to force refresh content without rebuilding the entire view
     private func forceContentRefresh() {
-        // Reset animation state
-        withAnimation(.easeOut(duration: 0.2)) {
-            animateCards = false
-        }
-
         // Reload data if needed
         if AuthServiceV2.shared.isAuthenticated || sessionService.isAuthenticated {
             classtableViewModel.fetchTimetable()
@@ -818,13 +781,6 @@ struct TodayView: View {
 
         // Update current time
         currentTime = Date()
-
-        // Restart animations
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-            withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
-                self.animateCards = true
-            }
-        }
     }
 
     // Safer method to detect class transitions
@@ -839,14 +795,6 @@ struct TodayView: View {
                 return true
             }
 
-            // Check if we're about to transition, then see if we need to start a Live Activity for the next period
-            if secondsRemaining <= 60 && secondsRemaining > 0
-                && Configuration.automaticallyStartLiveActivities
-            {
-                DispatchQueue.main.asyncAfter(deadline: .now() + secondsRemaining + 1) {
-                    self.startClassLiveActivityIfNeeded(forceCheck: true)
-                }
-            }
         }
         return false
     }
@@ -874,139 +822,4 @@ struct TodayView: View {
         return classChangeMinutes.contains(currentMinute) && currentSecond == 0
     }
 
-    // In the existing startClassLiveActivityIfNeeded method, update to use the enhanced functionality:
-
-    private func startClassLiveActivityIfNeeded(forceCheck: Bool = false) {
-        #if !targetEnvironment(macCatalyst)
-            // Don't start Live Activity if holiday mode is active
-            guard !isHolidayActive() else { return }
-
-            // Only process when we have class info and timetable data
-            guard let upcoming = upcomingClassInfo,
-                  !classtableViewModel.timetable.isEmpty
-            else { return }
-
-            // Create a unique ID for this class period
-            let activityId = "\(upcoming.period.number)_\(upcoming.classData)"
-
-            // Skip if we've already started a Live Activity for this specific class period
-            // unless we're explicitly forcing a check
-            if !forceCheck, activeClassLiveActivities[activityId] == true {
-                return
-            }
-
-            let classInfo = parseClassInformation(from: upcoming.classData)
-            let schedule = buildLiveActivitySchedule(for: upcoming.dayIndex)
-
-            guard !schedule.isEmpty else { return }
-
-            ClassActivityManager.shared.startOrUpdateClassActivity(
-                className: classInfo.className,
-                periodNumber: upcoming.period.number,
-                roomNumber: classInfo.room,
-                teacherName: classInfo.teacher,
-                schedule: schedule
-            )
-
-            // Mark this specific class period as having an active Live Activity
-            activeClassLiveActivities[activityId] = true
-        #endif
-    }
-
-    // Update the toggleLiveActivityForCurrentClass method to use the new toggle functionality:
-
-    private func toggleLiveActivityForCurrentClass() {
-        #if !targetEnvironment(macCatalyst)
-            guard let upcoming = upcomingClassInfo else { return }
-
-            let classInfo = parseClassInformation(from: upcoming.classData)
-            let schedule = buildLiveActivitySchedule(for: upcoming.dayIndex)
-            guard !schedule.isEmpty else { return }
-            let activityId = "\(upcoming.period.number)_\(upcoming.classData)"
-
-            // Use the new toggle functionality
-            let isActive = ClassActivityManager.shared.toggleActivityForClass(
-                className: classInfo.className,
-                periodNumber: upcoming.period.number,
-                roomNumber: classInfo.room,
-                teacherName: classInfo.teacher,
-                schedule: schedule
-            )
-
-            // Update the active status
-            activeClassLiveActivities[activityId] = isActive
-
-            // Give haptic feedback
-            let generator = UIImpactFeedbackGenerator(style: .medium)
-            generator.impactOccurred(intensity: isActive ? 0.7 : 1.0)
-        #endif
-    }
-
-    #if !targetEnvironment(macCatalyst)
-        private func buildLiveActivitySchedule(for dayIndex: Int) -> [ClassActivityAttributes.ScheduledClass] {
-            guard !classtableViewModel.timetable.isEmpty,
-                  dayIndex >= 0,
-                  dayIndex + 1 < classtableViewModel.timetable.first?.count ?? 0
-            else {
-                return []
-            }
-
-            var schedule: [ClassActivityAttributes.ScheduledClass] = []
-
-            for period in ClassPeriodsManager.shared.classPeriods {
-                guard period.number < classtableViewModel.timetable.count,
-                      dayIndex + 1 < classtableViewModel.timetable[period.number].count
-                else {
-                    continue
-                }
-
-                let rawClassData = classtableViewModel.timetable[period.number][dayIndex + 1]
-                let info = parseClassInformation(from: rawClassData)
-
-                schedule.append(
-                    ClassActivityAttributes.ScheduledClass(
-                        id: UUID(),
-                        className: info.className,
-                        teacherName: info.teacher,
-                        roomNumber: info.room,
-                        periodNumber: period.number,
-                        startTime: period.startTime,
-                        endTime: period.endTime
-                    )
-                )
-            }
-
-            return schedule.sorted(by: { $0.startTime < $1.startTime })
-        }
-
-        private func parseClassInformation(from classData: String)
-            -> (teacher: String, className: String, room: String)
-        {
-            let trimmed = classData.trimmingCharacters(in: .whitespacesAndNewlines)
-
-            guard !trimmed.isEmpty else {
-                return (teacher: "You", className: "Self-Study", room: "")
-            }
-
-            let components = classData
-                .replacingOccurrences(of: "<br>", with: "\n")
-                .components(separatedBy: "\n")
-                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-                .filter { !$0.isEmpty }
-
-            let teacherName = components.indices.contains(0) ? components[0] : "Unknown Teacher"
-            let className: String
-            if components.indices.contains(1) {
-                className = components[1]
-            } else if let first = components.first {
-                className = first
-            } else {
-                className = "Self-Study"
-            }
-
-            let roomNumber = components.indices.contains(2) ? components[2] : ""
-
-            return (teacher: teacherName, className: className, room: roomNumber)
-        }
-    #endif
 }

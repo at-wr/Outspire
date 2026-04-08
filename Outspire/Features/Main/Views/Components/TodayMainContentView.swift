@@ -25,8 +25,6 @@ struct TodayMainContentView: View {
     let showMapView: Bool
     let travelTimeToSchool: TimeInterval?
     let travelDistance: CLLocationDistance?
-    let activeClassLiveActivities: [String: Bool]
-    let toggleLiveActivity: () -> Void
 
     // Add state to track travel time updates for animations
     @State private var travelInfoKey = UUID()
@@ -50,44 +48,59 @@ struct TodayMainContentView: View {
         effectiveDayIndex >= 0 && effectiveDayIndex < 5 && !classtableViewModel.timetable.isEmpty
     }
 
+    private var contentStateID: String {
+        if isHolidayActive { return "holiday" }
+        if isLoading { return "loading" }
+        if isCurrentDateWeekend { return "weekend" }
+        if effectiveDayIndex < 0 || effectiveDayIndex >= 5 { return "noclass" }
+        return "schedule-\(effectiveDayIndex)"
+    }
+
     @ViewBuilder
     private var authenticatedContent: some View {
         VStack(spacing: AppSpace.lg) {
-            // Main content area
-            if isHolidayActive {
-                HolidayModeCard(hasEndDate: holidayHasEndDate, endDate: holidayEndDate)
-                    .padding(.horizontal)
-                    .staggeredEntry(index: 0, animate: animateCards)
-            } else if isLoading {
-                UpcomingClassSkeletonView()
-                    .padding(.horizontal)
-            } else if isCurrentDateWeekend {
-                WeekendCard()
-                    .padding(.horizontal)
-                    .staggeredEntry(index: 0, animate: animateCards)
-            } else if effectiveDayIndex < 0 || effectiveDayIndex >= 5 {
-                NoClassCard()
-                    .padding(.horizontal)
-                    .staggeredEntry(index: 0, animate: animateCards)
-            } else {
-                // Status banner when classes are over
-                if areClassesOverForToday() {
-                    NoClassCard(isDimmed: true)
+            // Main content area with smooth transitions
+            Group {
+                if isHolidayActive {
+                    HolidayModeCard(hasEndDate: holidayHasEndDate, endDate: holidayEndDate)
                         .padding(.horizontal)
                         .staggeredEntry(index: 0, animate: animateCards)
-                }
+                } else if isLoading {
+                    UpcomingClassSkeletonView()
+                        .padding(.horizontal)
+                } else if isCurrentDateWeekend {
+                    WeekendCard()
+                        .padding(.horizontal)
+                        .staggeredEntry(index: 0, animate: animateCards)
+                } else if effectiveDayIndex < 0 || effectiveDayIndex >= 5 {
+                    NoClassCard()
+                        .padding(.horizontal)
+                        .staggeredEntry(index: 0, animate: animateCards)
+                } else {
+                    VStack(spacing: AppSpace.lg) {
+                        // Status banner when classes are over
+                        if areClassesOverForToday() {
+                            NoClassCard(isDimmed: true)
+                                .padding(.horizontal)
+                                .staggeredEntry(index: 0, animate: animateCards)
+                        }
 
-                // Schedule card — always visible on weekdays
-                UnifiedScheduleCard(
-                    viewModel: classtableViewModel,
-                    dayIndex: effectiveDayIndex,
-                    isForToday: selectedDayOverride == nil,
-                    setAsToday: setAsToday,
-                    effectiveDate: effectiveDate
-                )
-                .padding(.horizontal)
-                .staggeredEntry(index: 1, animate: animateCards)
+                        // Schedule card — always visible on weekdays
+                        UnifiedScheduleCard(
+                            viewModel: classtableViewModel,
+                            dayIndex: effectiveDayIndex,
+                            isForToday: selectedDayOverride == nil,
+                            setAsToday: setAsToday,
+                            effectiveDate: effectiveDate
+                        )
+                        .padding(.horizontal)
+                        .staggeredEntry(index: 1, animate: animateCards)
+                    }
+                }
             }
+            .id(contentStateID)
+            .transition(.opacity.combined(with: .scale(scale: 0.98)))
+            .animation(.easeInOut(duration: 0.3), value: contentStateID)
 
             // Quick links
             QuickLinksCard()

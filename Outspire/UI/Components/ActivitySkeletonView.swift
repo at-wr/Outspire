@@ -40,8 +40,6 @@ struct ActivitySkeletonView: View {
                 .padding(.vertical, 10)
             }
         }
-        .redacted(reason: .placeholder)
+        .shimmering()
     }
 }
-
-// Use shared shimmering() from UI/Extensions/View+Shimmering.swift

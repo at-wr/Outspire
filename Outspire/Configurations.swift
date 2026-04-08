@@ -210,17 +210,6 @@ enum Configuration {
         set { UserDefaults.standard.set(newValue, forKey: "manuallyHideMapAtSchool") }
     }
 
-    // Add new setting for automatic Live Activities
-    static var automaticallyStartLiveActivities: Bool {
-        get {
-            if UserDefaults.standard.object(forKey: "automaticallyStartLiveActivities") == nil {
-                return true // Default: enabled
-            }
-            return UserDefaults.standard.bool(forKey: "automaticallyStartLiveActivities")
-        }
-        set { UserDefaults.standard.set(newValue, forKey: "automaticallyStartLiveActivities") }
-    }
-
     // Debug: verbose network logging for TSIMS v2
     static var debugNetworkLogging: Bool {
         get {

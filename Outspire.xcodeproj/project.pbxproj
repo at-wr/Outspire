@@ -7,11 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		6E2C3F2F2D8AC7EF005C01E6 /* ActivityKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6E2C3F2E2D8AC7EF005C01E6 /* ActivityKit.framework */; platformFilter = ios; settings = {ATTRIBUTES = (Weak, ); }; };
 		6E3C2DC52D92D7E300C2EEF3 /* ColorfulX in Frameworks */ = {isa = PBXBuildFile; productRef = 6E3C2DC42D92D7E300C2EEF3 /* ColorfulX */; };
-		6E4BCC772D87E12B00C10AEA /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6E4BCC762D87E12B00C10AEA /* WidgetKit.framework */; };
-		6E4BCC792D87E12B00C10AEA /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6E4BCC782D87E12B00C10AEA /* SwiftUI.framework */; };
-		6E4BCC8A2D87E12C00C10AEA /* OutspireWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 6E4BCC752D87E12B00C10AEA /* OutspireWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		6E587DB92DC3F62B00394872 /* SwiftOpenAI in Frameworks */ = {isa = PBXBuildFile; productRef = 6E587DB82DC3F62B00394872 /* SwiftOpenAI */; };
 		6ED03BFF2D84675400C81CF9 /* Toasts in Frameworks */ = {isa = PBXBuildFile; productRef = 6ED03BFE2D84675400C81CF9 /* Toasts */; };
 		6ED03C022D8467B000C81CF9 /* SwiftSoup in Frameworks */ = {isa = PBXBuildFile; productRef = 6ED03C012D8467B000C81CF9 /* SwiftSoup */; };
@@ -21,13 +17,6 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		6E4BCC882D87E12C00C10AEA /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 6ED03A482D84647300C81CF9 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 6E4BCC742D87E12B00C10AEA;
-			remoteInfo = OutspireWidgetExtension;
-		};
 		6ED03A622D84647400C81CF9 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 6ED03A482D84647300C81CF9 /* Project object */;
@@ -45,24 +34,9 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
-		6E4BCC8B2D87E12C00C10AEA /* Embed Foundation Extensions */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 13;
-			files = (
-				6E4BCC8A2D87E12C00C10AEA /* OutspireWidgetExtension.appex in Embed Foundation Extensions */,
-			);
-			name = "Embed Foundation Extensions";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		6E2C3F2E2D8AC7EF005C01E6 /* ActivityKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ActivityKit.framework; path = System/iOSSupport/System/Library/Frameworks/ActivityKit.framework; sourceTree = SDKROOT; };
-		6E4BCC752D87E12B00C10AEA /* OutspireWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = OutspireWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
-		6E4BCC762D87E12B00C10AEA /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
-		6E4BCC782D87E12B00C10AEA /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		6ED03A502D84647300C81CF9 /* Outspire.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Outspire.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6ED03A612D84647400C81CF9 /* OutspireTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OutspireTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		6ED03A6B2D84647400C81CF9 /* OutspireUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OutspireUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -73,13 +47,6 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		6E4BCC8F2D87E12C00C10AEA /* Exceptions for "OutspireWidget" folder in "OutspireWidgetExtension" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Info.plist,
-			);
-			target = 6E4BCC742D87E12B00C10AEA /* OutspireWidgetExtension */;
-		};
 		6ED03C062D8469A900C81CF9 /* Exceptions for "Outspire" folder in "Outspire" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -90,14 +57,6 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		6E4BCC7A2D87E12B00C10AEA /* OutspireWidget */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				6E4BCC8F2D87E12C00C10AEA /* Exceptions for "OutspireWidget" folder in "OutspireWidgetExtension" target */,
-			);
-			path = OutspireWidget;
-			sourceTree = "<group>";
-		};
 		6ED03A522D84647300C81CF9 /* Outspire */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -119,21 +78,11 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		6E4BCC722D87E12B00C10AEA /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				6E4BCC792D87E12B00C10AEA /* SwiftUI.framework in Frameworks */,
-				6E4BCC772D87E12B00C10AEA /* WidgetKit.framework in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		6ED03A4D2D84647300C81CF9 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				6E3C2DC52D92D7E300C2EEF3 /* ColorfulX in Frameworks */,
-				6E2C3F2F2D8AC7EF005C01E6 /* ActivityKit.framework in Frameworks */,
 				6ED03C082D846F2A00C81CF9 /* CoreLocation.framework in Frameworks */,
 				6ED03BFF2D84675400C81CF9 /* Toasts in Frameworks */,
 				6E587DB92DC3F62B00394872 /* SwiftOpenAI in Frameworks */,
@@ -166,7 +115,6 @@
 				6ED03A522D84647300C81CF9 /* Outspire */,
 				6ED03A642D84647400C81CF9 /* OutspireTests */,
 				6ED03A6E2D84647400C81CF9 /* OutspireUITests */,
-				6E4BCC7A2D87E12B00C10AEA /* OutspireWidget */,
 				6ED03BFA2D84662600C81CF9 /* Frameworks */,
 				6ED03A512D84647300C81CF9 /* Products */,
 			);
@@ -178,7 +126,6 @@
 				6ED03A502D84647300C81CF9 /* Outspire.app */,
 				6ED03A612D84647400C81CF9 /* OutspireTests.xctest */,
 				6ED03A6B2D84647400C81CF9 /* OutspireUITests.xctest */,
-				6E4BCC752D87E12B00C10AEA /* OutspireWidgetExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -186,13 +133,10 @@
 		6ED03BFA2D84662600C81CF9 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				6E2C3F2E2D8AC7EF005C01E6 /* ActivityKit.framework */,
 				6ED03C092D846F5100C81CF9 /* MapKit.framework */,
 				6ED03C072D846F2A00C81CF9 /* CoreLocation.framework */,
 				6ED03C032D84684000C81CF9 /* UIKit.framework */,
 				6ED03BFB2D84662600C81CF9 /* UIKit.framework */,
-				6E4BCC762D87E12B00C10AEA /* WidgetKit.framework */,
-				6E4BCC782D87E12B00C10AEA /* SwiftUI.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -200,28 +144,6 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		6E4BCC742D87E12B00C10AEA /* OutspireWidgetExtension */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 6E4BCC8E2D87E12C00C10AEA /* Build configuration list for PBXNativeTarget "OutspireWidgetExtension" */;
-			buildPhases = (
-				6E4BCC712D87E12B00C10AEA /* Sources */,
-				6E4BCC722D87E12B00C10AEA /* Frameworks */,
-				6E4BCC732D87E12B00C10AEA /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			fileSystemSynchronizedGroups = (
-				6E4BCC7A2D87E12B00C10AEA /* OutspireWidget */,
-			);
-			name = OutspireWidgetExtension;
-			packageProductDependencies = (
-			);
-			productName = OutspireWidgetExtension;
-			productReference = 6E4BCC752D87E12B00C10AEA /* OutspireWidgetExtension.appex */;
-			productType = "com.apple.product-type.app-extension";
-		};
 		6ED03A4F2D84647300C81CF9 /* Outspire */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 6ED03A752D84647400C81CF9 /* Build configuration list for PBXNativeTarget "Outspire" */;
@@ -229,12 +151,10 @@
 				6ED03A4C2D84647300C81CF9 /* Sources */,
 				6ED03A4D2D84647300C81CF9 /* Frameworks */,
 				6ED03A4E2D84647300C81CF9 /* Resources */,
-				6E4BCC8B2D87E12C00C10AEA /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				6E4BCC892D87E12C00C10AEA /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				6ED03A522D84647300C81CF9 /* Outspire */,
@@ -306,9 +226,6 @@
 				LastSwiftUpdateCheck = 1620;
 				LastUpgradeCheck = 2620;
 				TargetAttributes = {
-					6E4BCC742D87E12B00C10AEA = {
-						CreatedOnToolsVersion = 16.2;
-					};
 					6ED03A4F2D84647300C81CF9 = {
 						CreatedOnToolsVersion = 16.2;
 					};
@@ -345,19 +262,11 @@
 				6ED03A4F2D84647300C81CF9 /* Outspire */,
 				6ED03A602D84647400C81CF9 /* OutspireTests */,
 				6ED03A6A2D84647400C81CF9 /* OutspireUITests */,
-				6E4BCC742D87E12B00C10AEA /* OutspireWidgetExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		6E4BCC732D87E12B00C10AEA /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		6ED03A4E2D84647300C81CF9 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -382,13 +291,6 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		6E4BCC712D87E12B00C10AEA /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		6ED03A4C2D84647300C81CF9 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -413,11 +315,6 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		6E4BCC892D87E12C00C10AEA /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 6E4BCC742D87E12B00C10AEA /* OutspireWidgetExtension */;
-			targetProxy = 6E4BCC882D87E12C00C10AEA /* PBXContainerItemProxy */;
-		};
 		6ED03A632D84647400C81CF9 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 6ED03A4F2D84647300C81CF9 /* Outspire */;
@@ -431,77 +328,6 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
-		6E4BCC8C2D87E12C00C10AEA /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
-				CODE_SIGN_ENTITLEMENTS = OutspireWidgetExtension.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 64;
-				DEVELOPMENT_TEAM = SEWGNELGY8;
-				ENABLE_APP_SANDBOX = YES;
-				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = OutspireWidget/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = OutspireWidget;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-				);
-				MARKETING_VERSION = 0.8.1;
-				PRODUCT_BUNDLE_IDENTIFIER = dev.wrye.Outspire.OutspireWidget;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = iphoneos;
-				SKIP_INSTALL = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
-				SUPPORTS_MACCATALYST = YES;
-				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Debug;
-		};
-		6E4BCC8D2D87E12C00C10AEA /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
-				CODE_SIGN_ENTITLEMENTS = OutspireWidgetExtension.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 64;
-				DEVELOPMENT_TEAM = SEWGNELGY8;
-				ENABLE_APP_SANDBOX = YES;
-				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = OutspireWidget/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = OutspireWidget;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-				);
-				MARKETING_VERSION = 0.8.1;
-				PRODUCT_BUNDLE_IDENTIFIER = dev.wrye.Outspire.OutspireWidget;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = iphoneos;
-				SKIP_INSTALL = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
-				SUPPORTS_MACCATALYST = YES;
-				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				VALIDATE_PRODUCT = YES;
-			};
-			name = Release;
-		};
 		6ED03A732D84647400C81CF9 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -657,7 +483,6 @@
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "Required to protect sensitive content, including academic grades, etc.";
-				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -728,7 +553,6 @@
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "Required to protect sensitive content, including academic grades, etc.";
-				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -865,15 +689,6 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		6E4BCC8E2D87E12C00C10AEA /* Build configuration list for PBXNativeTarget "OutspireWidgetExtension" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				6E4BCC8C2D87E12C00C10AEA /* Debug */,
-				6E4BCC8D2D87E12C00C10AEA /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
 		6ED03A4B2D84647300C81CF9 /* Build configuration list for PBXProject "Outspire" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

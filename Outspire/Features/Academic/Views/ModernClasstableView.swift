@@ -37,18 +37,27 @@ struct ModernClasstableView: View {
                             let isActive = period.isCurrentlyActive() && selectedDay == Self.currentWeekdayIndex()
                             let isPast = selectedDay == Self.currentWeekdayIndex() && context.date > period.endTime
 
-                            ClassPeriodCard(
-                                period: period,
-                                info: info,
-                                isActive: isActive,
-                                isPast: isPast,
-                                currentDate: context.date
-                            )
-                            .onTapGesture {
-                                if let info, !info.isSelfStudy {
-                                    HapticManager.shared.playLightFeedback()
+                            if let info, !info.isSelfStudy {
+                                Button {
                                     selectedDetail = ClassDetail(period: period, info: info)
+                                } label: {
+                                    ClassPeriodCard(
+                                        period: period,
+                                        info: info,
+                                        isActive: isActive,
+                                        isPast: isPast,
+                                        currentDate: context.date
+                                    )
                                 }
+                                .buttonStyle(.pressableCard)
+                            } else {
+                                ClassPeriodCard(
+                                    period: period,
+                                    info: info,
+                                    isActive: isActive,
+                                    isPast: isPast,
+                                    currentDate: context.date
+                                )
                             }
                         }
                     }
@@ -210,7 +219,7 @@ private struct ClassPeriodCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Gradient header — subject, period, time
+            // Subject, period, time
             VStack(alignment: .leading, spacing: 4) {
                 Text(displayInfo.subject ?? (displayInfo.isSelfStudy ? "Self-Study" : "Class"))
                     .font(.body.weight(.bold))
@@ -227,39 +236,32 @@ private struct ClassPeriodCard: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
-            .background(
-                LinearGradient(
-                    colors: [subjectColor, subjectColor.opacity(0.75)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .overlay(alignment: .top) {
-                    LinearGradient(colors: [.white.opacity(0.15), .clear], startPoint: .top, endPoint: .bottom)
-                        .frame(height: 1)
-                }
-            )
 
-            // Teacher + Room row (non-self-study only)
-            if !displayInfo.isSelfStudy, (displayInfo.teacher != nil || displayInfo.room != nil) {
-                HStack(spacing: 16) {
+            // Teacher + Room row (always shown for uniform card height)
+            HStack(spacing: 16) {
+                if displayInfo.isSelfStudy {
+                    Label("Free Period", systemImage: "book.fill")
+                } else {
                     if let teacher = displayInfo.teacher, !teacher.isEmpty {
                         Label(teacher, systemImage: "person.fill")
                     }
                     if let room = displayInfo.room, !room.isEmpty {
                         Label(room, systemImage: "door.left.hand.open")
                     }
-                    Spacer()
+                }
+                Spacer()
 
+                if !displayInfo.isSelfStudy {
                     Image(systemName: "chevron.right")
                         .font(.caption2.weight(.semibold))
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(.white.opacity(0.5))
                 }
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .labelStyle(.titleAndIcon)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
             }
+            .font(.caption)
+            .foregroundStyle(.white.opacity(0.75))
+            .labelStyle(.titleAndIcon)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
 
             // Active progress
             if isActive {
@@ -276,12 +278,18 @@ private struct ClassPeriodCard: View {
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
-                .background(subjectColor.opacity(0.85))
             }
         }
         .background(
-            RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
-                .fill(colorScheme == .dark ? AppColor.richDarkCard : Color(.systemBackground))
+            LinearGradient(
+                colors: [subjectColor, subjectColor.opacity(0.75)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .overlay(alignment: .top) {
+                LinearGradient(colors: [.white.opacity(0.15), .clear], startPoint: .top, endPoint: .bottom)
+                    .frame(height: 1)
+            }
         )
         .clipShape(RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous))
         .shadow(
@@ -308,7 +316,7 @@ struct ModernScheduleRow: View {
             (.blue.opacity(0.8), ["math", "mathematics", "maths"]),
             (.green.opacity(0.8), ["english", "language", "literature", "general paper", "esl"]),
             (.orange.opacity(0.8), ["physics", "science"]),
-            (.purple.opacity(0.8), ["chemistry", "chem"]),
+            (.pink.opacity(0.8), ["chemistry", "chem"]),
             (.teal.opacity(0.8), ["biology", "bio"]),
             (.mint.opacity(0.8), ["further math", "maths further"]),
             (.yellow.opacity(0.8), ["体育", "pe", "sports", "p.e"]),
@@ -322,8 +330,12 @@ struct ModernScheduleRow: View {
             if keywords.contains(where: { subjectLower.contains($0) }) { return color }
         }
 
-        let hash = abs(subjectLower.hashValue)
-        let hue = Double(hash % 12) / 12.0
+        // Deterministic hash — String.hashValue is randomized per process
+        var djb2: UInt64 = 5381
+        for byte in subjectLower.utf8 {
+            djb2 = djb2 &* 33 &+ UInt64(byte)
+        }
+        let hue = Double(djb2 % 12) / 12.0
         return Color(hue: hue, saturation: 0.7, brightness: 0.9)
     }
 

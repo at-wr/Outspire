@@ -75,16 +75,32 @@ struct SubtleDivider: View {
 // MARK: - Staggered Entry Animation
 
 extension View {
-    /// Applies a staggered slide-up + fade entry animation.
     func staggeredEntry(index: Int, animate: Bool) -> some View {
-        self
-            .opacity(animate ? 1 : 0)
-            .offset(y: animate ? 0 : 30)
-            .animation(
-                .spring(response: 0.55, dampingFraction: 0.75)
-                    .delay(Double(index) * 0.12),
-                value: animate
-            )
+        modifier(StaggeredEntryModifier(index: index, animate: animate))
+    }
+}
+
+private struct StaggeredEntryModifier: ViewModifier {
+    let index: Int
+    let animate: Bool
+    @State private var appeared = false
+
+    func body(content: Content) -> some View {
+        content
+            .opacity(appeared ? 1 : 0)
+            .offset(y: appeared ? 0 : 16)
+            .onAppear {
+                guard animate else {
+                    appeared = true
+                    return
+                }
+                withAnimation(
+                    .spring(response: 0.45, dampingFraction: 0.82)
+                        .delay(Double(index) * 0.08)
+                ) {
+                    appeared = true
+                }
+            }
     }
 }
 
