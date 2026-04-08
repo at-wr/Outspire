@@ -42,23 +42,32 @@ import WidgetKit
         }
     }
 
+    private func transitionDates(for state: ClassActivityAttributes.ContentState) -> [Date] {
+        let now = Date()
+        var dates = Set<Date>()
+        for cls in state.schedule {
+            dates.insert(cls.startTime)
+            dates.insert(cls.endTime)
+            dates.insert(cls.endTime.addingTimeInterval(-300))
+        }
+        let upcoming = dates.filter { $0 > now }.sorted()
+        return upcoming.isEmpty ? [now] : upcoming
+    }
+
     private struct LiveActivityTimeline<Content: View>: View {
         let context: ActivityViewContext<ClassActivityAttributes>
-        let refreshInterval: TimeInterval
         let content: (LiveActivityDerivedState) -> Content
 
         init(
             context: ActivityViewContext<ClassActivityAttributes>,
-            refreshInterval: TimeInterval = 10,
             @ViewBuilder content: @escaping (LiveActivityDerivedState) -> Content
         ) {
             self.context = context
-            self.refreshInterval = refreshInterval
             self.content = content
         }
 
         var body: some View {
-            TimelineView(.periodic(from: Date(), by: refreshInterval)) { timeline in
+            TimelineView(.explicit(transitionDates(for: context.state))) { timeline in
                 let derived = LiveActivityDerivedState(context: context, date: timeline.date)
                 content(derived)
             }
@@ -186,8 +195,9 @@ import WidgetKit
                             .foregroundStyle(.secondary)
                     }
 
-                    if state.status == .ongoing || state.status == .ending,
-                       let active = state.current
+                    if (state.status == .ongoing || state.status == .ending),
+                       let active = state.current,
+                       active.endTime > state.date
                     {
                         ProgressView(
                             timerInterval: active.startTime ... active.endTime,
@@ -295,8 +305,9 @@ import WidgetKit
 
                 Spacer()
 
-                if state.status == .ongoing || state.status == .ending,
-                   let active = state.current
+                if (state.status == .ongoing || state.status == .ending),
+                   let active = state.current,
+                   active.endTime > state.date
                 {
                     ProgressView(
                         timerInterval: active.startTime ... active.endTime,
@@ -317,8 +328,9 @@ import WidgetKit
 
         var body: some View {
             ZStack {
-                if state.status == .ongoing || state.status == .ending,
-                   let active = state.current
+                if (state.status == .ongoing || state.status == .ending),
+                   let active = state.current,
+                   active.endTime > state.date
                 {
                     ProgressView(
                         timerInterval: active.startTime ... active.endTime,
@@ -373,8 +385,9 @@ import WidgetKit
         let state: LiveActivityDerivedState
 
         var body: some View {
-            if state.status == .ongoing || state.status == .ending,
-               let active = state.current
+            if (state.status == .ongoing || state.status == .ending),
+               let active = state.current,
+               active.endTime > state.date
             {
                 ProgressView(
                     timerInterval: active.startTime ... active.endTime,
